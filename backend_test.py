@@ -137,6 +137,8 @@ class AirYatraAPITester:
         if not self.token:
             self.log_test("Create Booking", False, "No authentication token available")
             return False, None
+        
+        print(f"🔍 Using token for booking: {self.token[:50]}...")
             
         booking_data = {
             "from_location": "Mumbai",
