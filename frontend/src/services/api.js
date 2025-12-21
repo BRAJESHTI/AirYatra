@@ -32,8 +32,8 @@ export const authAPI = {
 };
 
 export const bookingAPI = {
-  create: (data) => api.post('/bookings', data),
-  getAll: (status) => api.get('/bookings', { params: { status } }),
+  create: (data) => api.post('/bookings/', data),
+  getAll: (status) => api.get('/bookings/', { params: { status } }),
   getById: (id) => api.get(`/bookings/${id}`),
   acceptQuote: (bookingId, quoteId) => api.post(`/bookings/${bookingId}/accept-quote`, { quote_id: quoteId }),
   cancel: (id) => api.post(`/bookings/${id}/cancel`),
