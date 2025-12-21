@@ -169,7 +169,7 @@ class AirYatraAPITester:
             self.log_test("Get Bookings", False, "No authentication token available")
             return False
             
-        return self.run_test("Get Bookings", "GET", "/api/bookings", 200)[0]
+        return self.run_test("Get Bookings", "GET", "/api/bookings/", 200)[0]
 
     def test_get_booking_by_id(self, booking_id):
         """Test getting specific booking by ID"""
