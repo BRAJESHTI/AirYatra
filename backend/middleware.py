@@ -1,0 +1,54 @@
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import List
+from auth import decode_token
+from database import get_database
+from models import UserRole
+import logging
+
+logger = logging.getLogger(__name__)
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current authenticated user"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    token = credentials.credentials
+    payload = decode_token(token)
+    
+    if payload is None:
+        raise credentials_exception
+    
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise credentials_exception
+    
+    db = get_database()
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    if user is None:
+        raise credentials_exception
+    
+    if not user.get("is_active", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is inactive"
+        )
+    
+    return user
+
+def require_roles(allowed_roles: List[UserRole]):
+    """Dependency to check if user has required roles"""
+    async def role_checker(user: dict = Depends(get_current_user)):
+        user_roles = user.get("roles", [])
+        if not any(role in allowed_roles for role in user_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+        return user
+    return role_checker
