@@ -1,6 +1,13 @@
 import axios from 'axios';
 
+console.log('Environment check:', {
+  NODE_ENV: process.env.NODE_ENV,
+  REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL
+});
+
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+console.log('API_URL being used:', API_URL);
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
