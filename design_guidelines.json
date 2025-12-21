@@ -1,0 +1,164 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "AirYatra Design System",
+      "archetype": "Aero-Swiss Precision",
+      "core_values": ["Safety", "Reliability", "Luxury", "Technical Precision"],
+      "vibe": "A blend of Swiss Air Traffic Control (functional, high contrast) and Private Aviation Concierge (warm, exclusive)."
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Chivo, sans-serif",
+        "body": "Public Sans, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "weights": {
+        "headings": "700 (Bold) or 900 (Black) for impact, 300 (Light) for elegance",
+        "body": "400 (Regular), 500 (Medium)"
+      },
+      "usage_rules": [
+        "Headings > 32px must use tracking-tight (-0.02em).",
+        "Overlines (labels) must be Uppercase, text-xs, tracking-widest (0.2em).",
+        "Do not use Inter for headings. Use Chivo for that technical, sturdy aero look."
+      ],
+      "installation": "Import from Google Fonts: https://fonts.googleapis.com/css2?family=Chivo:wght@300;400;700;900&family=Public+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    },
+    "colors": {
+      "palette": {
+        "primary": {
+          "name": "Aviation Navy",
+          "hex": "#0F172A",
+          "tailwind": "bg-slate-900",
+          "usage": "Primary buttons, active states, dark mode backgrounds"
+        },
+        "secondary": {
+          "name": "Cloud White",
+          "hex": "#F8FAFC",
+          "tailwind": "bg-slate-50",
+          "usage": "Light mode backgrounds, cards"
+        },
+        "accent": {
+          "name": "Safety Orange",
+          "hex": "#F97316",
+          "tailwind": "bg-orange-500",
+          "usage": "Critical CTAs (Book Now), Alerts. Use sparingly (max 10% of screen)."
+        },
+        "neutral": {
+          "name": "Fuselage Grey",
+          "hex": "#64748B",
+          "tailwind": "text-slate-500",
+          "usage": "Secondary text, borders"
+        },
+        "technical": {
+          "name": "Blueprint Blue",
+          "hex": "#38BDF8",
+          "tailwind": "text-sky-400",
+          "usage": "Grid lines, active borders, technical markers"
+        }
+      },
+      "gradients": {
+        "hero_overlay": "linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%)",
+        "glass_surface": "linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)"
+      },
+      "rules": [
+        "Never use pure black (#000000). Use Slate-950 (#020617).",
+        "Dark mode is 'Cockpit Mode': Deep Slate backgrounds with high-contrast neon blue/orange accents.",
+        "Light mode is 'Hangar Mode': Stark white/grey with deep navy text."
+      ]
+    },
+    "visual_enhancers": {
+      "glassmorphism": {
+        "style": "Cockpit Glass",
+        "css": "backdrop-blur-md bg-white/5 border border-white/10 shadow-xl",
+        "usage": "Floating headers, modal overlays, dashboard widgets"
+      },
+      "borders": {
+        "style": "Technical",
+        "css": "border border-slate-200 dark:border-slate-800",
+        "special": "Add 'corner markers' (pseudo-elements) to important cards to look like a HUD."
+      },
+      "shadows": {
+        "elevation_1": "shadow-sm",
+        "elevation_2": "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
+        "glow": "shadow-[0_0_15px_rgba(56,189,248,0.3)] (Use for active states in dark mode)"
+      }
+    },
+    "layout_strategy": {
+      "spacing": {
+        "scale": "Generous. Use p-8 or p-12 where others use p-4.",
+        "container_padding": "px-6 md:px-12 lg:px-24"
+      },
+      "grids": {
+        "marketing": "The Tetris Grid (Asymmetrical). Mix col-span-8 (Hero) with col-span-4 (Detail).",
+        "dashboard": "The Control Room Grid. Dense, 4-column layout. Gap-4. 100% width utilization."
+      },
+      "alignment": {
+        "text": "Left aligned mostly. Center only for massive hero slogans.",
+        "rule": "Optical alignment > Mathematical alignment."
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-3 font-medium tracking-wide shadow-lg hover:shadow-xl transition-all",
+        "secondary": "bg-transparent border border-slate-300 text-slate-900 hover:bg-slate-50 rounded-sm px-8 py-3",
+        "accent": "bg-orange-500 text-white hover:bg-orange-600 rounded-sm px-8 py-3 shadow-orange-500/20"
+      },
+      "cards": {
+        "base": "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-6 shadow-sm hover:shadow-md transition-all",
+        "glass": "backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border border-white/20"
+      },
+      "inputs": {
+        "style": "h-12 bg-slate-50 border-slate-200 focus:ring-2 focus:ring-slate-900 rounded-sm"
+      }
+    },
+    "motion": {
+      "transitions": "transition-all duration-300 ease-out",
+      "hover_effects": "translate-y-[-2px] shadow-lg",
+      "page_load": "opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700"
+    },
+    "media": {
+      "image_urls": {
+        "hero": [
+          {
+            "url": "https://images.unsplash.com/photo-1710273371790-a82d32156f2a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxoZWxpY29wdGVyJTIwZmx5aW5nJTIwb3ZlciUyMGNpdHklMjBza3lsaW5lJTIwYWVyaWFsJTIwdmlld3xlbnwwfHx8fDE3NjYzMzgyNjJ8MA&ixlib=rb-4.1.0&q=85",
+            "alt": "Helicopter over city skyline",
+            "category": "hero_main"
+          },
+          {
+            "url": "https://images.unsplash.com/photo-1694980549704-687ca225ce17?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwyfHxoZWxpY29wdGVyJTIwZmx5aW5nJTIwb3ZlciUyMGNpdHklMjBza3lsaW5lJTIwYWVyaWFsJTIwdmlld3xlbnwwfHx8fDE3NjYzMzgyNjJ8MA&ixlib=rb-4.1.0&q=85",
+            "alt": "Helicopter in blue sky",
+            "category": "hero_secondary"
+          }
+        ],
+        "people": [
+          {
+            "url": "https://images.unsplash.com/photo-1681157889142-52b0584a4f4d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBwaWxvdCUyMHBvcnRyYWl0JTIwYXZpYXRpb24lMjB1bmlmb3JtfGVufDB8fHx8MTc2NjMzODI2NXww&ixlib=rb-4.1.0&q=85",
+            "alt": "Pilot in cockpit",
+            "category": "team_pilot"
+          },
+          {
+            "url": "https://images.unsplash.com/photo-1681157889132-5446784b2e26?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBwaWxvdCUyMHBvcnRyYWl0JTIwYXZpYXRpb24lMjB1bmlmb3JtfGVufDB8fHx8MTc2NjMzODI2NXww&ixlib=rb-4.1.0&q=85",
+            "alt": "Pilots in cockpit",
+            "category": "team_pilots"
+          }
+        ],
+        "interiors": [
+          {
+            "url": "https://images.unsplash.com/photo-1697897082284-a94ec1e2e4db?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwzfHxsdXh1cnklMjBwcml2YXRlJTIwamV0JTIwaW50ZXJpb3IlMjBsZWF0aGVyJTIwc2VhdHN8ZW58MHx8fHwxNzY2MzM4MjY3fDA&ixlib=rb-4.1.0&q=85",
+            "alt": "Luxury jet interior",
+            "category": "interior_luxury"
+          }
+        ]
+      }
+    },
+    "universal_guidelines": [
+      "Do not use gradients for backgrounds unless it's a subtle noise texture.",
+      "Use 'sonner' for all toast notifications.",
+      "All interactive elements must have data-testid attributes.",
+      "Use Lucide-React for icons.",
+      "For Dashboards: Use the 'Control Room' grid. High density, no wasted space.",
+      "For Marketing: Use the 'Tetris' grid. Asymmetry and large imagery.",
+      "Dark mode is mandatory for the Operator Dashboard to reduce eye strain during night ops."
+    ]
+  }
+}
