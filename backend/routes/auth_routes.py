@@ -27,7 +27,9 @@ async def register(user_data: UserCreate):
     user_dict["created_at"] = datetime.utcnow().isoformat()
     user_dict["updated_at"] = datetime.utcnow().isoformat()
     
-    await db.users.insert_one(user_dict)
+    # Create a copy for insertion to avoid MongoDB adding _id to original dict
+    insert_dict = user_dict.copy()
+    await db.users.insert_one(insert_dict)
     
     access_token = create_access_token(data={"sub": user_dict["id"], "roles": user_dict["roles"]})
     
