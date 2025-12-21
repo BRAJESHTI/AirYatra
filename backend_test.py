@@ -152,7 +152,7 @@ class AirYatraAPITester:
         success, response = self.run_test(
             "Create Booking",
             "POST",
-            "/api/bookings",
+            "/api/bookings/",
             200,
             data=booking_data
         )
