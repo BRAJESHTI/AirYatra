@@ -10,7 +10,7 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 @router.get("/dashboard")
 async def get_analytics_dashboard(
     period: str = "30d",  # 7d, 30d, 90d, 1y
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get comprehensive analytics dashboard"""
@@ -133,7 +133,7 @@ async def get_analytics_dashboard(
 @router.get("/revenue")
 async def get_revenue_analytics(
     period: str = "30d",
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get detailed revenue analytics"""

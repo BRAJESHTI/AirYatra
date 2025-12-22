@@ -36,7 +36,7 @@ class NotificationTemplate(BaseModel):
 
 @router.get("/platform")
 async def get_platform_settings(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get platform-wide settings"""
@@ -53,7 +53,7 @@ async def get_platform_settings(
 @router.put("/platform")
 async def update_platform_settings(
     settings: PlatformSettings,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Update platform-wide settings"""
@@ -93,7 +93,7 @@ async def get_regions(
 @router.post("/regions")
 async def create_region(
     region: RegionSettings,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Create a new region"""
@@ -109,7 +109,7 @@ async def create_region(
 async def update_region(
     region_id: str,
     region: RegionSettings,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Update a region"""
@@ -122,7 +122,7 @@ async def update_region(
 @router.delete("/regions/{region_id}")
 async def delete_region(
     region_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Delete a region"""
@@ -132,7 +132,7 @@ async def delete_region(
 @router.get("/notification-templates")
 async def get_notification_templates(
     template_type: Optional[str] = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get notification templates"""
@@ -146,7 +146,7 @@ async def get_notification_templates(
 @router.post("/notification-templates")
 async def create_notification_template(
     template: NotificationTemplate,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Create a notification template"""
@@ -161,7 +161,7 @@ async def create_notification_template(
 async def update_notification_template(
     template_id: str,
     template: NotificationTemplate,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Update a notification template"""
@@ -173,7 +173,7 @@ async def update_notification_template(
 
 @router.get("/commission-tiers")
 async def get_commission_tiers(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get commission tiers for operators"""
