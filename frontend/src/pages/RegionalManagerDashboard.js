@@ -68,6 +68,7 @@ function RegionalManagerDashboard({ user, onLogout }) {
                 <span className="text-purple-400 text-sm">{profile.region}</span>
               </div>
             )}
+            <NotificationBell user={user} />
             <span className="text-slate-300">Welcome, {user.full_name}</span>
             <Button variant="ghost" onClick={onLogout} className="text-white hover:text-purple-400">
               <LogOut className="h-5 w-5" />
