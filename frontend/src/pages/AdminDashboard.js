@@ -86,6 +86,7 @@ function AdminDashboard({ user, onLogout }) {
                 </span>
               </div>
             )}
+            <NotificationBell user={user} />
             <span className="text-slate-300">Welcome, {user.full_name}</span>
             <Button variant="ghost" onClick={onLogout} className="text-white hover:text-orange-400" data-testid="logout-btn">
               <LogOut className="h-5 w-5" />
