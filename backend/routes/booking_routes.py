@@ -39,32 +39,32 @@ async def create_booking(booking_data: dict, user: dict = Depends(get_current_us
     }
     
     # Get AI price suggestion
-    # try:
-    #     price_suggestion = await ai_service.get_price_suggestion({
-    #         "booking_id": booking_id,
-    #         "from_location": booking["from_location"],
-    #         "to_location": booking["to_location"],
-    #         "passengers": booking["passengers"],
-    #         "trip_type": booking["trip_type"]
-    #     })
-    #     booking["ai_price_suggestion"] = price_suggestion
-    # except Exception as e:
-    #     logger.error(f"Error getting price suggestion: {e}")
+    try:
+        price_suggestion = await ai_service.get_price_suggestion({
+            "booking_id": booking_id,
+            "from_location": booking["from_location"],
+            "to_location": booking["to_location"],
+            "passengers": booking["passengers"],
+            "trip_type": booking["trip_type"]
+        })
+        booking["ai_price_suggestion"] = price_suggestion
+    except Exception as e:
+        logger.error(f"Error getting price suggestion: {e}")
     
     await db.bookings.insert_one(booking.copy())
     
-    # Notify operators
-    # operators = await db.operators.find({"status": "active"}, {"_id": 0}).to_list(100)
-    # for operator in operators:
-    #     # Create inquiry for each operator
-    #     inquiry = {
-    #         "id": str(uuid.uuid4()),
-    #         "booking_id": booking_id,
-    #         "operator_id": operator["id"],
-    #         "status": "pending",
-    #         "created_at": datetime.utcnow().isoformat()
-    #     }
-    #     await db.inquiries.insert_one(inquiry)
+    # Notify operators - create inquiries for all active operators
+    operators = await db.operators.find({"status": "active"}, {"_id": 0}).to_list(100)
+    for operator in operators:
+        # Create inquiry for each operator
+        inquiry = {
+            "id": str(uuid.uuid4()),
+            "booking_id": booking_id,
+            "operator_id": operator["id"],
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        await db.inquiries.insert_one(inquiry.copy())
     
     return {"message": "Booking request created", "booking": booking}
 
