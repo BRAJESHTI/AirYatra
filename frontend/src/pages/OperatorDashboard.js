@@ -61,6 +61,7 @@ function OperatorDashboard({ user, onLogout }) {
             <span className="text-2xl font-bold text-white">AirYatra Operator</span>
           </div>
           <div className="flex items-center space-x-4">
+            <NotificationBell user={user} />
             <div className="text-right">
               <div className="text-white font-medium" data-testid="operator-name">{operator?.company_name}</div>
               <div className="text-slate-400 text-sm" data-testid="verification-status">
