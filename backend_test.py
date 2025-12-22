@@ -478,8 +478,17 @@ class AirYatraAPITester:
         }
 
 def main():
+    import sys
+    
+    # Check if we should run operator tests
+    run_operator = len(sys.argv) > 1 and sys.argv[1] == "operator"
+    
     tester = AirYatraAPITester()
-    report = tester.run_all_tests()
+    
+    if run_operator:
+        report = tester.run_operator_tests()
+    else:
+        report = tester.run_all_tests()
     
     # Return appropriate exit code
     if report["has_critical_failures"]:
