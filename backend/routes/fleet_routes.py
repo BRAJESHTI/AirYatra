@@ -35,7 +35,7 @@ async def create_aircraft(aircraft_data: dict, user: dict = Depends(get_current_
         "updated_at": datetime.utcnow().isoformat()
     }
     
-    await db.aircraft.insert_one(aircraft)
+    await db.aircraft.insert_one(aircraft.copy())
     
     return {"message": "Aircraft added", "aircraft": aircraft}
 
