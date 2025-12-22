@@ -48,6 +48,8 @@ function AdminDashboard({ user, onLogout }) {
     switch (activeTab) {
       case 'overview':
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} />;
+      case 'analytics':
+        return <AnalyticsDashboard />;
       case 'operators':
         return <OperatorManagement />;
       case 'bookings':
@@ -58,6 +60,8 @@ function AdminDashboard({ user, onLogout }) {
         return <SettlementManagement />;
       case 'audit':
         return <AuditLogs />;
+      case 'settings':
+        return <GlobalSettings />;
       default:
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} />;
     }
