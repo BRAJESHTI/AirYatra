@@ -208,4 +208,51 @@ export const paymentsAPI = {
   getOrderStatus: (orderId) => api.get(`/payments/order/${orderId}/status`),
 };
 
+// Customer API
+export const customerAPI = {
+  getTrips: (status) => api.get('/customer/trips', { params: { status } }),
+  getTripDetails: (bookingId) => api.get(`/customer/trips/${bookingId}`),
+  cancelTrip: (bookingId, data) => api.post(`/customer/trips/${bookingId}/cancel`, data),
+  getInvoice: (bookingId) => api.get(`/customer/trips/${bookingId}/invoice`),
+  getRefunds: () => api.get('/customer/refunds'),
+};
+
+// Chat API
+export const chatAPI = {
+  getConversations: () => api.get('/chat/conversations'),
+  getMessages: (bookingId, limit) => api.get(`/chat/messages/${bookingId}`, { params: { limit } }),
+  sendMessage: (data) => api.post('/chat/send', data),
+  markRead: (messageId) => api.post(`/chat/messages/${messageId}/read`),
+};
+
+// Feedback API
+export const feedbackAPI = {
+  create: (data) => api.post('/feedback/', data),
+  getBookingFeedback: (bookingId) => api.get(`/feedback/booking/${bookingId}`),
+  getOperatorFeedback: (operatorId, limit) => api.get(`/feedback/operator/${operatorId}`, { params: { limit } }),
+  respond: (feedbackId, data) => api.post(`/feedback/${feedbackId}/respond`, data),
+  getMyReviews: () => api.get('/feedback/my-reviews'),
+};
+
+// Analytics API
+export const analyticsAPI = {
+  getDashboard: (period) => api.get('/analytics/dashboard', { params: { period } }),
+  getRevenue: (period) => api.get('/analytics/revenue', { params: { period } }),
+  getOperatorAnalytics: (operatorId, period) => api.get(`/analytics/operator/${operatorId}`, { params: { period } }),
+};
+
+// Settings API
+export const settingsAPI = {
+  getPlatformSettings: () => api.get('/settings/platform'),
+  updatePlatformSettings: (data) => api.put('/settings/platform', data),
+  getRegions: () => api.get('/settings/regions'),
+  createRegion: (data) => api.post('/settings/regions', data),
+  updateRegion: (id, data) => api.put(`/settings/regions/${id}`, data),
+  deleteRegion: (id) => api.delete(`/settings/regions/${id}`),
+  getNotificationTemplates: (type) => api.get('/settings/notification-templates', { params: { template_type: type } }),
+  createNotificationTemplate: (data) => api.post('/settings/notification-templates', data),
+  updateNotificationTemplate: (id, data) => api.put(`/settings/notification-templates/${id}`, data),
+  getCommissionTiers: () => api.get('/settings/commission-tiers'),
+};
+
 export default api;
