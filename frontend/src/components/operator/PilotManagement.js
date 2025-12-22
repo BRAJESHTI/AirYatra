@@ -250,12 +250,22 @@ function PilotManagement({ operator }) {
                     <Award className="h-4 w-4 text-slate-400" />
                     <span className="text-white">{pilot.experience_years} years experience</span>
                   </div>
-                  <div className="pt-3 border-t border-slate-700">
+                  <div className="pt-3 border-t border-slate-700 flex items-center justify-between">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${
                       pilot.is_available ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                     }`}>
                       {pilot.is_available ? 'Available' : 'Unavailable'}
                     </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewDocuments(pilot)}
+                      className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+                      data-testid={`view-docs-${pilot.id}`}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Documents
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -263,6 +273,66 @@ function PilotManagement({ operator }) {
           </div>
         )}
       </div>
+
+      {/* Pilot Documents Dialog */}
+      <Dialog open={isDocDialogOpen} onOpenChange={setIsDocDialogOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">
+              {selectedPilot?.full_name} - Documents
+            </DialogTitle>
+          </DialogHeader>
+          
+          <Tabs defaultValue="view" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+              <TabsTrigger value="view" className="data-[state=active]:bg-orange-500">View Documents</TabsTrigger>
+              <TabsTrigger value="upload" className="data-[state=active]:bg-orange-500">Upload New</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="view" className="mt-4">
+              <DocumentViewer
+                documents={pilotDocuments}
+                onDelete={pilotDocumentAPI.deleteDocument}
+                onRefresh={() => selectedPilot && fetchPilotDocuments(selectedPilot.id)}
+              />
+            </TabsContent>
+            
+            <TabsContent value="upload" className="mt-4 space-y-6">
+              <DocumentUploader
+                entityId={selectedPilot?.id}
+                entityType="pilot"
+                documentType="photo"
+                apiService={pilotDocumentAPI}
+                label="Pilot Photo"
+                accept=".jpg,.jpeg,.png"
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+              
+              <DocumentUploader
+                entityId={selectedPilot?.id}
+                entityType="pilot"
+                documentType="license_copy"
+                apiService={pilotDocumentAPI}
+                label="License Copy"
+                accept=".pdf,.jpg,.jpeg,.png"
+                showIssueDate={true}
+                showExpiryDate={true}
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+              
+              <DocumentUploader
+                entityId={selectedPilot?.id}
+                entityType="pilot"
+                documentType="experience_certificate"
+                apiService={pilotDocumentAPI}
+                label="Experience Certificate"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
