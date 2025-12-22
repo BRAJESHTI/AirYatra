@@ -79,4 +79,15 @@ export const paymentAPI = {
   verifyPayment: (data) => api.post('/payment/verify', data),
 };
 
+export const operatorAPI = {
+  createProfile: (data) => api.post('/operator/profile', data),
+  getProfile: () => api.get('/operator/profile'),
+  updateProfile: (data) => api.put('/operator/profile', data),
+  getDashboard: () => api.get('/operator/dashboard'),
+  createPilot: (data) => api.post('/operator/pilots', data),
+  getPilots: () => api.get('/operator/pilots'),
+  updatePilot: (id, data) => api.put(`/operator/pilots/${id}`, data),
+  deletePilot: (id) => api.delete(`/operator/pilots/${id}`),
+};
+
 export default api;
