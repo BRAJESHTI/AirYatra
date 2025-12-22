@@ -46,7 +46,15 @@ function App() {
         <Route path="/" element={<LandingPage user={user} />} />
         <Route path="/login" element={<LoginPage setUser={setUser} />} />
         <Route
-          path="/customer/*"
+          path="/customer"
+          element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/customer/trips"
+          element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/customer/messages"
           element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route
