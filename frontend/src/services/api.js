@@ -177,4 +177,35 @@ export const landingPermissionAPI = {
   getPilotPending: () => api.get('/landing-permissions/pilot/pending'),
 };
 
+// Regional Manager API
+export const regionalManagerAPI = {
+  getDashboard: () => api.get('/regional-manager/dashboard'),
+  getOperators: (status) => api.get('/regional-manager/operators', { params: { status } }),
+  approveOperator: (id, notes) => api.post(`/regional-manager/operators/${id}/approve`, { notes }),
+  rejectOperator: (id, reason) => api.post(`/regional-manager/operators/${id}/reject`, { reason }),
+  getBookings: (status) => api.get('/regional-manager/bookings', { params: { status } }),
+  getLandingPermissions: (status) => api.get('/regional-manager/landing-permissions', { params: { status } }),
+  approveLandingPermission: (id, notes) => api.post(`/regional-manager/landing-permissions/${id}/approve`, { notes }),
+  getProfile: () => api.get('/regional-manager/profile'),
+};
+
+// Notifications API
+export const notificationAPI = {
+  getPreferences: () => api.get('/notifications/preferences'),
+  updatePreferences: (data) => api.put('/notifications/preferences', data),
+  getHistory: (limit) => api.get('/notifications/history', { params: { limit } }),
+  getInApp: (unreadOnly) => api.get('/notifications/in-app', { params: { unread_only: unreadOnly } }),
+  markRead: (id) => api.post(`/notifications/in-app/${id}/read`),
+  markAllRead: () => api.post('/notifications/in-app/mark-all-read'),
+};
+
+// Payments API
+export const paymentsAPI = {
+  createOrder: (data) => api.post('/payments/create-order', data),
+  verify: (data) => api.post('/payments/verify', data),
+  refund: (data) => api.post('/payments/refund', data),
+  getMethods: () => api.get('/payments/methods'),
+  getOrderStatus: (orderId) => api.get(`/payments/order/${orderId}/status`),
+};
+
 export default api;
