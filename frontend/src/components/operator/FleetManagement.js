@@ -129,12 +129,42 @@ function FleetManagement({ operator }) {
               <DialogTitle className="text-2xl font-bold">Add New Aircraft</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4" data-testid="add-aircraft-form">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="manufacturer">Manufacturer *</Label>
+                  <Input
+                    id="manufacturer"
+                    name="manufacturer"
+                    placeholder="Bell Helicopter"
+                    value={formData.manufacturer}
+                    onChange={handleChange}
+                    required
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="manufacturer-input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="model_name">Model Name *</Label>
+                  <Input
+                    id="model_name"
+                    name="model_name"
+                    placeholder="407GXi"
+                    value={formData.model_name}
+                    onChange={handleChange}
+                    required
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="model-name-input"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="aircraft_type">Aircraft Type *</Label>
+                <Label htmlFor="aircraft_type">Full Aircraft Type *</Label>
                 <Input
                   id="aircraft_type"
                   name="aircraft_type"
-                  placeholder="Bell 407"
+                  placeholder="Bell 407GXi"
                   value={formData.aircraft_type}
                   onChange={handleChange}
                   required
@@ -143,18 +173,37 @@ function FleetManagement({ operator }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="registration_number">Registration Number *</Label>
-                <Input
-                  id="registration_number"
-                  name="registration_number"
-                  placeholder="VT-ABC"
-                  value={formData.registration_number}
-                  onChange={handleChange}
-                  required
-                  className="bg-slate-800 border-slate-700"
-                  data-testid="registration-input"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="manufacture_year">Year of Manufacture *</Label>
+                  <Input
+                    id="manufacture_year"
+                    name="manufacture_year"
+                    type="number"
+                    min="1950"
+                    max="2030"
+                    placeholder="2020"
+                    value={formData.manufacture_year}
+                    onChange={handleChange}
+                    required
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="manufacture-year-input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="registration_number">Registration Number *</Label>
+                  <Input
+                    id="registration_number"
+                    name="registration_number"
+                    placeholder="VT-ABC"
+                    value={formData.registration_number}
+                    onChange={handleChange}
+                    required
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="registration-input"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
