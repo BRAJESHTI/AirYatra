@@ -4,6 +4,7 @@ import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Setting
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
+import NotificationBell from '../components/shared/NotificationBell';
 
 // Import operator sub-pages
 import OperatorHome from '../components/operator/OperatorHome';
