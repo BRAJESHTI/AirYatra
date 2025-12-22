@@ -53,6 +53,10 @@ api_router.include_router(payment_routes.router)
 api_router.include_router(operator_routes.router)
 api_router.include_router(pilot_document_routes.router)
 api_router.include_router(aircraft_document_routes.router)
+api_router.include_router(flight_record_routes.router)
+api_router.include_router(fuel_record_routes.router)
+api_router.include_router(live_tracking_routes.router)
+api_router.include_router(landing_permission_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
