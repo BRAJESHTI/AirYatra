@@ -1,23 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut } from 'lucide-react';
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bookingAPI } from '../services/api';
 import { toast } from 'sonner';
+import MyTrips from '../components/customer/MyTrips';
+import ChatWidget from '../components/customer/ChatWidget';
+import NotificationBell from '../components/shared/NotificationBell';
 
 function CustomerDashboard({ user, onLogout }) {
+  const [activeTab, setActiveTab] = useState('overview');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchBookings();
   }, []);
 
+  // Sync activeTab with URL
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/trips')) setActiveTab('trips');
+    else if (path.includes('/messages')) setActiveTab('messages');
+    else setActiveTab('overview');
+  }, [location]);
+
   const fetchBookings = async () => {
     try {
       const response = await bookingAPI.getAll();
-      setBookings(response.data.bookings);
+      setBookings(response.data.bookings || []);
     } catch (error) {
       toast.error('Failed to load bookings');
     } finally {
@@ -25,41 +38,21 @@ function CustomerDashboard({ user, onLogout }) {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-950" data-testid="customer-dashboard">
-      {/* Top Navigation */}
-      <nav className="bg-slate-900 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Plane className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold text-white">AirYatra</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-slate-300" data-testid="user-name">Welcome, {user.full_name}</span>
-            <Button variant="ghost" onClick={onLogout} className="text-white" data-testid="logout-btn">
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </nav>
+  const navItems = [
+    { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
+    { id: 'trips', label: 'My Trips', icon: MapPin, path: '/customer/trips' },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/customer/messages' },
+    { id: 'booking', label: 'New Booking', icon: Calendar, path: '/booking', external: true },
+  ];
 
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-slate-900 min-h-screen p-6">
-          <nav className="space-y-2">
-            <Link to="/customer" className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-orange-500 text-white" data-testid="dashboard-link">
-              <Home className="h-5 w-5" />
-              <span>Dashboard</span>
-            </Link>
-            <Link to="/booking" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="new-booking-link">
-              <Calendar className="h-5 w-5" />
-              <span>New Booking</span>
-            </Link>
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-8">
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'trips':
+        return <MyTrips user={user} />;
+      case 'messages':
+        return <ChatWidget user={user} />;
+      default:
+        return (
           <div className="max-w-6xl mx-auto">
             <h1 className="text-4xl font-bold text-white mb-8" data-testid="page-title">My Dashboard</h1>
 
@@ -85,7 +78,16 @@ function CustomerDashboard({ user, onLogout }) {
 
             {/* Recent Bookings */}
             <div className="glass p-6 rounded-lg">
-              <h2 className="text-2xl font-bold text-white mb-6">Recent Bookings</h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-white">Recent Bookings</h2>
+                <Button 
+                  variant="outline" 
+                  className="border-orange-500 text-orange-400 hover:bg-orange-500/10"
+                  onClick={() => { setActiveTab('trips'); navigate('/customer/trips'); }}
+                >
+                  View All Trips
+                </Button>
+              </div>
               {loading ? (
                 <div className="text-slate-400">Loading...</div>
               ) : bookings.length === 0 ? (
@@ -122,6 +124,71 @@ function CustomerDashboard({ user, onLogout }) {
               )}
             </div>
           </div>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950" data-testid="customer-dashboard">
+      {/* Top Navigation */}
+      <nav className="bg-slate-900 border-b border-slate-800">
+        <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Plane className="h-8 w-8 text-orange-500" />
+            <span className="text-2xl font-bold text-white">AirYatra</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <NotificationBell user={user} />
+            <span className="text-slate-300" data-testid="user-name">Welcome, {user.full_name}</span>
+            <Button variant="ghost" onClick={onLogout} className="text-white" data-testid="logout-btn">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-slate-900 min-h-[calc(100vh-73px)] p-6">
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              
+              if (item.external) {
+                return (
+                  <Link 
+                    key={item.id}
+                    to={item.path} 
+                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800"
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              }
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id); navigate(item.path); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+                    isActive
+                      ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                      : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-8">
+          {renderContent()}
         </main>
       </div>
     </div>
