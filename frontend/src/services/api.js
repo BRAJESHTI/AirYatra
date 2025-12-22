@@ -90,4 +90,20 @@ export const operatorAPI = {
   deletePilot: (id) => api.delete(`/operator/pilots/${id}`),
 };
 
+export const pilotDocumentAPI = {
+  generateUploadUrl: (data) => api.post('/pilot-documents/upload-url', data),
+  confirmUpload: (documentId) => api.post(`/pilot-documents/${documentId}/confirm`),
+  getPilotDocuments: (pilotId) => api.get(`/pilot-documents/pilot/${pilotId}`),
+  deleteDocument: (documentId) => api.delete(`/pilot-documents/${documentId}`),
+  getExpiringDocuments: () => api.get('/pilot-documents/expiring-soon'),
+};
+
+export const aircraftDocumentAPI = {
+  generateUploadUrl: (data) => api.post('/aircraft-documents/upload-url', data),
+  confirmUpload: (documentId) => api.post(`/aircraft-documents/${documentId}/confirm`),
+  getAircraftDocuments: (aircraftId) => api.get(`/aircraft-documents/aircraft/${aircraftId}`),
+  deleteDocument: (documentId) => api.delete(`/aircraft-documents/${documentId}`),
+  getExpiringDocuments: () => api.get('/aircraft-documents/expiring-soon'),
+};
+
 export default api;
