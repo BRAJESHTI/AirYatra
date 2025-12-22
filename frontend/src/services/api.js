@@ -54,6 +54,56 @@ export const fleetAPI = {
   getStatistics: (id) => api.get(`/fleet/${id}/statistics`),
 };
 
+// Booking API
+export const bookingAPI = {
+  create: (data) => api.post('/bookings/', data),
+  getAll: (status) => api.get('/bookings/', { params: { status } }),
+  getById: (id) => api.get(`/bookings/${id}`),
+  acceptQuote: (bookingId, quoteId) => api.post(`/bookings/${bookingId}/accept-quote`, { quote_id: quoteId }),
+  cancel: (id) => api.post(`/bookings/${id}/cancel`),
+};
+
+// Quote API
+export const quoteAPI = {
+  create: (data) => api.post('/quotes/', data),
+  getInquiries: () => api.get('/quotes/operator/inquiries'),
+  getAll: () => api.get('/quotes/'),
+};
+
+// Document API
+export const documentAPI = {
+  generateUploadUrl: (data) => api.post('/documents/generate-upload-url', data),
+  confirmUpload: (id) => api.post(`/documents/${id}/confirm-upload`),
+  getDownloadUrl: (id) => api.get(`/documents/${id}/download-url`),
+  getAll: () => api.get('/documents'),
+  delete: (id) => api.delete(`/documents/${id}`),
+};
+
+// Admin API
+export const adminAPI = {
+  getDashboard: () => api.get('/admin/dashboard'),
+  getOperators: () => api.get('/admin/operators'),
+  verifyOperator: (id, data) => api.post(`/admin/operators/${id}/verify`, data),
+  getAllBookings: () => api.get('/admin/bookings'),
+  reassignBooking: (id, data) => api.post(`/admin/bookings/${id}/reassign`, data),
+  getAuditLogs: () => api.get('/admin/audit-logs'),
+  createUser: (data) => api.post('/admin/users', data),
+};
+
+// AI API
+export const aiAPI = {
+  getPriceSuggestion: (data) => api.post('/ai/price-suggestion', data),
+  verifyDocument: (data) => api.post('/ai/verify-document', data),
+  getRouteRecommendations: (data) => api.post('/ai/route-recommendations', data),
+};
+
+// Payment API
+export const paymentAPI = {
+  createOrder: (data) => api.post('/payment/create-order', data),
+  verifyPayment: (data) => api.post('/payment/verify', data),
+};
+
+// Operator API
 export const operatorAPI = {
   createProfile: (data) => api.post('/operator/profile', data),
   getProfile: () => api.get('/operator/profile'),
