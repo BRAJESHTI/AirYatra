@@ -14,7 +14,8 @@ function LoginPage({ setUser }) {
     password: '',
     full_name: '',
     phone: '',
-    roles: ['customer']
+    roles: ['customer'],
+    user_type: 'customer' // Add user type selector
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
