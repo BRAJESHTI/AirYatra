@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plane, Users, MessageSquare, TrendingUp, AlertCircle } from 'lucide-react';
+import { Plane, Users, MessageSquare, TrendingUp, AlertCircle, Fuel, BookOpen, MapPin } from 'lucide-react';
 import { operatorAPI } from '../../services/api';
 import { toast } from 'sonner';
+import DocumentExpiryAlerts from './DocumentExpiryAlerts';
 
 function OperatorHome({ operator }) {
   const [dashboard, setDashboard] = useState(null);
