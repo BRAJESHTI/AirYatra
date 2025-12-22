@@ -147,6 +147,41 @@ function OperatorHome({ operator }) {
           </a>
         </div>
       </div>
+
+      {/* Second Row of Quick Actions - Tracking */}
+      <div className="grid md:grid-cols-3 gap-6 mt-6">
+        <div className="glass p-6 rounded-lg text-center">
+          <BookOpen className="h-12 w-12 text-cyan-500 mx-auto mb-3" />
+          <h3 className="text-white font-semibold mb-2">Flight Records</h3>
+          <p className="text-slate-400 text-sm mb-4">Log and track flight history</p>
+          <a href="/operator/flight-records" className="text-cyan-500 hover:text-cyan-400 text-sm font-medium">
+            View Records →
+          </a>
+        </div>
+
+        <div className="glass p-6 rounded-lg text-center">
+          <Fuel className="h-12 w-12 text-green-500 mx-auto mb-3" />
+          <h3 className="text-white font-semibold mb-2">Fuel Tracking</h3>
+          <p className="text-slate-400 text-sm mb-4">Track fuel consumption and costs</p>
+          <a href="/operator/fuel-records" className="text-green-500 hover:text-green-400 text-sm font-medium">
+            View Fuel Records →
+          </a>
+        </div>
+
+        <div className="glass p-6 rounded-lg text-center">
+          <MapPin className="h-12 w-12 text-purple-500 mx-auto mb-3" />
+          <h3 className="text-white font-semibold mb-2">Live Tracking</h3>
+          <p className="text-slate-400 text-sm mb-4">Track aircraft in real-time on map</p>
+          <a href="/operator/live-tracking" className="text-purple-500 hover:text-purple-400 text-sm font-medium">
+            Open Map →
+          </a>
+        </div>
+      </div>
+
+      {/* Document Expiry Alerts */}
+      <div className="mt-8">
+        <DocumentExpiryAlerts />
+      </div>
     </div>
   );
 }
