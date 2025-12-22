@@ -242,18 +242,36 @@ function FleetManagement({ operator }) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="base_location">Base Location *</Label>
-                <Input
-                  id="base_location"
-                  name="base_location"
-                  placeholder="Mumbai"
-                  value={formData.base_location}
-                  onChange={handleChange}
-                  required
-                  className="bg-slate-800 border-slate-700"
-                  data-testid="base-location-input"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="base_location">Base Location *</Label>
+                  <Input
+                    id="base_location"
+                    name="base_location"
+                    placeholder="Mumbai"
+                    value={formData.base_location}
+                    onChange={handleChange}
+                    required
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="base-location-input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="enrollment_odometer_km">Enrollment Odometer (KM)</Label>
+                  <Input
+                    id="enrollment_odometer_km"
+                    name="enrollment_odometer_km"
+                    type="number"
+                    min="0"
+                    placeholder="12500"
+                    value={formData.enrollment_odometer_km}
+                    onChange={handleChange}
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="enrollment-km-input"
+                  />
+                  <p className="text-xs text-slate-400">Current odometer reading when joining AirYatra</p>
+                </div>
               </div>
 
               <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" data-testid="submit-aircraft-btn">
