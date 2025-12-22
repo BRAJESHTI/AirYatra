@@ -82,12 +82,32 @@ export const documentAPI = {
 // Admin API
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
-  getOperators: () => api.get('/admin/operators'),
+  getOperators: (status) => api.get('/admin/operators', { params: { status } }),
   verifyOperator: (id, data) => api.post(`/admin/operators/${id}/verify`, data),
-  getAllBookings: () => api.get('/admin/bookings'),
+  getAllBookings: (status) => api.get('/admin/bookings', { params: { status } }),
   reassignBooking: (id, data) => api.post(`/admin/bookings/${id}/reassign`, data),
-  getAuditLogs: () => api.get('/admin/audit-logs'),
+  forceAssign: (id, data) => api.post(`/admin/bookings/${id}/force-assign`, data),
+  getAuditLogs: (filters) => api.get('/admin/audit-logs/', { params: filters }),
+  getAuditStatistics: () => api.get('/admin/audit-logs/statistics'),
+  getUserActivity: (userId) => api.get(`/admin/audit-logs/user/${userId}/activity`),
+  getEntityAuditTrail: (type, id) => api.get(`/admin/audit-logs/entity/${type}/${id}`),
+  getCriticalActions: () => api.get('/admin/audit-logs/critical'),
   createUser: (data) => api.post('/admin/users', data),
+};
+
+// Admin Landing Permissions API
+export const adminLandingPermissionAPI = {
+  getPending: () => api.get('/admin/landing-permissions/pending'),
+  approve: (id, data) => api.post(`/admin/landing-permissions/${id}/approve`, data),
+  reject: (id, data) => api.post(`/admin/landing-permissions/${id}/reject`, data),
+};
+
+// Admin Settlements API
+export const adminSettlementAPI = {
+  create: (data) => api.post('/admin/settlements/create', data),
+  getAll: (status) => api.get('/admin/settlements/', { params: { status } }),
+  approve: (id, data) => api.post(`/admin/settlements/${id}/approve`, data),
+  markPaid: (id, data) => api.post(`/admin/settlements/${id}/mark-paid`, data),
 };
 
 // AI API
