@@ -58,6 +58,9 @@ api_router.include_router(flight_record_routes.router)
 api_router.include_router(fuel_record_routes.router)
 api_router.include_router(live_tracking_routes.router)
 api_router.include_router(landing_permission_routes.router)
+api_router.include_router(admin_landing_permission_routes.router)
+api_router.include_router(admin_settlement_routes.router)
+api_router.include_router(admin_audit_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
