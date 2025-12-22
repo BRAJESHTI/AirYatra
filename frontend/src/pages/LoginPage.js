@@ -71,6 +71,24 @@ function LoginPage({ setUser }) {
           {!isLogin && (
             <>
               <div className="space-y-2">
+                <Label htmlFor="user_type" className="text-white">I am a *</Label>
+                <select
+                  id="user_type"
+                  name="user_type"
+                  value={formData.user_type}
+                  onChange={(e) => {
+                    const type = e.target.value;
+                    setFormData({ ...formData, user_type: type, roles: [type] });
+                  }}
+                  className="w-full h-10 px-3 rounded-md bg-slate-900 border-slate-700 text-white"
+                  data-testid="user-type-select"
+                >
+                  <option value="customer">Customer (Book Flights)</option>
+                  <option value="operator">Operator (Provide Services)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="full_name" className="text-white">Full Name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
