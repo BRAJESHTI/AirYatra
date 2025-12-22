@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Plane, LayoutDashboard, Users, Calendar, Shield, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { regionalManagerAPI } from '@/services/api';
+import NotificationBell from '@/components/shared/NotificationBell';
 
 // Import regional components
 import RegionalOverview from '@/components/regional/RegionalOverview';
