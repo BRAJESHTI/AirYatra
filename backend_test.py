@@ -195,6 +195,227 @@ class AirYatraAPITester:
         self.token = original_token
         return success
 
+    def test_register_operator(self):
+        """Test operator registration"""
+        timestamp = datetime.now().strftime("%H%M%S")
+        operator_data = {
+            "email": f"operator_{timestamp}@airyatra.com",
+            "password": "TestPass123!",
+            "full_name": f"Operator {timestamp}",
+            "phone": "+91 9876543210",
+            "roles": ["operator"]
+        }
+        
+        success, response = self.run_test(
+            "Operator Registration",
+            "POST",
+            "/api/auth/register",
+            200,
+            data=operator_data
+        )
+        
+        if success and 'access_token' in response:
+            self.token = response['access_token']
+            self.user_id = response['user']['id']
+            return True
+        return False
+
+    def test_create_operator_profile(self):
+        """Test creating operator profile"""
+        if not self.token:
+            self.log_test("Create Operator Profile", False, "No authentication token available")
+            return False
+            
+        profile_data = {
+            "company_name": "Test Aviation Services",
+            "base_city": "Mumbai",
+            "contact_person": "Test Operator",
+            "contact_phone": "+91 9876543210",
+            "contact_email": "test@testaviation.com",
+            "gstin": "22AAAAA0000A1Z5"
+        }
+        
+        return self.run_test(
+            "Create Operator Profile",
+            "POST",
+            "/api/operator/profile",
+            200,
+            data=profile_data
+        )[0]
+
+    def test_get_operator_profile(self):
+        """Test getting operator profile"""
+        if not self.token:
+            self.log_test("Get Operator Profile", False, "No authentication token available")
+            return False
+            
+        return self.run_test("Get Operator Profile", "GET", "/api/operator/profile", 200)[0]
+
+    def test_get_operator_dashboard(self):
+        """Test getting operator dashboard"""
+        if not self.token:
+            self.log_test("Get Operator Dashboard", False, "No authentication token available")
+            return False
+            
+        return self.run_test("Get Operator Dashboard", "GET", "/api/operator/dashboard", 200)[0]
+
+    def test_create_aircraft(self):
+        """Test adding aircraft to fleet"""
+        if not self.token:
+            self.log_test("Create Aircraft", False, "No authentication token available")
+            return False, None
+            
+        aircraft_data = {
+            "aircraft_type": "Bell 407",
+            "registration_number": "VT-TEST",
+            "capacity": 6,
+            "base_location": "Mumbai",
+            "hourly_rate": 50000.0
+        }
+        
+        success, response = self.run_test(
+            "Create Aircraft",
+            "POST",
+            "/api/fleet/",
+            200,
+            data=aircraft_data
+        )
+        
+        aircraft_id = None
+        if success and 'aircraft' in response:
+            aircraft_id = response['aircraft']['id']
+            
+        return success, aircraft_id
+
+    def test_get_fleet(self):
+        """Test getting operator fleet"""
+        if not self.token:
+            self.log_test("Get Fleet", False, "No authentication token available")
+            return False
+            
+        return self.run_test("Get Fleet", "GET", "/api/fleet/", 200)[0]
+
+    def test_create_pilot(self):
+        """Test adding pilot"""
+        if not self.token:
+            self.log_test("Create Pilot", False, "No authentication token available")
+            return False, None
+            
+        pilot_data = {
+            "full_name": "Captain Test Pilot",
+            "license_number": "CPL-12345",
+            "phone": "+91 9876543210",
+            "email": "pilot@test.com",
+            "experience_years": 10
+        }
+        
+        success, response = self.run_test(
+            "Create Pilot",
+            "POST",
+            "/api/operator/pilots",
+            200,
+            data=pilot_data
+        )
+        
+        pilot_id = None
+        if success and 'pilot' in response:
+            pilot_id = response['pilot']['id']
+            
+        return success, pilot_id
+
+    def test_get_pilots(self):
+        """Test getting operator pilots"""
+        if not self.token:
+            self.log_test("Get Pilots", False, "No authentication token available")
+            return False
+            
+        return self.run_test("Get Pilots", "GET", "/api/operator/pilots", 200)[0]
+
+    def test_get_inquiries(self):
+        """Test getting operator inquiries"""
+        if not self.token:
+            self.log_test("Get Inquiries", False, "No authentication token available")
+            return False
+            
+        return self.run_test("Get Inquiries", "GET", "/api/quotes/operator/inquiries", 200)[0]
+
+    def test_delete_aircraft(self, aircraft_id):
+        """Test deleting aircraft"""
+        if not self.token:
+            self.log_test("Delete Aircraft", False, "No authentication token available")
+            return False
+            
+        if not aircraft_id:
+            self.log_test("Delete Aircraft", False, "No aircraft ID provided")
+            return False
+            
+        return self.run_test("Delete Aircraft", "DELETE", f"/api/fleet/{aircraft_id}", 200)[0]
+
+    def test_delete_pilot(self, pilot_id):
+        """Test deleting pilot"""
+        if not self.token:
+            self.log_test("Delete Pilot", False, "No authentication token available")
+            return False
+            
+        if not pilot_id:
+            self.log_test("Delete Pilot", False, "No pilot ID provided")
+            return False
+            
+        return self.run_test("Delete Pilot", "DELETE", f"/api/operator/pilots/{pilot_id}", 200)[0]
+
+    def run_operator_tests(self):
+        """Run operator-specific tests"""
+        print("🚁 Starting Operator Portal Tests...")
+        print(f"📍 Testing against: {self.base_url}")
+        print("=" * 60)
+
+        # Test 1: Health check
+        self.test_health_check()
+
+        # Test 2: Operator registration
+        if not self.test_register_operator():
+            print("❌ Operator registration failed. Stopping operator tests.")
+            return self.generate_report()
+
+        # Test 3: Create operator profile
+        if not self.test_create_operator_profile():
+            print("❌ Operator profile creation failed. Stopping operator tests.")
+            return self.generate_report()
+
+        # Test 4: Get operator profile
+        self.test_get_operator_profile()
+
+        # Test 5: Get operator dashboard
+        self.test_get_operator_dashboard()
+
+        # Test 6: Create aircraft
+        aircraft_success, aircraft_id = self.test_create_aircraft()
+
+        # Test 7: Get fleet
+        self.test_get_fleet()
+
+        # Test 8: Create pilot
+        pilot_success, pilot_id = self.test_create_pilot()
+
+        # Test 9: Get pilots
+        self.test_get_pilots()
+
+        # Test 10: Get inquiries
+        self.test_get_inquiries()
+
+        # Test 11: Delete aircraft (if created)
+        if aircraft_id:
+            self.test_delete_aircraft(aircraft_id)
+
+        # Test 12: Delete pilot (if created)
+        if pilot_id:
+            self.test_delete_pilot(pilot_id)
+
+        # Test 13: Unauthorized access
+        self.test_unauthorized_access()
+
+        return self.generate_report()
+
     def run_all_tests(self):
         """Run all API tests"""
         print("🚀 Starting AirYatra API Tests...")
