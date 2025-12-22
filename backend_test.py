@@ -364,17 +364,256 @@ class AirYatraAPITester:
             
         return self.run_test("Delete Aircraft", "DELETE", f"/api/fleet/{aircraft_id}", 200)[0]
 
-    def test_delete_pilot(self, pilot_id):
-        """Test deleting pilot"""
+    def test_create_flight_record(self, aircraft_id, pilot_id):
+        """Test creating flight record with automatic KM update"""
         if not self.token:
-            self.log_test("Delete Pilot", False, "No authentication token available")
+            self.log_test("Create Flight Record", False, "No authentication token available")
+            return False, None
+            
+        if not aircraft_id or not pilot_id:
+            self.log_test("Create Flight Record", False, "Missing aircraft_id or pilot_id")
+            return False, None
+            
+        flight_data = {
+            "aircraft_id": aircraft_id,
+            "pilot_id": pilot_id,
+            "departure_location": "Mumbai",
+            "arrival_location": "Pune",
+            "departure_time": datetime.utcnow().isoformat(),
+            "arrival_time": (datetime.utcnow() + timedelta(hours=1)).isoformat(),
+            "distance_km": 150.5,
+            "flight_duration_minutes": 60,
+            "fuel_used_liters": 120.0,
+            "average_speed_kmh": 150,
+            "max_altitude_feet": 8000,
+            "weather_conditions": "Clear",
+            "remarks": "Test flight record"
+        }
+        
+        success, response = self.run_test(
+            "Create Flight Record",
+            "POST",
+            "/api/flight-records/",
+            200,
+            data=flight_data
+        )
+        
+        record_id = None
+        if success and 'record' in response:
+            record_id = response['record']['id']
+            
+        return success, record_id
+
+    def test_get_aircraft_flight_records(self, aircraft_id):
+        """Test getting flight records for aircraft"""
+        if not self.token:
+            self.log_test("Get Aircraft Flight Records", False, "No authentication token available")
+            return False
+            
+        if not aircraft_id:
+            self.log_test("Get Aircraft Flight Records", False, "No aircraft ID provided")
+            return False
+            
+        return self.run_test("Get Aircraft Flight Records", "GET", f"/api/flight-records/aircraft/{aircraft_id}", 200)[0]
+
+    def test_create_fuel_record(self, aircraft_id):
+        """Test creating fuel record"""
+        if not self.token:
+            self.log_test("Create Fuel Record", False, "No authentication token available")
+            return False, None
+            
+        if not aircraft_id:
+            self.log_test("Create Fuel Record", False, "No aircraft ID provided")
+            return False, None
+            
+        fuel_data = {
+            "aircraft_id": aircraft_id,
+            "location": "Mumbai Airport",
+            "fuel_amount_liters": 500.0,
+            "fuel_type": "Jet-A1",
+            "cost_per_liter": 85.50,
+            "odometer_reading_km": 12650,
+            "remarks": "Regular refueling"
+        }
+        
+        success, response = self.run_test(
+            "Create Fuel Record",
+            "POST",
+            "/api/fuel-records/",
+            200,
+            data=fuel_data
+        )
+        
+        fuel_id = None
+        if success and 'record' in response:
+            fuel_id = response['record']['id']
+            # Verify cost calculation
+            record = response['record']
+            expected_cost = 500.0 * 85.50
+            if record.get('total_cost') == expected_cost:
+                self.log_test("Fuel Cost Calculation", True, f"Cost calculated correctly: ₹{expected_cost}")
+            else:
+                self.log_test("Fuel Cost Calculation", False, f"Expected ₹{expected_cost}, got ₹{record.get('total_cost')}")
+            
+        return success, fuel_id
+
+    def test_get_aircraft_fuel_records(self, aircraft_id):
+        """Test getting fuel records for aircraft"""
+        if not self.token:
+            self.log_test("Get Aircraft Fuel Records", False, "No authentication token available")
+            return False
+            
+        if not aircraft_id:
+            self.log_test("Get Aircraft Fuel Records", False, "No aircraft ID provided")
+            return False
+            
+        success, response = self.run_test("Get Aircraft Fuel Records", "GET", f"/api/fuel-records/aircraft/{aircraft_id}", 200)
+        
+        if success and 'summary' in response:
+            summary = response['summary']
+            self.log_test("Fuel Records Summary", True, f"Total refills: {summary.get('total_refills')}, Total fuel: {summary.get('total_fuel_liters')}L, Total cost: ₹{summary.get('total_cost')}")
+        
+        return success
+
+    def test_update_live_location(self, aircraft_id):
+        """Test updating aircraft live location"""
+        if not self.token:
+            self.log_test("Update Live Location", False, "No authentication token available")
+            return False, None
+            
+        if not aircraft_id:
+            self.log_test("Update Live Location", False, "No aircraft ID provided")
+            return False, None
+            
+        tracking_data = {
+            "aircraft_id": aircraft_id,
+            "latitude": 19.0760,
+            "longitude": 72.8777,
+            "altitude_feet": 5000,
+            "speed_kmh": 180,
+            "heading_degrees": 90,
+            "flight_status": "in_flight"
+        }
+        
+        success, response = self.run_test(
+            "Update Live Location",
+            "POST",
+            "/api/live-tracking/update-location",
+            200,
+            data=tracking_data
+        )
+        
+        tracking_id = None
+        if success and 'tracking_id' in response:
+            tracking_id = response['tracking_id']
+            
+        return success, tracking_id
+
+    def test_get_aircraft_live_location(self, aircraft_id):
+        """Test getting aircraft live location"""
+        if not self.token:
+            self.log_test("Get Aircraft Live Location", False, "No authentication token available")
+            return False
+            
+        if not aircraft_id:
+            self.log_test("Get Aircraft Live Location", False, "No aircraft ID provided")
+            return False
+            
+        success, response = self.run_test("Get Aircraft Live Location", "GET", f"/api/live-tracking/aircraft/{aircraft_id}", 200)
+        
+        if success and 'tracking' in response:
+            tracking = response['tracking']
+            if tracking:
+                self.log_test("Live Location Data", True, f"Location: {tracking.get('latitude')}, {tracking.get('longitude')}")
+            else:
+                self.log_test("Live Location Data", True, "No active tracking data")
+        
+        return success
+
+    def test_aircraft_statistics(self, aircraft_id):
+        """Test getting aircraft statistics"""
+        if not self.token:
+            self.log_test("Get Aircraft Statistics", False, "No authentication token available")
+            return False
+            
+        if not aircraft_id:
+            self.log_test("Get Aircraft Statistics", False, "No aircraft ID provided")
+            return False
+            
+        success, response = self.run_test("Get Aircraft Statistics", "GET", f"/api/fleet/{aircraft_id}/statistics", 200)
+        
+        if success and 'statistics' in response:
+            stats = response['statistics']
+            self.log_test("Aircraft Statistics Data", True, 
+                         f"Total flights: {stats.get('total_flights')}, "
+                         f"Current KM: {stats.get('current_total_km')}, "
+                         f"KM since enrollment: {stats.get('km_since_enrollment')}")
+        
+        return success
+
+    def test_pilot_document_upload_url(self, pilot_id):
+        """Test generating pilot document upload URL"""
+        if not self.token:
+            self.log_test("Pilot Document Upload URL", False, "No authentication token available")
             return False
             
         if not pilot_id:
-            self.log_test("Delete Pilot", False, "No pilot ID provided")
+            self.log_test("Pilot Document Upload URL", False, "No pilot ID provided")
             return False
             
-        return self.run_test("Delete Pilot", "DELETE", f"/api/operator/pilots/{pilot_id}", 200)[0]
+        doc_data = {
+            "pilot_id": pilot_id,
+            "document_type": "license_copy",
+            "file_name": "pilot_license.pdf",
+            "file_size": 1024000,
+            "content_type": "application/pdf",
+            "expiry_date": (datetime.utcnow() + timedelta(days=365)).isoformat()
+        }
+        
+        success, response = self.run_test(
+            "Generate Pilot Document Upload URL",
+            "POST",
+            "/api/pilot-documents/upload-url",
+            200,
+            data=doc_data
+        )
+        
+        if success and 'upload_url' in response:
+            self.log_test("Upload URL Generation", True, "S3 presigned URL generated successfully")
+        
+        return success
+
+    def test_aircraft_document_upload_url(self, aircraft_id):
+        """Test generating aircraft document upload URL"""
+        if not self.token:
+            self.log_test("Aircraft Document Upload URL", False, "No authentication token available")
+            return False
+            
+        if not aircraft_id:
+            self.log_test("Aircraft Document Upload URL", False, "No aircraft ID provided")
+            return False
+            
+        doc_data = {
+            "aircraft_id": aircraft_id,
+            "document_type": "fitness_certificate",
+            "file_name": "fitness_cert.pdf",
+            "file_size": 2048000,
+            "content_type": "application/pdf",
+            "expiry_date": (datetime.utcnow() + timedelta(days=365)).isoformat()
+        }
+        
+        success, response = self.run_test(
+            "Generate Aircraft Document Upload URL",
+            "POST",
+            "/api/aircraft-documents/upload-url",
+            200,
+            data=doc_data
+        )
+        
+        if success and 'upload_url' in response:
+            self.log_test("Aircraft Upload URL Generation", True, "S3 presigned URL generated successfully")
+        
+        return success
 
     def run_operator_tests(self):
         """Run operator-specific tests"""
