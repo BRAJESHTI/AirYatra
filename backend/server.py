@@ -10,6 +10,7 @@ from database import connect_to_mongo, close_mongo_connection
 from routes import auth_routes, booking_routes, quote_routes, fleet_routes
 from routes import document_routes, admin_routes, ai_routes, payment_routes, operator_routes
 from routes import pilot_document_routes, aircraft_document_routes
+from routes import flight_record_routes, fuel_record_routes, live_tracking_routes, landing_permission_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
