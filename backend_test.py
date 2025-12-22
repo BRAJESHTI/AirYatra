@@ -260,21 +260,25 @@ class AirYatraAPITester:
         return self.run_test("Get Operator Dashboard", "GET", "/api/operator/dashboard", 200)[0]
 
     def test_create_aircraft(self):
-        """Test adding aircraft to fleet"""
+        """Test adding aircraft to fleet with new manufacturer details"""
         if not self.token:
             self.log_test("Create Aircraft", False, "No authentication token available")
             return False, None
             
         aircraft_data = {
-            "aircraft_type": "Bell 407",
+            "aircraft_type": "Bell 407GXi",
+            "manufacturer": "Bell Helicopter",
+            "model_name": "407GXi",
+            "manufacture_year": 2020,
             "registration_number": "VT-TEST",
             "capacity": 6,
             "base_location": "Mumbai",
-            "hourly_rate": 50000.0
+            "hourly_rate": 50000.0,
+            "enrollment_odometer_km": 12500
         }
         
         success, response = self.run_test(
-            "Create Aircraft",
+            "Create Aircraft with Manufacturer Details",
             "POST",
             "/api/fleet/",
             200,
@@ -284,6 +288,15 @@ class AirYatraAPITester:
         aircraft_id = None
         if success and 'aircraft' in response:
             aircraft_id = response['aircraft']['id']
+            # Verify manufacturer details are saved
+            aircraft = response['aircraft']
+            if (aircraft.get('manufacturer') == 'Bell Helicopter' and 
+                aircraft.get('model_name') == '407GXi' and
+                aircraft.get('manufacture_year') == 2020 and
+                aircraft.get('enrollment_odometer_km') == 12500):
+                self.log_test("Aircraft Manufacturer Details Verification", True, "All manufacturer details saved correctly")
+            else:
+                self.log_test("Aircraft Manufacturer Details Verification", False, "Manufacturer details not saved correctly")
             
         return success, aircraft_id
 
