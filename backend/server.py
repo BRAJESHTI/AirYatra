@@ -65,6 +65,11 @@ api_router.include_router(admin_settlement_routes.router)
 api_router.include_router(admin_audit_routes.router)
 api_router.include_router(regional_manager_routes.router)
 api_router.include_router(notification_routes.router)
+api_router.include_router(settings_routes.router)
+api_router.include_router(chat_routes.router)
+api_router.include_router(feedback_routes.router)
+api_router.include_router(analytics_routes.router)
+api_router.include_router(customer_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
