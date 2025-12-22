@@ -25,9 +25,18 @@ function LoginPage({ setUser }) {
     setLoading(true);
 
     try {
+      // Ensure roles array is properly set
+      const submitData = {
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+        phone: formData.phone,
+        roles: formData.roles // Use the roles array that's updated by user_type selector
+      };
+
       const response = isLogin
         ? await authAPI.login({ email: formData.email, password: formData.password })
-        : await authAPI.register(formData);
+        : await authAPI.register(submitData);
 
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
