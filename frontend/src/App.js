@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import CustomerDashboard from './pages/CustomerDashboard';
 import OperatorDashboard from './pages/OperatorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import RegionalManagerDashboard from './pages/RegionalManagerDashboard';
 import BookingPage from './pages/BookingPage';
 
 function App() {
@@ -55,6 +56,10 @@ function App() {
         <Route
           path="/admin/*"
           element={user && (user.roles.includes('admin') || user.roles.includes('super_admin')) ? <AdminDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/regional/*"
+          element={user && (user.roles.includes('regional_manager') || user.roles.includes('admin')) ? <RegionalManagerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route path="/booking" element={<BookingPage user={user} />} />
       </Routes>
