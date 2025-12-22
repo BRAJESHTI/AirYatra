@@ -12,6 +12,7 @@ from routes import document_routes, admin_routes, ai_routes, payment_routes, ope
 from routes import pilot_document_routes, aircraft_document_routes
 from routes import flight_record_routes, fuel_record_routes, live_tracking_routes, landing_permission_routes
 from routes import admin_landing_permission_routes, admin_settlement_routes, admin_audit_routes
+from routes import regional_manager_routes, notification_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
