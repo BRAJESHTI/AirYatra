@@ -14,6 +14,9 @@ function FleetManagement({ operator }) {
   const [aircraft, setAircraft] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedAircraft, setSelectedAircraft] = useState(null);
+  const [isDocDialogOpen, setIsDocDialogOpen] = useState(false);
+  const [aircraftDocs, setAircraftDocs] = useState({ photos: [], documents: [] });
   const [formData, setFormData] = useState({
     aircraft_type: '',
     registration_number: '',
