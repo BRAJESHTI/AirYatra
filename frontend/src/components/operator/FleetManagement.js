@@ -51,19 +51,46 @@ function FleetManagement({ operator }) {
         ...formData,
         capacity: parseInt(formData.capacity),
         hourly_rate: parseFloat(formData.hourly_rate),
+        manufacture_year: formData.manufacture_year ? parseInt(formData.manufacture_year) : null,
+        enrollment_odometer_km: formData.enrollment_odometer_km ? parseFloat(formData.enrollment_odometer_km) : 0,
       });
       toast.success('Aircraft added successfully');
       setIsAddDialogOpen(false);
       setFormData({
         aircraft_type: '',
+        manufacturer: '',
+        model_name: '',
+        manufacture_year: '',
         registration_number: '',
         capacity: '',
         base_location: '',
         hourly_rate: '',
+        enrollment_odometer_km: '',
       });
       fetchAircraft();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add aircraft');
+    }
+  };
+
+  const handleViewDocuments = async (aircraft) => {
+    setSelectedAircraft(aircraft);
+    setIsDocDialogOpen(true);
+    await fetchAircraftDocuments(aircraft.id);
+  };
+
+  const fetchAircraftDocuments = async (aircraftId) => {
+    try {
+      const response = await aircraftDocumentAPI.getAircraftDocuments(aircraftId);
+      setAircraftDocs(response.data);
+    } catch (error) {
+      toast.error('Failed to load documents');
+    }
+  };
+
+  const handleDocumentUploadComplete = () => {
+    if (selectedAircraft) {
+      fetchAircraftDocuments(selectedAircraft.id);
     }
   };
 
