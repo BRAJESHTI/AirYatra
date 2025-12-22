@@ -367,6 +367,108 @@ function FleetManagement({ operator }) {
           </div>
         )}
       </div>
+
+      {/* Aircraft Documents Dialog */}
+      <Dialog open={isDocDialogOpen} onOpenChange={setIsDocDialogOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">
+              {selectedAircraft?.aircraft_type} - Documents & Photos
+            </DialogTitle>
+          </DialogHeader>
+          
+          <Tabs defaultValue="photos" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+              <TabsTrigger value="photos" className="data-[state=active]:bg-orange-500">Photos</TabsTrigger>
+              <TabsTrigger value="documents" className="data-[state=active]:bg-orange-500">Documents</TabsTrigger>
+              <TabsTrigger value="upload" className="data-[state=active]:bg-orange-500">Upload New</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="photos" className="mt-4">
+              <div className="grid grid-cols-3 gap-4">
+                {aircraftDocs.photos?.length > 0 ? (
+                  aircraftDocs.photos.map((photo) => (
+                    <div key={photo.id} className="relative group">
+                      <img
+                        src={photo.download_url}
+                        alt={photo.file_name}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => aircraftDocumentAPI.deleteDocument(photo.id).then(() => fetchAircraftDocuments(selectedAircraft.id))}
+                        className="absolute top-2 right-2 bg-red-500/80 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-3 text-center py-12 text-slate-400">
+                    <Camera className="h-12 w-12 mx-auto mb-2 text-slate-600" />
+                    <p>No photos uploaded yet</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="documents" className="mt-4">
+              <DocumentViewer
+                documents={aircraftDocs.documents}
+                onDelete={aircraftDocumentAPI.deleteDocument}
+                onRefresh={() => selectedAircraft && fetchAircraftDocuments(selectedAircraft.id)}
+              />
+            </TabsContent>
+            
+            <TabsContent value="upload" className="mt-4 space-y-6">
+              <DocumentUploader
+                entityId={selectedAircraft?.id}
+                entityType="aircraft"
+                documentType="photo"
+                apiService={aircraftDocumentAPI}
+                label="Helicopter Photos (Upload 4-6 photos)"
+                accept=".jpg,.jpeg,.png,.webp"
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+              
+              <DocumentUploader
+                entityId={selectedAircraft?.id}
+                entityType="aircraft"
+                documentType="fitness_certificate"
+                apiService={aircraftDocumentAPI}
+                label="Flight Fitness Certificate"
+                accept=".pdf,.jpg,.jpeg,.png"
+                showIssueDate={true}
+                showExpiryDate={true}
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+              
+              <DocumentUploader
+                entityId={selectedAircraft?.id}
+                entityType="aircraft"
+                documentType="dgca_license"
+                apiService={aircraftDocumentAPI}
+                label="DGCA Filing License"
+                accept=".pdf,.jpg,.jpeg,.png"
+                showExpiryDate={true}
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+              
+              <DocumentUploader
+                entityId={selectedAircraft?.id}
+                entityType="aircraft"
+                documentType="insurance"
+                apiService={aircraftDocumentAPI}
+                label="Insurance Document"
+                accept=".pdf,.jpg,.jpeg,.png"
+                showExpiryDate={true}
+                onUploadComplete={handleDocumentUploadComplete}
+              />
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
