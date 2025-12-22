@@ -50,6 +50,8 @@ api_router.include_router(admin_routes.router)
 api_router.include_router(ai_routes.router)
 api_router.include_router(payment_routes.router)
 api_router.include_router(operator_routes.router)
+api_router.include_router(pilot_document_routes.router)
+api_router.include_router(aircraft_document_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
