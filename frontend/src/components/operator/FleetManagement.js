@@ -302,6 +302,11 @@ function FleetManagement({ operator }) {
                   <div>
                     <h3 className="text-xl font-bold text-white">{item.aircraft_type}</h3>
                     <p className="text-slate-400 text-sm">{item.registration_number}</p>
+                    {item.manufacturer && (
+                      <p className="text-slate-500 text-xs mt-1">
+                        {item.manufacturer} {item.model_name} {item.manufacture_year && `(${item.manufacture_year})`}
+                      </p>
+                    )}
                   </div>
                   <div className="flex space-x-2">
                     <Button
@@ -329,6 +334,12 @@ function FleetManagement({ operator }) {
                     <span className="text-slate-400">Hourly Rate:</span>
                     <span className="text-white font-medium">₹{item.hourly_rate.toLocaleString()}</span>
                   </div>
+                  {item.enrollment_odometer_km > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Total KM:</span>
+                      <span className="text-white font-medium">{item.current_total_km?.toLocaleString() || item.enrollment_odometer_km.toLocaleString()} KM</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400">Status:</span>
                     <span className={`flex items-center space-x-1 ${
@@ -337,6 +348,18 @@ function FleetManagement({ operator }) {
                       <CheckCircle className="h-4 w-4" />
                       <span>{item.is_available ? 'Available' : 'Unavailable'}</span>
                     </span>
+                  </div>
+                  <div className="pt-3 border-t border-slate-700">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewDocuments(item)}
+                      className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+                      data-testid={`view-docs-${item.id}`}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Documents & Photos
+                    </Button>
                   </div>
                 </div>
               </div>
