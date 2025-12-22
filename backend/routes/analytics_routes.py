@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from database import get_database
 from middleware import get_current_user, require_roles
+from models import UserRole
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 

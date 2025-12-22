@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from database import get_database
 from middleware import get_current_user, require_roles
+from models import UserRole
 
 router = APIRouter(prefix="/settings", tags=["Global Settings"])
 
