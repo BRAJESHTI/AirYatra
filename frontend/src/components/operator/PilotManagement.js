@@ -78,6 +78,27 @@ function PilotManagement({ operator }) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleViewDocuments = async (pilot) => {
+    setSelectedPilot(pilot);
+    setIsDocDialogOpen(true);
+    await fetchPilotDocuments(pilot.id);
+  };
+
+  const fetchPilotDocuments = async (pilotId) => {
+    try {
+      const response = await pilotDocumentAPI.getPilotDocuments(pilotId);
+      setPilotDocuments(response.data.documents);
+    } catch (error) {
+      toast.error('Failed to load documents');
+    }
+  };
+
+  const handleDocumentUploadComplete = () => {
+    if (selectedPilot) {
+      fetchPilotDocuments(selectedPilot.id);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto" data-testid="pilot-management">
       <div className="flex justify-between items-center mb-8">
