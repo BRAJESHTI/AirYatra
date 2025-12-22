@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 
@@ -10,14 +10,18 @@ import BookingManagement from '@/components/admin/BookingManagement';
 import LandingPermissionApproval from '@/components/admin/LandingPermissionApproval';
 import SettlementManagement from '@/components/admin/SettlementManagement';
 import AuditLogs from '@/components/admin/AuditLogs';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import GlobalSettings from '@/components/admin/GlobalSettings';
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'operators', label: 'Operators', icon: Users },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'permissions', label: 'Landing Permissions', icon: Shield },
   { id: 'settlements', label: 'Settlements', icon: DollarSign },
   { id: 'audit', label: 'Audit Logs', icon: FileText },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 function AdminDashboard({ user, onLogout }) {
