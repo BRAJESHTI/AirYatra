@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Build AirYatra - Phase 3: Admin Portal with dashboard, operator verification, booking management, landing permission approvals, settlement management, and audit logs"
+user_problem_statement: "Build AirYatra - Phase 4: Complete Integration of Customer Portal features (My Trips, Messages/Chat, NotificationBell), Admin Analytics Dashboard, and Global Settings"
 
 backend:
   - task: "Admin Dashboard API"
