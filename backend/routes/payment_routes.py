@@ -4,7 +4,7 @@ from typing import Optional, Dict
 from datetime import datetime, timezone
 from uuid import uuid4
 from database import get_database
-from auth import get_current_user
+from middleware import get_current_user
 from services.payment_service import payment_service
 from services.notification_service import notification_service
 

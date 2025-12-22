@@ -4,7 +4,7 @@ from typing import Optional, Dict, List
 from datetime import datetime, timezone
 from uuid import uuid4
 from database import get_database
-from auth import get_current_user
+from middleware import get_current_user
 from services.ai_service import ai_service
 
 router = APIRouter(prefix="/ai", tags=["AI Services"])

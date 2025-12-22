@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from database import get_database
-from auth import get_current_user
+from middleware import get_current_user
 
 router = APIRouter(prefix="/regional-manager", tags=["Regional Manager"])
 
