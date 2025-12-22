@@ -8,7 +8,7 @@ from database import connect_to_mongo, close_mongo_connection
 
 # Import route modules
 from routes import auth_routes, booking_routes, quote_routes, fleet_routes
-from routes import document_routes, admin_routes, ai_routes, payment_routes
+from routes import document_routes, admin_routes, ai_routes, payment_routes, operator_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
