@@ -87,15 +87,37 @@ function OperatorDashboard({ user, onLogout }) {
               <Plane className="h-5 w-5" />
               <span>Fleet Management</span>
             </Link>
-            <Link to="/operator/inquiries" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="inquiries-link">
-              <MessageSquare className="h-5 w-5" />
-              <span>Inquiries</span>
-            </Link>
             <Link to="/operator/pilots" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="pilots-link">
               <Users className="h-5 w-5" />
               <span>Pilots</span>
             </Link>
-            <Link to="/operator/profile" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="profile-link">
+            <Link to="/operator/inquiries" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="inquiries-link">
+              <MessageSquare className="h-5 w-5" />
+              <span>Inquiries</span>
+            </Link>
+            
+            {/* Tracking Section */}
+            <div className="pt-4 mt-4 border-t border-slate-700">
+              <p className="text-xs text-slate-500 uppercase tracking-wider px-4 mb-2">Tracking</p>
+              <Link to="/operator/flight-records" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="flight-records-link">
+                <BookOpen className="h-5 w-5" />
+                <span>Flight Records</span>
+              </Link>
+              <Link to="/operator/fuel-records" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="fuel-records-link">
+                <Fuel className="h-5 w-5" />
+                <span>Fuel Records</span>
+              </Link>
+              <Link to="/operator/live-tracking" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="live-tracking-link">
+                <MapPin className="h-5 w-5" />
+                <span>Live Tracking</span>
+              </Link>
+              <Link to="/operator/landing-permissions" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="permissions-link">
+                <Shield className="h-5 w-5" />
+                <span>Landing Permissions</span>
+              </Link>
+            </div>
+
+            <Link to="/operator/profile" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 mt-4" data-testid="profile-link">
               <Settings className="h-5 w-5" />
               <span>Profile</span>
             </Link>
