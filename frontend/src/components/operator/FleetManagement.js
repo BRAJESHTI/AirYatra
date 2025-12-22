@@ -19,10 +19,14 @@ function FleetManagement({ operator }) {
   const [aircraftDocs, setAircraftDocs] = useState({ photos: [], documents: [] });
   const [formData, setFormData] = useState({
     aircraft_type: '',
+    manufacturer: '',
+    model_name: '',
+    manufacture_year: '',
     registration_number: '',
     capacity: '',
     base_location: '',
     hourly_rate: '',
+    enrollment_odometer_km: '',
   });
 
   useEffect(() => {
