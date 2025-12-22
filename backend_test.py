@@ -617,7 +617,7 @@ class AirYatraAPITester:
 
     def run_operator_tests(self):
         """Run operator-specific tests"""
-        print("🚁 Starting Operator Portal Tests...")
+        print("🚁 Starting AirYatra Aviation Management Tests...")
         print(f"📍 Testing against: {self.base_url}")
         print("=" * 60)
 
@@ -640,7 +640,7 @@ class AirYatraAPITester:
         # Test 5: Get operator dashboard
         self.test_get_operator_dashboard()
 
-        # Test 6: Create aircraft
+        # Test 6: Create aircraft with manufacturer details
         aircraft_success, aircraft_id = self.test_create_aircraft()
 
         # Test 7: Get fleet
@@ -652,21 +652,65 @@ class AirYatraAPITester:
         # Test 9: Get pilots
         self.test_get_pilots()
 
-        # Test 10: Get inquiries
+        # Aviation Management Features Testing
+        if aircraft_id and pilot_id:
+            print("\n🛩️  Testing Aviation Management Features...")
+            
+            # Test 10: Create flight record with automatic KM update
+            flight_success, flight_id = self.test_create_flight_record(aircraft_id, pilot_id)
+            
+            # Test 11: Get aircraft flight records
+            self.test_get_aircraft_flight_records(aircraft_id)
+            
+            # Test 12: Create fuel record
+            fuel_success, fuel_id = self.test_create_fuel_record(aircraft_id)
+            
+            # Test 13: Get aircraft fuel records with summary
+            self.test_get_aircraft_fuel_records(aircraft_id)
+            
+            # Test 14: Update live location
+            tracking_success, tracking_id = self.test_update_live_location(aircraft_id)
+            
+            # Test 15: Get aircraft live location
+            self.test_get_aircraft_live_location(aircraft_id)
+            
+            # Test 16: Get aircraft statistics
+            self.test_aircraft_statistics(aircraft_id)
+            
+            # Test 17: Pilot document upload URL generation
+            self.test_pilot_document_upload_url(pilot_id)
+            
+            # Test 18: Aircraft document upload URL generation
+            self.test_aircraft_document_upload_url(aircraft_id)
+
+        # Test 19: Get inquiries
         self.test_get_inquiries()
 
-        # Test 11: Delete aircraft (if created)
+        # Cleanup tests
+        # Test 20: Delete aircraft (if created)
         if aircraft_id:
             self.test_delete_aircraft(aircraft_id)
 
-        # Test 12: Delete pilot (if created)
+        # Test 21: Delete pilot (if created)
         if pilot_id:
             self.test_delete_pilot(pilot_id)
 
-        # Test 13: Unauthorized access
+        # Test 22: Unauthorized access
         self.test_unauthorized_access()
 
         return self.generate_report()
+
+    def test_delete_pilot(self, pilot_id):
+        """Test deleting pilot"""
+        if not self.token:
+            self.log_test("Delete Pilot", False, "No authentication token available")
+            return False
+            
+        if not pilot_id:
+            self.log_test("Delete Pilot", False, "No pilot ID provided")
+            return False
+            
+        return self.run_test("Delete Pilot", "DELETE", f"/api/operator/pilots/{pilot_id}", 200)[0]
 
     def run_all_tests(self):
         """Run all API tests"""
