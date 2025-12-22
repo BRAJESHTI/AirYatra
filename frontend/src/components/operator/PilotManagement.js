@@ -14,6 +14,9 @@ function PilotManagement({ operator }) {
   const [pilots, setPilots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedPilot, setSelectedPilot] = useState(null);
+  const [isDocDialogOpen, setIsDocDialogOpen] = useState(false);
+  const [pilotDocuments, setPilotDocuments] = useState([]);
   const [formData, setFormData] = useState({
     full_name: '',
     license_number: '',
