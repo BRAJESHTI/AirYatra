@@ -1,195 +1,173 @@
 <analysis>**original_problem_statement:**
-The user wants to build AirYatra, a comprehensive air mobility aggregator platform to connect customers with helicopter and charter operators in India.
+The user wants to build AirYatra, a comprehensive air mobility aggregator platform. The initial goal was to create portals for Admins, Operators, Regional Managers, and Customers, with features for booking, fleet management, and payments.
 
-The project is divided into several panels:
-- **Super Admin / Admin Panel:** Full platform control, including user management, operator verification, booking management, approvals, landing permission management, finance, and audit logs.
-- **Regional Manager Panel:** Restricted regional oversight and approvals.
-- **Operator Portal:** For operators to manage their profile, fleet, pilots, inquiries, bookings, and settlements.
-- **Customer Portal:** For customers to search, book, pay, manage trips, and handle cancellations.
+The project has since evolved based on user feedback to include:
+-   Advanced, configurable pricing logic based on distance, waiting time, and a base rate.
+-   An Indian PIN code lookup service to auto-fill location details (State, District, Area) and capture coordinates.
+-   Dynamic booking forms for passenger details, optional travel insurance, and GST invoicing for corporate clients.
+-   A comprehensive reporting section for admins covering bookings, routes, pilot duty, and financial settlements.
+-   A multi-step OTP verification system for key points in a journey (pickup, start, completion).
+-   A centralized admin panel for managing all third-party API keys (payments, email, SMS).
+-   Pilot duty tracking with color-coded flags for safety compliance.
+-   Detailed booking purpose tracking (e.g., Wedding, Medical, Corporate).
 
-**PRODUCT REQUIREMENTS:**
-- **Payments:** Razorpay (UPI, Card, EMI).
-- **Notifications:** Email (SendGrid), WhatsApp (Twilio), and In-App.
-- **Document Storage:** AWS S3.
-- **AI Integration:** AI-powered price suggestions, document verification, and route recommendations.
-- **Development Priority:** Build the full system across all panels.
-- **Design Preference:** Professional, corporate, and trust-focused for the aviation industry.
-
-**User's preferred language**: English
+**User's preferred language**: Hinglish (A mix of Hindi and English). The user provides requirements in Hinglish. You MUST respond and confirm your understanding in Hinglish before implementing features.
 
 **what currently exists?**
-A full-stack application with a FastAPI backend and a React frontend. The platform has functional portals for Customers (Phase 1), Operators (Phase 2), Admins (Phase 3), and Regional Managers.
-
-Key implemented features include:
-- **Authentication:** JWT-based registration and login for all user roles.
-- **Operator Portal:** Fleet and pilot management with S3 document uploads, inquiry management, and various tracking system UIs (Flight Records, Fuel Records, Live Tracking Map).
-- **Admin Portal:** A comprehensive dashboard with operator verification, booking management, landing permissions, settlements, audit logs, a new analytics dashboard, and global settings management.
-- **Regional Manager Portal:** A functional dashboard for regional oversight and operator approvals.
-- **Phase 4 Foundation:** Backend routes, service stubs, and frontend components have been created for future features like a full payment checkout, customer trip management, in-app chat, and a notification center.
+A full-stack application with a FastAPI backend and a React frontend. The application now includes:
+-   **Authentication:** JWT-based login for all roles.
+-   **Portals:** Functional dashboards for Admin, Operator, and Regional Managers.
+-   **Admin Panel:** A feature-rich dashboard with operator/booking management, global settings for platform fees, dynamic pricing rules, insurance configuration, API key management, Terms & Conditions editor, and a comprehensive reporting suite.
+-   **Customer Experience:** An advanced booking page with PIN code-based location auto-fill, dynamic price calculation, passenger details forms, insurance options, and GST billing fields. A customer dashboard with trip management and messaging stubs is also integrated.
+-   **Pilot Management:** A Pilot Duty widget on the admin dashboard monitors flight hours with safety flags. Backend logic exists for restricting pilots and for a journey-based OTP verification system.
+-   **Reporting:** A dedicated reports section with filterable reports for top routes, pilot duty hours, and financial settlements by operator.
 
 **Last working item**:
-- **Last item agent was working:** The agent was implementing a large set of features requested by the user, referred to as Phase 4. This involved creating backend routes, service stubs, and frontend components for an Admin Analytics Dashboard, Global Settings, a full payment flow, customer trip management, notifications, and in-app chat. The agent had just created the necessary files and verified that the backend was running and the new Admin Analytics page was visible.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** **both**. Use the frontend and backend testing agents to conduct a comprehensive test of all the newly added Phase 4 features, as they are numerous and touch all parts of the application.
-- **User Testing Done:** N
+-   **Last item agent was working:** Implementing a Booking Purpose feature. The user wants to add a dropdown on the booking page for the purpose of the trip (e.g., Wedding, Temple Yatra, Corporate) and see a corresponding report/graph on the admin dashboard. The agent has already:
+    1.  Added the Booking Purpose dropdown to the booking page UI ().
+    2.  Created the backend API endpoint to generate the report data ().
+    3.  Updated the frontend API service ().
+-   **Status:** IN PROGRESS
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** **both**. First, use the **screenshot tool** to verify the new graph on the dashboard. Then, use the **backend testing agent** to write a test for the new report endpoint to ensure data aggregation is correct.
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: bcrypt warning (P2)**
-  - **Description:** A non-critical  appears in the backend logs.
-  - **Attempted fixes:** None.
-  - **Next debug checklist:** This is a low-priority issue related to package versions ( or ) and does not affect functionality. It can be addressed after higher-priority tasks.
-  - **Why fix this issue and what will be achieved with the fix?** To clean up backend logs and prevent potential future compatibility issues.
-  - **Status:** NOT STARTED
-  - **Is recurring issue?** Y
-  - **Should Test frontend/backend/both after fix?** Backend.
-  - **Blocked on other issue:** No.
+-   **Issue 1: bcrypt warning (P2)**
+    -   **Description:** A non-critical  appears in the backend logs.
+    -   **Attempted fixes:** None. This has been a persistent low-priority issue.
+    -   **Next debug checklist:** Check  and  package versions in . Consider upgrading or downgrading  to resolve the dependency conflict.
+    -   **Why fix this issue and what will be achieved with the fix?** To clean up backend logs. It does not affect functionality.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** Backend.
+    -   **Blocked on other issue:** No.
 
 **In progress Task List**:
-- **Task 1: Complete & Verify Phase 4 Feature Integration (P0)**
-  - **Where to resume:** The agent has created many new components but hasn't integrated them into the user experience.
-    1.  Verify the Admin **Global Settings** UI (, then Settings tab) via screenshot.
-    2.  Integrate the new customer-facing components:
-        -   Add a route and link for the **Customer Dashboard** to display the  component.
-        -   Integrate the  component into the final step of the customer's booking flow.
-        -   Add the  to the main application header for logged-in users.
-        -   Place the  on the booking details page.
-    3.  Create a test customer user to test these new flows.
-  - **What will be achieved with this?** This will make the newly created Phase 4 features accessible and functional for end-users, moving them from standalone components to an integrated experience.
-  - **Status:** IN PROGRESS
-  - **Should Test frontend/backend/both after fix?** Both.
-  - **Blocked on something:** No.
+-   **Task 1: Complete Booking Purpose Feature (P0)**
+    -   **Where to resume:** The backend API and booking page UI are done. The agent needs to create the frontend component to visualize the data.
+        1.  Create a new React component (e.g., ) that uses a charting library (e.g., Recharts or Chart.js, check  for existing libraries) to display the data from the new  endpoint as a bar or pie chart.
+        2.  Integrate this new chart component into the Admin Dashboard, likely on the main overview page () or the Reports dashboard ().
+    -   **What will be achieved with this?** Admins will be able to visualize which booking purposes are most popular, fulfilling the user's request.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Frontend (via screenshot).
+    -   **Blocked on something:** No.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
-- **P1: Activate Payment Integration:** Wire up the  component to the backend and implement the full Razorpay checkout logic. This is currently mocked and requires user API keys.
-- **P1: Activate Notification System:** Implement the logic in  to send real emails (SendGrid) and WhatsApp messages (Twilio). Requires user API keys.
-- **P1: Activate AI Features:** Implement the core logic in  using the Emergent LLM Key to provide real price suggestions and perform AI-powered document verification.
-- **P1: Implement Redis Double-Booking Prevention:** Integrate Redis into the booking creation process to prevent concurrent bookings for the same aircraft/slot.
+-   **P0: Activate Mocked Services:** The entire application's external communication is mocked. This is the most critical next step.
+    -   **Task:** Implement the logic in the backend services to use the API keys saved from the Admin's API Keys settings page.
+    -   **Files to Edit:**
+        -   : Use SendGrid/Twilio keys for email/SMS.
+        -   : Use Razorpay keys to create real payment orders.
+        -   : Integrate with  to send real OTPs.
+        -   : Replace the hardcoded PIN code data with a real API call to a service like Indian Post's API.
+-   **P1: Implement Journey OTP Flow on Frontend:** The backend routes for the multi-step journey OTPs exist (). The frontend UI for pilots to enter these OTPs needs to be built, likely within the Operator portal.
+-   **P1: Implement Admin Pilot Restriction:** The backend API to restrict a pilot exists. A button or toggle needs to be added to the Admin UI (e.g., in the  or a pilot management page) to allow an admin to restrict a pilot who has a red flag.
 
 **Future Tasks:**
-- **P2: Build out In-App Chat:** Implement the WebSocket backend and frontend logic for real-time messaging between customers and operators.
-- **P2: Complete Customer Feedback System:** Implement the UI for customers to leave ratings/reviews and for those to be displayed on operator profiles.
-- **P2: Automate Operator Settlements:** Build the cron job or scheduled task to run the settlement automation logic.
-- **P2: Manage Notification Templates:** Create a UI for admins to manage the content of email and WhatsApp notifications.
+-   **P2: Build out In-App Chat:** Implement the WebSocket backend and frontend logic for real-time messaging.
+-   **P2: Automate Operator Settlements:** Build a scheduled task to run the settlement automation logic.
+-   **P2: Activate AI Features:** Implement the core logic in  using the Emergent LLM Key.
 
 **Completed work in this session**
-- **Resolved Critical Frontend Blocker:** Fixed the  compilation error that was breaking the frontend.
-- **Completed Phase 3 - Admin Portal:**
-  - Built and integrated a comprehensive Admin Dashboard with modules for Operator Management, Booking Management, Approvals, Settlements, and Audit Logs.
-- **Completed Operator Tracking Features:**
-  - Implemented frontend UIs for Fuel Records, Flight Records, and a Live Tracking map using .
-  - Added a  widget to the Operator Dashboard.
-- **Completed Regional Manager Portal:**
-  - Built and integrated a fully functional dashboard for Regional Managers to oversee operators and bookings.
-- **Initiated Phase 4 (Backlog Features):**
-  - **Admin:** Created backend and frontend for an **Analytics Dashboard** and **Global Settings** module.
-  - **Services:** Created backend stubs and API routes for AI, Payments (Razorpay), and Notifications (Email/WhatsApp).
-  - **Customer:** Created frontend components for , , , and a shared .
+-   **Phase 4 Integration:** Fully integrated the Admin Analytics, Global Settings, Customer Trip Management, Chat Widget, and Notification Bell components into the application UI.
+-   **Dynamic Pricing Engine:** Implemented a configurable pricing engine based on distance, base rates, and waiting times, with a settings UI for admins.
+-   **PIN Code Auto-fill:** Created a booking page feature to auto-fill State/District/Area from an Indian PIN code.
+-   **Advanced Booking Flow:** Added passenger details forms, optional insurance, booking-for-others logic, and GST invoicing fields to the booking page.
+-   **Admin API Key Management:** Built a secure UI for admins to store and manage third-party API keys.
+-   **Comprehensive Reporting Suite:** Created a new section in the Admin panel with reports for bookings, routes, pilot duty hours, and financial settlements.
+-   **Pilot Duty Monitor:** Implemented a widget on the admin dashboard to track pilot flight hours with safety flags.
+-   **Journey OTP System:** Created backend APIs to handle a multi-step OTP verification process during a flight journey.
 
 **Earlier issues found/mentioned but not fixed**
-- None other than the  warning listed in the pending issues.
+-   None other than the  warning.
 
 **Known issue recurrence from previous fork**
-- None.
+-   **Testing Agent Failure:** The agent failed to invoke the  due to a tool input error (). This is the same type of failure seen in previous forks. The agent successfully worked around it with manual testing.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend:** React, TailwindCSS, Axios, 
-- **Backend:** FastAPI, Motor (async MongoDB driver), Pydantic
+- **Frontend:** React, TailwindCSS, Axios
+- **Backend:** FastAPI, Motor, Pydantic, complex MongoDB aggregation pipelines for reports.
 - **Database:** MongoDB
-- **Authentication:** JWT (JSON Web Tokens)
-- **File Storage:** AWS S3
-- **AI:**  library
+- **Key Features:** Dynamic pricing, location-based services (PIN code), OTP systems, role-based access control, comprehensive reporting.
 
 **key DB schema**
-- **Users:** {email, hashed_password, roles: ['customer', 'operator', 'admin', 'regional_manager']}
-- **Operators:** {user_id, company_name, status}
-- **Aircraft:** {operator_id, registration_number, documents}
-- **Pilots:** {operator_id, name, license_number, documents}
-- **Bookings:** {customer_id, route_from, route_to, status}
-- **Settings:** {commission_percent, gst_percent, tds_percent}
-- **ChatMessages:** {booking_id, sender_id, message, timestamp}
-- **Feedback:** {booking_id, customer_id, rating, review_text}
+- **Settings:** { : {base_price, rate_per_km, waiting_charge_ph}, : {enabled, rate_type, rate}, : {sendgrid_key, twilio_sid}, : {customer_terms} }
+- **Bookings:** { : 'self' | 'other', : 'Wedding' | 'Medical', : [{name, age, phone}], : {company_name, gstin} }
+- **JourneyState:** { booking_id, pilot_id, pickup_otp, start_otp, completion_otp }
 
 **changes in tech stack**
-- **Frontend:** Added  and  for map functionality.
-- **Backend:** Added  to support AI features with the Emergent LLM Key.
+- No new packages were added, but the complexity of backend logic (MongoDB aggregations in ) and frontend state management (, ) has increased significantly.
 
 **All files of reference**
-- **Modified Core Files:**
-  - : Updated to include all new routers for Phase 4.
-  - : Updated with the route for the Regional Manager dashboard.
-  - : Significantly expanded to include all new API definitions.
-  - : Updated to include tabs for Analytics and Settings.
-- **Key New Files (Phase 4):**
-  - : Directory with stubs for , , .
-  - : New route files including , , , etc.
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+-   : Core file for the user booking experience, now very complex.
+-   : A large monolithic component handling all platform settings.
+-   : The main UI for all new reports.
+-   : Contains all the complex aggregation logic for the new reports.
+-   : Manages all getters/setters for platform configuration.
 
-**Areas that need refactoring**
-- : This file is now extremely large and manages all API interactions. It should be broken down into domain-specific services (e.g., , , ) to improve maintainability and reduce the risk of it being a single point of failure.
+**Areas that need refactoring**:
+-   : This has become even more bloated. It's critical to split this into multiple service files (e.g., , , ).
+-   : This component now manages a large amount of state. It should be broken down into smaller, more manageable sub-components with a state management solution like Context API.
+-   : This file now manages Platform, Pricing, API Keys, and Terms settings. It should be split into child components for each tab to improve readability and maintenance.
 
 **key api endpoints**
-- , 
-- 
-- , 
-- , 
-- , , 
-- , 
+-   
+-   
+-   
+-   
+-   
 
 **Critical Info for New Agent**
-- You are picking up after a massive feature implementation sprint. Many new backend routes and frontend components have been created but are not fully integrated or tested.
-- Your first priority is to **verify and integrate** the newly created Phase 4 components into a cohesive user flow (e.g., connect the payment UI to the booking process, create a page for trip management, etc.).
-- The integrations for Payments (Razorpay), Notifications (SendGrid, Twilio), and AI are **mocked**. Activating them requires implementing the core logic and obtaining API keys from the user where necessary.
-- The AI features are intended to use the , which is available in the environment.
+-   You are continuing the implementation of a feature request (Booking Purpose). Your immediate task is to build the frontend chart.
+-   **The user communicates in Hinglish.** You must understand their requests and reply in Hinglish to confirm your plan before coding.
+-   The most important upcoming task is to **activate all the mocked third-party services**. The user has been promised this functionality, and the UI to manage API keys is already built. Your focus should be on using those saved keys in the backend.
+-   The application's complexity has grown massively. Be prepared to deal with large components and complex state logic. The refactoring suggestions are important for long-term health.
 
 **documents and test_reports created in this job**
--  was updated.
+-    was updated during an attempted test run.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  Make phase 4
-2.  Need All Option A B C futures... (detailed list of Phase 4 features)
-3.  The Regional Operators page is working great! ... Would you like me to configure any specific integrations or add additional features?
-4.  Add all Remaining future/Backlog
-5.  All the upcoming tasks are now complete! ... Would you like me to proceed with any of the backlog items?
-6.  Ok do your all upcoming task
-7.  All Admin Portal pages are working correctly. The Phase 3 Admin Portal implementation is complete. Would you like me to proceed with any of the upcoming tasks?
-8.  Make phase 3
-9.  Please check and implement: 1. Complete the frontend Ul components for all tracking systems...
-10. Create Phase-3
+1.  Booking Type Selection Drop down Se select me Dijiye...
+2.  Show Pilots Duty hr on Dashboard...And Implement the Booking page...
+3.  Include Report Section like kis Root se jyada booking Aata hain...
+4.  1. Pasanger name and Age... 2. Give Option to Passengers to Choose Insurance...
+5.  Need to Demegrafic Selection from drop down Like Jaise Hi Customer pickup PInCode Dale...
+6.  Call Deployer Agent and Run Health Check to Check for Readiness for Deployment
+7.  Credit done please prosses
+8.  Ok continue
+9.  Credit Recharged Please Continue
+10. Make Priority 1 All
 
 **Project Health Check:**
-- **Broken:** No part of the application is outright broken.
-- **Mocked:** Key third-party integrations are mocked. The core logic for Payments (Razorpay), Notifications (SendGrid, Twilio), and AI (Price Suggestion, Doc Verification) is not implemented. These services are currently placeholders.
+-   **Broken:** No part of the application is broken.
+-   **Mocked:** All critical third-party integrations are mocked. This is the biggest risk and priority.
+    -   **Payments (Razorpay):** Mocked.
+    -   **Notifications (SendGrid, Twilio):** Mocked. OTPs and emails are not sent.
+    -   **Location (PIN code):** Using a hardcoded internal dictionary, not a live API.
 
 **3rd Party Integrations**
-- **Razorpay (Payments):** Playbook received. Requires User API Key. **(Mocked)**
-- **SendGrid (Email):** Playbook received. Requires User API Key. **(Mocked)**
-- **Twilio (WhatsApp):** Playbook received. Requires User API Key. **(Mocked)**
-- **AWS S3 (Storage):** Implemented for documents. Requires User API Key.
-- **OpenAI/Claude/Gemini (AI Features):** Uses Emergent LLM Key via . **(Mocked)**
-- **react-leaflet (Maps):** Implemented for live flight tracking.
+-   **Razorpay (Payments):** Playbook received. Requires User API Key. **(Mocked)**
+-   **SendGrid (Email):** Playbook received. Requires User API Key. **(Mocked)**
+-   **Twilio (WhatsApp/SMS):** Playbook received. Requires User API Key. **(Mocked)**
+-   **AWS S3 (Storage):** Implemented. Requires User API Key.
+-   **OpenAI/Claude/Gemini (AI Features):** Uses Emergent LLM Key. **(Mocked)**
+-   **react-leaflet (Maps):** Implemented.
 
 **Testing status**
-- **Testing agent used after significant changes:** NO (The agent attempted to call it for Phase 3 but failed due to a tool input error, then proceeded with manual  and screenshot tests).
-- **Troubleshoot agent used after agent stuck in loop:** NO
-- **Test files created:** None.
-- **Known regressions:** The critical frontend compilation error from the previous fork was resolved.
+-   **Testing agent used after significant changes:** NO. Agent failed to use it and reverted to manual testing.
+-   **Troubleshoot agent used after agent stuck in loop:** NO.
+-   **Test files created:** None.
+-   **Known regressions:** None.
 
 **Credentials to test flow:**
-- **Admin:**  / 
-- **Regional Manager:**  / 
-- **Operator/Customer:** It is recommended to register new users for testing to ensure clean state.
+-   **Admin:**  / 
+-   **Customer:** Register a new user for testing. Example:  / .
 
 **What agent forgot to execute**
-- The agent failed to successfully run the  after the large Phase 3 implementation due to a tool error and did not retry.
-- The agent created the  component but did not verify its functionality or test if it correctly displays alerts for expiring documents.
-- The agent created numerous Phase 4 components but did not fully integrate them into the user workflows. For example, the  UI was created but not added to the booking process.</analysis>
+-   The agent created the backend and frontend for the pilot restriction feature but did not add the actual button in the UI for the admin to trigger it.
+-   The agent has not yet implemented the Pickup Time selection on the booking page, which was requested alongside passenger details and insurance.</analysis>
