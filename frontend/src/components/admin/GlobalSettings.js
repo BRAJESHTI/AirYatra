@@ -189,6 +189,16 @@ function GlobalSettings() {
       { key: 'insurance_provider_api_key', label: 'API Key', type: 'password' },
       { key: 'insurance_provider_email', label: 'Provider Email', type: 'email' },
     ]},
+    { section: 'GST Verification API', fields: [
+      { key: 'gst_verification_api_key', label: 'API Key', type: 'password' },
+      { key: 'gst_verification_api_url', label: 'API URL', type: 'text' },
+      { key: 'gst_verification_enabled', label: 'Enable GST Verification', type: 'select', options: ['true', 'false'] },
+    ]},
+    { section: 'PAN Verification API', fields: [
+      { key: 'pan_verification_api_key', label: 'API Key', type: 'password' },
+      { key: 'pan_verification_api_url', label: 'API URL', type: 'text' },
+      { key: 'pan_verification_enabled', label: 'Enable PAN Verification', type: 'select', options: ['true', 'false'] },
+    ]},
   ];
 
   return (
