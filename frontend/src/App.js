@@ -11,6 +11,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import RegionalManagerDashboard from './pages/RegionalManagerDashboard';
 import BookingPage from './pages/BookingPage';
 
+// Import shared components
+import AIChatbot from './components/shared/AIChatbot';
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
