@@ -665,38 +665,92 @@ function BookingPage({ user }) {
 
                 {formData.gst_billing && (
                   <div className="mt-4 p-4 rounded-lg bg-slate-900/50 border border-green-500/30 space-y-4">
+                    {/* GSTIN with Verify Button */}
                     <div className="space-y-2">
-                      <Label className="text-white">Company Name / कंपनी का नाम *</Label>
+                      <Label className="text-white flex items-center gap-2">
+                        GSTIN (15 digits) *
+                        {gstVerified && (
+                          <span className="text-green-400 text-xs flex items-center gap-1">
+                            ✓ Verified / सत्यापित
+                          </span>
+                        )}
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.gstin}
+                          onChange={(e) => {
+                            setFormData(prev => ({ ...prev, gstin: e.target.value.toUpperCase() }));
+                            setGstVerified(false);
+                            setGstVerificationMessage('');
+                          }}
+                          placeholder="e.g., 27AABCU9603R1ZM"
+                          maxLength={15}
+                          required={formData.gst_billing}
+                          className={`bg-slate-800 border-slate-700 text-white uppercase flex-1 ${
+                            gstVerified ? 'border-green-500' : ''
+                          }`}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleVerifyGST}
+                          disabled={gstVerifying || formData.gstin.length !== 15}
+                          className="bg-blue-600 hover:bg-blue-700 px-4"
+                        >
+                          {gstVerifying ? 'Verifying...' : 'Verify GST'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Format: 22AAAAA0000A1Z5 | Test GST: 27AABCU9603R1ZM (Infosys)
+                      </p>
+                      {gstVerificationMessage && (
+                        <p className={`text-xs ${gstVerified ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {gstVerificationMessage}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Company Name - Auto-filled from GST */}
+                    <div className="space-y-2">
+                      <Label className="text-white flex items-center gap-2">
+                        Company Name / कंपनी का नाम *
+                        {gstVerified && <span className="text-green-400 text-xs">(Auto-filled)</span>}
+                      </Label>
                       <Input
                         value={formData.company_name}
                         onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
-                        placeholder="Enter company name"
+                        placeholder="Enter company name or verify GST to auto-fill"
                         required={formData.gst_billing}
-                        className="bg-slate-800 border-slate-700 text-white"
+                        className={`bg-slate-800 border-slate-700 text-white ${
+                          gstVerified ? 'border-green-500/50' : ''
+                        }`}
                       />
                     </div>
+
+                    {/* Billing Address - Auto-filled from GST */}
                     <div className="space-y-2">
-                      <Label className="text-white">GSTIN (15 digits) *</Label>
-                      <Input
-                        value={formData.gstin}
-                        onChange={(e) => setFormData(prev => ({ ...prev, gstin: e.target.value.toUpperCase() }))}
-                        placeholder="e.g., 29AAACP1234A1Z5"
-                        maxLength={15}
-                        required={formData.gst_billing}
-                        className="bg-slate-800 border-slate-700 text-white uppercase"
-                      />
-                      <p className="text-xs text-slate-500">Format: 22AAAAA0000A1Z5</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-white">Billing Address / बिलिंग पता</Label>
+                      <Label className="text-white flex items-center gap-2">
+                        Billing Address / बिलिंग पता
+                        {gstVerified && <span className="text-green-400 text-xs">(Auto-filled)</span>}
+                      </Label>
                       <textarea
                         value={formData.billing_address}
                         onChange={(e) => setFormData(prev => ({ ...prev, billing_address: e.target.value }))}
-                        placeholder="Enter registered office address"
+                        placeholder="Enter registered office address or verify GST to auto-fill"
                         rows="2"
-                        className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                        className={`w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white ${
+                          gstVerified ? 'border-green-500/50' : ''
+                        }`}
                       />
                     </div>
+
+                    {/* GST Verification Success Banner */}
+                    {gstVerified && (
+                      <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <p className="text-green-400 text-sm flex items-center gap-2">
+                          ✓ GST Verified - Company details auto-filled / GST सत्यापित - कंपनी विवरण ऑटो-भरा गया
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
