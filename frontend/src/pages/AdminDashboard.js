@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2 } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -17,18 +17,26 @@ import ReportsDashboard from '@/components/admin/ReportsDashboard';
 import UserRoleManagement from '@/components/admin/UserRoleManagement';
 import SuspendedOperators from '@/components/admin/SuspendedOperators';
 import ApprovalQueue from '@/components/admin/ApprovalQueue';
+import RolePermissionManager from '@/components/admin/RolePermissionManager';
+import OperatorPerformance from '@/components/admin/OperatorPerformance';
+import MultiLevelApproval from '@/components/admin/MultiLevelApproval';
+import InAppChat from '@/components/shared/InAppChat';
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'reports', label: 'Reports', icon: PieChart },
   { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
+  { id: 'multi_approval', label: 'Multi-Level Approvals', icon: Shield, highlight: true },
   { id: 'users', label: 'User Management', icon: UserCog },
+  { id: 'roles', label: 'Roles & Permissions', icon: Shield },
   { id: 'operators', label: 'Operators', icon: Building2 },
+  { id: 'operator_performance', label: 'Operator Performance', icon: TrendingUp },
   { id: 'suspended', label: 'Suspended Operators', icon: Ban },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'permissions', label: 'Landing Permissions', icon: Shield },
   { id: 'settlements', label: 'Settlements', icon: DollarSign },
+  { id: 'chat', label: 'Messages', icon: MessageSquare },
   { id: 'audit', label: 'Audit Logs', icon: FileText },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
