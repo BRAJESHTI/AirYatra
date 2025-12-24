@@ -383,9 +383,9 @@ async def get_all_roles(
 @router.post("/roles")
 async def create_custom_role(
     data: dict,
-    user: dict = Depends(require_roles([UserRole.SUPER_ADMIN]))
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
 ):
-    """Create custom role (Super Admin only)"""
+    """Create custom role (Admin and Super Admin)"""
     db = get_database()
     
     role_id = data.get("id") or str(uuid4())[:8]
