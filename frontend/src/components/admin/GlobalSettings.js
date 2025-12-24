@@ -725,6 +725,11 @@ function GlobalSettings() {
             </div>
           )}
 
+          {/* Inquiry Distribution Settings */}
+          {activeTab === 'inquiry_distribution' && (
+            <InquiryDistributionSettings />
+          )}
+
           {/* API Keys Settings */}
           {activeTab === 'apikeys' && (
             <div className="space-y-6">
