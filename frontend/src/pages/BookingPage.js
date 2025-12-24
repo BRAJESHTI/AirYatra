@@ -518,73 +518,82 @@ function BookingPage({ user }) {
   // Render Step 2: Booking Type (Dropdowns)
   const renderBookingTypeStep = () => (
     <div className="space-y-6">
-      {/* Udan Ka Prakar */}
-      <div>
-        <Label className="text-white text-lg mb-4 block">
+      {/* Udan Ka Prakar - Dropdown */}
+      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <Label className="text-white text-lg mb-3 block flex items-center gap-2">
+          <Plane className="h-5 w-5 text-orange-400" />
           उड़ान का प्रकार / Flight Type <span className="text-red-500">*</span>
         </Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <select
+          value={formData.udan_prakar}
+          onChange={(e) => handleInputChange('udan_prakar', e.target.value)}
+          className="w-full p-4 bg-slate-900 border border-slate-600 rounded-xl text-white text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
+        >
+          <option value="" className="bg-slate-900">-- Select Flight Type / उड़ान प्रकार चुनें --</option>
           {udanPrakarOptions.map(option => (
-            <button
-              key={option.value}
-              onClick={() => handleInputChange('udan_prakar', option.value)}
-              className={`p-4 rounded-xl border-2 transition-all text-center ${
-                formData.udan_prakar === option.value
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-              }`}
-            >
-              <span className="text-2xl mb-2 block">{option.icon}</span>
-              <span className="text-white text-sm">{option.label}</span>
-            </button>
+            <option key={option.value} value={option.value} className="bg-slate-900">
+              {option.icon} {option.label}
+            </option>
           ))}
-        </div>
+        </select>
+        {formData.udan_prakar && (
+          <p className="mt-2 text-orange-400 text-sm flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Selected: {udanPrakarOptions.find(o => o.value === formData.udan_prakar)?.label}
+          </p>
+        )}
       </div>
 
-      {/* Booking For */}
-      <div>
-        <Label className="text-white text-lg mb-4 block">
+      {/* Booking For - Dropdown */}
+      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <Label className="text-white text-lg mb-3 block flex items-center gap-2">
+          <User className="h-5 w-5 text-blue-400" />
           बुकिंग किसके लिए / Booking For <span className="text-red-500">*</span>
         </Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <select
+          value={formData.booking_for}
+          onChange={(e) => handleInputChange('booking_for', e.target.value)}
+          className="w-full p-4 bg-slate-900 border border-slate-600 rounded-xl text-white text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
+        >
+          <option value="" className="bg-slate-900">-- Select Booking For / किसके लिए चुनें --</option>
           {bookingForOptions.map(option => (
-            <button
-              key={option.value}
-              onClick={() => handleInputChange('booking_for', option.value)}
-              className={`p-4 rounded-xl border-2 transition-all text-center ${
-                formData.booking_for === option.value
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-              }`}
-            >
-              <span className="text-2xl mb-2 block">{option.icon}</span>
-              <span className="text-white text-sm">{option.label}</span>
-            </button>
+            <option key={option.value} value={option.value} className="bg-slate-900">
+              {option.icon} {option.label}
+            </option>
           ))}
-        </div>
+        </select>
+        {formData.booking_for && (
+          <p className="mt-2 text-blue-400 text-sm flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Selected: {bookingForOptions.find(o => o.value === formData.booking_for)?.label}
+          </p>
+        )}
       </div>
 
-      {/* Booking Purpose */}
-      <div>
-        <Label className="text-white text-lg mb-4 block">
+      {/* Booking Purpose - Dropdown */}
+      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <Label className="text-white text-lg mb-3 block flex items-center gap-2">
+          <Target className="h-5 w-5 text-green-400" />
           बुकिंग का उद्देश्य / Booking Purpose <span className="text-red-500">*</span>
         </Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <select
+          value={formData.booking_purpose}
+          onChange={(e) => handleInputChange('booking_purpose', e.target.value)}
+          className="w-full p-4 bg-slate-900 border border-slate-600 rounded-xl text-white text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
+        >
+          <option value="" className="bg-slate-900">-- Select Purpose / उद्देश्य चुनें --</option>
           {bookingPurposeOptions.map(option => (
-            <button
-              key={option.value}
-              onClick={() => handleInputChange('booking_purpose', option.value)}
-              className={`p-4 rounded-xl border-2 transition-all text-center ${
-                formData.booking_purpose === option.value
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-              }`}
-            >
-              <span className="text-2xl mb-2 block">{option.icon}</span>
-              <span className="text-white text-sm">{option.label}</span>
-            </button>
+            <option key={option.value} value={option.value} className="bg-slate-900">
+              {option.icon} {option.label}
+            </option>
           ))}
-        </div>
+        </select>
+        {formData.booking_purpose && (
+          <p className="mt-2 text-green-400 text-sm flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Selected: {bookingPurposeOptions.find(o => o.value === formData.booking_purpose)?.label}
+          </p>
+        )}
         
         {formData.booking_purpose === 'other' && (
           <Input
