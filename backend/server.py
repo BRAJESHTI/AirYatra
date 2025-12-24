@@ -15,6 +15,7 @@ from routes import admin_landing_permission_routes, admin_settlement_routes, adm
 from routes import regional_manager_routes, notification_routes
 from routes import settings_routes, chat_routes, feedback_routes, analytics_routes, customer_routes
 from routes import pincode_routes, verification_routes, reports_routes, journey_routes
+from routes import verification_gst_pan_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -75,6 +76,7 @@ api_router.include_router(pincode_routes.router)
 api_router.include_router(verification_routes.router)
 api_router.include_router(reports_routes.router)
 api_router.include_router(journey_routes.router)
+api_router.include_router(verification_gst_pan_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
