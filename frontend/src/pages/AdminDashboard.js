@@ -71,10 +71,16 @@ function AdminDashboard({ user, onLogout }) {
         return <ReportsDashboard />;
       case 'approvals':
         return <ApprovalQueue />;
+      case 'multi_approval':
+        return <MultiLevelApproval />;
       case 'users':
         return <UserRoleManagement />;
+      case 'roles':
+        return <RolePermissionManager />;
       case 'operators':
         return <OperatorManagement />;
+      case 'operator_performance':
+        return <OperatorPerformance />;
       case 'suspended':
         return <SuspendedOperators />;
       case 'bookings':
@@ -83,6 +89,8 @@ function AdminDashboard({ user, onLogout }) {
         return <LandingPermissionApproval />;
       case 'settlements':
         return <SettlementManagement />;
+      case 'chat':
+        return <InAppChat user={user} />;
       case 'audit':
         return <AuditLogs />;
       case 'settings':
