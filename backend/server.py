@@ -16,6 +16,7 @@ from routes import regional_manager_routes, notification_routes
 from routes import settings_routes, chat_routes, feedback_routes, analytics_routes, customer_routes
 from routes import pincode_routes, verification_routes, reports_routes, journey_routes
 from routes import verification_gst_pan_routes
+from routes import websocket_chat_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
