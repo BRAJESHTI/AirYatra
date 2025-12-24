@@ -12,6 +12,10 @@ import PriceCalculator from '../components/shared/PriceCalculator';
 
 function BookingPage({ user }) {
   const [formData, setFormData] = useState({
+    // Flight type selection
+    flight_type: 'point_to_point', // one_hour, two_hour, half_day, full_day_single, full_day_multi, point_to_point
+    multi_location_stops: [], // For full_day_multi type
+    // Location
     from_pincode: '',
     from_location: '',
     from_state: '',
@@ -43,6 +47,9 @@ function BookingPage({ user }) {
     gstin: '',
     billing_address: ''
   });
+  
+  const [flightTypes, setFlightTypes] = useState([]);
+  const [selectedFlightTypeDetails, setSelectedFlightTypeDetails] = useState(null);
   
   const bookingForOptions = [
     { value: 'self', label: 'Self / खुद के लिए' },
