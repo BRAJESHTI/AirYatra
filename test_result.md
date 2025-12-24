@@ -436,3 +436,19 @@ agent_communication:
 agent_communication:
   - agent: "main"
     message: "Fork Session Complete - Implemented all P1 & P2 tasks: 1) Role & Permission Manager 2) Multi-Level Approval Workflow 3) Operator Performance Tracking 4) PIN Code Live API 5) In-App Chat UI 6) Settlement Automation Scheduler. All features tested via screenshots and backend API calls."
+
+  - task: "Google OAuth Login (Emergent Auth)"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/frontend/src/components/auth/GoogleLogin.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Implemented Emergent Managed Google OAuth. Frontend GoogleLoginButton redirects to Emergent auth, EmergentAuthCallback component handles session_id from URL hash, backend /api/auth/google/emergent-callback endpoint creates/updates user. Device info captured. Needs E2E testing."
+
+agent_communication:
+  - agent: "main"
+    message: "Google OAuth with Emergent Auth implemented. Features: 1) Frontend Google Sign-In button on Login page 2) Emergent Auth redirect flow 3) EmergentAuthCallback component handles session_id 4) Backend endpoint creates user from Emergent data 5) Device info captured 6) JWT token generated. Ready for E2E testing via testing agent."
