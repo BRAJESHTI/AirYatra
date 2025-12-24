@@ -51,6 +51,11 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage user={user} />} />
         <Route path="/login" element={<LoginPage setUser={setUser} />} />
+        
+        {/* Google Auth Callback Routes */}
+        <Route path="/auth/google/success" element={<GoogleAuthSuccess onLogin={setUser} />} />
+        <Route path="/auth/google/error" element={<GoogleAuthError />} />
+        
         <Route
           path="/customer"
           element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
