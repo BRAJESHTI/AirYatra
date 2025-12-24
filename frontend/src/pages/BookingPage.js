@@ -312,27 +312,52 @@ function BookingPage({ user }) {
               
               {/* Booking Type Selection */}
               <div className="p-4 rounded-lg bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30">
-                <h3 className="text-lg font-semibold text-white mb-4">किसके लिए बुकिंग कर रहे हैं? (Booking For)</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {bookingTypeOptions.map(option => {
-                    const Icon = option.icon;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, booking_for: option.value }))}
-                        className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                          formData.booking_for === option.value
-                            ? 'border-orange-500 bg-orange-500/20 text-white'
-                            : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-600'
-                        }`}
-                      >
-                        <Icon className={`h-5 w-5 ${formData.booking_for === option.value ? 'text-orange-400' : 'text-slate-400'}`} />
-                        <span className="text-sm">{option.label}</span>
-                      </button>
-                    );
-                  })}
+                <h3 className="text-lg font-semibold text-white mb-4">Booking Details / बुकिंग विवरण</h3>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Booking For Dropdown */}
+                  <div className="space-y-2">
+                    <Label className="text-white">किसके लिए बुकिंग? (Booking For) *</Label>
+                    <select
+                      value={formData.booking_for}
+                      onChange={(e) => setFormData(prev => ({ ...prev, booking_for: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-700 text-white"
+                    >
+                      {bookingForOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Booking Purpose Dropdown */}
+                  <div className="space-y-2">
+                    <Label className="text-white">यात्रा का उद्देश्य (Purpose) *</Label>
+                    <select
+                      value={formData.booking_purpose}
+                      onChange={(e) => setFormData(prev => ({ ...prev, booking_purpose: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-700 text-white"
+                    >
+                      {bookingPurposeOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                {/* Other Purpose Specification */}
+                {formData.booking_purpose === 'other' && (
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-white">Please specify purpose / उद्देश्य बताएं *</Label>
+                    <Input
+                      value={formData.booking_purpose_other}
+                      onChange={(e) => setFormData(prev => ({ ...prev, booking_purpose_other: e.target.value }))}
+                      placeholder="Enter booking purpose"
+                      required
+                      className="bg-slate-900 border-slate-700 text-white"
+                    />
+                  </div>
+                )}
+
                 {formData.booking_for !== 'self' && (
                   <p className="mt-3 text-sm text-orange-400">
                     ⚠️ यात्री का Mobile Number अनिवार्य है (Passenger mobile number required)
