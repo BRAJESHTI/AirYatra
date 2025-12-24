@@ -23,6 +23,7 @@ function MyTrips({ user }) {
 
   useEffect(() => {
     loadTrips();
+    loadPendingQuotes();
   }, []);
 
   const loadTrips = async () => {
@@ -35,6 +36,48 @@ function MyTrips({ user }) {
       toast.error('Failed to load trips');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPendingQuotes = async () => {
+    try {
+      const response = await customerAPI.getPendingQuotes();
+      setPendingQuotes(response.data.quotes || []);
+    } catch (error) {
+      console.error('Failed to load pending quotes');
+    }
+  };
+
+  const loadTripQuotes = async (bookingId) => {
+    try {
+      const response = await customerAPI.getBookingQuotes(bookingId);
+      setTripQuotes(response.data.quotes || []);
+    } catch (error) {
+      toast.error('Failed to load quotes');
+    }
+  };
+
+  const handleViewQuotes = async (trip) => {
+    setSelectedTrip(trip);
+    await loadTripQuotes(trip.id);
+    setShowQuotesDialog(true);
+  };
+
+  const handleQuoteResponse = async (quoteId, action) => {
+    if (!selectedTrip) return;
+    setProcessing(true);
+    try {
+      await customerAPI.respondToQuote(selectedTrip.id, quoteId, { action });
+      toast.success(action === 'accept' 
+        ? '🎉 Quote accepted! Proceed to payment. / कोट स्वीकार!'
+        : 'Quote rejected / कोट अस्वीकार');
+      setShowQuotesDialog(false);
+      loadTrips();
+      loadPendingQuotes();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to respond');
+    } finally {
+      setProcessing(false);
     }
   };
 
