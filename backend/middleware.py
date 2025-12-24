@@ -33,7 +33,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if user is None:
         raise credentials_exception
     
-    if not user.get("is_active", False):
+    # Check if user is active (support both is_active and status fields)
+    is_active = user.get("is_active", True)  # Default to True if not present
+    status_active = user.get("status", "active") == "active"
+    
+    if not (is_active and status_active):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is inactive"
