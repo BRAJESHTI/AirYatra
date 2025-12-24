@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -13,10 +13,12 @@ import SettlementManagement from '@/components/admin/SettlementManagement';
 import AuditLogs from '@/components/admin/AuditLogs';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import GlobalSettings from '@/components/admin/GlobalSettings';
+import ReportsDashboard from '@/components/admin/ReportsDashboard';
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'reports', label: 'Reports', icon: PieChart },
   { id: 'operators', label: 'Operators', icon: Users },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'permissions', label: 'Landing Permissions', icon: Shield },
