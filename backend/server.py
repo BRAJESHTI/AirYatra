@@ -19,6 +19,7 @@ from routes import verification_gst_pan_routes
 from routes import websocket_chat_routes
 from routes import admin_user_routes, admin_operator_management_routes
 from routes import admin_booking_management_routes, admin_approval_routes
+from routes import pincode_live_routes, settlement_automation_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
