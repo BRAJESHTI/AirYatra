@@ -317,4 +317,12 @@ export const pincodeAPI = {
   }),
 };
 
+// GST & PAN Verification API
+export const gstPanAPI = {
+  verifyGST: (gstin) => api.post('/verification/gst/verify', { gstin }),
+  verifyPAN: (pan, name) => api.post('/verification/pan/verify', { pan, name }),
+  getSampleGSTNumbers: () => api.get('/verification/gst/sample-numbers'),
+  getSamplePANNumbers: () => api.get('/verification/pan/sample-numbers'),
+};
+
 export default api;
