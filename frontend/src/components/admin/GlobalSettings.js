@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, IndianRupee, Percent, Calendar, MapPin, Save, Plus, Trash2, Mail, MessageSquare, Calculator, Key, Shield, FileText, Eye, EyeOff, Plane, DollarSign, Clock, RefreshCw, Play } from 'lucide-react';
+import { Settings, IndianRupee, Percent, Calendar, MapPin, Save, Plus, Trash2, Mail, MessageSquare, Calculator, Key, Shield, FileText, Eye, EyeOff, Plane, DollarSign, Clock, RefreshCw, Play, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { settingsAPI, settlementAutomationAPI } from '@/services/api';
 import { toast } from 'sonner';
+import InquiryDistributionSettings from './InquiryDistributionSettings';
 
 function GlobalSettings() {
   const [activeTab, setActiveTab] = useState('platform');
