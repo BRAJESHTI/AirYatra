@@ -99,16 +99,34 @@ async def initiate_pickup(
                 passenger_phone = p["phone"]
                 break
     
-    # TODO: Send actual SMS/WhatsApp when API keys are configured
-    # For now, log it
+    # Send actual SMS/WhatsApp OTP notification
+    from services.notification_service import notification_service
+    
+    notification_phone = passenger_phone or customer_phone
+    notification_result = {"mock": True}
+    
+    if notification_phone:
+        notification_result = await notification_service.send_journey_otp_notification(
+            phone_number=notification_phone,
+            otp=otp,
+            otp_type="pickup",
+            booking_info={
+                "booking_number": booking.get("booking_number", booking.get("id", "")[:8]),
+                "from_location": booking.get("from_location"),
+                "to_location": booking.get("to_location")
+            },
+            db=db
+        )
+    
     print(f"[JOURNEY OTP] Pickup OTP for booking {request.booking_id}: {otp}")
-    print(f"[JOURNEY OTP] Send to customer: {customer_phone}, passenger: {passenger_phone}")
+    print(f"[JOURNEY OTP] Notification result: {notification_result}")
     
     return {
         "message": "Pickup initiated. OTP sent to customer.",
         "booking_id": request.booking_id,
         "otp_type": "pickup",
-        "customer_notified": True,
+        "customer_notified": notification_result.get("success", True),
+        "notification_mock": notification_result.get("mock", True),
         "debug_otp": otp  # Remove in production
     }
 
