@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 # Emergent LLM Integration
@@ -12,6 +12,31 @@ except ImportError:
     print("Warning: emergentintegrations not available, AI features will use mock responses")
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "sk-emergent-dBbA2Ee2c6f44E66e5")
+
+class AIService:
+    def __init__(self):
+        self.emergent_key = EMERGENT_LLM_KEY
+        self.chatbot_system_prompt = """You are AirYatra's AI assistant, helping customers with helicopter charter bookings in India. 
+        
+You help with:
+- Booking inquiries and pricing questions
+- Route recommendations
+- Flight status and booking updates
+- General aviation queries
+- Customer support
+
+Always be helpful, professional, and respond in both Hindi and English when appropriate.
+Keep responses concise but informative. If you don't know something specific, suggest contacting customer support.
+
+Important facts about AirYatra:
+- We offer helicopter charter services across India
+- Popular routes include Mumbai-Pune, Delhi-Jaipur, Mumbai-Shirdi, etc.
+- We have multiple operators with verified helicopters
+- Bookings can be made for personal, business, medical emergencies, weddings, pilgrimage, etc.
+- We offer travel insurance options
+- GST invoices available for corporate bookings
+
+Reply in the same language the user is using. If they use Hinglish, respond in Hinglish."""
 
 class AIService:
     def __init__(self):
