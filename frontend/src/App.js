@@ -15,7 +15,7 @@ import BookingPage from './pages/BookingPage';
 import AIChatbot from './components/shared/AIChatbot';
 
 // Import Google Auth components
-import { GoogleAuthSuccess, GoogleAuthError } from './components/auth/GoogleLogin';
+import { GoogleAuthSuccess, GoogleAuthError, EmergentAuthCallback } from './components/auth/GoogleLogin';
 
 function App() {
   const [user, setUser] = useState(null);
