@@ -26,6 +26,10 @@ class RouteRecommendationRequest(BaseModel):
     from_location: str
     preferences: Optional[Dict] = None
 
+class ChatbotRequest(BaseModel):
+    message: str
+    conversation_id: Optional[str] = None
+
 @router.post("/price-suggestion")
 async def get_price_suggestion(
     request: PriceSuggestionRequest,
