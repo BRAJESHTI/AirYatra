@@ -275,3 +275,163 @@ async def get_refund_requests(
     ).sort("created_at", -1).to_list(50)
     
     return {"refunds": refunds}
+
+# ============== REVISED QUOTES ==============
+
+@router.get("/trips/{booking_id}/quotes")
+async def get_booking_quotes(
+    booking_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get all quotes received for a booking"""
+    # Verify booking belongs to customer
+    booking = await db.bookings.find_one(
+        {"id": booking_id, "customer_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get all quotes for this booking
+    quotes = await db.quotes.find(
+        {"booking_id": booking_id},
+        {"_id": 0}
+    ).sort("updated_at", -1).to_list(50)
+    
+    # Enrich with operator info
+    for quote in quotes:
+        operator = await db.operators.find_one(
+            {"id": quote["operator_id"]},
+            {"_id": 0, "company_name": 1, "average_rating": 1, "base_city": 1}
+        )
+        quote["operator"] = operator
+    
+    return {
+        "quotes": quotes,
+        "booking_status": booking.get("status"),
+        "accepted_quote_id": booking.get("accepted_quote_id")
+    }
+
+class QuoteResponseRequest(BaseModel):
+    action: str  # "accept" or "reject"
+    feedback: Optional[str] = None
+
+@router.post("/trips/{booking_id}/quotes/{quote_id}/respond")
+async def respond_to_quote(
+    booking_id: str,
+    quote_id: str,
+    response_data: QuoteResponseRequest,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Customer accepts or rejects a revised quote"""
+    # Verify booking belongs to customer
+    booking = await db.bookings.find_one(
+        {"id": booking_id, "customer_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Verify quote exists
+    quote = await db.quotes.find_one(
+        {"id": quote_id, "booking_id": booking_id},
+        {"_id": 0}
+    )
+    
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    if response_data.action == "accept":
+        # Accept the quote
+        await db.quotes.update_one(
+            {"id": quote_id},
+            {"$set": {
+                "status": "accepted",
+                "accepted_at": datetime.now(timezone.utc).isoformat(),
+                "customer_feedback": response_data.feedback
+            }}
+        )
+        
+        # Reject other quotes for this booking
+        await db.quotes.update_many(
+            {"booking_id": booking_id, "id": {"$ne": quote_id}},
+            {"$set": {"status": "rejected"}}
+        )
+        
+        # Update booking
+        await db.bookings.update_one(
+            {"id": booking_id},
+            {"$set": {
+                "status": "quote_accepted",
+                "accepted_quote_id": quote_id,
+                "operator_id": quote["operator_id"],
+                "total_amount": quote["amount"],
+                "quote_accepted_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # TODO: Notify operator
+        
+        return {
+            "status": "success",
+            "message": "Quote accepted! / कोट स्वीकार! Proceed to payment.",
+            "amount": quote["amount"],
+            "operator_name": quote.get("operator_name")
+        }
+    
+    elif response_data.action == "reject":
+        # Reject the quote
+        await db.quotes.update_one(
+            {"id": quote_id},
+            {"$set": {
+                "status": "rejected_by_customer",
+                "rejected_at": datetime.now(timezone.utc).isoformat(),
+                "rejection_feedback": response_data.feedback
+            }}
+        )
+        
+        # TODO: Notify operator
+        
+        return {
+            "status": "success",
+            "message": "Quote rejected / कोट अस्वीकार"
+        }
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'accept' or 'reject'")
+
+@router.get("/quotes/pending")
+async def get_pending_quotes_for_customer(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get all pending quotes across all customer bookings"""
+    # Get all customer bookings
+    bookings = await db.bookings.find(
+        {"customer_id": current_user["id"], "status": {"$in": ["pending_quotes", "quote_sent", "quotes_received"]}},
+        {"_id": 0, "id": 1, "booking_number": 1, "from_location": 1, "to_location": 1}
+    ).to_list(100)
+    
+    booking_ids = [b["id"] for b in bookings]
+    
+    # Get pending quotes
+    quotes = await db.quotes.find(
+        {"booking_id": {"$in": booking_ids}, "status": {"$in": ["sent", "pending"]}},
+        {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    # Enrich with booking and operator info
+    booking_map = {b["id"]: b for b in bookings}
+    for quote in quotes:
+        quote["booking"] = booking_map.get(quote["booking_id"])
+        operator = await db.operators.find_one(
+            {"id": quote["operator_id"]},
+            {"_id": 0, "company_name": 1, "average_rating": 1}
+        )
+        quote["operator"] = operator
+    
+    return {"quotes": quotes, "total_pending": len(quotes)}
