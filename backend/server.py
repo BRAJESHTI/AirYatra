@@ -86,6 +86,8 @@ api_router.include_router(admin_user_routes.router)
 api_router.include_router(admin_operator_management_routes.router)
 api_router.include_router(admin_booking_management_routes.router)
 api_router.include_router(admin_approval_routes.router)
+api_router.include_router(pincode_live_routes.router)
+api_router.include_router(settlement_automation_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
