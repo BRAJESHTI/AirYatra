@@ -414,7 +414,7 @@ async def create_custom_role(
 async def update_role(
     role_id: str,
     data: dict,
-    user: dict = Depends(require_roles([UserRole.SUPER_ADMIN]))
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
 ):
     """Update custom role permissions"""
     db = get_database()
