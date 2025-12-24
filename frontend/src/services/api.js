@@ -253,6 +253,19 @@ export const settingsAPI = {
   createNotificationTemplate: (data) => api.post('/settings/notification-templates', data),
   updateNotificationTemplate: (id, data) => api.put(`/settings/notification-templates/${id}`, data),
   getCommissionTiers: () => api.get('/settings/commission-tiers'),
+  getPricingSettings: () => api.get('/settings/pricing'),
+  updatePricingSettings: (data) => api.put('/settings/pricing', data),
+  getPublicPricing: () => api.get('/settings/pricing/public'),
+};
+
+// PIN Code API
+export const pincodeAPI = {
+  lookup: (pincode) => api.get(`/pincode/lookup/${pincode}`),
+  search: (params) => api.get('/pincode/search', { params }),
+  calculatePrice: (params) => api.post('/pincode/calculate-price', null, { params }),
+  estimateDistance: (fromPincode, toPincode) => api.get('/pincode/estimate-distance', { 
+    params: { from_pincode: fromPincode, to_pincode: toPincode } 
+  }),
 };
 
 export default api;
