@@ -61,8 +61,14 @@ function AdminDashboard({ user, onLogout }) {
         return <AnalyticsDashboard />;
       case 'reports':
         return <ReportsDashboard />;
+      case 'approvals':
+        return <ApprovalQueue />;
+      case 'users':
+        return <UserRoleManagement />;
       case 'operators':
         return <OperatorManagement />;
+      case 'suspended':
+        return <SuspendedOperators />;
       case 'bookings':
         return <BookingManagement />;
       case 'permissions':
