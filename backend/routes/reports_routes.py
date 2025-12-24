@@ -653,3 +653,132 @@ async def get_reports_summary(
             "green_flag": total_pilots - red_flag - orange_flag
         }
     }
+
+@router.get("/bookings/by-purpose")
+async def get_bookings_by_purpose(
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REGIONAL_MANAGER])),
+    db=Depends(get_database)
+):
+    """Get bookings grouped by purpose (wedding, temple yatra, etc.)"""
+    match_query = {}
+    if from_date:
+        match_query["created_at"] = {"$gte": from_date}
+    if to_date:
+        if "created_at" in match_query:
+            match_query["created_at"]["$lte"] = to_date
+        else:
+            match_query["created_at"] = {"$lte": to_date}
+    
+    pipeline = [
+        {"$match": match_query} if match_query else {"$match": {}},
+        {
+            "$group": {
+                "_id": "$booking_purpose",
+                "total_bookings": {"$sum": 1},
+                "completed": {"$sum": {"$cond": [{"$eq": ["$status", "completed"]}, 1, 0]}},
+                "cancelled": {"$sum": {"$cond": [{"$eq": ["$status", "cancelled"]}, 1, 0]}},
+                "total_revenue": {"$sum": {"$ifNull": ["$final_price", 0]}},
+                "total_passengers": {"$sum": {"$ifNull": ["$passengers", 1]}}
+            }
+        },
+        {"$sort": {"total_bookings": -1}}
+    ]
+    
+    results = await db.bookings.aggregate(pipeline).to_list(100)
+    
+    # Purpose labels mapping
+    purpose_labels = {
+        "wedding": "💒 Wedding / शादी",
+        "temple_yatra": "🛕 Temple Yatra / मंदिर यात्रा",
+        "company_tour": "🏢 Company Tour / कंपनी टूर",
+        "election_tour": "🗳️ Election Tour / चुनाव टूर",
+        "general_tour": "✈️ General Tour / सामान्य यात्रा",
+        "medical_emergency": "🏥 Medical Emergency / मेडिकल इमरजेंसी",
+        "business_meeting": "💼 Business Meeting / बिज़नेस मीटिंग",
+        "pilgrimage": "🙏 Pilgrimage / तीर्थ यात्रा",
+        "film_shooting": "🎬 Film/Media Shooting",
+        "survey_inspection": "📋 Survey/Inspection",
+        "other": "📝 Other / अन्य",
+        None: "📝 Not Specified"
+    }
+    
+    purposes = []
+    total_all = sum(r["total_bookings"] for r in results)
+    
+    for r in results:
+        purpose_key = r["_id"] or "other"
+        purposes.append({
+            "purpose": purpose_key,
+            "purpose_label": purpose_labels.get(purpose_key, purpose_key),
+            "total_bookings": r["total_bookings"],
+            "completed": r["completed"],
+            "cancelled": r["cancelled"],
+            "total_revenue": round(r["total_revenue"], 2),
+            "total_passengers": r["total_passengers"],
+            "percentage": round((r["total_bookings"] / total_all * 100) if total_all else 0, 1)
+        })
+    
+    return {
+        "purposes": purposes,
+        "total_bookings": total_all
+    }
+
+@router.get("/bookings/by-booking-for")
+async def get_bookings_by_booking_for(
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REGIONAL_MANAGER])),
+    db=Depends(get_database)
+):
+    """Get bookings grouped by who booked (self, friend_family, company, etc.)"""
+    match_query = {}
+    if from_date:
+        match_query["created_at"] = {"$gte": from_date}
+    if to_date:
+        if "created_at" in match_query:
+            match_query["created_at"]["$lte"] = to_date
+        else:
+            match_query["created_at"] = {"$lte": to_date}
+    
+    pipeline = [
+        {"$match": match_query} if match_query else {"$match": {}},
+        {
+            "$group": {
+                "_id": "$booking_for",
+                "total_bookings": {"$sum": 1},
+                "total_revenue": {"$sum": {"$ifNull": ["$final_price", 0]}}
+            }
+        },
+        {"$sort": {"total_bookings": -1}}
+    ]
+    
+    results = await db.bookings.aggregate(pipeline).to_list(100)
+    
+    booking_for_labels = {
+        "self": "👤 Self",
+        "friend_family": "👨‍👩‍👧‍👦 Friend & Family",
+        "company": "🏢 Company",
+        "political": "🎖️ Political/VIP",
+        "other": "📋 Other",
+        None: "📋 Not Specified"
+    }
+    
+    categories = []
+    total_all = sum(r["total_bookings"] for r in results)
+    
+    for r in results:
+        cat_key = r["_id"] or "other"
+        categories.append({
+            "category": cat_key,
+            "category_label": booking_for_labels.get(cat_key, cat_key),
+            "total_bookings": r["total_bookings"],
+            "total_revenue": round(r["total_revenue"], 2),
+            "percentage": round((r["total_bookings"] / total_all * 100) if total_all else 0, 1)
+        })
+    
+    return {
+        "categories": categories,
+        "total_bookings": total_all
+    }
