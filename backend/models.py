@@ -7,6 +7,10 @@ class UserRole(str, Enum):
     CUSTOMER = "customer"
     OPERATOR = "operator"
     REGIONAL_MANAGER = "regional_manager"
+    HR = "hr"
+    FINANCE = "finance"
+    MARKETING = "marketing"
+    OPERATIONS = "operations"
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 
