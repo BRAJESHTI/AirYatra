@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, IndianRupee, Percent, Calendar, MapPin, Save, Plus, Trash2, Mail, MessageSquare, Calculator } from 'lucide-react';
+import { Settings, IndianRupee, Percent, Calendar, MapPin, Save, Plus, Trash2, Mail, MessageSquare, Calculator, Key, Shield, FileText, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,12 +11,16 @@ function GlobalSettings() {
   const [activeTab, setActiveTab] = useState('platform');
   const [platformSettings, setPlatformSettings] = useState({});
   const [pricingSettings, setPricingSettings] = useState({});
+  const [apiKeys, setApiKeys] = useState({});
+  const [termsSettings, setTermsSettings] = useState({});
+  const [termsAgreements, setTermsAgreements] = useState([]);
   const [regions, setRegions] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showRegionDialog, setShowRegionDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showApiKeys, setShowApiKeys] = useState({});
   const [newRegion, setNewRegion] = useState({ region_name: '', region_code: '', states: '', is_active: true });
   const [newTemplate, setNewTemplate] = useState({ template_name: '', template_type: 'email', subject: '', content: '' });
 
@@ -33,6 +37,16 @@ function GlobalSettings() {
       } else if (activeTab === 'pricing') {
         const response = await settingsAPI.getPricingSettings();
         setPricingSettings(response.data);
+      } else if (activeTab === 'apikeys') {
+        const response = await settingsAPI.getAPIKeys();
+        setApiKeys(response.data);
+      } else if (activeTab === 'terms') {
+        const [termsRes, agreementsRes] = await Promise.all([
+          settingsAPI.getTermsConditions(),
+          settingsAPI.getTermsAgreements({})
+        ]);
+        setTermsSettings(termsRes.data);
+        setTermsAgreements(agreementsRes.data.agreements || []);
       } else if (activeTab === 'regions') {
         const response = await settingsAPI.getRegions();
         setRegions(response.data.regions || []);
@@ -71,12 +85,37 @@ function GlobalSettings() {
     }
   };
 
-  const handleCreateRegion = async () => {
+  const handleSaveApiKeys = async () => {
+    setSaving(true);
     try {
-      await settingsAPI.createRegion({
+      await settingsAPI.updateAPIKeys(apiKeys);
+      toast.success('API keys saved successfully');
+    } catch (error) {
+      toast.error('Failed to save API keys');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveTerms = async () => {
+    setSaving(true);
+    try {
+      await settingsAPI.updateTermsConditions(termsSettings);
+      toast.success('Terms & Conditions saved successfully');
+    } catch (error) {
+      toast.error('Failed to save terms');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddRegion = async () => {
+    try {
+      const regionData = {
         ...newRegion,
         states: newRegion.states.split(',').map(s => s.trim())
-      });
+      };
+      await settingsAPI.createRegion(regionData);
       toast.success('Region created');
       setShowRegionDialog(false);
       setNewRegion({ region_name: '', region_code: '', states: '', is_active: true });
@@ -86,7 +125,17 @@ function GlobalSettings() {
     }
   };
 
-  const handleCreateTemplate = async () => {
+  const handleDeleteRegion = async (regionId) => {
+    try {
+      await settingsAPI.deleteRegion(regionId);
+      toast.success('Region deleted');
+      loadSettings();
+    } catch (error) {
+      toast.error('Failed to delete region');
+    }
+  };
+
+  const handleAddTemplate = async () => {
     try {
       await settingsAPI.createNotificationTemplate(newTemplate);
       toast.success('Template created');
@@ -98,36 +147,56 @@ function GlobalSettings() {
     }
   };
 
-  const handleDeleteRegion = async (regionId) => {
-    if (!window.confirm('Delete this region?')) return;
-    try {
-      await settingsAPI.deleteRegion(regionId);
-      toast.success('Region deleted');
-      loadSettings();
-    } catch (error) {
-      toast.error('Failed to delete region');
-    }
+  const toggleShowKey = (keyName) => {
+    setShowApiKeys(prev => ({ ...prev, [keyName]: !prev[keyName] }));
   };
 
   const tabs = [
-    { id: 'platform', label: 'Platform Settings', icon: Settings },
-    { id: 'pricing', label: 'Pricing Settings', icon: Calculator },
+    { id: 'platform', label: 'Platform', icon: Settings },
+    { id: 'pricing', label: 'Pricing', icon: Calculator },
+    { id: 'apikeys', label: 'API Keys', icon: Key },
+    { id: 'terms', label: 'Terms & Conditions', icon: FileText },
     { id: 'regions', label: 'Regions', icon: MapPin },
-    { id: 'templates', label: 'Notification Templates', icon: Mail },
+    { id: 'templates', label: 'Templates', icon: Mail },
+  ];
+
+  const apiKeyFields = [
+    { section: 'Email Service (SendGrid)', fields: [
+      { key: 'sendgrid_api_key', label: 'API Key', type: 'password' },
+      { key: 'sendgrid_from_email', label: 'From Email', type: 'email' },
+      { key: 'sendgrid_from_name', label: 'From Name', type: 'text' },
+    ]},
+    { section: 'SMS Service (Twilio)', fields: [
+      { key: 'twilio_account_sid', label: 'Account SID', type: 'password' },
+      { key: 'twilio_auth_token', label: 'Auth Token', type: 'password' },
+      { key: 'twilio_phone_number', label: 'Phone Number', type: 'text' },
+    ]},
+    { section: 'Payment (Razorpay)', fields: [
+      { key: 'razorpay_key_id', label: 'Key ID', type: 'password' },
+      { key: 'razorpay_key_secret', label: 'Key Secret', type: 'password' },
+      { key: 'razorpay_webhook_secret', label: 'Webhook Secret', type: 'password' },
+    ]},
+    { section: 'Maps & Location (Google)', fields: [
+      { key: 'google_maps_api_key', label: 'Maps API Key', type: 'password' },
+    ]},
+    { section: 'Storage (AWS S3)', fields: [
+      { key: 'aws_access_key_id', label: 'Access Key ID', type: 'password' },
+      { key: 'aws_secret_access_key', label: 'Secret Access Key', type: 'password' },
+      { key: 'aws_s3_bucket', label: 'S3 Bucket Name', type: 'text' },
+      { key: 'aws_region', label: 'AWS Region', type: 'text' },
+    ]},
+    { section: 'Insurance Provider', fields: [
+      { key: 'insurance_provider_api_key', label: 'API Key', type: 'password' },
+      { key: 'insurance_provider_email', label: 'Provider Email', type: 'email' },
+    ]},
   ];
 
   return (
-    <div className="space-y-6" data-testid="global-settings">
-      <div>
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-          <Settings className="h-8 w-8 text-orange-400" />
-          Global Settings
-        </h1>
-        <p className="text-slate-400 mt-1">Configure platform-wide settings</p>
-      </div>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-white">Global Settings</h2>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-slate-700 pb-4">
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
@@ -136,8 +205,8 @@ function GlobalSettings() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                 activeTab === tab.id
-                  ? 'bg-orange-500/20 text-orange-400'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -241,8 +310,7 @@ function GlobalSettings() {
           {activeTab === 'pricing' && (
             <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 space-y-6">
               <div className="mb-4">
-                <h3 className="text-lg font-semibold text-white">Helicopter Charter Pricing</h3>
-                <p className="text-sm text-slate-400">Configure pricing for customer bookings</p>
+                <h3 className="text-lg font-semibold text-white">Flight Pricing</h3>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -256,7 +324,6 @@ function GlobalSettings() {
                     onChange={(e) => setPricingSettings({ ...pricingSettings, base_price_upto_50km: parseFloat(e.target.value) })}
                     className="bg-slate-800 border-slate-700"
                   />
-                  <p className="text-xs text-slate-500">Minimum price for flights up to 50 km</p>
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
@@ -269,7 +336,6 @@ function GlobalSettings() {
                     onChange={(e) => setPricingSettings({ ...pricingSettings, rate_per_km_after_50: parseFloat(e.target.value) })}
                     className="bg-slate-800 border-slate-700"
                   />
-                  <p className="text-xs text-slate-500">Additional charge per km beyond 50 km</p>
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
@@ -282,22 +348,8 @@ function GlobalSettings() {
                     onChange={(e) => setPricingSettings({ ...pricingSettings, waiting_charge_per_hour: parseFloat(e.target.value) })}
                     className="bg-slate-800 border-slate-700"
                   />
-                  <p className="text-xs text-slate-500">Charge per hour of waiting time</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Percent className="h-4 w-4 text-blue-400" />
-                    GST (%)
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={pricingSettings.gst_percent || 18}
-                    onChange={(e) => setPricingSettings({ ...pricingSettings, gst_percent: parseFloat(e.target.value) })}
-                    className="bg-slate-800 border-slate-700"
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
                   <Label className="flex items-center gap-2">
                     <Percent className="h-4 w-4 text-cyan-400" />
                     Advance Payment (%)
@@ -307,46 +359,246 @@ function GlobalSettings() {
                     step="0.5"
                     value={pricingSettings.advance_percent || 5}
                     onChange={(e) => setPricingSettings({ ...pricingSettings, advance_percent: parseFloat(e.target.value) })}
-                    className="bg-slate-800 border-slate-700 max-w-xs"
+                    className="bg-slate-800 border-slate-700"
                   />
-                  <p className="text-xs text-slate-500">Percentage of total amount required as advance payment</p>
                 </div>
               </div>
-              
-              {/* Price Preview */}
-              <div className="mt-6 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-                <h4 className="text-white font-medium mb-3">Price Preview (Example: 100 km trip)</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Base Price (50 km)</span>
-                    <span className="text-white">₹{(pricingSettings.base_price_upto_50km || 50000).toLocaleString()}</span>
+
+              {/* Insurance Settings */}
+              <div className="mt-6 pt-6 border-t border-slate-700">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-blue-400" />
+                  Insurance Settings
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Insurance Enabled</Label>
+                    <select
+                      value={pricingSettings.insurance_enabled ? 'true' : 'false'}
+                      onChange={(e) => setPricingSettings({ ...pricingSettings, insurance_enabled: e.target.value === 'true' })}
+                      className="w-full h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    >
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Extra 50 km</span>
-                    <span className="text-white">₹{(50 * (pricingSettings.rate_per_km_after_50 || 1000)).toLocaleString()}</span>
+                  <div className="space-y-2">
+                    <Label>Coverage Amount (₹)</Label>
+                    <Input
+                      type="number"
+                      value={pricingSettings.insurance_coverage_amount || 10000000}
+                      onChange={(e) => setPricingSettings({ ...pricingSettings, insurance_coverage_amount: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                    <p className="text-xs text-slate-500">₹{((pricingSettings.insurance_coverage_amount || 10000000) / 10000000).toFixed(1)} Crore</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Subtotal</span>
-                    <span className="text-white">₹{((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)).toLocaleString()}</span>
+                  <div className="space-y-2">
+                    <Label>Rate Type</Label>
+                    <select
+                      value={pricingSettings.insurance_rate_type || 'fixed'}
+                      onChange={(e) => setPricingSettings({ ...pricingSettings, insurance_rate_type: e.target.value })}
+                      className="w-full h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    >
+                      <option value="fixed">Fixed Rate per Passenger</option>
+                      <option value="percentage">Percentage of Coverage</option>
+                    </select>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">GST ({pricingSettings.gst_percent || 18}%)</span>
-                    <span className="text-white">₹{Math.round(((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)) * (pricingSettings.gst_percent || 18) / 100).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between col-span-2 pt-2 border-t border-slate-700">
-                    <span className="text-white font-semibold">Total</span>
-                    <span className="text-orange-400 font-bold">₹{Math.round(((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)) * (1 + (pricingSettings.gst_percent || 18) / 100)).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between col-span-2">
-                    <span className="text-cyan-400">Advance Payment ({pricingSettings.advance_percent || 5}%)</span>
-                    <span className="text-cyan-400 font-semibold">₹{Math.round(((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)) * (1 + (pricingSettings.gst_percent || 18) / 100) * (pricingSettings.advance_percent || 5) / 100).toLocaleString()}</span>
-                  </div>
+                  {pricingSettings.insurance_rate_type === 'fixed' ? (
+                    <div className="space-y-2">
+                      <Label>Fixed Rate (₹ per passenger)</Label>
+                      <Input
+                        type="number"
+                        value={pricingSettings.insurance_fixed_rate || 500}
+                        onChange={(e) => setPricingSettings({ ...pricingSettings, insurance_fixed_rate: parseFloat(e.target.value) })}
+                        className="bg-slate-800 border-slate-700"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Percentage Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.00001"
+                        value={pricingSettings.insurance_percentage_rate || 0.00001}
+                        onChange={(e) => setPricingSettings({ ...pricingSettings, insurance_percentage_rate: parseFloat(e.target.value) })}
+                        className="bg-slate-800 border-slate-700"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Premium: ₹{Math.round((pricingSettings.insurance_coverage_amount || 10000000) * (pricingSettings.insurance_percentage_rate || 0.00001) / 100)} per passenger
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-              
+
               <Button onClick={handleSavePricingSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
                 <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Pricing Settings'}
               </Button>
+            </div>
+          )}
+
+          {/* API Keys Settings */}
+          {activeTab === 'apikeys' && (
+            <div className="space-y-6">
+              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <p className="text-yellow-400 text-sm">
+                  🔐 API keys are stored securely. Enter new values to update existing keys.
+                </p>
+              </div>
+
+              {apiKeyFields.map((section, idx) => (
+                <div key={idx} className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
+                  <h3 className="text-lg font-semibold text-white mb-4">{section.section}</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {section.fields.map(field => (
+                      <div key={field.key} className="space-y-2">
+                        <Label className="text-slate-400">{field.label}</Label>
+                        <div className="relative">
+                          <Input
+                            type={showApiKeys[field.key] ? 'text' : field.type}
+                            value={apiKeys[field.key] || ''}
+                            onChange={(e) => setApiKeys({ ...apiKeys, [field.key]: e.target.value })}
+                            placeholder={`Enter ${field.label}`}
+                            className="bg-slate-800 border-slate-700 pr-10"
+                          />
+                          {field.type === 'password' && (
+                            <button
+                              type="button"
+                              onClick={() => toggleShowKey(field.key)}
+                              className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                            >
+                              {showApiKeys[field.key] ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <Button onClick={handleSaveApiKeys} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
+                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save API Keys'}
+              </Button>
+            </div>
+          )}
+
+          {/* Terms & Conditions */}
+          {activeTab === 'terms' && (
+            <div className="space-y-6">
+              <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 space-y-6">
+                <h3 className="text-lg font-semibold text-white">Terms & Conditions Content</h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-white">Customer Terms & Conditions</Label>
+                    <textarea
+                      value={termsSettings.customer_terms || ''}
+                      onChange={(e) => setTermsSettings({ ...termsSettings, customer_terms: e.target.value })}
+                      rows="5"
+                      placeholder="Enter terms for customers..."
+                      className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-white">Operator Terms & Conditions</Label>
+                    <textarea
+                      value={termsSettings.operator_terms || ''}
+                      onChange={(e) => setTermsSettings({ ...termsSettings, operator_terms: e.target.value })}
+                      rows="5"
+                      placeholder="Enter terms for operators..."
+                      className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-white">Pilot Terms & Conditions</Label>
+                    <textarea
+                      value={termsSettings.pilot_terms || ''}
+                      onChange={(e) => setTermsSettings({ ...termsSettings, pilot_terms: e.target.value })}
+                      rows="5"
+                      placeholder="Enter terms for pilots..."
+                      className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-white">Privacy Policy</Label>
+                    <textarea
+                      value={termsSettings.privacy_policy || ''}
+                      onChange={(e) => setTermsSettings({ ...termsSettings, privacy_policy: e.target.value })}
+                      rows="5"
+                      placeholder="Enter privacy policy..."
+                      className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-white">Insurance Terms</Label>
+                    <textarea
+                      value={termsSettings.insurance_terms || ''}
+                      onChange={(e) => setTermsSettings({ ...termsSettings, insurance_terms: e.target.value })}
+                      rows="5"
+                      placeholder="Enter insurance terms..."
+                      className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveTerms} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
+                  <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Terms'}
+                </Button>
+              </div>
+
+              {/* Terms Agreements Log */}
+              <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
+                <h3 className="text-lg font-semibold text-white mb-4">Terms Agreement Records</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-700">
+                        <th className="text-left py-3 px-4 text-slate-400">User Type</th>
+                        <th className="text-left py-3 px-4 text-slate-400">Name</th>
+                        <th className="text-left py-3 px-4 text-slate-400">Email</th>
+                        <th className="text-left py-3 px-4 text-slate-400">Phone</th>
+                        <th className="text-left py-3 px-4 text-slate-400">Verified</th>
+                        <th className="text-left py-3 px-4 text-slate-400">Agreed At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {termsAgreements.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="text-center py-8 text-slate-500">No agreements recorded yet</td>
+                        </tr>
+                      ) : (
+                        termsAgreements.map((agreement, idx) => (
+                          <tr key={idx} className="border-b border-slate-800">
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                agreement.user_type === 'customer' ? 'bg-blue-500/20 text-blue-400' :
+                                agreement.user_type === 'operator' ? 'bg-green-500/20 text-green-400' :
+                                'bg-purple-500/20 text-purple-400'
+                              }`}>
+                                {agreement.user_type}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-white">{agreement.full_name}</td>
+                            <td className="py-3 px-4 text-slate-300">{agreement.email}</td>
+                            <td className="py-3 px-4 text-slate-300">{agreement.phone}</td>
+                            <td className="py-3 px-4">
+                              <span className="text-green-400">✓ Email & Phone</span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-400">
+                              {new Date(agreement.agreed_at).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
@@ -395,14 +647,21 @@ function GlobalSettings() {
                   <div key={template.id} className="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-white font-semibold flex items-center gap-2">
-                          {template.template_type === 'email' ? <Mail className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
-                          {template.template_name}
-                        </h3>
-                        <p className="text-sm text-slate-400">Type: {template.template_type}</p>
-                        {template.subject && <p className="text-sm text-slate-400">Subject: {template.subject}</p>}
+                        <div className="flex items-center gap-2">
+                          {template.template_type === 'email' ? (
+                            <Mail className="h-4 w-4 text-blue-400" />
+                          ) : (
+                            <MessageSquare className="h-4 w-4 text-green-400" />
+                          )}
+                          <h3 className="text-white font-semibold">{template.template_name}</h3>
+                        </div>
+                        <p className="text-sm text-slate-400 mt-1">{template.subject}</p>
                       </div>
-                      <span className="px-2 py-1 rounded bg-slate-700 text-slate-300 text-xs">{template.template_type}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        template.template_type === 'email' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
+                      }`}>
+                        {template.template_type}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -412,62 +671,99 @@ function GlobalSettings() {
         </>
       )}
 
-      {/* Region Dialog */}
+      {/* Add Region Dialog */}
       <Dialog open={showRegionDialog} onOpenChange={setShowRegionDialog}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white">
-          <DialogHeader><DialogTitle>Add Region</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
+        <DialogContent className="bg-slate-900 border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-white">Add New Region</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Region Name</Label>
-              <Input value={newRegion.region_name} onChange={(e) => setNewRegion({ ...newRegion, region_name: e.target.value })} className="bg-slate-800 border-slate-700" />
+              <Input
+                value={newRegion.region_name}
+                onChange={(e) => setNewRegion({ ...newRegion, region_name: e.target.value })}
+                placeholder="e.g., North India"
+                className="bg-slate-800 border-slate-700"
+              />
             </div>
             <div className="space-y-2">
               <Label>Region Code</Label>
-              <Input value={newRegion.region_code} onChange={(e) => setNewRegion({ ...newRegion, region_code: e.target.value })} className="bg-slate-800 border-slate-700" placeholder="e.g., WEST" />
+              <Input
+                value={newRegion.region_code}
+                onChange={(e) => setNewRegion({ ...newRegion, region_code: e.target.value })}
+                placeholder="e.g., NORTH"
+                className="bg-slate-800 border-slate-700"
+              />
             </div>
             <div className="space-y-2">
               <Label>States (comma separated)</Label>
-              <Input value={newRegion.states} onChange={(e) => setNewRegion({ ...newRegion, states: e.target.value })} className="bg-slate-800 border-slate-700" placeholder="Maharashtra, Gujarat, Goa" />
+              <Input
+                value={newRegion.states}
+                onChange={(e) => setNewRegion({ ...newRegion, states: e.target.value })}
+                placeholder="e.g., Delhi, Punjab, Haryana"
+                className="bg-slate-800 border-slate-700"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRegionDialog(false)} className="border-slate-600">Cancel</Button>
-            <Button onClick={handleCreateRegion} className="bg-orange-500 hover:bg-orange-600">Create Region</Button>
+            <Button variant="ghost" onClick={() => setShowRegionDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddRegion} className="bg-orange-500 hover:bg-orange-600">Add Region</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Template Dialog */}
+      {/* Add Template Dialog */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white">
-          <DialogHeader><DialogTitle>Add Notification Template</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
+        <DialogContent className="bg-slate-900 border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-white">Add Notification Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Template Name</Label>
-              <Input value={newTemplate.template_name} onChange={(e) => setNewTemplate({ ...newTemplate, template_name: e.target.value })} className="bg-slate-800 border-slate-700" />
+              <Input
+                value={newTemplate.template_name}
+                onChange={(e) => setNewTemplate({ ...newTemplate, template_name: e.target.value })}
+                placeholder="e.g., Booking Confirmation"
+                className="bg-slate-800 border-slate-700"
+              />
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
-              <select value={newTemplate.template_type} onChange={(e) => setNewTemplate({ ...newTemplate, template_type: e.target.value })} className="w-full p-2 rounded bg-slate-800 border-slate-700">
+              <select
+                value={newTemplate.template_type}
+                onChange={(e) => setNewTemplate({ ...newTemplate, template_type: e.target.value })}
+                className="w-full h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white"
+              >
                 <option value="email">Email</option>
-                <option value="whatsapp">WhatsApp</option>
                 <option value="sms">SMS</option>
+                <option value="whatsapp">WhatsApp</option>
               </select>
             </div>
-            {newTemplate.template_type === 'email' && (
-              <div className="space-y-2">
-                <Label>Subject</Label>
-                <Input value={newTemplate.subject} onChange={(e) => setNewTemplate({ ...newTemplate, subject: e.target.value })} className="bg-slate-800 border-slate-700" />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Input
+                value={newTemplate.subject}
+                onChange={(e) => setNewTemplate({ ...newTemplate, subject: e.target.value })}
+                placeholder="Email subject or SMS title"
+                className="bg-slate-800 border-slate-700"
+              />
+            </div>
             <div className="space-y-2">
               <Label>Content</Label>
-              <textarea value={newTemplate.content} onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })} className="w-full p-3 rounded bg-slate-800 border-slate-700 h-32" />
+              <textarea
+                value={newTemplate.content}
+                onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
+                rows="4"
+                placeholder="Template content..."
+                className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTemplateDialog(false)} className="border-slate-600">Cancel</Button>
-            <Button onClick={handleCreateTemplate} className="bg-orange-500 hover:bg-orange-600">Create Template</Button>
+            <Button variant="ghost" onClick={() => setShowTemplateDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddTemplate} className="bg-orange-500 hover:bg-orange-600">Add Template</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
