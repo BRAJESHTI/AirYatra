@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Query
+from fastapi import APIRouter, HTTPException, Depends, status, Query, BackgroundTasks
 from database import get_database
 from models import Booking, BookingStatus, Quote
 from middleware import get_current_user, require_roles
@@ -13,8 +13,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 @router.post("/")
-async def create_booking(booking_data: dict, user: dict = Depends(get_current_user)):
-    """Create a new booking request"""
+async def create_booking(
+    booking_data: dict,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user)
+):
+    """Create a new booking request with auto-broadcast to operators within 500km radius"""
     db = get_database()
     
     booking_id = str(uuid.uuid4())
@@ -24,13 +28,37 @@ async def create_booking(booking_data: dict, user: dict = Depends(get_current_us
         "id": booking_id,
         "booking_number": booking_number,
         "customer_id": user["id"],
-        "from_location": booking_data["from_location"],
-        "to_location": booking_data["to_location"],
+        "from_location": booking_data.get("from_location"),
+        "to_location": booking_data.get("to_location"),
+        "from_pincode": booking_data.get("from_pincode"),
+        "to_pincode": booking_data.get("to_pincode"),
+        "from_state": booking_data.get("from_state"),
+        "from_district": booking_data.get("from_district"),
+        "from_latitude": booking_data.get("from_latitude"),
+        "from_longitude": booking_data.get("from_longitude"),
+        "to_state": booking_data.get("to_state"),
+        "to_district": booking_data.get("to_district"),
+        "to_latitude": booking_data.get("to_latitude"),
+        "to_longitude": booking_data.get("to_longitude"),
         "trip_type": booking_data.get("trip_type", "one_way"),
-        "departure_date": booking_data["departure_date"],
+        "flight_type": booking_data.get("flight_type"),
+        "flight_type_details": booking_data.get("flight_type_details"),
+        "departure_date": booking_data.get("departure_date"),
+        "pickup_time": booking_data.get("pickup_time"),
         "return_date": booking_data.get("return_date"),
-        "passengers": booking_data["passengers"],
-        "status": BookingStatus.PENDING_QUOTES.value,
+        "passengers": booking_data.get("passengers", 1),
+        "passenger_details": booking_data.get("passenger_details", []),
+        "booking_for": booking_data.get("booking_for", "self"),
+        "booking_purpose": booking_data.get("booking_purpose", "general_tour"),
+        "booking_type": booking_data.get("booking_type", "standard"),  # standard or custom_quote
+        "include_insurance": booking_data.get("include_insurance", False),
+        "gst_billing": booking_data.get("gst_billing", False),
+        "gstin": booking_data.get("gstin"),
+        "company_name": booking_data.get("company_name"),
+        "billing_address": booking_data.get("billing_address"),
+        "multi_location_stops": booking_data.get("multi_location_stops", []),
+        "estimated_price": booking_data.get("estimated_price", 0),
+        "status": "quote_requested" if booking_data.get("booking_type") == "custom_quote" else BookingStatus.PENDING_QUOTES.value,
         "quote_ids": [],
         "landing_permissions": [],
         "special_requirements": booking_data.get("special_requirements"),
@@ -53,20 +81,54 @@ async def create_booking(booking_data: dict, user: dict = Depends(get_current_us
     
     await db.bookings.insert_one(booking.copy())
     
-    # Notify operators - create inquiries for all active operators
-    operators = await db.operators.find({"status": "active"}, {"_id": 0}).to_list(100)
-    for operator in operators:
-        # Create inquiry for each operator
-        inquiry = {
-            "id": str(uuid.uuid4()),
-            "booking_id": booking_id,
-            "operator_id": operator["id"],
-            "status": "pending",
-            "created_at": datetime.utcnow().isoformat()
-        }
-        await db.inquiries.insert_one(inquiry.copy())
+    # BROADCAST TO OPERATORS WITHIN 500 KM RADIUS
+    pickup_lat = booking_data.get("from_latitude")
+    pickup_lon = booking_data.get("from_longitude")
     
-    return {"message": "Booking request created", "booking": booking}
+    broadcast_result = None
+    if pickup_lat and pickup_lon:
+        try:
+            from services.inquiry_broadcast_service import create_inquiry_broadcast
+            
+            # Run broadcast in background for faster response
+            background_tasks.add_task(
+                create_inquiry_broadcast,
+                inquiry_id=booking_id,
+                booking_data=booking,
+                pickup_lat=pickup_lat,
+                pickup_lon=pickup_lon
+            )
+            
+            broadcast_result = {
+                "status": "initiated",
+                "message": "Operators within 500km will be notified"
+            }
+            
+            logger.info(f"Inquiry broadcast initiated for booking {booking_number}")
+            
+        except Exception as e:
+            logger.error(f"Error initiating inquiry broadcast: {e}")
+            broadcast_result = {"status": "error", "message": str(e)}
+    else:
+        # Fallback to old method if no coordinates
+        operators = await db.operators.find({"status": "active"}, {"_id": 0}).to_list(100)
+        for operator in operators:
+            inquiry = {
+                "id": str(uuid.uuid4()),
+                "booking_id": booking_id,
+                "operator_id": operator["id"],
+                "status": "pending",
+                "created_at": datetime.utcnow().isoformat()
+            }
+            await db.inquiries.insert_one(inquiry.copy())
+        
+        broadcast_result = {"status": "legacy", "operators_notified": len(operators)}
+    
+    return {
+        "message": "Booking request created",
+        "booking": booking,
+        "broadcast": broadcast_result
+    }
 
 @router.get("/")
 async def get_bookings(user: dict = Depends(get_current_user), status: str = Query(None)):
