@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, IndianRupee, Percent, Calendar, MapPin, Save, Plus, Trash2, Mail, MessageSquare, Calculator, Key, Shield, FileText, Eye, EyeOff } from 'lucide-react';
+import { Settings, IndianRupee, Percent, Calendar, MapPin, Save, Plus, Trash2, Mail, MessageSquare, Calculator, Key, Shield, FileText, Eye, EyeOff, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ function GlobalSettings() {
   const [activeTab, setActiveTab] = useState('platform');
   const [platformSettings, setPlatformSettings] = useState({});
   const [pricingSettings, setPricingSettings] = useState({});
+  const [flightTypePricing, setFlightTypePricing] = useState({});
   const [apiKeys, setApiKeys] = useState({});
   const [termsSettings, setTermsSettings] = useState({});
   const [termsAgreements, setTermsAgreements] = useState([]);
@@ -37,6 +38,9 @@ function GlobalSettings() {
       } else if (activeTab === 'pricing') {
         const response = await settingsAPI.getPricingSettings();
         setPricingSettings(response.data);
+      } else if (activeTab === 'flight_types') {
+        const response = await settingsAPI.getFlightTypePricingAdmin();
+        setFlightTypePricing(response.data);
       } else if (activeTab === 'apikeys') {
         const response = await settingsAPI.getAPIKeys();
         setApiKeys(response.data);
