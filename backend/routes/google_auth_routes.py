@@ -466,15 +466,136 @@ async def get_google_auth_settings(request: Request):
     settings = await db.settings.find_one({"type": "google_auth"}, {"_id": 0})
     
     if not settings:
-        # Return default settings
+        # Return default settings - Emergent Auth is always enabled
         return {
-            "enabled": bool(GOOGLE_CLIENT_ID),
+            "enabled": True,
             "client_id": GOOGLE_CLIENT_ID,
-            "use_emergent_auth": False
+            "use_emergent_auth": True
         }
     
     return {
-        "enabled": settings.get("enabled", False),
+        "enabled": settings.get("enabled", True),
         "client_id": settings.get("client_id", GOOGLE_CLIENT_ID),
-        "use_emergent_auth": settings.get("use_emergent_auth", False)
+        "use_emergent_auth": settings.get("use_emergent_auth", True)
     }
+
+@router.post("/emergent-callback")
+async def emergent_auth_callback(request: Request, data: dict):
+    """
+    Handle Emergent managed Google Auth callback
+    Frontend se Emergent user data receive karke user create/login karega
+    """
+    db = get_database()
+    
+    emergent_user = data.get("emergent_user", {})
+    device_info = data.get("device_info", {})
+    session_token = data.get("session_token")
+    
+    if not emergent_user or not emergent_user.get("email"):
+        raise HTTPException(status_code=400, detail="Invalid user data")
+    
+    # Merge device info from request with frontend-provided info
+    server_device_info = extract_device_info(request)
+    device_info = {**server_device_info, **device_info}
+    
+    try:
+        email = emergent_user["email"]
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        
+        if existing_user:
+            # Update existing user
+            update_data = {
+                "google_profile_picture": emergent_user.get("picture"),
+                "profile_picture": emergent_user.get("picture"),
+                "last_login_at": datetime.now(timezone.utc).isoformat(),
+                "last_device_info": device_info,
+                "emergent_session_token": session_token,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.users.update_one(
+                {"id": existing_user["id"]},
+                {
+                    "$set": update_data,
+                    "$push": {
+                        "login_history": {
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "device_info": device_info,
+                            "login_type": "emergent_google"
+                        }
+                    }
+                }
+            )
+            
+            user = existing_user
+            user.update(update_data)
+            is_new_user = False
+        else:
+            # Create new user
+            user_id = str(uuid4())
+            
+            user = {
+                "id": user_id,
+                "email": email,
+                "full_name": emergent_user.get("name", ""),
+                "google_id": emergent_user.get("id"),
+                "google_profile_picture": emergent_user.get("picture"),
+                "profile_picture": emergent_user.get("picture"),
+                "email_verified": True,
+                "auth_provider": "emergent_google",
+                "roles": ["customer"],
+                "status": "active",
+                "device_info": device_info,
+                "last_device_info": device_info,
+                "emergent_session_token": session_token,
+                "login_history": [{
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "device_info": device_info,
+                    "login_type": "emergent_google_signup"
+                }],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.users.insert_one(user.copy())
+            is_new_user = True
+        
+        # Create JWT access token
+        access_token = create_access_token({
+            "sub": user["id"],
+            "email": user["email"],
+            "roles": user.get("roles", ["customer"])
+        })
+        
+        # Store session in database (for session management)
+        session_data = {
+            "user_id": user["id"],
+            "session_token": session_token,
+            "jwt_token": access_token,
+            "expires_at": datetime.now(timezone.utc).isoformat(),  # Will be updated based on Emergent session
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.user_sessions.update_one(
+            {"user_id": user["id"]},
+            {"$set": session_data},
+            upsert=True
+        )
+        
+        # Remove sensitive fields
+        safe_user = {k: v for k, v in user.items() if k not in ["password", "hashed_password", "_id", "emergent_session_token"]}
+        
+        logger.info(f"User {'created' if is_new_user else 'logged in'} via Emergent Google Auth: {email}")
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": safe_user,
+            "is_new_user": is_new_user,
+            "device_info": device_info
+        }
+        
+    except Exception as e:
+        logger.error(f"Emergent auth callback error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
