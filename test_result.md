@@ -330,3 +330,5 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "Completed Phase 4 Integration. Added My Trips, Messages/Chat, and NotificationBell to Customer Dashboard. Admin now has Analytics and Global Settings tabs. All Phase 4 components are integrated into user workflows. Test credentials: Customer: testcustomer@airyatra.com / Customer123!, Admin: admin@airyatra.com / Admin123!. Verified all integrations via screenshots."
+  - agent: "main"
+    message: "Fork Job - Completed multiple pending tasks: 1) Booking Purpose Chart integrated in Admin Dashboard 2) GST Verification API added - auto-fills company name, address, city, state on booking page 3) PAN Verification API added 4) Admin API Keys settings now include GST/PAN verification sections. Test GST: 27AABCU9603R1ZM (Infosys). All verified via screenshots and curl tests."
