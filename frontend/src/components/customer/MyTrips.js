@@ -416,6 +416,127 @@ function MyTrips({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quotes Dialog - View & Respond to Operator Quotes */}
+      <Dialog open={showQuotesDialog} onOpenChange={setShowQuotesDialog}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-orange-400" />
+              Received Quotes / प्राप्त कोट्स
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {tripQuotes.length === 0 ? (
+              <div className="text-center py-8">
+                <Bell className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400">No quotes received yet</p>
+                <p className="text-slate-500 text-sm mt-1">
+                  Operators will send you revised quotes soon
+                </p>
+              </div>
+            ) : (
+              tripQuotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  className={`p-4 rounded-xl border ${
+                    quote.status === 'accepted'
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : quote.status === 'rejected_by_customer'
+                      ? 'bg-red-500/10 border-red-500/30'
+                      : 'bg-slate-800/50 border-slate-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-white font-semibold">
+                        {quote.operator?.company_name || quote.operator_name}
+                      </p>
+                      {quote.operator?.average_rating && (
+                        <p className="text-sm text-slate-400 flex items-center gap-1">
+                          <Star className="h-3 w-3 text-yellow-400" />
+                          {quote.operator.average_rating} rating
+                        </p>
+                      )}
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      quote.status === 'accepted' ? 'bg-green-500/20 text-green-400' :
+                      quote.status === 'rejected_by_customer' ? 'bg-red-500/20 text-red-400' :
+                      'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {quote.status === 'accepted' ? '✓ Accepted' :
+                       quote.status === 'rejected_by_customer' ? '✗ Rejected' :
+                       'Pending Response'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-400 text-2xl font-bold">
+                        ₹{quote.amount?.toLocaleString()}
+                      </p>
+                      {quote.revision_count > 1 && (
+                        <p className="text-slate-500 text-xs">
+                          Revision #{quote.revision_count}
+                        </p>
+                      )}
+                      {quote.notes && (
+                        <p className="text-slate-400 text-sm mt-2">
+                          "{quote.notes}"
+                        </p>
+                      )}
+                    </div>
+
+                    {quote.status === 'sent' || quote.status === 'pending' ? (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleQuoteResponse(quote.id, 'accept')}
+                          disabled={processing}
+                        >
+                          <Check className="h-4 w-4 mr-1" /> Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleQuoteResponse(quote.id, 'reject')}
+                          disabled={processing}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Reject
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Quote Breakdown if available */}
+                  {quote.breakdown && Object.keys(quote.breakdown).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-700">
+                      <p className="text-slate-400 text-xs mb-2">Price Breakdown:</p>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {Object.entries(quote.breakdown).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-slate-500">{key}:</span>
+                            <span className="text-slate-300">₹{value?.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuotesDialog(false)} className="border-slate-600 text-slate-300">
+              Close
+            </Button>
+            <Button onClick={() => loadTripQuotes(selectedTrip?.id)} className="bg-slate-700 hover:bg-slate-600">
+              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
