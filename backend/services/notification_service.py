@@ -433,3 +433,19 @@ Share this OTP with pilot to complete journey.
 
 # Singleton instance
 notification_service = NotificationService()
+
+# Helper functions for easy import
+async def send_whatsapp_message(to_number: str, message: str, db=None) -> bool:
+    """Helper function to send WhatsApp message"""
+    result = await notification_service.send_whatsapp(to_number, message, db)
+    return result.get("success", False)
+
+async def send_sms_message(to_number: str, message: str, db=None) -> bool:
+    """Helper function to send SMS"""
+    result = await notification_service.send_sms(to_number, message, db)
+    return result.get("success", False)
+
+async def send_email_notification(to_email: str, subject: str, html_content: str, db=None) -> bool:
+    """Helper function to send email"""
+    result = await notification_service.send_email(to_email, subject, html_content, db=db)
+    return result.get("success", False)
