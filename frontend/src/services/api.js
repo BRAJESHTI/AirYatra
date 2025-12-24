@@ -256,6 +256,21 @@ export const settingsAPI = {
   getPricingSettings: () => api.get('/settings/pricing'),
   updatePricingSettings: (data) => api.put('/settings/pricing', data),
   getPublicPricing: () => api.get('/settings/pricing/public'),
+  // API Keys
+  getAPIKeys: () => api.get('/settings/api-keys'),
+  updateAPIKeys: (data) => api.put('/settings/api-keys', data),
+  // Terms & Conditions
+  getTermsConditions: () => api.get('/settings/terms-conditions'),
+  updateTermsConditions: (data) => api.put('/settings/terms-conditions', data),
+  getTermsAgreements: (params) => api.get('/settings/terms-agreements', { params }),
+};
+
+// Verification API
+export const verificationAPI = {
+  sendOTP: (data) => api.post('/verification/send-otp', data),
+  verifyOTP: (data) => api.post('/verification/verify-otp', data),
+  agreeTerms: (data) => api.post('/verification/agree-terms', data),
+  checkVerification: (email) => api.get(`/verification/check-verification/${email}`),
 };
 
 // PIN Code API
