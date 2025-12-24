@@ -463,24 +463,36 @@ function GlobalSettings() {
                     {section.fields.map(field => (
                       <div key={field.key} className="space-y-2">
                         <Label className="text-slate-400">{field.label}</Label>
-                        <div className="relative">
-                          <Input
-                            type={showApiKeys[field.key] ? 'text' : field.type}
-                            value={apiKeys[field.key] || ''}
+                        {field.type === 'select' ? (
+                          <select
+                            value={apiKeys[field.key] || 'false'}
                             onChange={(e) => setApiKeys({ ...apiKeys, [field.key]: e.target.value })}
-                            placeholder={`Enter ${field.label}`}
-                            className="bg-slate-800 border-slate-700 pr-10"
-                          />
-                          {field.type === 'password' && (
-                            <button
-                              type="button"
-                              onClick={() => toggleShowKey(field.key)}
-                              className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
-                            >
-                              {showApiKeys[field.key] ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          )}
-                        </div>
+                            className="w-full h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white"
+                          >
+                            {field.options.map(opt => (
+                              <option key={opt} value={opt}>{opt === 'true' ? 'Yes / हाँ' : 'No / नहीं'}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="relative">
+                            <Input
+                              type={showApiKeys[field.key] ? 'text' : field.type}
+                              value={apiKeys[field.key] || ''}
+                              onChange={(e) => setApiKeys({ ...apiKeys, [field.key]: e.target.value })}
+                              placeholder={`Enter ${field.label}`}
+                              className="bg-slate-800 border-slate-700 pr-10"
+                            />
+                            {field.type === 'password' && (
+                              <button
+                                type="button"
+                                onClick={() => toggleShowKey(field.key)}
+                                className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                              >
+                                {showApiKeys[field.key] ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
