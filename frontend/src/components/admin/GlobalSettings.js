@@ -111,6 +111,7 @@ function GlobalSettings() {
 
   const tabs = [
     { id: 'platform', label: 'Platform Settings', icon: Settings },
+    { id: 'pricing', label: 'Pricing Settings', icon: Calculator },
     { id: 'regions', label: 'Regions', icon: MapPin },
     { id: 'templates', label: 'Notification Templates', icon: Mail },
   ];
