@@ -67,33 +67,13 @@ function GoogleLoginButton({ onSuccess, onError, buttonText = "Continue with Goo
   };
 
   const handleGoogleLogin = async () => {
-    if (!googleSettings?.enabled || !googleSettings?.client_id) {
-      toast.error('Google login is not configured');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // Use Google Identity Services
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: googleSettings.client_id,
-          callback: handleGoogleResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true
-        });
-        
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback to redirect flow
-            handleRedirectLogin();
-          }
-        });
-      } else {
-        // Fallback to redirect flow
-        handleRedirectLogin();
-      }
+      // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+      // Using Emergent Managed Google Auth - redirects to Emergent auth service
+      const redirectUrl = window.location.origin + '/auth/google/callback';
+      window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
     } catch (error) {
       console.error('Google login error:', error);
       setLoading(false);
