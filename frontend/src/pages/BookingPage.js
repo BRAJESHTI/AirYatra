@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, Building2, FileText } from 'lucide-react';
+import { Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, Building2, FileText, MapPin, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
