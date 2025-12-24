@@ -401,6 +401,145 @@ function BookingPage({ user }) {
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="booking-form">
               
+              {/* Flight Type Selection - NEW */}
+              <div className="p-4 rounded-lg bg-gradient-to-r from-orange-900/30 to-yellow-900/30 border border-orange-500/30">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Plane className="h-5 w-5 text-orange-400" />
+                  उड़ान का प्रकार चुनें (Select Flight Type) *
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {flightTypes.map((flightType) => {
+                    const isSelected = formData.flight_type === flightType.id;
+                    return (
+                      <button
+                        key={flightType.id}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, flight_type: flightType.id }))}
+                        className={`p-4 rounded-lg border transition-all text-left ${
+                          isSelected 
+                            ? 'bg-orange-500/20 border-orange-500 ring-2 ring-orange-500/50' 
+                            : 'bg-slate-800/50 border-slate-700 hover:border-orange-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-2xl">{flightType.icon}</span>
+                          {isSelected && <span className="text-orange-400 text-xs">✓ Selected</span>}
+                        </div>
+                        <p className="text-white font-medium text-sm">{flightType.name}</p>
+                        <p className="text-slate-400 text-xs mb-2">{flightType.name_en}</p>
+                        
+                        {/* Price Display */}
+                        <div className="mt-2 pt-2 border-t border-slate-700">
+                          {flightType.type === 'fixed' && (
+                            <p className="text-orange-400 font-bold">
+                              ₹{flightType.price?.toLocaleString()}
+                              <span className="text-slate-500 text-xs font-normal ml-1">
+                                / {flightType.duration_hours}hr
+                              </span>
+                            </p>
+                          )}
+                          {flightType.type === 'distance_based' && (
+                            <p className="text-orange-400 font-bold">
+                              ₹{flightType.base_price?.toLocaleString()}+
+                              <span className="text-slate-500 text-xs font-normal ml-1">
+                                (₹{flightType.rate_per_km}/km)
+                              </span>
+                            </p>
+                          )}
+                          {flightType.type === 'multi_location' && (
+                            <p className="text-orange-400 font-bold">
+                              ₹{flightType.base_price?.toLocaleString()}+
+                              <span className="text-slate-500 text-xs font-normal ml-1">
+                                (₹{flightType.per_stop_price}/stop)
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Selected Flight Type Details */}
+                {selectedFlightTypeDetails && (
+                  <div className="mt-4 p-3 rounded-lg bg-slate-900/50 border border-slate-700">
+                    <p className="text-slate-300 text-sm">
+                      <span className="text-orange-400 font-medium">{selectedFlightTypeDetails.icon} {selectedFlightTypeDetails.name_en}:</span>{' '}
+                      {selectedFlightTypeDetails.description_hi || selectedFlightTypeDetails.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Multi-Location Stops (for full_day_multi) */}
+              {formData.flight_type === 'full_day_multi' && (
+                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-blue-400" />
+                    Multiple Locations / मल्टीपल लोकेशन ({formData.multi_location_stops.length} stops)
+                  </h3>
+                  
+                  {/* Existing Stops */}
+                  {formData.multi_location_stops.map((stop, index) => (
+                    <div key={index} className="mb-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center gap-3">
+                      <span className="text-orange-400 font-bold">{index + 1}</span>
+                      <Input
+                        value={stop.location}
+                        onChange={(e) => {
+                          const newStops = [...formData.multi_location_stops];
+                          newStops[index].location = e.target.value;
+                          setFormData(prev => ({ ...prev, multi_location_stops: newStops }));
+                        }}
+                        placeholder={`Stop ${index + 1} location`}
+                        className="bg-slate-800 border-slate-700 flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newStops = formData.multi_location_stops.filter((_, i) => i !== index);
+                          setFormData(prev => ({ ...prev, multi_location_stops: newStops }));
+                        }}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Minus className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {/* Add Stop Button */}
+                  {formData.multi_location_stops.length < (selectedFlightTypeDetails?.max_stops || 5) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          multi_location_stops: [...prev.multi_location_stops, { location: '', pincode: '' }]
+                        }));
+                      }}
+                      className="w-full border-dashed border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Stop / स्टॉप जोड़ें
+                    </Button>
+                  )}
+                  
+                  {/* Multi-location price estimate */}
+                  <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                    <p className="text-blue-400 text-sm">
+                      Estimated Price / अनुमानित मूल्य: 
+                      <span className="font-bold text-white ml-2">
+                        ₹{((selectedFlightTypeDetails?.base_price || 500000) + 
+                           (formData.multi_location_stops.length * (selectedFlightTypeDetails?.per_stop_price || 50000)))
+                           .toLocaleString()}
+                      </span>
+                      <span className="text-slate-500 ml-1">+ GST</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               {/* Booking Type Selection */}
               <div className="p-4 rounded-lg bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30">
                 <h3 className="text-lg font-semibold text-white mb-4">Booking Details / बुकिंग विवरण</h3>
