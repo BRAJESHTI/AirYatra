@@ -1,7 +1,8 @@
 import React from 'react';
-import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw } from 'lucide-react';
+import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PilotDutyWidget from './PilotDutyWidget';
+import BookingPurposeChart from './BookingPurposeChart';
 
 function AdminOverview({ data, onRefresh, loading }) {
   if (loading) {
@@ -184,6 +185,15 @@ function AdminOverview({ data, onRefresh, loading }) {
           Pilot Duty Hours Monitor
         </h3>
         <PilotDutyWidget />
+      </div>
+
+      {/* Booking Purpose Analytics */}
+      <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Target className="h-5 w-5 text-orange-400" />
+          Booking Purpose Analytics / बुकिंग उद्देश्य विश्लेषण
+        </h3>
+        <BookingPurposeChart />
       </div>
     </div>
   );
