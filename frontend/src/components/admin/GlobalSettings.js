@@ -170,6 +170,7 @@ function GlobalSettings() {
   const tabs = [
     { id: 'platform', label: 'Platform', icon: Settings },
     { id: 'pricing', label: 'Pricing', icon: Calculator },
+    { id: 'flight_types', label: 'Flight Types', icon: Plane, highlight: true },
     { id: 'apikeys', label: 'API Keys', icon: Key },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
     { id: 'regions', label: 'Regions', icon: MapPin },
