@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plane, Calendar, Users, Clock, CreditCard, Shield, User, Hash } from 'lucide-react';
+import { Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, Building2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,10 +32,16 @@ function BookingPage({ user }) {
     trip_type: 'one_way',
     waiting_hours: 0,
     special_requirements: '',
-    include_insurance: false
+    include_insurance: false,
+    // New fields
+    booking_for: 'self', // self, friend_family, company, political
+    gst_billing: false,
+    company_name: '',
+    gstin: '',
+    billing_address: ''
   });
   
-  const [passengerDetails, setPassengerDetails] = useState([{ name: '', age: '' }]);
+  const [passengerDetails, setPassengerDetails] = useState([{ name: '', age: '', phone: '' }]);
   const [priceEstimate, setPriceEstimate] = useState(null);
   const [insuranceSettings, setInsuranceSettings] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -52,7 +58,7 @@ function BookingPage({ user }) {
     setPassengerDetails(prev => {
       const newDetails = [...prev];
       while (newDetails.length < count) {
-        newDetails.push({ name: '', age: '' });
+        newDetails.push({ name: '', age: '', phone: '' });
       }
       while (newDetails.length > count) {
         newDetails.pop();
@@ -84,7 +90,6 @@ function BookingPage({ user }) {
     if (insuranceSettings.rateType === 'fixed') {
       return insuranceSettings.fixedRate * passengerCount;
     } else {
-      // Percentage of coverage amount
       return (insuranceSettings.coverage * insuranceSettings.percentageRate / 100) * passengerCount;
     }
   };
@@ -127,6 +132,10 @@ function BookingPage({ user }) {
     });
   };
 
+  const isPhoneRequired = () => {
+    return formData.booking_for !== 'self';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -149,6 +158,23 @@ function BookingPage({ user }) {
       }
       if (!passengerDetails[i].age || passengerDetails[i].age < 1) {
         toast.error(`Please enter valid age for Passenger ${i + 1}`);
+        return;
+      }
+      // Phone required if booking for others
+      if (isPhoneRequired() && !passengerDetails[i].phone.trim()) {
+        toast.error(`Please enter phone number for Passenger ${i + 1}`);
+        return;
+      }
+    }
+
+    // Validate GST fields if GST billing is selected
+    if (formData.gst_billing) {
+      if (!formData.company_name.trim()) {
+        toast.error('Please enter company name for GST billing');
+        return;
+      }
+      if (!formData.gstin.trim() || formData.gstin.length !== 15) {
+        toast.error('Please enter valid 15-digit GSTIN');
         return;
       }
     }
@@ -191,7 +217,15 @@ function BookingPage({ user }) {
         insurance_amount: insuranceAmount,
         insurance_coverage: formData.include_insurance ? insuranceSettings?.coverage : 0,
         total_with_insurance: totalWithInsurance,
-        advance_amount: advanceWithInsurance
+        advance_amount: advanceWithInsurance,
+        // New fields
+        booking_for: formData.booking_for,
+        gst_billing: formData.gst_billing,
+        billing_details: formData.gst_billing ? {
+          company_name: formData.company_name,
+          gstin: formData.gstin,
+          billing_address: formData.billing_address
+        } : null
       };
 
       const response = await bookingAPI.create(bookingData);
@@ -211,6 +245,13 @@ function BookingPage({ user }) {
 
   const insuranceAmount = calculateInsuranceAmount();
   const totalWithInsurance = (priceEstimate?.total_price || 0) + insuranceAmount;
+
+  const bookingTypeOptions = [
+    { value: 'self', label: 'Self (खुद के लिए)', icon: User },
+    { value: 'friend_family', label: 'Friend & Family (दोस्त और परिवार)', icon: Users },
+    { value: 'company', label: 'Company/Corporate (कंपनी)', icon: Building2 },
+    { value: 'political', label: 'Political/VIP (राजनीतिक/VIP)', icon: Shield },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="booking-page">
@@ -243,6 +284,37 @@ function BookingPage({ user }) {
           {/* Booking Form */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="booking-form">
+              
+              {/* Booking Type Selection */}
+              <div className="p-4 rounded-lg bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30">
+                <h3 className="text-lg font-semibold text-white mb-4">किसके लिए बुकिंग कर रहे हैं? (Booking For)</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {bookingTypeOptions.map(option => {
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, booking_for: option.value }))}
+                        className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                          formData.booking_for === option.value
+                            ? 'border-orange-500 bg-orange-500/20 text-white'
+                            : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-600'
+                        }`}
+                      >
+                        <Icon className={`h-5 w-5 ${formData.booking_for === option.value ? 'text-orange-400' : 'text-slate-400'}`} />
+                        <span className="text-sm">{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.booking_for !== 'self' && (
+                  <p className="mt-3 text-sm text-orange-400">
+                    ⚠️ यात्री का Mobile Number अनिवार्य है (Passenger mobile number required)
+                  </p>
+                )}
+              </div>
+
               {/* Pickup Location */}
               <div className="p-4 rounded-lg bg-slate-800/30 border border-slate-700">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -295,7 +367,6 @@ function BookingPage({ user }) {
                         onChange={handleChange}
                         required
                         className="pl-10 bg-slate-900 border-slate-700 text-white"
-                        data-testid="departure-date-input"
                       />
                     </div>
                   </div>
@@ -312,7 +383,6 @@ function BookingPage({ user }) {
                         onChange={handleChange}
                         required
                         className="pl-10 bg-slate-900 border-slate-700 text-white"
-                        data-testid="pickup-time-input"
                       />
                     </div>
                   </div>
@@ -331,7 +401,6 @@ function BookingPage({ user }) {
                         onChange={handleChange}
                         required
                         className="pl-10 bg-slate-900 border-slate-700 text-white"
-                        data-testid="passengers-input"
                       />
                     </div>
                   </div>
@@ -344,7 +413,6 @@ function BookingPage({ user }) {
                       value={formData.trip_type}
                       onChange={handleChange}
                       className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-700 text-white"
-                      data-testid="trip-type-select"
                     >
                       <option value="one_way">One Way</option>
                       <option value="round_trip">Round Trip</option>
@@ -384,21 +452,24 @@ function BookingPage({ user }) {
                       <div className="flex items-center gap-2 mb-3">
                         <User className="h-4 w-4 text-blue-400" />
                         <span className="text-white font-medium">Passenger {index + 1}</span>
+                        {index === 0 && formData.booking_for === 'self' && (
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Primary</span>
+                        )}
                       </div>
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-slate-400 text-sm">Full Name</Label>
+                          <Label className="text-slate-400 text-sm">Full Name *</Label>
                           <Input
                             type="text"
                             value={passenger.name}
                             onChange={(e) => handlePassengerChange(index, 'name', e.target.value)}
-                            placeholder="Enter passenger name"
+                            placeholder="Enter name"
                             required
                             className="bg-slate-800 border-slate-700 text-white"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-slate-400 text-sm">Age</Label>
+                          <Label className="text-slate-400 text-sm">Age *</Label>
                           <Input
                             type="number"
                             min="1"
@@ -407,6 +478,20 @@ function BookingPage({ user }) {
                             onChange={(e) => handlePassengerChange(index, 'age', e.target.value)}
                             placeholder="Age"
                             required
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-slate-400 text-sm flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            Mobile No. {isPhoneRequired() && <span className="text-red-400">*</span>}
+                          </Label>
+                          <Input
+                            type="tel"
+                            value={passenger.phone}
+                            onChange={(e) => handlePassengerChange(index, 'phone', e.target.value)}
+                            placeholder="+91 XXXXXXXXXX"
+                            required={isPhoneRequired()}
                             className="bg-slate-800 border-slate-700 text-white"
                           />
                         </div>
@@ -452,6 +537,64 @@ function BookingPage({ user }) {
                 </div>
               )}
 
+              {/* GST Billing Option */}
+              <div className="p-4 rounded-lg bg-slate-800/30 border border-slate-700">
+                <div className="flex items-start gap-4">
+                  <Checkbox
+                    id="gst_billing"
+                    checked={formData.gst_billing}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, gst_billing: checked }))}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="gst_billing" className="text-white font-semibold flex items-center gap-2 cursor-pointer">
+                      <FileText className="h-5 w-5 text-green-400" />
+                      GST Invoice Required (कंपनी के नाम से GST बिल चाहिए)
+                    </Label>
+                    <p className="text-slate-400 text-sm mt-1">
+                      For company/corporate bookings with GST input credit
+                    </p>
+                  </div>
+                </div>
+
+                {formData.gst_billing && (
+                  <div className="mt-4 p-4 rounded-lg bg-slate-900/50 border border-green-500/30 space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-white">Company Name / कंपनी का नाम *</Label>
+                      <Input
+                        value={formData.company_name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                        placeholder="Enter company name"
+                        required={formData.gst_billing}
+                        className="bg-slate-800 border-slate-700 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white">GSTIN (15 digits) *</Label>
+                      <Input
+                        value={formData.gstin}
+                        onChange={(e) => setFormData(prev => ({ ...prev, gstin: e.target.value.toUpperCase() }))}
+                        placeholder="e.g., 29AAACP1234A1Z5"
+                        maxLength={15}
+                        required={formData.gst_billing}
+                        className="bg-slate-800 border-slate-700 text-white uppercase"
+                      />
+                      <p className="text-xs text-slate-500">Format: 22AAAAA0000A1Z5</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white">Billing Address / बिलिंग पता</Label>
+                      <textarea
+                        value={formData.billing_address}
+                        onChange={(e) => setFormData(prev => ({ ...prev, billing_address: e.target.value }))}
+                        placeholder="Enter registered office address"
+                        rows="2"
+                        className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Special Requirements */}
               <div className="space-y-2">
                 <Label htmlFor="special_requirements" className="text-white">Special Requirements (Optional)</Label>
@@ -463,7 +606,6 @@ function BookingPage({ user }) {
                   rows="3"
                   placeholder="Any special requests or requirements..."
                   className="w-full px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-white"
-                  data-testid="special-requirements-input"
                 />
               </div>
 
@@ -471,7 +613,6 @@ function BookingPage({ user }) {
                 type="submit"
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6 text-lg"
                 disabled={loading || !formData.from_latitude || !formData.to_latitude}
-                data-testid="submit-booking-btn"
               >
                 {loading ? 'Creating Request...' : 'Request Quotes'}
               </Button>
@@ -522,6 +663,19 @@ function BookingPage({ user }) {
                 </div>
               )}
 
+              {/* GST Billing Info */}
+              {formData.gst_billing && (
+                <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                  <div className="flex items-center gap-2 text-green-400 mb-2">
+                    <FileText className="h-5 w-5" />
+                    <span className="font-medium">GST Invoice</span>
+                  </div>
+                  <p className="text-sm text-slate-400">
+                    GST invoice will be generated in the name of {formData.company_name || 'your company'}
+                  </p>
+                </div>
+              )}
+
               {/* Total Summary */}
               {priceEstimate && (
                 <div className="p-4 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30">
@@ -551,16 +705,15 @@ function BookingPage({ user }) {
                 </div>
               )}
 
-              {/* Pricing Info */}
+              {/* Booking Type Info */}
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-                <h4 className="text-white font-medium mb-3">Pricing Info</h4>
-                <ul className="text-sm text-slate-400 space-y-2">
-                  <li>• Base price: ₹50,000 (up to 50 km)</li>
-                  <li>• Additional: ₹1,000/km after 50 km</li>
-                  <li>• Waiting: ₹5,000/hour</li>
-                  <li>• GST: 18%</li>
-                  <li>• Advance: 5% required</li>
-                </ul>
+                <h4 className="text-white font-medium mb-2">Booking Type</h4>
+                <p className="text-sm text-slate-400">
+                  {formData.booking_for === 'self' && '✈️ Booking for yourself'}
+                  {formData.booking_for === 'friend_family' && '👨‍👩‍👧‍👦 Booking for Friend & Family'}
+                  {formData.booking_for === 'company' && '🏢 Company/Corporate Booking'}
+                  {formData.booking_for === 'political' && '🎖️ Political/VIP Booking'}
+                </p>
               </div>
             </div>
           </div>
