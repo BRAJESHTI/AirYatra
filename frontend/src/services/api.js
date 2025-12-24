@@ -365,6 +365,7 @@ export const journeyAPI = {
 // PIN Code API
 export const pincodeAPI = {
   lookup: (pincode) => api.get(`/pincode/lookup/${pincode}`),
+  lookupLive: (pincode, useLiveApi = true) => api.get(`/pincode/lookup/${pincode}`, { params: { use_live_api: useLiveApi } }),
   search: (params) => api.get('/pincode/search', { params }),
   calculatePrice: (params) => api.post('/pincode/calculate-price', null, { params }),
   estimateDistance: (fromPincode, toPincode) => api.get('/pincode/estimate-distance', { 
@@ -378,6 +379,15 @@ export const gstPanAPI = {
   verifyPAN: (pan, name) => api.post('/verification/pan/verify', { pan, name }),
   getSampleGSTNumbers: () => api.get('/verification/gst/sample-numbers'),
   getSamplePANNumbers: () => api.get('/verification/pan/sample-numbers'),
+};
+
+// Settlement Automation API
+export const settlementAutomationAPI = {
+  getStatus: () => api.get('/admin/settlement-automation/status'),
+  updateConfig: (data) => api.put('/admin/settlement-automation/config', data),
+  runNow: (dryRun = false) => api.post('/admin/settlement-automation/run-now', null, { params: { dry_run: dryRun } }),
+  getRunStatus: (runId) => api.get(`/admin/settlement-automation/run/${runId}`),
+  getPendingOperators: () => api.get('/admin/settlement-automation/pending-operators'),
 };
 
 export default api;
