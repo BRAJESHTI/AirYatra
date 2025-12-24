@@ -281,6 +281,188 @@ Only respond with valid JSON."""
             "source_city": from_location,
             "ai_generated": False
         }
+    
+    async def chat_with_support(
+        self,
+        user_message: str,
+        conversation_history: List[Dict] = None,
+        user_context: Dict = None
+    ) -> Dict[str, Any]:
+        """
+        AI-powered customer support chatbot
+        ग्राहक सहायता के लिए AI चैटबॉट
+        """
+        
+        # Build context from user info
+        context_info = ""
+        if user_context:
+            context_info = f"""
+User Context:
+- Name: {user_context.get('name', 'Guest')}
+- Has Active Bookings: {user_context.get('has_bookings', False)}
+- Recent Booking ID: {user_context.get('recent_booking_id', 'None')}
+"""
+        
+        # Build conversation history
+        history_text = ""
+        if conversation_history:
+            for msg in conversation_history[-5:]:  # Last 5 messages
+                role = "Customer" if msg.get("role") == "user" else "Assistant"
+                history_text += f"{role}: {msg.get('content', '')}\n"
+        
+        prompt = f"""{context_info}
+
+Previous conversation:
+{history_text}
+
+Customer's new message: {user_message}
+
+Respond helpfully and professionally. Keep response under 200 words."""
+        
+        if EMERGENT_AVAILABLE:
+            try:
+                chat = Chat(
+                    emergent_api_key=self.emergent_key,
+                    model=Model.CLAUDE_SONNET,
+                    system_prompt=self.chatbot_system_prompt
+                )
+                response = await chat.send_async(prompt)
+                
+                return {
+                    "response": response,
+                    "ai_generated": True,
+                    "model": "claude-sonnet"
+                }
+            except Exception as e:
+                print(f"AI chatbot error: {e}")
+        
+        # Fallback mock responses
+        return self._get_mock_chatbot_response(user_message)
+    
+    def _get_mock_chatbot_response(self, user_message: str) -> Dict[str, Any]:
+        """Generate mock chatbot response based on keywords"""
+        message_lower = user_message.lower()
+        
+        # Keyword-based responses
+        if any(word in message_lower for word in ["price", "cost", "rate", "kitna", "कितना"]):
+            response = """Our helicopter charter prices typically range from ₹50,000 to ₹3,00,000 depending on:
+- Distance and route
+- Aircraft type
+- Waiting time required
+
+For exact pricing, please use our booking page where prices are calculated automatically based on your route.
+
+हमारे हेलीकॉप्टर चार्टर की कीमतें आमतौर पर ₹50,000 से ₹3,00,000 के बीच होती हैं।"""
+        
+        elif any(word in message_lower for word in ["book", "booking", "reserve"]):
+            response = """To book a helicopter charter:
+1. Go to 'Book Now' page
+2. Enter pickup & drop PIN codes
+3. Select date, time, and passengers
+4. Choose insurance if needed
+5. Submit your request
+
+Operators will send quotes within 2-4 hours!
+
+बुकिंग के लिए 'Book Now' पेज पर जाएं और अपना विवरण भरें। ऑपरेटर जल्द ही आपसे संपर्क करेंगे।"""
+        
+        elif any(word in message_lower for word in ["cancel", "refund"]):
+            response = """Our cancellation policy:
+- 48+ hours before: Full refund minus 10% processing fee
+- 24-48 hours: 50% refund
+- Less than 24 hours: No refund
+
+Please contact support@airyatra.com for cancellation requests.
+
+रद्दीकरण के लिए कृपया support@airyatra.com पर संपर्क करें।"""
+        
+        elif any(word in message_lower for word in ["route", "destination", "where"]):
+            response = """Popular helicopter routes include:
+- Mumbai ↔ Pune (45 mins)
+- Mumbai ↔ Shirdi (70 mins)
+- Delhi ↔ Jaipur (60 mins)
+- Mumbai ↔ Goa (90 mins)
+
+We operate across all major cities in India! Enter your PIN codes on booking page for exact route options.
+
+हम पूरे भारत में सेवाएं प्रदान करते हैं।"""
+        
+        elif any(word in message_lower for word in ["safe", "safety", "secure"]):
+            response = """Safety is our top priority:
+✓ All helicopters are DGCA certified
+✓ Pilots have minimum 1000+ flight hours
+✓ Regular maintenance checks
+✓ Comprehensive travel insurance available
+✓ Real-time flight tracking
+
+सुरक्षा हमारी सर्वोच्च प्राथमिकता है। सभी हेलीकॉप्टर DGCA प्रमाणित हैं।"""
+        
+        elif any(word in message_lower for word in ["help", "support", "contact"]):
+            response = """Need help? Here's how to reach us:
+📧 Email: support@airyatra.com
+📱 Phone: 1800-XXX-XXXX (Toll-free)
+💬 Live chat: Available on website
+
+Our support team is available 9 AM - 9 PM IST.
+
+हमारी सहायता टीम सुबह 9 बजे से रात 9 बजे तक उपलब्ध है।"""
+        
+        else:
+            response = """Thank you for reaching out! I'm AirYatra's AI assistant.
+
+I can help you with:
+- Booking inquiries & pricing
+- Route recommendations
+- Flight status updates
+- General questions
+
+How can I assist you today?
+
+धन्यवाद! मैं AirYatra का AI सहायक हूं। आज मैं आपकी कैसे मदद कर सकता हूं?"""
+        
+        return {
+            "response": response,
+            "ai_generated": False,
+            "model": "keyword-fallback"
+        }
+    
+    async def generate_booking_summary(self, booking: Dict) -> str:
+        """Generate AI summary for a booking"""
+        
+        prompt = f"""Generate a brief, professional booking summary email in both English and Hindi for this helicopter charter booking:
+
+Booking Number: {booking.get('booking_number', 'N/A')}
+Route: {booking.get('from_location', '')} to {booking.get('to_location', '')}
+Date: {booking.get('departure_date', 'TBD')}
+Time: {booking.get('pickup_time', 'TBD')}
+Passengers: {booking.get('passengers', 1)}
+Purpose: {booking.get('booking_purpose', 'General Travel')}
+Total Amount: ₹{booking.get('total_amount', 0):,}
+
+Keep it under 150 words total."""
+        
+        if EMERGENT_AVAILABLE:
+            try:
+                chat = Chat(
+                    emergent_api_key=self.emergent_key,
+                    model=Model.CLAUDE_SONNET,
+                    system_prompt="You are a professional booking confirmation writer. Be concise and friendly."
+                )
+                return await chat.send_async(prompt)
+            except Exception as e:
+                print(f"AI summary error: {e}")
+        
+        # Fallback template
+        return f"""✈️ Booking Confirmed / बुकिंग की पुष्टि
+
+Booking: {booking.get('booking_number', 'N/A')}
+Route: {booking.get('from_location', '')} → {booking.get('to_location', '')}
+Date: {booking.get('departure_date', 'TBD')} at {booking.get('pickup_time', 'TBD')}
+Passengers: {booking.get('passengers', 1)}
+Amount: ₹{booking.get('total_amount', 0):,}
+
+Thank you for choosing AirYatra!
+AirYatra चुनने के लिए धन्यवाद!"""
 
 # Singleton instance
 ai_service = AIService()
