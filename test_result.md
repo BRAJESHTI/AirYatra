@@ -452,3 +452,30 @@ agent_communication:
 agent_communication:
   - agent: "main"
     message: "Google OAuth with Emergent Auth implemented. Features: 1) Frontend Google Sign-In button on Login page 2) Emergent Auth redirect flow 3) EmergentAuthCallback component handles session_id 4) Backend endpoint creates user from Emergent data 5) Device info captured 6) JWT token generated. Ready for E2E testing via testing agent."
+
+  - task: "Customer Revised Quotes UI"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/customer/MyTrips.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added View Quotes functionality to customer trips. Shows pending quotes alert, View Quotes button, and quotes dialog with accept/reject actions. Backend APIs for /customer/trips/{id}/quotes and /customer/quotes/pending working."
+
+  - task: "Middleware is_active fix"
+    implemented: true
+    working: true
+    file: "/app/backend/middleware.py"
+    stuck_count: 0
+    priority: "medium"
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Fixed is_active check to support both is_active and status fields for Google OAuth users."
+
+agent_communication:
+  - agent: "main"
+    message: "Priority 1 & 2 Tasks Completed: 1) Google OAuth with Emergent Auth - full implementation including frontend button, callback handling, backend endpoint. 2) Customer Revised Quotes UI - customer can now view and respond to operator quotes. All tested via curl and screenshots."
