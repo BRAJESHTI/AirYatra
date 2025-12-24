@@ -113,6 +113,18 @@ function GlobalSettings() {
     }
   };
 
+  const handleSaveFlightTypePricing = async () => {
+    setSaving(true);
+    try {
+      await settingsAPI.updateFlightTypePricing(flightTypePricing);
+      toast.success('Flight type pricing saved successfully / उड़ान प्रकार मूल्य सहेजा गया');
+    } catch (error) {
+      toast.error('Failed to save flight type pricing');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleAddRegion = async () => {
     try {
       const regionData = {
