@@ -21,6 +21,16 @@ function LoginPage({ setUser }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleGoogleSuccess = (data) => {
+    setUser(data.user);
+    const role = data.user.roles[0];
+    navigate(`/${role}`);
+  };
+
+  const handleGoogleError = (error) => {
+    console.error('Google login failed:', error);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
