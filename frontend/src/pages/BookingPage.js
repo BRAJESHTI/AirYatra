@@ -271,12 +271,14 @@ function BookingPage({ user }) {
   const insuranceAmount = calculateInsuranceAmount();
   const totalWithInsurance = (priceEstimate?.total_price || 0) + insuranceAmount;
 
-  const bookingTypeOptions = [
-    { value: 'self', label: 'Self (खुद के लिए)', icon: User },
-    { value: 'friend_family', label: 'Friend & Family (दोस्त और परिवार)', icon: Users },
-    { value: 'company', label: 'Company/Corporate (कंपनी)', icon: Building2 },
-    { value: 'political', label: 'Political/VIP (राजनीतिक/VIP)', icon: Shield },
-  ];
+  // Get selected purpose label for display
+  const getSelectedPurposeLabel = () => {
+    const purpose = bookingPurposeOptions.find(p => p.value === formData.booking_purpose);
+    if (formData.booking_purpose === 'other' && formData.booking_purpose_other) {
+      return `📝 ${formData.booking_purpose_other}`;
+    }
+    return purpose ? `${purpose.icon} ${purpose.label.split('/')[0].trim()}` : '';
+  };
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="booking-page">
