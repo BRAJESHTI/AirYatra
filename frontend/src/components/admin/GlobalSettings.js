@@ -464,6 +464,264 @@ function GlobalSettings() {
             </div>
           )}
 
+          {/* Flight Types Settings */}
+          {activeTab === 'flight_types' && (
+            <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 space-y-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Plane className="h-5 w-5 text-orange-400" />
+                  उड़ान प्रकार मूल्य निर्धारण (Flight Type Pricing)
+                </h3>
+                <p className="text-slate-400 text-sm mt-1">
+                  Set prices for different flight packages shown on customer booking page
+                </p>
+              </div>
+
+              {/* 1 Hour Flight */}
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🚁</span>
+                    <div>
+                      <h4 className="text-white font-medium">1 घंटे की उड़ान (1 Hour Flight)</h4>
+                      <p className="text-slate-400 text-sm">City tour / Short distance</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-slate-400">Enable</span>
+                    <input
+                      type="checkbox"
+                      checked={flightTypePricing.one_hour_flight_enabled !== false}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, one_hour_flight_enabled: e.target.checked })}
+                      className="w-5 h-5 accent-orange-500"
+                    />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-400">Price (₹)</Label>
+                  <Input
+                    type="number"
+                    value={flightTypePricing.one_hour_flight_price || 75000}
+                    onChange={(e) => setFlightTypePricing({ ...flightTypePricing, one_hour_flight_price: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700 max-w-xs"
+                  />
+                </div>
+              </div>
+
+              {/* 2 Hour Flight */}
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🚁</span>
+                    <div>
+                      <h4 className="text-white font-medium">2 घंटे की उड़ान (2 Hour Flight)</h4>
+                      <p className="text-slate-400 text-sm">Extended tour</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-slate-400">Enable</span>
+                    <input
+                      type="checkbox"
+                      checked={flightTypePricing.two_hour_flight_enabled !== false}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, two_hour_flight_enabled: e.target.checked })}
+                      className="w-5 h-5 accent-orange-500"
+                    />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-400">Price (₹)</Label>
+                  <Input
+                    type="number"
+                    value={flightTypePricing.two_hour_flight_price || 140000}
+                    onChange={(e) => setFlightTypePricing({ ...flightTypePricing, two_hour_flight_price: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700 max-w-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Half Day */}
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⏰</span>
+                    <div>
+                      <h4 className="text-white font-medium">Half-Day बुकिंग (Half Day Booking)</h4>
+                      <p className="text-slate-400 text-sm">Multiple short trips</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-slate-400">Enable</span>
+                    <input
+                      type="checkbox"
+                      checked={flightTypePricing.half_day_enabled !== false}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, half_day_enabled: e.target.checked })}
+                      className="w-5 h-5 accent-orange-500"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.half_day_price || 250000}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, half_day_price: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Duration (Hours)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.half_day_duration_hours || 4}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, half_day_duration_hours: parseInt(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Day Single */}
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🏙️</span>
+                    <div>
+                      <h4 className="text-white font-medium">Full-Day उड़ान - Single City (Full Day - City to City)</h4>
+                      <p className="text-slate-400 text-sm">One city to another city</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-slate-400">Enable</span>
+                    <input
+                      type="checkbox"
+                      checked={flightTypePricing.full_day_single_enabled !== false}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_single_enabled: e.target.checked })}
+                      className="w-5 h-5 accent-orange-500"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.full_day_single_price || 450000}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_single_price: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Duration (Hours)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.full_day_single_duration_hours || 8}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_single_duration_hours: parseInt(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Day Multiple Locations */}
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📍</span>
+                    <div>
+                      <h4 className="text-white font-medium">Full-Day मल्टीपल लोकेशन (Full Day - Multiple Locations)</h4>
+                      <p className="text-slate-400 text-sm">Visit multiple locations in one day</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-slate-400">Enable</span>
+                    <input
+                      type="checkbox"
+                      checked={flightTypePricing.full_day_multi_enabled !== false}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_multi_enabled: e.target.checked })}
+                      className="w-5 h-5 accent-orange-500"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Base Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.full_day_multi_base_price || 500000}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_multi_base_price: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Per Stop Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.full_day_multi_per_stop_price || 50000}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_multi_per_stop_price: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Max Stops</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.full_day_multi_max_stops || 5}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, full_day_multi_max_stops: parseInt(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Point to Point */}
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📍</span>
+                    <div>
+                      <h4 className="text-white font-medium">Point-to-Point उड़ान (Point to Point Flight)</h4>
+                      <p className="text-slate-400 text-sm">Direct flight, price based on distance</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-slate-400">Enable</span>
+                    <input
+                      type="checkbox"
+                      checked={flightTypePricing.point_to_point_enabled !== false}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, point_to_point_enabled: e.target.checked })}
+                      className="w-5 h-5 accent-orange-500"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Base Price (up to 50km) (₹)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.point_to_point_base_price || 50000}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, point_to_point_base_price: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-400">Rate per KM (₹)</Label>
+                    <Input
+                      type="number"
+                      value={flightTypePricing.point_to_point_rate_per_km || 800}
+                      onChange={(e) => setFlightTypePricing({ ...flightTypePricing, point_to_point_rate_per_km: parseFloat(e.target.value) })}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveFlightTypePricing} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
+                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Flight Type Pricing / उड़ान प्रकार मूल्य सहेजें'}
+              </Button>
+            </div>
+          )}
+
           {/* API Keys Settings */}
           {activeTab === 'apikeys' && (
             <div className="space-y-6">
