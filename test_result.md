@@ -338,3 +338,30 @@ agent_communication:
     message: "Completed ALL Future/Backlog Tasks: 1) In-App Real-time Chat via WebSocket (/api/ws/chat/{booking_id}) 2) AI-powered Customer Support Chatbot - bilingual Hindi/English with quick actions, integrated on all pages 3) Settlement Automation Service - weekly auto settlements, manual processing, pending settlements API. All verified via screenshots and curl tests."
   - agent: "main"
     message: "Comprehensive Admin Panel Features Added: 1) User & Role Management - create internal users (RM, HR, Finance, Marketing, Ops), assign multiple roles, enable/disable users, reset passwords, 2FA control 2) Suspended Operators - view/activate with reasons and history 3) Approval Queue - multi-level approvals, escalation, mandatory remarks 4) Role & Permission Settings - 9 system roles, custom roles, permission matrix. All verified via screenshots."
+  - task: "Flight Type Pricing Settings (Admin)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/admin/GlobalSettings.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added Flight Types tab in Admin Settings. Shows all 6 flight type pricing options (1hr, 2hr, half-day, full-day single, full-day multi, point-to-point) with enable/disable toggles and price inputs. Save functionality working via backend API."
+
+  - task: "Flight Type Selection on Booking Page"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/BookingPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Flight Type dropdown on booking page shows all 6 options with Hindi/English labels and prices. Point-to-Point selected by default. Multi-location type shows add stops feature. Prices fetched from backend API dynamically."
+
+agent_communication:
+  - agent: "main"
+    message: "Fork Job Session - Completed: 1) Flight Type Settings UI added to Admin Panel (GlobalSettings.js) with all 6 flight types 2) Flight Type Selection on Booking Page verified working with prices shown 3) User Management, Approval Queue, Suspended Operators pages all verified working. Backend APIs tested via curl."
