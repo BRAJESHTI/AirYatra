@@ -293,6 +293,18 @@ export const reportsAPI = {
   getReportsSummary: (params) => api.get('/reports/summary', { params }),
 };
 
+// Journey API
+export const journeyAPI = {
+  initiatePickup: (data) => api.post('/journey/pickup/initiate', data),
+  verifyPickupOTP: (data) => api.post('/journey/pickup/verify', data),
+  verifyStartJourney: (data) => api.post('/journey/start', data),
+  initiateCompletion: (bookingId) => api.post(`/journey/complete/initiate?booking_id=${bookingId}`),
+  verifyCompletion: (data) => api.post('/journey/complete/verify', data),
+  getJourneyStatus: (bookingId) => api.get(`/journey/status/${bookingId}`),
+  restrictPilot: (data) => api.post('/journey/pilot/restrict', data),
+  getRestrictedPilots: () => api.get('/journey/pilot/restrictions'),
+};
+
 // PIN Code API
 export const pincodeAPI = {
   lookup: (pincode) => api.get(`/pincode/lookup/${pincode}`),
