@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 function GlobalSettings() {
   const [activeTab, setActiveTab] = useState('platform');
   const [platformSettings, setPlatformSettings] = useState({});
+  const [pricingSettings, setPricingSettings] = useState({});
   const [regions, setRegions] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,9 @@ function GlobalSettings() {
       if (activeTab === 'platform') {
         const response = await settingsAPI.getPlatformSettings();
         setPlatformSettings(response.data);
+      } else if (activeTab === 'pricing') {
+        const response = await settingsAPI.getPricingSettings();
+        setPricingSettings(response.data);
       } else if (activeTab === 'regions') {
         const response = await settingsAPI.getRegions();
         setRegions(response.data.regions || []);
