@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from database import get_database
-from auth import require_roles, UserRole
+from middleware import require_roles
+from models import UserRole
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
