@@ -759,13 +759,23 @@ function BookingPage({ user }) {
 
               {/* Booking Type Info */}
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-                <h4 className="text-white font-medium mb-2">Booking Type</h4>
-                <p className="text-sm text-slate-400">
-                  {formData.booking_for === 'self' && '✈️ Booking for yourself'}
-                  {formData.booking_for === 'friend_family' && '👨‍👩‍👧‍👦 Booking for Friend & Family'}
-                  {formData.booking_for === 'company' && '🏢 Company/Corporate Booking'}
-                  {formData.booking_for === 'political' && '🎖️ Political/VIP Booking'}
-                </p>
+                <h4 className="text-white font-medium mb-2">Booking Info</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Booking For:</span>
+                    <span className="text-white">
+                      {formData.booking_for === 'self' && '👤 Self'}
+                      {formData.booking_for === 'friend_family' && '👨‍👩‍👧‍👦 Friend & Family'}
+                      {formData.booking_for === 'company' && '🏢 Company'}
+                      {formData.booking_for === 'political' && '🎖️ Political/VIP'}
+                      {formData.booking_for === 'other' && '📋 Other'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Purpose:</span>
+                    <span className="text-orange-400">{getSelectedPurposeLabel()}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
