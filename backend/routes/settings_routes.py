@@ -196,3 +196,64 @@ async def get_commission_tiers(
         for tier in tiers:
             await db.commission_tiers.insert_one(tier)
     return {"tiers": tiers}
+
+@router.get("/pricing")
+async def get_pricing_settings(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get helicopter pricing settings"""
+    pricing = await db.pricing_settings.find_one({"type": "helicopter_pricing"}, {"_id": 0})
+    if not pricing:
+        # Create default pricing
+        pricing = PricingSettings().dict()
+        pricing["type"] = "helicopter_pricing"
+        pricing["id"] = str(uuid4())
+        pricing["created_at"] = datetime.now(timezone.utc).isoformat()
+        await db.pricing_settings.insert_one(pricing)
+    return pricing
+
+@router.put("/pricing")
+async def update_pricing_settings(
+    pricing: PricingSettings,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update helicopter pricing settings"""
+    pricing_data = pricing.dict()
+    pricing_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    pricing_data["updated_by"] = current_user["id"]
+    
+    await db.pricing_settings.update_one(
+        {"type": "helicopter_pricing"},
+        {"$set": pricing_data},
+        upsert=True
+    )
+    
+    # Log audit
+    await db.audit_logs.insert_one({
+        "id": str(uuid4()),
+        "action": "pricing_settings_update",
+        "entity_type": "settings",
+        "entity_id": "pricing",
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "changes": pricing_data,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Pricing settings updated", "pricing": pricing_data}
+
+@router.get("/pricing/public")
+async def get_public_pricing(db=Depends(get_database)):
+    """Get pricing settings (public - for price calculator)"""
+    pricing = await db.pricing_settings.find_one({"type": "helicopter_pricing"}, {"_id": 0})
+    if not pricing:
+        pricing = PricingSettings().dict()
+    return {
+        "base_price_upto_50km": pricing.get("base_price_upto_50km", 50000),
+        "rate_per_km_after_50": pricing.get("rate_per_km_after_50", 1000),
+        "waiting_charge_per_hour": pricing.get("waiting_charge_per_hour", 5000),
+        "gst_percent": pricing.get("gst_percent", 18),
+        "advance_percent": pricing.get("advance_percent", 5)
+    }
