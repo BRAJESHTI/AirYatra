@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PilotDutyWidget from './PilotDutyWidget';
 
 function AdminOverview({ data, onRefresh, loading }) {
   if (loading) {
