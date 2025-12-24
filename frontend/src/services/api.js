@@ -45,6 +45,13 @@ export const authAPI = {
   },
 };
 
+// Google Auth API
+export const googleAuthAPI = {
+  getSettings: () => api.get('/auth/google/settings'),
+  verifyToken: (data) => api.post('/auth/google/verify-token', data),
+  // Redirect login is handled via window.location redirect
+};
+
 // Fleet API
 export const fleetAPI = {
   create: (data) => api.post('/fleet/', data),

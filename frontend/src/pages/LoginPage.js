@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authAPI } from '../services/api';
 import { toast } from 'sonner';
+import { GoogleLoginButton } from '../components/auth/GoogleLogin';
 
 function LoginPage({ setUser }) {
   const [isLogin, setIsLogin] = useState(true);
