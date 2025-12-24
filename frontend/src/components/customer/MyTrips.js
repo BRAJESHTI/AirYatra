@@ -248,8 +248,42 @@ function MyTrips({ user }) {
                 </div>
               </div>
 
+              {/* Latest Quote Alert */}
+              {trip.latest_quote && trip.status !== 'quote_accepted' && (
+                <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-400 font-medium flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        New Quote from {trip.latest_quote.operator_name}
+                      </p>
+                      <p className="text-white text-lg font-bold mt-1">
+                        ₹{trip.latest_quote.amount?.toLocaleString()}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-blue-500 hover:bg-blue-600"
+                      onClick={() => handleViewQuotes(trip)}
+                    >
+                      View Quotes
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t border-slate-700">
+                {/* View Quotes Button for pending bookings */}
+                {['pending', 'pending_quotes', 'quote_sent', 'quotes_received'].includes(trip.status) && (
+                  <Button
+                    size="sm"
+                    className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"
+                    onClick={() => handleViewQuotes(trip)}
+                  >
+                    <Bell className="h-4 w-4 mr-1" /> View Quotes
+                  </Button>
+                )}
                 {trip.status === 'completed' && !trip.feedback && (
                   <Button
                     size="sm"
