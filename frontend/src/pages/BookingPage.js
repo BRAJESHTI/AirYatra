@@ -33,13 +33,38 @@ function BookingPage({ user }) {
     waiting_hours: 0,
     special_requirements: '',
     include_insurance: false,
-    // New fields
-    booking_for: 'self', // self, friend_family, company, political
+    // Booking type and purpose
+    booking_for: 'self', // self, friend_family, company, political, other
+    booking_purpose: 'general_tour', // wedding, temple_yatra, company_tour, election_tour, general_tour, medical_emergency, other
+    booking_purpose_other: '',
+    // GST billing
     gst_billing: false,
     company_name: '',
     gstin: '',
     billing_address: ''
   });
+  
+  const bookingForOptions = [
+    { value: 'self', label: 'Self / खुद के लिए' },
+    { value: 'friend_family', label: 'Friend & Family / दोस्त और परिवार' },
+    { value: 'company', label: 'Company / Corporate / कंपनी' },
+    { value: 'political', label: 'Political / VIP / राजनीतिक' },
+    { value: 'other', label: 'Other / अन्य' },
+  ];
+
+  const bookingPurposeOptions = [
+    { value: 'wedding', label: '💒 Wedding / शादी', icon: '💒' },
+    { value: 'temple_yatra', label: '🛕 Temple Yatra / मंदिर यात्रा', icon: '🛕' },
+    { value: 'company_tour', label: '🏢 Company Tour / कंपनी टूर', icon: '🏢' },
+    { value: 'election_tour', label: '🗳️ Election Tour / चुनाव टूर', icon: '🗳️' },
+    { value: 'general_tour', label: '✈️ General Tour / सामान्य यात्रा', icon: '✈️' },
+    { value: 'medical_emergency', label: '🏥 Medical Emergency / मेडिकल इमरजेंसी', icon: '🏥' },
+    { value: 'business_meeting', label: '💼 Business Meeting / बिज़नेस मीटिंग', icon: '💼' },
+    { value: 'pilgrimage', label: '🙏 Pilgrimage / तीर्थ यात्रा', icon: '🙏' },
+    { value: 'film_shooting', label: '🎬 Film/Media Shooting / फिल्म शूटिंग', icon: '🎬' },
+    { value: 'survey_inspection', label: '📋 Survey/Inspection / सर्वे/निरीक्षण', icon: '📋' },
+    { value: 'other', label: '📝 Other / अन्य (Specify)', icon: '📝' },
+  ];
   
   const [passengerDetails, setPassengerDetails] = useState([{ name: '', age: '', phone: '' }]);
   const [priceEstimate, setPriceEstimate] = useState(null);
