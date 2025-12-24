@@ -85,7 +85,35 @@ function BookingPage({ user }) {
   // Load insurance settings
   useEffect(() => {
     loadInsuranceSettings();
+    loadFlightTypes();
   }, []);
+
+  const loadFlightTypes = async () => {
+    try {
+      const response = await settingsAPI.getFlightTypePricing();
+      setFlightTypes(response.data.flight_types || []);
+      
+      // Set initial flight type details
+      const defaultType = response.data.flight_types?.find(ft => ft.id === formData.flight_type);
+      if (defaultType) {
+        setSelectedFlightTypeDetails(defaultType);
+      }
+    } catch (err) {
+      console.error('Failed to load flight types');
+      // Set default flight types if API fails
+      setFlightTypes([
+        { id: 'point_to_point', name: 'Point-to-Point उड़ान', name_en: 'Point to Point', base_price: 50000, rate_per_km: 800, type: 'distance_based', icon: '📍' }
+      ]);
+    }
+  };
+
+  // Update selected flight type details when flight_type changes
+  useEffect(() => {
+    const flightType = flightTypes.find(ft => ft.id === formData.flight_type);
+    if (flightType) {
+      setSelectedFlightTypeDetails(flightType);
+    }
+  }, [formData.flight_type, flightTypes]);
 
   // Update passenger details array when passenger count changes
   useEffect(() => {
