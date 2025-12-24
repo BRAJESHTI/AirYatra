@@ -293,5 +293,113 @@ async def get_public_pricing(db=Depends(get_database)):
         "rate_per_km_after_50": pricing.get("rate_per_km_after_50", 1000),
         "waiting_charge_per_hour": pricing.get("waiting_charge_per_hour", 5000),
         "gst_percent": pricing.get("gst_percent", 18),
-        "advance_percent": pricing.get("advance_percent", 5)
+        "advance_percent": pricing.get("advance_percent", 5),
+        "insurance_enabled": pricing.get("insurance_enabled", True),
+        "insurance_coverage_amount": pricing.get("insurance_coverage_amount", 10000000),
+        "insurance_rate_type": pricing.get("insurance_rate_type", "fixed"),
+        "insurance_fixed_rate": pricing.get("insurance_fixed_rate", 500),
+        "insurance_percentage_rate": pricing.get("insurance_percentage_rate", 0.00001)
     }
+
+# API Keys Management
+@router.get("/api-keys")
+async def get_api_keys(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get API keys settings (masked)"""
+    api_keys = await db.api_keys_settings.find_one({"type": "api_keys"}, {"_id": 0})
+    if not api_keys:
+        api_keys = APIKeysSettings().dict()
+    
+    # Mask sensitive keys for display
+    masked_keys = {}
+    for key, value in api_keys.items():
+        if key in ["type", "id", "created_at", "updated_at"]:
+            masked_keys[key] = value
+        elif value and len(str(value)) > 8:
+            masked_keys[key] = str(value)[:4] + "****" + str(value)[-4:]
+        else:
+            masked_keys[key] = "****" if value else ""
+    
+    return masked_keys
+
+@router.put("/api-keys")
+async def update_api_keys(
+    api_keys: APIKeysSettings,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update API keys settings"""
+    api_keys_data = api_keys.dict()
+    api_keys_data["type"] = "api_keys"
+    api_keys_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    api_keys_data["updated_by"] = current_user["id"]
+    
+    await db.api_keys_settings.update_one(
+        {"type": "api_keys"},
+        {"$set": api_keys_data},
+        upsert=True
+    )
+    
+    # Log audit (without actual key values)
+    await db.audit_logs.insert_one({
+        "id": str(uuid4()),
+        "action": "api_keys_update",
+        "entity_type": "settings",
+        "entity_id": "api_keys",
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "changes": {"updated_fields": list(api_keys_data.keys())},
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "API keys updated successfully"}
+
+# Terms & Conditions Management
+@router.get("/terms-conditions")
+async def get_terms_conditions(db=Depends(get_database)):
+    """Get terms and conditions (public)"""
+    terms = await db.terms_conditions.find_one({"type": "terms"}, {"_id": 0})
+    if not terms:
+        terms = TermsConditionsSettings().dict()
+    return terms
+
+@router.put("/terms-conditions")
+async def update_terms_conditions(
+    terms: TermsConditionsSettings,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update terms and conditions"""
+    terms_data = terms.dict()
+    terms_data["type"] = "terms"
+    terms_data["last_updated"] = datetime.now(timezone.utc).isoformat()
+    terms_data["updated_by"] = current_user["id"]
+    
+    await db.terms_conditions.update_one(
+        {"type": "terms"},
+        {"$set": terms_data},
+        upsert=True
+    )
+    
+    return {"message": "Terms and conditions updated"}
+
+# Terms Agreement Records
+@router.get("/terms-agreements")
+async def get_terms_agreements(
+    user_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get list of users who agreed to terms"""
+    query = {}
+    if user_type:
+        query["user_type"] = user_type
+    
+    agreements = await db.terms_agreements.find(query, {"_id": 0}).sort("agreed_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.terms_agreements.count_documents(query)
+    
+    return {"agreements": agreements, "total": total}
