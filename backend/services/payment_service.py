@@ -5,31 +5,59 @@ from typing import Optional, Dict
 from datetime import datetime, timezone
 from uuid import uuid4
 
-# Razorpay Configuration
-RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "")
-RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "")
-
 class PaymentService:
     def __init__(self):
-        self.key_id = RAZORPAY_KEY_ID
-        self.key_secret = RAZORPAY_KEY_SECRET
+        # Default to environment variables, but can be overridden by database settings
+        self.key_id = os.environ.get("RAZORPAY_KEY_ID", "")
+        self.key_secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
         self.client = None
+        self._db_settings_loaded = False
+    
+    async def _load_api_keys_from_db(self, db):
+        """Load API keys from database settings - Admin configured keys take priority"""
+        if self._db_settings_loaded and self.client:
+            return
         
-        if self.key_id and self.key_secret and self.key_id != "your-razorpay-key-id":
-            try:
-                import razorpay
-                self.client = razorpay.Client(auth=(self.key_id, self.key_secret))
-            except ImportError:
-                print("Razorpay SDK not installed")
+        try:
+            api_settings = await db.api_keys_settings.find_one({"type": "api_keys"}, {"_id": 0})
+            if api_settings:
+                # Razorpay
+                if api_settings.get("razorpay_key_id"):
+                    self.key_id = api_settings["razorpay_key_id"]
+                if api_settings.get("razorpay_key_secret"):
+                    self.key_secret = api_settings["razorpay_key_secret"]
+                
+                # Initialize Razorpay client if keys available
+                if self.key_id and self.key_secret and len(self.key_id) > 10:
+                    try:
+                        import razorpay
+                        self.client = razorpay.Client(auth=(self.key_id, self.key_secret))
+                        print("[PaymentService] Razorpay client initialized from DB settings")
+                    except ImportError:
+                        print("[PaymentService] Razorpay SDK not installed")
+                
+                self._db_settings_loaded = True
+        except Exception as e:
+            print(f"[PaymentService] Error loading API keys from DB: {e}")
+    
+    def reset_settings_cache(self):
+        """Reset settings cache to force reload from database"""
+        self._db_settings_loaded = False
+        self.client = None
     
     async def create_order(
         self,
         amount: int,  # Amount in paise (INR * 100)
         currency: str = "INR",
         booking_id: str = None,
-        notes: Dict = None
+        notes: Dict = None,
+        db=None
     ) -> Dict:
         """Create a Razorpay order for payment"""
+        
+        # Load keys from DB if provided
+        if db:
+            await self._load_api_keys_from_db(db)
         
         if self.client:
             try:
@@ -42,6 +70,8 @@ class PaymentService:
                 
                 order = self.client.order.create(data=order_data)
                 
+                print(f"[Razorpay] Order created: {order['id']}, Amount: ₹{amount/100}")
+                
                 return {
                     "success": True,
                     "order_id": order["id"],
@@ -51,11 +81,13 @@ class PaymentService:
                     "mock": False
                 }
             except Exception as e:
-                print(f"Razorpay order creation error: {e}")
+                print(f"[Razorpay] Order creation error: {e}")
                 return {"success": False, "error": str(e)}
         
         # Mock order for testing
         mock_order_id = f"order_{uuid4().hex[:16]}"
+        print(f"[MOCK PAYMENT] Order created: {mock_order_id}, Amount: ₹{amount/100}")
+        
         return {
             "success": True,
             "order_id": mock_order_id,
@@ -63,16 +95,20 @@ class PaymentService:
             "currency": currency,
             "key_id": "rzp_test_mock",
             "mock": True,
-            "note": "Payment mocked - Razorpay credentials not configured"
+            "note": "Payment mocked - Configure Razorpay credentials in Admin Settings → API Keys"
         }
     
     async def verify_payment(
         self,
         razorpay_order_id: str,
         razorpay_payment_id: str,
-        razorpay_signature: str
+        razorpay_signature: str,
+        db=None
     ) -> Dict:
         """Verify Razorpay payment signature"""
+        
+        if db:
+            await self._load_api_keys_from_db(db)
         
         if self.client and self.key_secret:
             try:
@@ -87,6 +123,8 @@ class PaymentService:
                 if generated_signature == razorpay_signature:
                     # Fetch payment details
                     payment = self.client.payment.fetch(razorpay_payment_id)
+                    
+                    print(f"[Razorpay] Payment verified: {razorpay_payment_id}")
                     
                     return {
                         "success": True,
@@ -104,10 +142,11 @@ class PaymentService:
                         "error": "Invalid signature"
                     }
             except Exception as e:
-                print(f"Razorpay verification error: {e}")
+                print(f"[Razorpay] Verification error: {e}")
                 return {"success": False, "error": str(e)}
         
         # Mock verification
+        print(f"[MOCK PAYMENT] Verification for payment: {razorpay_payment_id}")
         return {
             "success": True,
             "verified": True,
@@ -123,9 +162,13 @@ class PaymentService:
         self,
         payment_id: str,
         amount: Optional[int] = None,  # Partial refund amount in paise
-        reason: str = "Customer request"
+        reason: str = "Customer request",
+        db=None
     ) -> Dict:
         """Create a refund for a payment"""
+        
+        if db:
+            await self._load_api_keys_from_db(db)
         
         if self.client:
             try:
@@ -138,6 +181,8 @@ class PaymentService:
                 
                 refund = self.client.payment.refund(payment_id, refund_data)
                 
+                print(f"[Razorpay] Refund created: {refund['id']}")
+                
                 return {
                     "success": True,
                     "refund_id": refund["id"],
@@ -146,21 +191,40 @@ class PaymentService:
                     "mock": False
                 }
             except Exception as e:
-                print(f"Razorpay refund error: {e}")
+                print(f"[Razorpay] Refund error: {e}")
                 return {"success": False, "error": str(e)}
         
         # Mock refund
+        mock_refund_id = f"rfnd_{uuid4().hex[:16]}"
+        print(f"[MOCK PAYMENT] Refund created: {mock_refund_id}")
+        
         return {
             "success": True,
-            "refund_id": f"rfnd_{uuid4().hex[:16]}",
+            "refund_id": mock_refund_id,
             "amount": (amount or 0) / 100,
             "status": "processed",
             "mock": True,
             "note": "Refund mocked"
         }
     
-    async def get_payment_methods(self) -> Dict:
+    async def get_payment_status(self, db=None) -> Dict:
+        """Get payment service status"""
+        
+        if db:
+            await self._load_api_keys_from_db(db)
+        
+        return {
+            "razorpay_configured": bool(self.client),
+            "key_id_set": bool(self.key_id and len(self.key_id) > 10),
+            "mock_mode": not bool(self.client)
+        }
+    
+    async def get_payment_methods(self, db=None) -> Dict:
         """Get available payment methods"""
+        
+        if db:
+            await self._load_api_keys_from_db(db)
+        
         return {
             "methods": [
                 {
@@ -200,7 +264,8 @@ class PaymentService:
                     "min_amount": 300000  # Minimum INR 3000 for EMI
                 }
             ],
-            "razorpay_configured": bool(self.client)
+            "razorpay_configured": bool(self.client),
+            "mock_mode": not bool(self.client)
         }
 
 # Singleton instance
