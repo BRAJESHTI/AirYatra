@@ -33,6 +33,32 @@ class PricingSettings(BaseModel):
     insurance_fixed_rate: float = 500.0  # ₹500 per passenger
     insurance_percentage_rate: float = 0.00001  # 0.00001% of coverage
 
+class FlightTypePricingSettings(BaseModel):
+    """Flight Type Pricing / उड़ान प्रकार मूल्य निर्धारण"""
+    # 1 Hour Flight / 1 घंटे की उड़ान
+    one_hour_flight_price: float = 75000.0
+    one_hour_flight_enabled: bool = True
+    # 2 Hour Flight / 2 घंटे की उड़ान
+    two_hour_flight_price: float = 140000.0
+    two_hour_flight_enabled: bool = True
+    # Half Day Booking / आधे दिन की बुकिंग
+    half_day_price: float = 250000.0
+    half_day_duration_hours: int = 4
+    half_day_enabled: bool = True
+    # Full Day Single City / पूरे दिन - एक शहर से दूसरे शहर
+    full_day_single_price: float = 450000.0
+    full_day_single_duration_hours: int = 8
+    full_day_single_enabled: bool = True
+    # Full Day Multiple Locations / पूरे दिन - मल्टीपल लोकेशन
+    full_day_multi_base_price: float = 500000.0
+    full_day_multi_per_stop_price: float = 50000.0
+    full_day_multi_max_stops: int = 5
+    full_day_multi_enabled: bool = True
+    # Point to Point / पॉइंट टू पॉइंट
+    point_to_point_base_price: float = 50000.0
+    point_to_point_rate_per_km: float = 800.0
+    point_to_point_enabled: bool = True
+
 class APIKeysSettings(BaseModel):
     # Email Service (SendGrid)
     sendgrid_api_key: str = ""
