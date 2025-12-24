@@ -59,6 +59,18 @@ function GlobalSettings() {
     }
   };
 
+  const handleSavePricingSettings = async () => {
+    setSaving(true);
+    try {
+      await settingsAPI.updatePricingSettings(pricingSettings);
+      toast.success('Pricing settings saved successfully');
+    } catch (error) {
+      toast.error('Failed to save pricing settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCreateRegion = async () => {
     try {
       await settingsAPI.createRegion({
