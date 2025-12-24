@@ -237,6 +237,119 @@ function GlobalSettings() {
             </div>
           )}
 
+          {/* Pricing Settings */}
+          {activeTab === 'pricing' && (
+            <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 space-y-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-white">Helicopter Charter Pricing</h3>
+                <p className="text-sm text-slate-400">Configure pricing for customer bookings</p>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <IndianRupee className="h-4 w-4 text-green-400" />
+                    Base Price (up to 50 km)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={pricingSettings.base_price_upto_50km || 50000}
+                    onChange={(e) => setPricingSettings({ ...pricingSettings, base_price_upto_50km: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700"
+                  />
+                  <p className="text-xs text-slate-500">Minimum price for flights up to 50 km</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <IndianRupee className="h-4 w-4 text-orange-400" />
+                    Rate per KM (after 50 km)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={pricingSettings.rate_per_km_after_50 || 1000}
+                    onChange={(e) => setPricingSettings({ ...pricingSettings, rate_per_km_after_50: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700"
+                  />
+                  <p className="text-xs text-slate-500">Additional charge per km beyond 50 km</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <IndianRupee className="h-4 w-4 text-purple-400" />
+                    Waiting Charge (per hour)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={pricingSettings.waiting_charge_per_hour || 5000}
+                    onChange={(e) => setPricingSettings({ ...pricingSettings, waiting_charge_per_hour: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700"
+                  />
+                  <p className="text-xs text-slate-500">Charge per hour of waiting time</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Percent className="h-4 w-4 text-blue-400" />
+                    GST (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={pricingSettings.gst_percent || 18}
+                    onChange={(e) => setPricingSettings({ ...pricingSettings, gst_percent: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label className="flex items-center gap-2">
+                    <Percent className="h-4 w-4 text-cyan-400" />
+                    Advance Payment (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={pricingSettings.advance_percent || 5}
+                    onChange={(e) => setPricingSettings({ ...pricingSettings, advance_percent: parseFloat(e.target.value) })}
+                    className="bg-slate-800 border-slate-700 max-w-xs"
+                  />
+                  <p className="text-xs text-slate-500">Percentage of total amount required as advance payment</p>
+                </div>
+              </div>
+              
+              {/* Price Preview */}
+              <div className="mt-6 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <h4 className="text-white font-medium mb-3">Price Preview (Example: 100 km trip)</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Base Price (50 km)</span>
+                    <span className="text-white">₹{(pricingSettings.base_price_upto_50km || 50000).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Extra 50 km</span>
+                    <span className="text-white">₹{(50 * (pricingSettings.rate_per_km_after_50 || 1000)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Subtotal</span>
+                    <span className="text-white">₹{((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">GST ({pricingSettings.gst_percent || 18}%)</span>
+                    <span className="text-white">₹{Math.round(((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)) * (pricingSettings.gst_percent || 18) / 100).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between col-span-2 pt-2 border-t border-slate-700">
+                    <span className="text-white font-semibold">Total</span>
+                    <span className="text-orange-400 font-bold">₹{Math.round(((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)) * (1 + (pricingSettings.gst_percent || 18) / 100)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between col-span-2">
+                    <span className="text-cyan-400">Advance Payment ({pricingSettings.advance_percent || 5}%)</span>
+                    <span className="text-cyan-400 font-semibold">₹{Math.round(((pricingSettings.base_price_upto_50km || 50000) + 50 * (pricingSettings.rate_per_km_after_50 || 1000)) * (1 + (pricingSettings.gst_percent || 18) / 100) * (pricingSettings.advance_percent || 5) / 100).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Button onClick={handleSavePricingSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
+                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Pricing Settings'}
+              </Button>
+            </div>
+          )}
+
           {/* Regions */}
           {activeTab === 'regions' && (
             <div className="space-y-4">
