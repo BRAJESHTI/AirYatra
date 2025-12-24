@@ -148,6 +148,54 @@ function BookingPage({ user }) {
     }));
   };
 
+  // GST Verification Function
+  const handleVerifyGST = async () => {
+    const gstin = formData.gstin.trim().toUpperCase();
+    
+    if (!gstin || gstin.length !== 15) {
+      toast.error('Please enter valid 15-digit GSTIN / कृपया सही 15-अंकों का GSTIN दर्ज करें');
+      return;
+    }
+    
+    setGstVerifying(true);
+    setGstVerified(false);
+    setGstVerificationMessage('');
+    
+    try {
+      const response = await gstPanAPI.verifyGST(gstin);
+      const data = response.data;
+      
+      if (data.verified) {
+        setGstVerified(true);
+        setGstVerificationMessage(data.message);
+        
+        // Auto-fill company details
+        setFormData(prev => ({
+          ...prev,
+          company_name: data.company_name || data.trade_name || prev.company_name,
+          billing_address: [
+            data.address,
+            data.city,
+            data.district,
+            data.state,
+            data.pincode
+          ].filter(Boolean).join(', ') || prev.billing_address
+        }));
+        
+        toast.success(`GST Verified! / GST सत्यापित!\n${data.company_name || data.trade_name}`);
+      } else {
+        setGstVerificationMessage(data.message);
+        toast.warning(data.message);
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'GST verification failed / GST सत्यापन विफल';
+      setGstVerificationMessage(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setGstVerifying(false);
+    }
+  };
+
   const handlePriceCalculated = (estimate) => {
     setPriceEstimate(estimate);
   };
