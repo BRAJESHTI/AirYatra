@@ -314,6 +314,10 @@ export const settingsAPI = {
   getTermsConditions: () => api.get('/settings/terms-conditions'),
   updateTermsConditions: (data) => api.put('/settings/terms-conditions', data),
   getTermsAgreements: (params) => api.get('/settings/terms-agreements', { params }),
+  // Flight Type Pricing
+  getFlightTypePricing: () => api.get('/settings/flight-type-pricing'),
+  getFlightTypePricingAdmin: () => api.get('/settings/flight-type-pricing/admin'),
+  updateFlightTypePricing: (data) => api.put('/settings/flight-type-pricing', data),
 };
 
 // Verification API
