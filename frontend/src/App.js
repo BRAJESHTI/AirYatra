@@ -14,6 +14,9 @@ import BookingPage from './pages/BookingPage';
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
 
+// Import Google Auth components
+import { GoogleAuthSuccess, GoogleAuthError } from './components/auth/GoogleLogin';
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
