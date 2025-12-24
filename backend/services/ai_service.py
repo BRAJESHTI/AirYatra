@@ -4,12 +4,16 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 # Emergent LLM Integration
+import logging
+logger = logging.getLogger(__name__)
+
 try:
     from emergentintegrations.llm.chat import Chat, Message, Model
     EMERGENT_AVAILABLE = True
+    logger.info("emergentintegrations loaded successfully")
 except ImportError:
     EMERGENT_AVAILABLE = False
-    print("Warning: emergentintegrations not available, AI features will use mock responses")
+    logger.info("emergentintegrations not available, AI features will use mock responses")
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "sk-emergent-dBbA2Ee2c6f44E66e5")
 
