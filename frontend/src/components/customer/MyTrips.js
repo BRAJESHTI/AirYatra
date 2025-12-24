@@ -13,10 +13,13 @@ function MyTrips({ user }) {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showQuotesDialog, setShowQuotesDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [isEmergency, setIsEmergency] = useState(false);
   const [reviewData, setReviewData] = useState({ overall_rating: 5, comment: '', recommend: true });
   const [processing, setProcessing] = useState(false);
+  const [pendingQuotes, setPendingQuotes] = useState([]);
+  const [tripQuotes, setTripQuotes] = useState([]);
 
   useEffect(() => {
     loadTrips();
