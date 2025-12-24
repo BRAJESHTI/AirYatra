@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timezone
 from uuid import uuid4
 from database import get_database
-from middleware import create_access_token
+from auth import create_access_token
 import logging
 import json
 
