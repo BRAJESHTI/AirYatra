@@ -61,7 +61,7 @@ async def lookup_pincode(pincode: str, use_live_api: bool = True):
     # Try live API if enabled
     if use_live_api:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 # Try Postal API first
                 response = await client.get(f"{POSTAL_API_URL}/{pincode}")
                 if response.status_code == 200:
@@ -109,6 +109,8 @@ async def lookup_pincode(pincode: str, use_live_api: bool = True):
                                 "source": "live_api",
                                 "data": location_data
                             }
+        except httpx.TimeoutException:
+            logger.warning(f"Live API timeout for {pincode}, using fallback")
         except Exception as e:
             logger.warning(f"Live API failed for {pincode}: {e}")
     
