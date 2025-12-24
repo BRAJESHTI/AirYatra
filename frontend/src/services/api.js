@@ -64,10 +64,12 @@ export const fleetAPI = {
 // Booking API
 export const bookingAPI = {
   create: (data) => api.post('/bookings/', data),
+  createInquiry: (data) => api.post('/bookings/inquiry', data),
   getAll: (status) => api.get('/bookings/', { params: { status } }),
   getById: (id) => api.get(`/bookings/${id}`),
   acceptQuote: (bookingId, quoteId) => api.post(`/bookings/${bookingId}/accept-quote`, { quote_id: quoteId }),
   cancel: (id) => api.post(`/bookings/${id}/cancel`),
+  getInquiryStatus: (id) => api.get(`/bookings/inquiry/${id}/status`),
 };
 
 // Quote API
