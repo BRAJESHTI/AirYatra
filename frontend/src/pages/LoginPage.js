@@ -188,6 +188,23 @@ function LoginPage({ setUser }) {
             {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Create Account')}
           </Button>
 
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-700"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-slate-900 text-slate-400">या / or</span>
+            </div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <GoogleLoginButton 
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            buttonText={isLogin ? "Google से Login करें" : "Google से Sign up करें"}
+          />
+
           <div className="text-center">
             <button
               type="button"
