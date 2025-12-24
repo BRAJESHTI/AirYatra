@@ -5,7 +5,7 @@ import logging
 from database import get_database
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/pincode", tags=["PIN Code Service"])
+router = APIRouter(prefix="/pincode-live", tags=["PIN Code Live Service"])
 
 # Hardcoded PIN code data for fallback
 INDIAN_PINCODES = {
