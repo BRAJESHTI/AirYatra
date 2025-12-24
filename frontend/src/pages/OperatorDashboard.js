@@ -142,6 +142,7 @@ function OperatorDashboard({ user, onLogout }) {
             <Route index element={<OperatorHome operator={operator} />} />
             <Route path="fleet" element={<FleetManagement operator={operator} />} />
             <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
+            <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />
             <Route path="pilots" element={<PilotManagement operator={operator} />} />
             <Route path="journey-otp" element={<JourneyOTPManager operator={operator} />} />
             <Route path="flight-records" element={<FlightRecordsManager operator={operator} />} />
