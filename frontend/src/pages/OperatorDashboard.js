@@ -145,6 +145,7 @@ function OperatorDashboard({ user, onLogout }) {
         <main className="flex-1 p-8">
           <Routes>
             <Route index element={<OperatorHome operator={operator} />} />
+            <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
             <Route path="fleet" element={<FleetManagement operator={operator} />} />
             <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
             <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />
