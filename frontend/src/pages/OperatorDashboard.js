@@ -99,6 +99,10 @@ function OperatorDashboard({ user, onLogout }) {
               <MessageSquare className="h-5 w-5" />
               <span>Inquiries</span>
             </Link>
+            <Link to="/operator/quotes" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 bg-green-500/10 border border-green-500/30" data-testid="quotes-link">
+              <DollarSign className="h-5 w-5 text-green-400" />
+              <span className="text-green-400">Quote Requests</span>
+            </Link>
             <Link to="/operator/journey-otp" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 bg-orange-500/10 border border-orange-500/30" data-testid="journey-otp-link">
               <Key className="h-5 w-5 text-orange-400" />
               <span className="text-orange-400">Journey OTP</span>
