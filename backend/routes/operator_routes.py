@@ -206,4 +206,139 @@ async def delete_pilot(pilot_id: str, user: dict = Depends(get_current_user)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Pilot not found")
     
+
+
+# ============== QUOTE MANAGEMENT ==============
+
+@router.get("/quote-requests")
+async def get_quote_requests(user: dict = Depends(get_current_user)):
+    """Get all quote requests for operator"""
+    db = get_database()
+    
+    if "operator" not in user["roles"]:
+        raise HTTPException(status_code=403, detail="Operator role required")
+    
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator profile not found")
+    
+    # Get all bookings with quote_requested status or assigned to this operator
+    query = {
+        "$or": [
+            {"status": "quote_requested"},
+            {"operator_id": operator["id"], "status": {"$in": ["quote_sent", "quote_accepted", "quote_rejected"]}}
+        ]
+    }
+    
+    bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Check if operator has already quoted
+    for booking in bookings:
+        quote = await db.quotes.find_one(
+            {"booking_id": booking["id"], "operator_id": operator["id"]},
+            {"_id": 0}
+        )
+        if quote:
+            booking["your_quote"] = quote.get("amount")
+            booking["quote_status"] = quote.get("status")
+    
+    return {"requests": bookings}
+
+@router.post("/submit-quote")
+async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_current_user)):
+    """Submit or revise a quote for a booking"""
+    db = get_database()
+    
+    if "operator" not in user["roles"]:
+        raise HTTPException(status_code=403, detail="Operator role required")
+    
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator profile not found")
+    
+    booking_id = quote_data.get("booking_id")
+    if not booking_id:
+        raise HTTPException(status_code=400, detail="Booking ID required")
+    
+    # Verify booking exists
+    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Check if quote already exists
+    existing_quote = await db.quotes.find_one(
+        {"booking_id": booking_id, "operator_id": operator["id"]},
+        {"_id": 0}
+    )
+    
+    quote_id = existing_quote["id"] if existing_quote else str(uuid.uuid4())
+    
+    quote = {
+        "id": quote_id,
+        "booking_id": booking_id,
+        "operator_id": operator["id"],
+        "operator_name": operator["company_name"],
+        "customer_id": booking.get("user_id"),
+        "amount": quote_data["amount"],
+        "breakdown": quote_data.get("breakdown", {}),
+        "validity_hours": quote_data.get("validity_hours", 24),
+        "valid_until": datetime.utcnow().isoformat(),  # Will be calculated
+        "notes": quote_data.get("notes", ""),
+        "status": "sent",
+        "revision_count": (existing_quote.get("revision_count", 0) + 1) if existing_quote else 1,
+        "created_at": existing_quote.get("created_at") if existing_quote else datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    if existing_quote:
+        await db.quotes.update_one({"id": quote_id}, {"$set": quote})
+    else:
+        await db.quotes.insert_one(quote.copy())
+    
+    # Update booking status
+    await db.bookings.update_one(
+        {"id": booking_id},
+        {"$set": {
+            "status": "quote_sent",
+            "latest_quote": {
+                "operator_id": operator["id"],
+                "operator_name": operator["company_name"],
+                "amount": quote_data["amount"],
+                "sent_at": datetime.utcnow().isoformat()
+            }
+        }}
+    )
+    
+    # TODO: Send notification to customer
+    
+    return {"message": "Quote submitted successfully", "quote_id": quote_id}
+
+@router.get("/my-quotes")
+async def get_my_quotes(user: dict = Depends(get_current_user)):
+    """Get all quotes submitted by operator"""
+    db = get_database()
+    
+    if "operator" not in user["roles"]:
+        raise HTTPException(status_code=403, detail="Operator role required")
+    
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator profile not found")
+    
+    quotes = await db.quotes.find(
+        {"operator_id": operator["id"]},
+        {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    # Enrich with booking details
+    for quote in quotes:
+        booking = await db.bookings.find_one(
+            {"id": quote["booking_id"]},
+            {"_id": 0, "booking_number": 1, "from_location": 1, "to_location": 1, "departure_date": 1}
+        )
+        if booking:
+            quote["booking_details"] = booking
+    
+    return {"quotes": quotes}
+
     return {"message": "Pilot deleted successfully"}
