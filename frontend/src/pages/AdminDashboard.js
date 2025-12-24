@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -14,12 +14,18 @@ import AuditLogs from '@/components/admin/AuditLogs';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import GlobalSettings from '@/components/admin/GlobalSettings';
 import ReportsDashboard from '@/components/admin/ReportsDashboard';
+import UserRoleManagement from '@/components/admin/UserRoleManagement';
+import SuspendedOperators from '@/components/admin/SuspendedOperators';
+import ApprovalQueue from '@/components/admin/ApprovalQueue';
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'reports', label: 'Reports', icon: PieChart },
-  { id: 'operators', label: 'Operators', icon: Users },
+  { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
+  { id: 'users', label: 'User Management', icon: UserCog },
+  { id: 'operators', label: 'Operators', icon: Building2 },
+  { id: 'suspended', label: 'Suspended Operators', icon: Ban },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'permissions', label: 'Landing Permissions', icon: Shield },
   { id: 'settlements', label: 'Settlements', icon: DollarSign },
