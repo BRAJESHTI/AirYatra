@@ -68,7 +68,7 @@ async def lookup_pincode(pincode: str):
         raise HTTPException(status_code=400, detail="Invalid PIN code. Must be 6 digits.")
     
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{INDIA_POST_API}/{pincode}")
             data = response.json()
             
@@ -112,9 +112,70 @@ async def lookup_pincode(pincode: str):
             raise HTTPException(status_code=404, detail="PIN code not found")
             
     except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="India Post API timeout")
+        # Fallback to hardcoded data on timeout
+        return get_fallback_pincode_data(pincode)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to lookup PIN code: {str(e)}")
+        # Fallback to hardcoded data on any error
+        return get_fallback_pincode_data(pincode)
+
+def get_fallback_pincode_data(pincode: str):
+    """Get fallback data for PIN code when API fails"""
+    # Major city pincodes
+    FALLBACK_DATA = {
+        "110001": {"state": "Delhi", "district": "New Delhi", "area": "Connaught Place", "lat": 28.6315, "lng": 77.2167},
+        "400001": {"state": "Maharashtra", "district": "Mumbai", "area": "Fort", "lat": 18.9338, "lng": 72.8354},
+        "600001": {"state": "Tamil Nadu", "district": "Chennai", "area": "Parrys", "lat": 13.0878, "lng": 80.2785},
+        "700001": {"state": "West Bengal", "district": "Kolkata", "area": "BBD Bag", "lat": 22.5726, "lng": 88.3639},
+        "560001": {"state": "Karnataka", "district": "Bangalore", "area": "MG Road", "lat": 12.9716, "lng": 77.5946},
+    }
+    
+    if pincode in FALLBACK_DATA:
+        data = FALLBACK_DATA[pincode]
+        return {
+            "success": True,
+            "source": "fallback",
+            "pincode": pincode,
+            "state": data["state"],
+            "district": data["district"],
+            "locations": [LocationInfo(
+                pincode=pincode,
+                state=data["state"],
+                district=data["district"],
+                area=data["area"],
+                latitude=data["lat"],
+                longitude=data["lng"]
+            )],
+            "latitude": data["lat"],
+            "longitude": data["lng"]
+        }
+    
+    # Estimate based on first 2 digits
+    prefix = pincode[:2]
+    state_map = {
+        "11": ("Delhi", 28.6139, 77.2090),
+        "40": ("Maharashtra", 19.0760, 72.8777),
+        "56": ("Karnataka", 12.9716, 77.5946),
+        "60": ("Tamil Nadu", 13.0827, 80.2707),
+        "70": ("West Bengal", 22.5726, 88.3639),
+    }
+    
+    if prefix in state_map:
+        state, lat, lng = state_map[prefix]
+        return {
+            "success": True,
+            "source": "estimated",
+            "pincode": pincode,
+            "state": state,
+            "district": "Unknown",
+            "locations": [],
+            "latitude": lat,
+            "longitude": lng,
+            "warning": "Estimated location - verify before booking"
+        }
+    
+    raise HTTPException(status_code=404, detail="PIN code not found and no fallback available")
 
 @router.get("/search")
 async def search_by_area(
