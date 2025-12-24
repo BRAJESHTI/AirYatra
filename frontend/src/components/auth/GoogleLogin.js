@@ -526,5 +526,5 @@ function GoogleAuthError() {
   );
 }
 
-export { GoogleLoginButton, GoogleAuthSuccess, GoogleAuthError, getDeviceInfo };
+export { GoogleLoginButton, GoogleAuthSuccess, GoogleAuthError, EmergentAuthCallback, getDeviceInfo };
 export default GoogleLoginButton;
