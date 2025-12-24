@@ -53,6 +53,8 @@ function AdminDashboard({ user, onLogout }) {
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} />;
       case 'analytics':
         return <AnalyticsDashboard />;
+      case 'reports':
+        return <ReportsDashboard />;
       case 'operators':
         return <OperatorManagement />;
       case 'bookings':
