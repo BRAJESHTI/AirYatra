@@ -172,7 +172,7 @@ function GlobalSettings() {
     { id: 'platform', label: 'Platform', icon: Settings },
     { id: 'pricing', label: 'Pricing', icon: Calculator },
     { id: 'flight_types', label: 'Flight Types', icon: Plane, highlight: true },
-    { id: 'inquiry_distribution', label: 'Inquiry Distribution', icon: MapPin, highlight: true },
+    { id: 'inquiry_distribution', label: 'Inquiry Distribution', icon: Radio, highlight: true },
     { id: 'settlement', label: 'Settlement Automation', icon: DollarSign, highlight: true },
     { id: 'apikeys', label: 'API Keys', icon: Key },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
