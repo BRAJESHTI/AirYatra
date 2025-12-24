@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plane, Calendar, Users, Clock, CreditCard } from 'lucide-react';
+import { Plane, Calendar, Users, Clock, CreditCard, Shield, User, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { bookingAPI } from '../services/api';
+import { Checkbox } from '@/components/ui/checkbox';
+import { bookingAPI, settingsAPI } from '../services/api';
 import { toast } from 'sonner';
 import PinCodeInput from '../components/shared/PinCodeInput';
 import PriceCalculator from '../components/shared/PriceCalculator';
@@ -26,14 +27,67 @@ function BookingPage({ user }) {
     to_latitude: null,
     to_longitude: null,
     departure_date: '',
+    pickup_time: '',
     passengers: 1,
     trip_type: 'one_way',
     waiting_hours: 0,
-    special_requirements: ''
+    special_requirements: '',
+    include_insurance: false
   });
+  
+  const [passengerDetails, setPassengerDetails] = useState([{ name: '', age: '' }]);
   const [priceEstimate, setPriceEstimate] = useState(null);
+  const [insuranceSettings, setInsuranceSettings] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Load insurance settings
+  useEffect(() => {
+    loadInsuranceSettings();
+  }, []);
+
+  // Update passenger details array when passenger count changes
+  useEffect(() => {
+    const count = parseInt(formData.passengers) || 1;
+    setPassengerDetails(prev => {
+      const newDetails = [...prev];
+      while (newDetails.length < count) {
+        newDetails.push({ name: '', age: '' });
+      }
+      while (newDetails.length > count) {
+        newDetails.pop();
+      }
+      return newDetails;
+    });
+  }, [formData.passengers]);
+
+  const loadInsuranceSettings = async () => {
+    try {
+      const response = await settingsAPI.getPublicPricing();
+      setInsuranceSettings({
+        enabled: response.data.insurance_enabled,
+        coverage: response.data.insurance_coverage_amount,
+        rateType: response.data.insurance_rate_type,
+        fixedRate: response.data.insurance_fixed_rate,
+        percentageRate: response.data.insurance_percentage_rate
+      });
+    } catch (err) {
+      console.error('Failed to load insurance settings');
+    }
+  };
+
+  const calculateInsuranceAmount = () => {
+    if (!insuranceSettings || !formData.include_insurance) return 0;
+    
+    const passengerCount = parseInt(formData.passengers) || 1;
+    
+    if (insuranceSettings.rateType === 'fixed') {
+      return insuranceSettings.fixedRate * passengerCount;
+    } else {
+      // Percentage of coverage amount
+      return (insuranceSettings.coverage * insuranceSettings.percentageRate / 100) * passengerCount;
+    }
+  };
 
   const handlePickupLocationSelect = (location) => {
     setFormData(prev => ({
@@ -65,6 +119,14 @@ function BookingPage({ user }) {
     setPriceEstimate(estimate);
   };
 
+  const handlePassengerChange = (index, field, value) => {
+    setPassengerDetails(prev => {
+      const newDetails = [...prev];
+      newDetails[index] = { ...newDetails[index], [field]: value };
+      return newDetails;
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -78,6 +140,22 @@ function BookingPage({ user }) {
       toast.error('Please enter valid PIN codes for pickup and drop locations');
       return;
     }
+
+    // Validate passenger details
+    for (let i = 0; i < passengerDetails.length; i++) {
+      if (!passengerDetails[i].name.trim()) {
+        toast.error(`Please enter name for Passenger ${i + 1}`);
+        return;
+      }
+      if (!passengerDetails[i].age || passengerDetails[i].age < 1) {
+        toast.error(`Please enter valid age for Passenger ${i + 1}`);
+        return;
+      }
+    }
+
+    const insuranceAmount = calculateInsuranceAmount();
+    const totalWithInsurance = (priceEstimate?.total_price || 0) + insuranceAmount;
+    const advanceWithInsurance = totalWithInsurance * (priceEstimate?.advance_percent || 5) / 100;
 
     setLoading(true);
     try {
@@ -101,13 +179,19 @@ function BookingPage({ user }) {
           longitude: formData.to_longitude
         },
         departure_date: formData.departure_date,
+        pickup_time: formData.pickup_time,
         passengers: formData.passengers,
+        passenger_details: passengerDetails,
         trip_type: formData.trip_type,
         waiting_hours: formData.waiting_hours,
         special_requirements: formData.special_requirements,
         estimated_distance_km: priceEstimate?.distance_km,
         estimated_price: priceEstimate?.total_price,
-        advance_amount: priceEstimate?.advance_amount
+        include_insurance: formData.include_insurance,
+        insurance_amount: insuranceAmount,
+        insurance_coverage: formData.include_insurance ? insuranceSettings?.coverage : 0,
+        total_with_insurance: totalWithInsurance,
+        advance_amount: advanceWithInsurance
       };
 
       const response = await bookingAPI.create(bookingData);
@@ -124,6 +208,9 @@ function BookingPage({ user }) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  const insuranceAmount = calculateInsuranceAmount();
+  const totalWithInsurance = (priceEstimate?.total_price || 0) + insuranceAmount;
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="booking-page">
@@ -197,13 +284,13 @@ function BookingPage({ user }) {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="departure_date" className="text-white">Departure Date & Time</Label>
+                    <Label htmlFor="departure_date" className="text-white">Departure Date</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
                       <Input
                         id="departure_date"
                         name="departure_date"
-                        type="datetime-local"
+                        type="date"
                         value={formData.departure_date}
                         onChange={handleChange}
                         required
@@ -214,7 +301,24 @@ function BookingPage({ user }) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="passengers" className="text-white">Passengers</Label>
+                    <Label htmlFor="pickup_time" className="text-white">Pickup Time</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                      <Input
+                        id="pickup_time"
+                        name="pickup_time"
+                        type="time"
+                        value={formData.pickup_time}
+                        onChange={handleChange}
+                        required
+                        className="pl-10 bg-slate-900 border-slate-700 text-white"
+                        data-testid="pickup-time-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="passengers" className="text-white">Number of Passengers</Label>
                     <div className="relative">
                       <Users className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
                       <Input
@@ -248,10 +352,10 @@ function BookingPage({ user }) {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="waiting_hours" className="text-white flex items-center gap-2">
                       <Clock className="h-4 w-4 text-orange-400" />
-                      Waiting Time (Hours)
+                      Waiting Time at Destination (Hours)
                     </Label>
                     <Input
                       id="waiting_hours"
@@ -261,11 +365,92 @@ function BookingPage({ user }) {
                       step="0.5"
                       value={formData.waiting_hours}
                       onChange={handleChange}
-                      className="bg-slate-900 border-slate-700 text-white"
+                      className="bg-slate-900 border-slate-700 text-white max-w-xs"
                     />
                   </div>
                 </div>
               </div>
+
+              {/* Passenger Details */}
+              <div className="p-4 rounded-lg bg-slate-800/30 border border-slate-700">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center">4</span>
+                  Passenger Details
+                </h3>
+                
+                <div className="space-y-4">
+                  {passengerDetails.map((passenger, index) => (
+                    <div key={index} className="p-3 rounded-lg bg-slate-900/50 border border-slate-700">
+                      <div className="flex items-center gap-2 mb-3">
+                        <User className="h-4 w-4 text-blue-400" />
+                        <span className="text-white font-medium">Passenger {index + 1}</span>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-slate-400 text-sm">Full Name</Label>
+                          <Input
+                            type="text"
+                            value={passenger.name}
+                            onChange={(e) => handlePassengerChange(index, 'name', e.target.value)}
+                            placeholder="Enter passenger name"
+                            required
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-slate-400 text-sm">Age</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="120"
+                            value={passenger.age}
+                            onChange={(e) => handlePassengerChange(index, 'age', e.target.value)}
+                            placeholder="Age"
+                            required
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Insurance Option */}
+              {insuranceSettings?.enabled && (
+                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30">
+                  <div className="flex items-start gap-4">
+                    <Checkbox
+                      id="include_insurance"
+                      checked={formData.include_insurance}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, include_insurance: checked }))}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="include_insurance" className="text-white font-semibold flex items-center gap-2 cursor-pointer">
+                        <Shield className="h-5 w-5 text-blue-400" />
+                        Travel Insurance (₹{(insuranceSettings.coverage / 10000000).toFixed(0)} Crore per passenger)
+                      </Label>
+                      <p className="text-slate-400 text-sm mt-1">
+                        Comprehensive coverage for all passengers during the flight
+                      </p>
+                      <div className="mt-2 text-sm">
+                        <span className="text-blue-400">
+                          Premium: ₹{insuranceSettings.rateType === 'fixed' 
+                            ? insuranceSettings.fixedRate.toLocaleString() 
+                            : Math.round(insuranceSettings.coverage * insuranceSettings.percentageRate / 100).toLocaleString()
+                          } per passenger
+                        </span>
+                        {formData.include_insurance && (
+                          <span className="text-green-400 ml-4">
+                            Total: ₹{insuranceAmount.toLocaleString()} for {formData.passengers} passenger(s)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Special Requirements */}
               <div className="space-y-2">
@@ -313,6 +498,59 @@ function BookingPage({ user }) {
                 showWaitingTime={false}
               />
 
+              {/* Insurance Summary */}
+              {formData.include_insurance && insuranceAmount > 0 && (
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-center gap-2 text-blue-400 mb-3">
+                    <Shield className="h-5 w-5" />
+                    <span className="font-medium">Insurance Added</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Coverage per person</span>
+                      <span className="text-white">₹{(insuranceSettings?.coverage / 10000000).toFixed(0)} Cr</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Passengers</span>
+                      <span className="text-white">{formData.passengers}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-blue-500/20 pt-2">
+                      <span className="text-blue-400">Insurance Premium</span>
+                      <span className="text-blue-400 font-semibold">₹{insuranceAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Total Summary */}
+              {priceEstimate && (
+                <div className="p-4 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30">
+                  <h4 className="text-white font-semibold mb-3">Booking Summary</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Flight Cost</span>
+                      <span className="text-white">₹{priceEstimate.total_price?.toLocaleString()}</span>
+                    </div>
+                    {formData.include_insurance && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Insurance</span>
+                        <span className="text-white">₹{insuranceAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-orange-500/20 pt-2">
+                      <span className="text-white font-semibold">Grand Total</span>
+                      <span className="text-xl font-bold text-orange-400">₹{totalWithInsurance.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between mt-2 p-2 rounded bg-green-500/10">
+                      <span className="text-green-400">Advance ({priceEstimate.advance_percent}%)</span>
+                      <span className="text-green-400 font-bold">
+                        ₹{Math.round(totalWithInsurance * priceEstimate.advance_percent / 100).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Pricing Info */}
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
                 <h4 className="text-white font-medium mb-3">Pricing Info</h4>
@@ -324,20 +562,6 @@ function BookingPage({ user }) {
                   <li>• Advance: 5% required</li>
                 </ul>
               </div>
-
-              {/* Payment Info */}
-              {priceEstimate && (
-                <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                  <div className="flex items-center gap-2 text-green-400 mb-2">
-                    <CreditCard className="h-5 w-5" />
-                    <span className="font-medium">Ready to Book!</span>
-                  </div>
-                  <p className="text-sm text-slate-400">
-                    Pay ₹{priceEstimate.advance_amount?.toLocaleString()} advance to confirm your booking.
-                    Remaining amount to be paid after trip completion.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
