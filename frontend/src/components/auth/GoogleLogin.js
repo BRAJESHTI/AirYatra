@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Smartphone, Mail, User, Calendar, Phone, Image, Shield, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { googleAuthAPI, authAPI } from '@/services/api';
@@ -36,13 +36,191 @@ const getDeviceInfo = () => {
   return info;
 };
 
+// Emergent Auth Callback Component - handles session_id from URL hash
+function EmergentAuthCallback({ onLogin }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasProcessed = useRef(false);
+  const [status, setStatus] = useState('processing');
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    // CRITICAL: Use useRef to prevent double processing in StrictMode
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+    
+    processAuthCallback();
+  }, []);
+
+  const processAuthCallback = async () => {
+    try {
+      // Extract session_id from URL hash (format: #session_id=xxx)
+      const hash = window.location.hash;
+      const sessionIdMatch = hash.match(/session_id=([^&]+)/);
+      
+      if (!sessionIdMatch) {
+        console.error('No session_id found in URL');
+        setStatus('error');
+        return;
+      }
+      
+      const sessionId = sessionIdMatch[1];
+      
+      // Exchange session_id for user data via Emergent API
+      const response = await fetch('https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data', {
+        method: 'GET',
+        headers: {
+          'X-Session-ID': sessionId
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to exchange session for user data');
+      }
+      
+      const emergentUserData = await response.json();
+      
+      // Now call our backend to create/login user
+      const deviceInfo = getDeviceInfo();
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      const loginResponse = await fetch(`${backendUrl}/api/auth/google/emergent-callback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          emergent_user: emergentUserData,
+          device_info: deviceInfo,
+          session_token: emergentUserData.session_token
+        })
+      });
+      
+      if (!loginResponse.ok) {
+        throw new Error('Failed to process login');
+      }
+      
+      const loginData = await loginResponse.json();
+      
+      // Store token and user
+      localStorage.setItem('token', loginData.access_token);
+      localStorage.setItem('user', JSON.stringify(loginData.user));
+      
+      setUserData(loginData.user);
+      setStatus('success');
+      
+      // Notify parent
+      onLogin?.(loginData.user);
+      
+      toast.success(loginData.is_new_user 
+        ? 'Account created successfully! / खाता बनाया गया!' 
+        : 'Welcome back! / वापसी पर स्वागत है!');
+      
+      // Redirect based on role
+      setTimeout(() => {
+        const role = loginData.user.roles?.[0] || 'customer';
+        navigate(`/${role}`);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Auth callback error:', error);
+      setStatus('error');
+      toast.error('Login failed / लॉगिन विफल');
+    }
+  };
+
+  if (status === 'processing') {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-16 w-16 text-orange-500 animate-spin mx-auto mb-4" />
+          <h2 className="text-xl text-white">Signing you in...</h2>
+          <p className="text-slate-400">आपको साइन इन किया जा रहा है...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">❌</span>
+          </div>
+          <h2 className="text-xl text-white">Authentication Failed</h2>
+          <p className="text-slate-400 mt-2">प्रमाणीकरण विफल</p>
+          <Button onClick={() => navigate('/login')} className="mt-4">
+            Try Again / पुनः प्रयास करें
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-900 rounded-2xl p-8 border border-slate-800">
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-10 w-10 text-green-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Welcome! / स्वागत है!</h2>
+          <p className="text-slate-400 mt-2">Successfully signed in with Google</p>
+        </div>
+
+        {userData && (
+          <div className="space-y-4">
+            {/* Profile Picture */}
+            <div className="flex justify-center">
+              {userData.profile_picture || userData.picture ? (
+                <img
+                  src={userData.profile_picture || userData.picture}
+                  alt={userData.full_name || userData.name}
+                  className="w-24 h-24 rounded-full border-4 border-orange-500"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <User className="h-12 w-12 text-orange-500" />
+                </div>
+              )}
+            </div>
+
+            {/* User Details */}
+            <div className="space-y-3 bg-slate-800/50 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <User className="h-5 w-5 text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500">Name / नाम</p>
+                  <p className="text-white">{userData.full_name || userData.name}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500">Email</p>
+                  <p className="text-white">{userData.email}</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-slate-400">
+              Redirecting... / रीडायरेक्ट किया जा रहा है...
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function GoogleLoginButton({ onSuccess, onError, buttonText = "Continue with Google / Google से जारी रखें" }) {
   const [loading, setLoading] = useState(false);
   const [googleSettings, setGoogleSettings] = useState(null);
 
   useEffect(() => {
-    loadGoogleSettings();
-    loadGoogleScript();
+    // No need to load Google settings for Emergent Auth
   }, []);
 
   const loadGoogleSettings = async () => {
