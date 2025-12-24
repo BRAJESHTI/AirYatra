@@ -98,6 +98,10 @@ function OperatorDashboard({ user, onLogout }) {
               <MessageSquare className="h-5 w-5" />
               <span>Inquiries</span>
             </Link>
+            <Link to="/operator/journey-otp" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 bg-orange-500/10 border border-orange-500/30" data-testid="journey-otp-link">
+              <Key className="h-5 w-5 text-orange-400" />
+              <span className="text-orange-400">Journey OTP</span>
+            </Link>
             
             {/* Tracking Section */}
             <div className="pt-4 mt-4 border-t border-slate-700">
