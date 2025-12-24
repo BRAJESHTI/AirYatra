@@ -243,8 +243,11 @@ function BookingPage({ user }) {
         insurance_coverage: formData.include_insurance ? insuranceSettings?.coverage : 0,
         total_with_insurance: totalWithInsurance,
         advance_amount: advanceWithInsurance,
-        // New fields
+        // Booking type and purpose
         booking_for: formData.booking_for,
+        booking_purpose: formData.booking_purpose,
+        booking_purpose_other: formData.booking_purpose === 'other' ? formData.booking_purpose_other : null,
+        // GST billing
         gst_billing: formData.gst_billing,
         billing_details: formData.gst_billing ? {
           company_name: formData.company_name,
