@@ -70,6 +70,9 @@ function BookingPage({ user }) {
   const [priceEstimate, setPriceEstimate] = useState(null);
   const [insuranceSettings, setInsuranceSettings] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [gstVerifying, setGstVerifying] = useState(false);
+  const [gstVerified, setGstVerified] = useState(false);
+  const [gstVerificationMessage, setGstVerificationMessage] = useState('');
   const navigate = useNavigate();
 
   // Load insurance settings
