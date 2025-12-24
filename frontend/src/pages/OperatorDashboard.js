@@ -88,6 +88,10 @@ function OperatorDashboard({ user, onLogout }) {
               <Home className="h-5 w-5" />
               <span>Dashboard</span>
             </Link>
+            <Link to="/operator/new-inquiries" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-white bg-orange-500/20 border border-orange-500/50 animate-pulse" data-testid="new-inquiries-link">
+              <Bell className="h-5 w-5 text-orange-400" />
+              <span className="text-orange-400 font-medium">New Inquiries</span>
+            </Link>
             <Link to="/operator/fleet" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="fleet-link">
               <Plane className="h-5 w-5" />
               <span>Fleet Management</span>
