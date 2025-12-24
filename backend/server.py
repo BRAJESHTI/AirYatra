@@ -78,6 +78,7 @@ api_router.include_router(verification_routes.router)
 api_router.include_router(reports_routes.router)
 api_router.include_router(journey_routes.router)
 api_router.include_router(verification_gst_pan_routes.router)
+api_router.include_router(websocket_chat_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
