@@ -71,6 +71,7 @@ api_router.include_router(chat_routes.router)
 api_router.include_router(feedback_routes.router)
 api_router.include_router(analytics_routes.router)
 api_router.include_router(customer_routes.router)
+api_router.include_router(pincode_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
