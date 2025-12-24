@@ -124,7 +124,9 @@ function AdminDashboard({ user, onLogout }) {
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                     activeTab === item.id
                       ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      : item.highlight 
+                        ? 'text-yellow-400 hover:bg-yellow-500/20 border border-yellow-500/30'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
