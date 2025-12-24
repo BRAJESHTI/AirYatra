@@ -322,6 +322,22 @@ export const settingsAPI = {
   getFlightTypePricing: () => api.get('/settings/flight-type-pricing'),
   getFlightTypePricingAdmin: () => api.get('/settings/flight-type-pricing/admin'),
   updateFlightTypePricing: (data) => api.put('/settings/flight-type-pricing', data),
+  // Inquiry Distribution Settings
+  getInquiryBroadcastSettings: () => api.get('/inquiry-broadcast/settings'),
+  updateInquiryBroadcastSettings: (data) => api.put('/inquiry-broadcast/settings', data),
+  testInquiryBroadcast: (data) => api.post('/inquiry-broadcast/admin/test-broadcast', data),
+};
+
+// Inquiry Broadcast API (Operator)
+export const inquiryBroadcastAPI = {
+  getPendingInquiries: () => api.get('/inquiry-broadcast/operator/pending'),
+  getInquiryDetails: (mappingId) => api.get(`/inquiry-broadcast/operator/inquiry/${mappingId}`),
+  acceptInquiry: (mappingId, data) => api.post(`/inquiry-broadcast/operator/accept/${mappingId}`, data),
+  rejectInquiry: (mappingId, data) => api.post(`/inquiry-broadcast/operator/reject/${mappingId}`, data),
+  getInquiryHistory: (status) => api.get('/inquiry-broadcast/operator/history', { params: { status } }),
+  // Admin
+  getAllBroadcasts: (status) => api.get('/inquiry-broadcast/admin/broadcasts', { params: { status } }),
+  getBroadcastDetails: (broadcastId) => api.get(`/inquiry-broadcast/admin/broadcast/${broadcastId}`),
 };
 
 // Verification API
