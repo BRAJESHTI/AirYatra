@@ -37,10 +37,6 @@ Important facts about AirYatra:
 - GST invoices available for corporate bookings
 
 Reply in the same language the user is using. If they use Hinglish, respond in Hinglish."""
-
-class AIService:
-    def __init__(self):
-        self.emergent_key = EMERGENT_LLM_KEY
         
     async def get_price_suggestion(
         self,
