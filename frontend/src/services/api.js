@@ -279,6 +279,8 @@ export const reportsAPI = {
   getBookingsByRoute: (params) => api.get('/reports/bookings/by-route', { params }),
   getBookingsByState: (params) => api.get('/reports/bookings/by-state', { params }),
   getBookingsByDistrict: (params) => api.get('/reports/bookings/by-district', { params }),
+  getBookingsByPurpose: (params) => api.get('/reports/bookings/by-purpose', { params }),
+  getBookingsByBookingFor: (params) => api.get('/reports/bookings/by-booking-for', { params }),
   // Operator Reports
   getOperatorPerformance: (params) => api.get('/reports/operators/performance', { params }),
   getOperatorCancellations: (params) => api.get('/reports/operators/cancellations', { params }),
