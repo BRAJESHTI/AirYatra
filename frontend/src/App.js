@@ -74,6 +74,9 @@ function App() {
         />
         <Route path="/booking" element={<BookingPage user={user} />} />
       </Routes>
+      
+      {/* AI Chatbot - Available on all pages */}
+      <AIChatbot user={user} />
     </BrowserRouter>
   );
 }
