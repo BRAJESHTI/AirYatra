@@ -20,6 +20,13 @@ class PlatformSettings(BaseModel):
     gst_percent: float = 18.0
     tds_percent: float = 2.0
 
+class PricingSettings(BaseModel):
+    base_price_upto_50km: float = 50000.0  # ₹50,000 minimum for up to 50km
+    rate_per_km_after_50: float = 1000.0   # ₹1,000 per km after 50km
+    waiting_charge_per_hour: float = 5000.0  # ₹5,000 per hour waiting
+    gst_percent: float = 18.0
+    advance_percent: float = 5.0  # 5% advance payment required
+
 class RegionSettings(BaseModel):
     region_name: str
     region_code: str
