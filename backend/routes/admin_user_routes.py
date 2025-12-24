@@ -441,7 +441,7 @@ async def update_role(
 @router.delete("/roles/{role_id}")
 async def delete_role(
     role_id: str,
-    user: dict = Depends(require_roles([UserRole.SUPER_ADMIN]))
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
 ):
     """Delete custom role"""
     db = get_database()
