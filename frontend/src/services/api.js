@@ -133,6 +133,10 @@ export const operatorAPI = {
   getPilots: () => api.get('/operator/pilots'),
   updatePilot: (id, data) => api.put(`/operator/pilots/${id}`, data),
   deletePilot: (id) => api.delete(`/operator/pilots/${id}`),
+  // Quote Management
+  getQuoteRequests: () => api.get('/operator/quote-requests'),
+  submitRevisedQuote: (data) => api.post('/operator/submit-quote', data),
+  getMyQuotes: () => api.get('/operator/my-quotes'),
 };
 
 export const pilotDocumentAPI = {
