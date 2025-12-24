@@ -144,6 +144,33 @@ function MyTrips({ user }) {
         <p className="text-slate-400 mt-1">View and manage your helicopter bookings</p>
       </div>
 
+      {/* Pending Quotes Alert */}
+      {pendingQuotes.length > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-orange-500/20">
+                <Bell className="h-5 w-5 text-orange-400 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-orange-400 font-semibold">
+                  {pendingQuotes.length} New Quote{pendingQuotes.length > 1 ? 's' : ''} Received! / नया कोट मिला!
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  Operators have sent revised quotes for your bookings. Please review and respond.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setActiveTab('upcoming')}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              View Quotes
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Statistics */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="glass p-4 rounded-lg text-center">
