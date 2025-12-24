@@ -26,6 +26,44 @@ class PricingSettings(BaseModel):
     waiting_charge_per_hour: float = 5000.0  # ₹5,000 per hour waiting
     gst_percent: float = 18.0
     advance_percent: float = 5.0  # 5% advance payment required
+    # Insurance settings
+    insurance_enabled: bool = True
+    insurance_coverage_amount: float = 10000000.0  # ₹1 Crore coverage
+    insurance_rate_type: str = "fixed"  # "fixed" or "percentage"
+    insurance_fixed_rate: float = 500.0  # ₹500 per passenger
+    insurance_percentage_rate: float = 0.00001  # 0.00001% of coverage
+
+class APIKeysSettings(BaseModel):
+    # Email Service (SendGrid)
+    sendgrid_api_key: str = ""
+    sendgrid_from_email: str = ""
+    sendgrid_from_name: str = "AirYatra"
+    # SMS Service (Twilio)
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_phone_number: str = ""
+    # Payment Service (Razorpay)
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+    # Location/Maps API
+    google_maps_api_key: str = ""
+    # AWS S3
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_s3_bucket: str = ""
+    aws_region: str = "ap-south-1"
+    # Insurance Provider
+    insurance_provider_api_key: str = ""
+    insurance_provider_email: str = ""
+
+class TermsConditionsSettings(BaseModel):
+    customer_terms: str = ""
+    operator_terms: str = ""
+    pilot_terms: str = ""
+    privacy_policy: str = ""
+    insurance_terms: str = ""
+    last_updated: str = ""
 
 class RegionSettings(BaseModel):
     region_name: str
