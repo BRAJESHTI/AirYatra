@@ -429,3 +429,154 @@ async def get_terms_agreements(
     total = await db.terms_agreements.count_documents(query)
     
     return {"agreements": agreements, "total": total}
+
+# ============== FLIGHT TYPE PRICING ==============
+
+@router.get("/flight-type-pricing")
+async def get_flight_type_pricing(
+    db=Depends(get_database)
+):
+    """
+    Get flight type pricing (public - for booking page)
+    उड़ान प्रकार मूल्य निर्धारण प्राप्त करें
+    """
+    pricing = await db.flight_type_pricing.find_one({"type": "flight_type_pricing"}, {"_id": 0})
+    if not pricing:
+        # Create default pricing
+        pricing = FlightTypePricingSettings().dict()
+        pricing["type"] = "flight_type_pricing"
+        pricing["id"] = str(uuid4())
+        pricing["created_at"] = datetime.now(timezone.utc).isoformat()
+        await db.flight_type_pricing.insert_one(pricing)
+    
+    # Return only enabled flight types with prices
+    flight_types = []
+    
+    if pricing.get("one_hour_flight_enabled", True):
+        flight_types.append({
+            "id": "one_hour",
+            "name": "1 घंटे की उड़ान",
+            "name_en": "1 Hour Flight",
+            "description": "1 hour helicopter ride within city limits",
+            "description_hi": "शहर की सीमा के भीतर 1 घंटे की हेलीकॉप्टर सवारी",
+            "price": pricing.get("one_hour_flight_price", 75000),
+            "duration_hours": 1,
+            "type": "fixed",
+            "icon": "🚁"
+        })
+    
+    if pricing.get("two_hour_flight_enabled", True):
+        flight_types.append({
+            "id": "two_hour",
+            "name": "2 घंटे की उड़ान",
+            "name_en": "2 Hour Flight",
+            "description": "2 hour helicopter ride for extended tours",
+            "description_hi": "विस्तारित टूर के लिए 2 घंटे की हेलीकॉप्टर सवारी",
+            "price": pricing.get("two_hour_flight_price", 140000),
+            "duration_hours": 2,
+            "type": "fixed",
+            "icon": "🚁"
+        })
+    
+    if pricing.get("half_day_enabled", True):
+        flight_types.append({
+            "id": "half_day",
+            "name": "Half-Day बुकिंग",
+            "name_en": "Half Day Booking",
+            "description": f"{pricing.get('half_day_duration_hours', 4)} hours - Multiple short trips",
+            "description_hi": f"{pricing.get('half_day_duration_hours', 4)} घंटे - कई छोटी यात्राएं",
+            "price": pricing.get("half_day_price", 250000),
+            "duration_hours": pricing.get("half_day_duration_hours", 4),
+            "type": "fixed",
+            "icon": "⏰"
+        })
+    
+    if pricing.get("full_day_single_enabled", True):
+        flight_types.append({
+            "id": "full_day_single",
+            "name": "Full-Day उड़ान (Single City)",
+            "name_en": "Full Day Flight - Single City to City",
+            "description": f"{pricing.get('full_day_single_duration_hours', 8)} hours - One city to another city",
+            "description_hi": f"{pricing.get('full_day_single_duration_hours', 8)} घंटे - एक शहर से दूसरे शहर",
+            "price": pricing.get("full_day_single_price", 450000),
+            "duration_hours": pricing.get("full_day_single_duration_hours", 8),
+            "type": "fixed",
+            "icon": "🏙️"
+        })
+    
+    if pricing.get("full_day_multi_enabled", True):
+        flight_types.append({
+            "id": "full_day_multi",
+            "name": "Full-Day मल्टीपल लोकेशन",
+            "name_en": "Full Day - Multiple Locations",
+            "description": f"Visit up to {pricing.get('full_day_multi_max_stops', 5)} locations in one day",
+            "description_hi": f"एक दिन में {pricing.get('full_day_multi_max_stops', 5)} स्थानों तक जाएं",
+            "base_price": pricing.get("full_day_multi_base_price", 500000),
+            "per_stop_price": pricing.get("full_day_multi_per_stop_price", 50000),
+            "max_stops": pricing.get("full_day_multi_max_stops", 5),
+            "type": "multi_location",
+            "icon": "📍"
+        })
+    
+    if pricing.get("point_to_point_enabled", True):
+        flight_types.append({
+            "id": "point_to_point",
+            "name": "Point-to-Point उड़ान",
+            "name_en": "Point to Point Flight",
+            "description": "Direct flight from pickup to drop location",
+            "description_hi": "पिकअप से ड्रॉप लोकेशन तक सीधी उड़ान",
+            "base_price": pricing.get("point_to_point_base_price", 50000),
+            "rate_per_km": pricing.get("point_to_point_rate_per_km", 800),
+            "type": "distance_based",
+            "icon": "📍"
+        })
+    
+    return {
+        "flight_types": flight_types,
+        "gst_percent": 18,
+        "currency": "INR"
+    }
+
+@router.get("/flight-type-pricing/admin")
+async def get_flight_type_pricing_admin(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get flight type pricing settings (admin)"""
+    pricing = await db.flight_type_pricing.find_one({"type": "flight_type_pricing"}, {"_id": 0})
+    if not pricing:
+        pricing = FlightTypePricingSettings().dict()
+        pricing["type"] = "flight_type_pricing"
+    return pricing
+
+@router.put("/flight-type-pricing")
+async def update_flight_type_pricing(
+    pricing: FlightTypePricingSettings,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update flight type pricing settings"""
+    pricing_data = pricing.dict()
+    pricing_data["type"] = "flight_type_pricing"
+    pricing_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    pricing_data["updated_by"] = current_user["id"]
+    
+    await db.flight_type_pricing.update_one(
+        {"type": "flight_type_pricing"},
+        {"$set": pricing_data},
+        upsert=True
+    )
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid4()),
+        "action": "flight_type_pricing_update",
+        "entity_type": "settings",
+        "entity_id": "flight_type_pricing",
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "changes": pricing_data,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Flight type pricing updated", "pricing": pricing_data}
