@@ -217,6 +217,57 @@ export const customerAPI = {
   getRefunds: () => api.get('/customer/refunds'),
 };
 
+// User & Role Management API
+export const userManagementAPI = {
+  getAllUsers: (params) => api.get('/admin/users/', { params }),
+  createUser: (data) => api.post('/admin/users/create', data),
+  updateUser: (userId, data) => api.put(`/admin/users/${userId}`, data),
+  toggleUserStatus: (userId, data) => api.post(`/admin/users/${userId}/toggle-status`, data),
+  resetPassword: (userId, data) => api.post(`/admin/users/${userId}/reset-password`, data),
+  control2FA: (userId, data) => api.post(`/admin/users/${userId}/2fa-control`, data),
+  getUserActivity: (userId) => api.get(`/admin/users/activity-log/${userId}`),
+  getAllRoles: () => api.get('/admin/users/roles'),
+  createRole: (data) => api.post('/admin/users/roles', data),
+  updateRole: (roleId, data) => api.put(`/admin/users/roles/${roleId}`, data),
+  deleteRole: (roleId) => api.delete(`/admin/users/roles/${roleId}`),
+  getPermissions: () => api.get('/admin/users/permissions'),
+};
+
+// Operator Management API
+export const operatorManagementAPI = {
+  getSuspended: () => api.get('/admin/operators-management/suspended'),
+  suspendOperator: (operatorId, data) => api.post(`/admin/operators-management/${operatorId}/suspend`, data),
+  activateOperator: (operatorId, data) => api.post(`/admin/operators-management/${operatorId}/activate`, data),
+  getDocuments: (operatorId) => api.get(`/admin/operators-management/${operatorId}/documents`),
+  verifyDocument: (operatorId, docId, data) => api.post(`/admin/operators-management/${operatorId}/documents/${docId}/verify`, data),
+  getPendingApprovals: () => api.get('/admin/operators-management/pending-approvals'),
+  approveOnboarding: (operatorId, data) => api.post(`/admin/operators-management/${operatorId}/approve-onboarding`, data),
+  rejectOnboarding: (operatorId, data) => api.post(`/admin/operators-management/${operatorId}/reject-onboarding`, data),
+  assignRegion: (operatorId, data) => api.post(`/admin/operators-management/${operatorId}/assign-region`, data),
+  getPerformance: (operatorId) => api.get(`/admin/operators-management/${operatorId}/performance`),
+};
+
+// Booking Management API
+export const bookingManagementAPI = {
+  getTimeline: (bookingId) => api.get(`/admin/bookings-management/timeline/${bookingId}`),
+  addRemark: (bookingId, data) => api.post(`/admin/bookings-management/${bookingId}/add-remark`, data),
+  requestCancellation: (bookingId, data) => api.post(`/admin/bookings-management/${bookingId}/request-cancellation`, data),
+  emergencyOverride: (bookingId, data) => api.post(`/admin/bookings-management/${bookingId}/emergency-override`, data),
+  reassignBooking: (bookingId, data) => api.post(`/admin/bookings-management/${bookingId}/reassign`, data),
+  getByStatus: (params) => api.get('/admin/bookings-management/by-status', { params }),
+};
+
+// Approval Management API
+export const approvalAPI = {
+  getQueue: (params) => api.get('/admin/approvals/queue', { params }),
+  approve: (approvalId, data) => api.post(`/admin/approvals/${approvalId}/approve`, data),
+  reject: (approvalId, data) => api.post(`/admin/approvals/${approvalId}/reject`, data),
+  escalate: (approvalId, data) => api.post(`/admin/approvals/${approvalId}/escalate`, data),
+  getHistory: (entityType, entityId) => api.get(`/admin/approvals/history/${entityType}/${entityId}`),
+  getSettings: () => api.get('/admin/approvals/settings'),
+  updateSettings: (data) => api.put('/admin/approvals/settings', data),
+};
+
 // Chat API
 export const chatAPI = {
   getConversations: () => api.get('/chat/conversations'),
