@@ -153,3 +153,81 @@ async def mark_settlement_paid(settlement_id: str, data: dict, user: dict = Depe
     await db.audit_logs.insert_one(audit_log.copy())
     
     return {"message": "Settlement marked as paid"}
+
+@router.post("/automation/run-weekly")
+async def run_weekly_settlements(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """
+    Manually trigger weekly settlement processing
+    साप्ताहिक सेटलमेंट प्रोसेसिंग मैन्युअली चलाएं
+    """
+    from services.settlement_service import settlement_service
+    db = get_database()
+    
+    result = await settlement_service.process_weekly_settlements(db)
+    
+    return {
+        "message": f"Weekly settlements processed. {result['processed_count']} settlements created.",
+        "result": result
+    }
+
+@router.post("/automation/calculate")
+async def calculate_settlement(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """
+    Calculate settlement for a specific operator and period
+    """
+    from services.settlement_service import settlement_service
+    db = get_database()
+    
+    operator_id = data.get("operator_id")
+    period_start = data.get("period_start")
+    period_end = data.get("period_end")
+    
+    if not all([operator_id, period_start, period_end]):
+        raise HTTPException(status_code=400, detail="operator_id, period_start, period_end required")
+    
+    result = await settlement_service.calculate_operator_settlement(
+        db, operator_id, period_start, period_end
+    )
+    
+    return {"calculation": result}
+
+@router.post("/automation/create-manual")
+async def create_manual_settlement(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """
+    Create a manual settlement for specific operator and period
+    """
+    from services.settlement_service import settlement_service
+    db = get_database()
+    
+    operator_id = data.get("operator_id")
+    period_start = data.get("period_start")
+    period_end = data.get("period_end")
+    
+    if not all([operator_id, period_start, period_end]):
+        raise HTTPException(status_code=400, detail="operator_id, period_start, period_end required")
+    
+    result = await settlement_service.process_manual_settlement(
+        db, operator_id, period_start, period_end
+    )
+    
+    return result
+
+@router.get("/automation/pending")
+async def get_pending_settlements(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Get all pending settlements for processing"""
+    from services.settlement_service import settlement_service
+    db = get_database()
+    
+    settlements = await settlement_service.get_pending_settlements(db)
+    
+    return {"pending_settlements": settlements, "count": len(settlements)}
