@@ -507,3 +507,27 @@ agent_communication:
     Verifications done:
     ✅ Google Sign-In button on /login page
     ✅ Admin Dashboard loads after login"
+
+  - task: "Booking Page Redesign"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/BookingPage.js"
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Complete 4-step booking wizard redesigned:
+Step 1: Passenger & Aircraft Selection (Helicopter/Plane, M/F Adults, Children)
+Step 2: Booking Type (Udan Prakar, Booking For, Booking Purpose dropdowns)
+Step 3: Route (Pickup/Drop PIN codes, Date, Time, Distance KM)
+Step 4: Price Summary (KM-based, Dynamic, Approximate total, Generate Inquiry)
+Backend /api/bookings/inquiry endpoint created with operator broadcast."
+
+agent_communication:
+  - agent: "main"
+    message: "Booking Page Redesign Complete! New 4-step flow implemented:
+    1. यात्री/Passengers: Aircraft type + Adult M/F + Children (FREE up to 4yrs, max 2)
+    2. बुकिंग प्रकार: Flight Type + Booking For + Booking Purpose dropdowns
+    3. मार्ग/Route: Pickup/Drop with PIN code lookup + Date/Time
+    4. मूल्य/Price: KM calculation + Price breakdown + Generate Inquiry
+    
+    Backend API working - creates inquiry with pending_acceptance status and broadcasts to nearby operators."
