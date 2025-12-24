@@ -176,6 +176,15 @@ function AdminOverview({ data, onRefresh, loading }) {
           </div>
         </div>
       </div>
+
+      {/* Pilot Duty Hours Widget */}
+      <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5 text-orange-400" />
+          Pilot Duty Hours Monitor
+        </h3>
+        <PilotDutyWidget />
+      </div>
     </div>
   );
 }
