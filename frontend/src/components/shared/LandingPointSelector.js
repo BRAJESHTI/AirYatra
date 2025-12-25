@@ -363,14 +363,125 @@ function LandingPointSelector({
         </div>
       )}
 
-      {/* No results message */}
-      {showDropdown && searchTerm.length >= 2 && searchResults.length === 0 && !loading && (
-        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-600 rounded-xl p-4 text-center">
-          <MapPin className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-          <p className="text-slate-400">No landing points found / कोई लैंडिंग पॉइंट नहीं मिला</p>
-          <p className="text-slate-500 text-sm mt-1">
-            Try searching for a different city or airport
-          </p>
+      {/* No results message - Show Village Area Option */}
+      {showDropdown && searchTerm.length >= 2 && searchResults.length === 0 && !loading && !showVillageInput && (
+        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-600 rounded-xl p-4">
+          <div className="text-center mb-4">
+            <MapPin className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+            <p className="text-slate-400">No landing points found / कोई लैंडिंग पॉइंट नहीं मिला</p>
+          </div>
+          
+          {/* Select Village Area Option */}
+          <div className="border-t border-slate-700 pt-4">
+            <button
+              onClick={() => {
+                setShowVillageInput(true);
+                setShowDropdown(false);
+              }}
+              className="w-full p-3 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-lg flex items-center gap-3 transition-colors"
+            >
+              <div className="p-2 bg-orange-500/20 rounded-lg">
+                <TreePine className="h-5 w-5 text-orange-400" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-orange-400 font-medium">Select Village Area / गांव क्षेत्र चुनें</p>
+                <p className="text-orange-400/70 text-xs">
+                  Enter PIN Code to select your village / पिन कोड दर्ज करें
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-orange-400 rotate-[-90deg]" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Village Area Input Form */}
+      {showVillageInput && (
+        <div className="mt-3 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-orange-500/20 rounded-lg">
+              <TreePine className="h-5 w-5 text-orange-400" />
+            </div>
+            <div>
+              <h4 className="text-orange-400 font-medium">Select Village Area / गांव क्षेत्र चुनें</h4>
+              <p className="text-orange-400/70 text-xs">
+                Enter your village PIN code to get location details
+              </p>
+            </div>
+          </div>
+
+          {/* PIN Code Input */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-slate-300 text-sm mb-1 block">PIN Code / पिन कोड *</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  maxLength={6}
+                  placeholder="Enter 6-digit PIN code"
+                  value={villageData.pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, ''))}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+                {loadingPincode && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-orange-400 animate-spin" />
+                )}
+              </div>
+            </div>
+
+            {/* Location Details (auto-filled from PIN code) */}
+            {villageData.area && (
+              <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                <p className="text-white font-medium">{villageData.area}</p>
+                <p className="text-slate-400 text-sm">{villageData.district}, {villageData.state}</p>
+                {villageData.latitude && (
+                  <p className="text-slate-500 text-xs mt-1">
+                    📍 {villageData.latitude.toFixed(4)}, {villageData.longitude.toFixed(4)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Permission Warning */}
+            <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-yellow-400 text-sm font-medium">Landing Permission Required</p>
+                  <p className="text-yellow-400/70 text-xs">
+                    Village landing requires documents: Collector NOC, Fire Dept, Police & SP/DCP Acknowledgments
+                  </p>
+                  <p className="text-yellow-400/70 text-xs">
+                    गांव लैंडिंग के लिए दस्तावेज़ आवश्यक: कलेक्टर NOC, फायर विभाग, पुलिस और SP/DCP पावती
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={handleSelectVillageArea}
+                disabled={!villageData.area || loadingPincode}
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Select This Location
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowVillageInput(false);
+                  setVillageData({ pincode: '', area: '', district: '', state: '', latitude: null, longitude: null });
+                }}
+                className="border-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
