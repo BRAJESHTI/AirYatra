@@ -870,7 +870,7 @@ async def upload_village_document(
     doc_data: dict,
     user: dict = Depends(get_current_user)
 ):
-    """Upload document for village landing permission"""
+    """Upload document for village landing permission - returns presigned URL"""
     db = get_database()
     from s3_service import s3_service
     
@@ -941,7 +941,128 @@ async def upload_village_document(
         "message": "Document upload initiated",
         "document_id": doc_id,
         "upload_url": upload_url,
+        "s3_key": s3_key,
         "expires_in": 600
+    }
+
+
+@router.post("/village-permission/{permission_id}/upload-document-direct")
+async def upload_village_document_direct(
+    permission_id: str,
+    file: UploadFile = File(...),
+    document_type: str = Form(...),
+    user: dict = Depends(get_current_user)
+):
+    """Direct file upload for village landing permission documents"""
+    db = get_database()
+    import base64
+    import os
+    
+    permission = await db.village_landing_permissions.find_one(
+        {"id": permission_id},
+        {"_id": 0}
+    )
+    
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    
+    if permission["customer_id"] != user["id"] and "admin" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Validate file type
+    allowed_types = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: PDF, JPG, PNG")
+    
+    # Validate file size (5MB max)
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds 5MB limit")
+    
+    # Reset file pointer
+    await file.seek(0)
+    
+    # Generate unique filename
+    file_extension = file.filename.split('.')[-1].lower()
+    unique_filename = f"{document_type}_{uuid4()}.{file_extension}"
+    
+    # Store file locally (in production, use S3)
+    upload_dir = f"/app/uploads/village_documents/{permission_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = f"{upload_dir}/{unique_filename}"
+    
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    
+    # Generate accessible URL
+    file_url = f"/api/uploads/village_documents/{permission_id}/{unique_filename}"
+    
+    doc_id = str(uuid4())
+    document = {
+        "id": doc_id,
+        "doc_type": document_type,
+        "file_name": file.filename,
+        "file_path": file_path,
+        "file_url": file_url,
+        "content_type": file.content_type,
+        "file_size": len(contents),
+        "status": "uploaded",
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": user["id"]
+    }
+    
+    # Update permission with document
+    await db.village_landing_permissions.update_one(
+        {"id": permission_id},
+        {
+            "$push": {"documents": document},
+            "$set": {
+                f"required_documents.{document_type}.uploaded": True,
+                f"required_documents.{document_type}.document_id": doc_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Check if all required documents uploaded
+    updated_permission = await db.village_landing_permissions.find_one(
+        {"id": permission_id},
+        {"_id": 0}
+    )
+    
+    # Map document types - handle frontend/backend naming differences
+    doc_type_map = {
+        "collector_noc": "collector_noc",
+        "fire_dept": "fire_noc",
+        "police_station": "gram_panchayat",  # Using as general police acknowledgment
+        "sp_dcp": "sp_noc"
+    }
+    
+    all_uploaded = all(
+        doc_info.get("uploaded", False) 
+        for doc_info in updated_permission.get("required_documents", {}).values()
+        if doc_info.get("required", False)
+    )
+    
+    new_status = updated_permission.get("status", "documents_pending")
+    if all_uploaded and new_status == "documents_pending":
+        new_status = "under_review"
+        await db.village_landing_permissions.update_one(
+            {"id": permission_id},
+            {"$set": {"status": "under_review"}}
+        )
+    
+    logger.info(f"Document uploaded: {document_type} for permission {permission_id} by user {user['id']}")
+    
+    return {
+        "success": True,
+        "message": "Document uploaded successfully",
+        "document_id": doc_id,
+        "file_url": file_url,
+        "file_name": file.filename,
+        "document_type": document_type,
+        "status": "uploaded",
+        "permission_status": new_status
     }
 
 
