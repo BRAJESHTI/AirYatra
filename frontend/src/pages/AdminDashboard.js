@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -31,6 +31,9 @@ import CallRecordingSettings from '@/components/admin/CallRecordingSettings';
 import IncentiveConfig from '@/components/admin/IncentiveConfig';
 import AttendancePayroll from '@/components/admin/AttendancePayroll';
 import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
+import SupportDashboard from '@/components/admin/SupportDashboard';
+import ReviewsManagement from '@/components/admin/ReviewsManagement';
+import WeatherDashboard from '@/components/admin/WeatherDashboard';
 
 // Landing Infrastructure Components
 import LandingInfrastructure from '@/components/admin/LandingInfrastructure';
@@ -40,6 +43,9 @@ import VillagePermissionDashboard from '@/components/admin/VillagePermissionDash
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'support', label: 'Support Helpdesk', icon: Headphones, highlight: true, section: 'new' },
+  { id: 'reviews', label: 'Reviews & Ratings', icon: Star, section: 'new' },
+  { id: 'weather', label: 'Weather / Flight Safety', icon: Cloud, highlight: true, section: 'new' },
   { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
   { id: 'webhooks', label: 'Webhooks', icon: Globe },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
