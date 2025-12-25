@@ -215,7 +215,8 @@ async def download_ics(booking_id: str, current_user: dict = Depends(get_current
     settings = await db.calendar_sync_settings.find_one({"user_id": current_user["id"]}) or {}
     event_data = create_calendar_event_data(booking, settings)
     
-    # Generate ICS content
+    # Generate ICS content - escape newlines
+    description_escaped = event_data['description'].replace('\n', '\\n')
     ics_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//AirYatra//Booking Calendar//EN
@@ -225,7 +226,7 @@ DTSTAMP:{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}
 DTSTART:{datetime.fromisoformat(event_data['start_time']).strftime('%Y%m%dT%H%M%S')}
 DTEND:{datetime.fromisoformat(event_data['end_time']).strftime('%Y%m%dT%H%M%S')}
 SUMMARY:{event_data['title']}
-DESCRIPTION:{event_data['description'].replace(chr(10), '\\n')}
+DESCRIPTION:{description_escaped}
 LOCATION:{event_data['location']}
 BEGIN:VALARM
 TRIGGER:-PT{event_data['reminder_minutes']}M
