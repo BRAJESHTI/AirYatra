@@ -6,7 +6,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { landingAPI, bookingAPI } from '@/services/api';
+import { landingAPI, pincodeAPI } from '@/services/api';
 import { toast } from 'sonner';
 
 // Landing Point Type Icons & Colors
