@@ -5,7 +5,26 @@ Date: 2025-12-25
 
 ## Features Implemented
 
-### CRM System - NEW ✅
+### Background Scheduler - NEW ✅
+- **Backend:** `/app/backend/scheduler.py`
+  - Auto-reassign stale leads (every 15 minutes)
+  - Send pending notifications (every 5 minutes)
+  - Cleanup old sessions (every hour)
+  - Generate daily reports (once daily)
+- **API:** `/api/scheduler/status`, `/api/scheduler/trigger/auto-reassign`
+- **Frontend:** `SchedulerStatus.js` - Scheduler dashboard in Admin Panel
+
+### Webhook Integration - NEW ✅
+- **Frontend:** `WebhookIntegration.js` - Documentation and setup guide for:
+  - Facebook Lead Ads
+  - WhatsApp Business
+  - IndiaMart
+  - JustDial
+  - Email Parser
+  - Website Form
+- Includes cURL test commands and setup steps
+
+### CRM System ✅
 - **Backend:** `/app/backend/routes/crm_routes.py`
   - `/api/crm/leads` - CRUD for leads management
   - `/api/crm/leads/webhook/{source}` - Auto-capture leads from Facebook, WhatsApp, IndiaMart, etc.
@@ -38,6 +57,7 @@ Date: 2025-12-25
 - Get Leads: ✅ Working
 - CRM Dashboard: ✅ Working
 - Auto-reassign: ✅ Working
+- Scheduler Status: ✅ Working
 
 ### Referral & Wallet System ✅
 - **Backend:** `/app/backend/routes/referral_routes.py`
