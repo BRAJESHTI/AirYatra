@@ -123,6 +123,8 @@ function AdminDashboard({ user, onLogout }) {
         return <VillagePermissionDashboard />;
       case 'referral':
         return <ReferralSettings />;
+      case 'api_keys':
+        return <APIKeysSettings user={user} />;
       case 'chat':
         return <InAppChat user={user} />;
       case 'audit':
