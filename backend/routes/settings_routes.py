@@ -680,3 +680,89 @@ async def update_payment_rules(
     })
     
     return {"message": "Payment rules updated successfully / भुगतान नियम अपडेट हो गए", "settings": settings_data}
+# ==================== CALL RECORDING SETTINGS ====================
+
+@router.get("/call-recording")
+async def get_call_recording_settings(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get call recording settings"""
+    settings = await db.call_recording_settings.find_one({"type": "call_recording"}, {"_id": 0})
+    
+    if not settings:
+        return {
+            "call_recording_enabled": "false",
+            "call_provider": "twilio",
+            "twilio_account_sid": "",
+            "twilio_auth_token": "",
+            "twilio_phone_number": "",
+            "exotel_sid": "",
+            "exotel_token": "",
+            "exotel_subdomain": "",
+            "exotel_caller_id": "",
+        }
+    
+    # Mask sensitive data
+    if settings.get("twilio_auth_token"):
+        settings["twilio_auth_token"] = "********" + settings["twilio_auth_token"][-4:] if len(settings["twilio_auth_token"]) > 4 else "****"
+    if settings.get("exotel_token"):
+        settings["exotel_token"] = "********" + settings["exotel_token"][-4:] if len(settings["exotel_token"]) > 4 else "****"
+    
+    return settings
+
+@router.post("/call-recording")
+async def update_call_recording_settings(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update call recording settings"""
+    # Get existing settings to preserve masked values
+    existing = await db.call_recording_settings.find_one({"type": "call_recording"})
+    
+    settings_data = {
+        "type": "call_recording",
+        "call_recording_enabled": data.get("call_recording_enabled", "false"),
+        "call_provider": data.get("call_provider", "twilio"),
+        "twilio_account_sid": data.get("twilio_account_sid", ""),
+        "twilio_phone_number": data.get("twilio_phone_number", ""),
+        "exotel_sid": data.get("exotel_sid", ""),
+        "exotel_subdomain": data.get("exotel_subdomain", ""),
+        "exotel_caller_id": data.get("exotel_caller_id", ""),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    # Handle auth tokens - don't overwrite if masked value sent
+    new_twilio_token = data.get("twilio_auth_token", "")
+    if not new_twilio_token.startswith("****"):
+        settings_data["twilio_auth_token"] = new_twilio_token
+    elif existing:
+        settings_data["twilio_auth_token"] = existing.get("twilio_auth_token", "")
+    
+    new_exotel_token = data.get("exotel_token", "")
+    if not new_exotel_token.startswith("****"):
+        settings_data["exotel_token"] = new_exotel_token
+    elif existing:
+        settings_data["exotel_token"] = existing.get("exotel_token", "")
+    
+    await db.call_recording_settings.update_one(
+        {"type": "call_recording"},
+        {"$set": settings_data},
+        upsert=True
+    )
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid4()),
+        "action": "call_recording_settings_update",
+        "entity_type": "settings",
+        "entity_id": "call_recording",
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "changes": {"call_recording_enabled": settings_data["call_recording_enabled"], "call_provider": settings_data["call_provider"]},
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Call recording settings saved / कॉल रिकॉर्डिंग सेटिंग्स सेव हो गईं"}
