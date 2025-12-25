@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, Shield, MapPin } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, Shield, MapPin, ChevronDown, ChevronRight, Building2, FileText, BarChart3, Settings, User, CheckSquare, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { regionalManagerAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -10,17 +10,52 @@ import RegionalOperators from '@/components/regional/RegionalOperators';
 import RegionalBookings from '@/components/regional/RegionalBookings';
 import RegionalPermissions from '@/components/regional/RegionalPermissions';
 
-const navItems = [
-  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'operators', label: 'Operators', icon: Users },
-  { id: 'bookings', label: 'Bookings', icon: Calendar },
-  { id: 'permissions', label: 'Landing Permissions', icon: Shield },
+// Organized Navigation Structure - 4 Main Categories
+const navGroups = [
+  {
+    id: 'main',
+    label: 'Dashboard / डैशबोर्ड',
+    icon: LayoutDashboard,
+    items: [
+      { id: 'overview', label: 'Overview / ओवरव्यू', icon: LayoutDashboard },
+      { id: 'reports', label: 'Reports / रिपोर्ट', icon: BarChart3 },
+    ]
+  },
+  {
+    id: 'management',
+    label: 'Management / प्रबंधन',
+    icon: Building2,
+    items: [
+      { id: 'operators', label: 'Operators / ऑपरेटर', icon: Users, highlight: true },
+      { id: 'bookings', label: 'Bookings / बुकिंग', icon: Calendar },
+      { id: 'approvals', label: 'Pending Approvals / अनुमोदन', icon: CheckSquare, highlight: true },
+    ]
+  },
+  {
+    id: 'permissions',
+    label: 'Permissions / अनुमतियां',
+    icon: Shield,
+    items: [
+      { id: 'permissions', label: 'Landing Permissions / लैंडिंग अनुमतियां', icon: Shield },
+      { id: 'village', label: 'Village Permissions / गांव की अनुमतियां', icon: MapPin },
+    ]
+  },
+  {
+    id: 'account',
+    label: 'Account / खाता',
+    icon: User,
+    items: [
+      { id: 'profile', label: 'My Profile / प्रोफाइल', icon: User },
+      { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings },
+    ]
+  },
 ];
 
 function RegionalManagerDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState(['main', 'management']);
 
   useEffect(() => {
     loadProfile();
@@ -37,6 +72,30 @@ function RegionalManagerDashboard({ user, onLogout }) {
     }
   };
 
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  const handleNavClick = (itemId, groupId) => {
+    setActiveTab(itemId);
+    if (!expandedGroups.includes(groupId)) {
+      setExpandedGroups(prev => [...prev, groupId]);
+    }
+  };
+
+  const getActiveGroup = () => {
+    for (const group of navGroups) {
+      if (group.items.some(item => item.id === activeTab)) {
+        return group.id;
+      }
+    }
+    return null;
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -51,6 +110,8 @@ function RegionalManagerDashboard({ user, onLogout }) {
         return <RegionalOverview profile={profile} />;
     }
   };
+
+  const activeGroup = getActiveGroup();
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="regional-dashboard">
@@ -77,32 +138,71 @@ function RegionalManagerDashboard({ user, onLogout }) {
         </div>
       </nav>
 
-      <div className="flex">
-        {/* Sidebar Navigation */}
-        <aside className="w-64 min-h-[calc(100vh-73px)] bg-slate-900/50 border-r border-slate-800">
-          <nav className="p-4 space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
+      <div className="flex min-h-[calc(100vh-73px)]">
+        {/* Sidebar - Collapsible Groups */}
+        <aside className="w-72 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
+          <nav className="p-3 space-y-1">
+            {navGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isExpanded = expandedGroups.includes(group.id);
+              const isActiveGroup = activeGroup === group.id;
+              const hasHighlight = group.items.some(item => item.highlight);
+
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                    activeTab === item.id
-                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                </button>
+                <div key={group.id} className="mb-1">
+                  {/* Group Header */}
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                      isActiveGroup
+                        ? 'bg-purple-500/20 text-purple-400'
+                        : hasHighlight
+                          ? 'text-slate-200 hover:bg-slate-800'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <GroupIcon className={`h-5 w-5 ${isActiveGroup ? 'text-purple-400' : ''}`} />
+                      <span className="font-medium text-sm">{group.label}</span>
+                    </div>
+                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </button>
+
+                  {/* Group Items */}
+                  {isExpanded && (
+                    <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
+                      {group.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleNavClick(item.id, group.id)}
+                            className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
+                              activeTab === item.id
+                                ? 'bg-purple-500 text-white'
+                                : item.highlight
+                                  ? 'text-yellow-400 hover:bg-yellow-500/20'
+                                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <ItemIcon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                            {item.highlight && activeTab !== item.id && (
+                              <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           {renderContent()}
         </main>
       </div>
