@@ -326,7 +326,7 @@ async def get_all_inquiries(
     status: str = None,
     skip: int = 0,
     limit: int = 50,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get all booking inquiries for admin"""
@@ -375,7 +375,7 @@ async def get_all_inquiries(
 @router.get("/inquiries/{inquiry_id}")
 async def get_inquiry_details(
     inquiry_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
     """Get detailed inquiry information"""
