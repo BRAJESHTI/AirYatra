@@ -3,71 +3,65 @@
 ## Current Testing Session
 Date: 2025-12-25
 
-## Features Being Tested
+## Features Implemented
 
-### P0: Village Document Upload System
-- **Status:** IMPLEMENTED
-- **Backend Endpoint:** `/api/landing/village-permission/{permission_id}/upload-document-direct`
-- **Frontend Component:** `/app/frontend/src/components/customer/VillageLandingDocuments.js`
-- **Test Required:** 
-  1. Customer creates booking with village landing
-  2. After booking confirmation, customer uploads documents (Collector NOC, Fire Dept, Police, SP/DCP)
-  3. Admin/Operator verifies documents
-  4. Permission status changes to approved
+### Referral & Wallet System - NEW ✅
+- **Backend:** `/app/backend/routes/referral_routes.py`
+  - `/api/referral/my-code` - Get/Generate user referral code
+  - `/api/referral/stats` - Get referral statistics
+  - `/api/referral/wallet` - Get wallet balance & transactions
+  - `/api/referral/apply/{code}` - Apply referral code
+  - `/api/referral/settings` - Admin referral settings
+  - `/api/referral/discount-codes` - Admin discount code management
+  - `/api/referral/validate-discount` - Validate discount code
 
-### P1: PIN Code API Fix
-- **Status:** FIXED
-- **Backend Endpoint:** `/api/pincode/lookup/{pincode}`
-- **Test Results:**
-  - `302001` (Jaipur): ✅ Works - Returns Rajasthan, Jaipur
-  - `248001` (Dehradun): ✅ Works - Returns Uttarakhand, Dehradun
-  - `403001` (Goa): ✅ Works - Returns Goa, North Goa
-  - `123456` (Random): ✅ Now works with fallback - Returns Haryana (estimated)
-  - `800001` (Patna): ✅ Works - Returns Bihar, Patna
-- **Fix Applied:** 
-  1. Comprehensive fallback state mapping added
-  2. HTTPException removed - now returns estimated data instead of error
-  3. Frontend error handling improved
+- **Frontend:**
+  - `ReferAndEarn.js` - Customer referral component
+  - `ReferralSettings.js` - Admin referral/discount management
 
-## Test Scenarios for Testing Agent
+### Admin Features:
+1. Referral bonus settings (fixed or percentage)
+2. First booking discount settings
+3. Discount code generator
+4. Enable/Disable wallet system
 
-### Scenario 1: PIN Code Fallback in Booking
-1. Go to /booking page
-2. Navigate to Step 3 (Route)
-3. Search for a non-existent landing point like "MyVillage123"
-4. Click "Select Village Area" button
-5. Enter PIN code "452001" (Indore)
-6. Verify location details are populated
-7. Click "Select This Location"
-8. Verify permission warning is displayed
+### Customer Features:
+1. Get unique referral code
+2. Share via WhatsApp/Email
+3. View wallet balance
+4. View referral history
+5. Use wallet balance for booking
 
-### Scenario 2: Village Document Upload
-1. Login as customer
-2. Go to customer dashboard
-3. Find a confirmed inquiry with village landing (permission_required=true)
-4. Navigate to InquiryStatus page
-5. Verify VillageLandingDocuments component is shown
-6. Upload a test document (PDF/JPG)
-7. Verify upload success and status changes
+## Test Scenarios
 
-### Scenario 3: Admin Village Permission Management
-1. Login as admin (admin@airyatra.com / Admin123!)
-2. Go to Landing Infrastructure > Village Permissions
-3. View pending permissions
-4. Verify/Reject documents
+### Scenario 1: Admin Creates Discount Code
+1. Login as admin
+2. Go to Referral & Discount
+3. Click "Discount Codes" tab
+4. Click "Create Discount Code"
+5. Fill form and save
 
-## Incorporate User Feedback
-- User prefers Hinglish communication
-- Focus on end-to-end flows rather than unit tests
-- Test all document types for village landing
+### Scenario 2: Customer Uses Referral
+1. Register new customer
+2. Apply referral code during signup/booking
+3. Complete first booking with discount
+4. Referrer gets bonus in wallet
+
+## API Test Results
+- Referral Code Generation: ✅ Working (e.g., LNOVKE9B)
+- Wallet Balance: ✅ Working (₹0 initial)
+- Settings: ✅ Working (Bonus ₹500, First Discount 10%)
+- Stats: ✅ Working
+
+## Files Created/Modified
+- `/app/backend/routes/referral_routes.py` (NEW)
+- `/app/backend/server.py` (Added route)
+- `/app/frontend/src/services/api.js` (Added referralAPI)
+- `/app/frontend/src/components/customer/ReferAndEarn.js` (NEW)
+- `/app/frontend/src/components/admin/ReferralSettings.js` (NEW)
+- `/app/frontend/src/pages/CustomerDashboard.js` (Added Refer tab)
+- `/app/frontend/src/pages/AdminDashboard.js` (Added Referral section)
+- `/app/frontend/src/App.js` (Added routes)
 
 ## Known Issues
-- None currently
-
-## Files Modified
-- `/app/backend/routes/pincode_routes.py` - Enhanced fallback logic
-- `/app/backend/routes/landing_infrastructure_routes.py` - Added direct file upload endpoint
-- `/app/backend/server.py` - Added static file serving for uploads
-- `/app/frontend/src/components/shared/LandingPointSelector.js` - Improved error handling
-- `/app/frontend/src/components/customer/VillageLandingDocuments.js` - Fixed upload API call
-- `/app/frontend/src/services/api.js` - Added uploadVillageDocumentDirect endpoint
+- Customer needs 'customer' role to access /customer/refer page (admin redirected to login)
