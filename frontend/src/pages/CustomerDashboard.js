@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { bookingAPI } from '../services/api';
+import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
 import MyTrips from '../components/customer/MyTrips';
 import ChatWidget from '../components/customer/ChatWidget';
