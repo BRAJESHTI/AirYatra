@@ -90,6 +90,8 @@ function AdminDashboard({ user, onLogout }) {
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} onNavigate={setActiveTab} />;
       case 'crm':
         return <CRMDashboard />;
+      case 'webhooks':
+        return <WebhookIntegration />;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'reports':
