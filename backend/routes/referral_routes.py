@@ -89,7 +89,7 @@ async def get_my_referral_code(
     await db.referral_codes.insert_one(referral_data)
     
     # Return without _id
-    del referral_data["_id"] if "_id" in referral_data else None
+    referral_data.pop("_id", None)
     return referral_data
 
 
