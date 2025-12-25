@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plane, Users, MessageSquare, TrendingUp, AlertCircle, Fuel, BookOpen, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plane, Users, MessageSquare, TrendingUp, AlertCircle, Fuel, BookOpen, MapPin, ChevronRight } from 'lucide-react';
 import { operatorAPI } from '../../services/api';
 import { toast } from 'sonner';
 import DocumentExpiryAlerts from './DocumentExpiryAlerts';
 
 function OperatorHome({ operator }) {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,6 +23,10 @@ function OperatorHome({ operator }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNavigate = (path) => {
+    navigate(`/operator/${path}`);
   };
 
   if (loading) {
@@ -52,44 +58,68 @@ function OperatorHome({ operator }) {
         </div>
       )}
 
-      {/* Stats Grid */}
+      {/* Stats Grid - CLICKABLE */}
       <div className="grid md:grid-cols-4 gap-6 mb-8">
-        <div className="glass p-6 rounded-lg corner-markers">
+        <button 
+          onClick={() => handleNavigate('fleet')}
+          className="glass p-6 rounded-lg corner-markers hover:bg-slate-800/50 transition-all duration-200 transform hover:scale-105 cursor-pointer text-left group"
+        >
           <div className="flex items-center justify-between mb-3">
             <Plane className="h-8 w-8 text-orange-500" />
+            <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-orange-400 transition-colors" />
           </div>
           <div className="text-3xl font-bold text-white" data-testid="total-aircraft">{stats.total_aircraft || 0}</div>
           <div className="text-slate-400 text-sm uppercase">Aircraft</div>
-        </div>
+        </button>
 
-        <div className="glass p-6 rounded-lg corner-markers">
+        <button 
+          onClick={() => handleNavigate('pilots')}
+          className="glass p-6 rounded-lg corner-markers hover:bg-slate-800/50 transition-all duration-200 transform hover:scale-105 cursor-pointer text-left group"
+        >
           <div className="flex items-center justify-between mb-3">
             <Users className="h-8 w-8 text-orange-500" />
+            <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-orange-400 transition-colors" />
           </div>
           <div className="text-3xl font-bold text-white" data-testid="total-pilots">{stats.total_pilots || 0}</div>
           <div className="text-slate-400 text-sm uppercase">Pilots</div>
-        </div>
+        </button>
 
-        <div className="glass p-6 rounded-lg corner-markers">
+        <button 
+          onClick={() => handleNavigate('inquiries')}
+          className="glass p-6 rounded-lg corner-markers hover:bg-slate-800/50 transition-all duration-200 transform hover:scale-105 cursor-pointer text-left group"
+        >
           <div className="flex items-center justify-between mb-3">
             <MessageSquare className="h-8 w-8 text-orange-500" />
+            <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-orange-400 transition-colors" />
           </div>
           <div className="text-3xl font-bold text-orange-400" data-testid="pending-inquiries">{stats.pending_inquiries || 0}</div>
           <div className="text-slate-400 text-sm uppercase">Pending Inquiries</div>
-        </div>
+        </button>
 
-        <div className="glass p-6 rounded-lg corner-markers">
+        <button 
+          onClick={() => handleNavigate('flight-records')}
+          className="glass p-6 rounded-lg corner-markers hover:bg-slate-800/50 transition-all duration-200 transform hover:scale-105 cursor-pointer text-left group"
+        >
           <div className="flex items-center justify-between mb-3">
             <TrendingUp className="h-8 w-8 text-orange-500" />
+            <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-orange-400 transition-colors" />
           </div>
           <div className="text-3xl font-bold text-white" data-testid="total-bookings">{stats.total_bookings || 0}</div>
           <div className="text-slate-400 text-sm uppercase">Total Bookings</div>
-        </div>
+        </button>
       </div>
 
-      {/* Recent Bookings */}
+      {/* Recent Bookings - CLICKABLE */}
       <div className="glass p-6 rounded-lg">
-        <h2 className="text-2xl font-bold text-white mb-6">Recent Bookings</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">Recent Bookings</h2>
+          <button 
+            onClick={() => handleNavigate('inquiries')}
+            className="text-sm text-orange-400 hover:text-orange-300 flex items-center gap-1"
+          >
+            View All <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
         {dashboard?.recent_bookings?.length === 0 ? (
           <div className="text-center py-12">
             <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-4" />
@@ -98,21 +128,29 @@ function OperatorHome({ operator }) {
         ) : (
           <div className="space-y-4">
             {dashboard?.recent_bookings?.map((booking) => (
-              <div key={booking.id} className="bg-slate-800 p-4 rounded-lg flex justify-between items-center" data-testid={`booking-${booking.id}`}>
+              <button 
+                key={booking.id} 
+                onClick={() => handleNavigate('inquiries')}
+                className="w-full bg-slate-800 p-4 rounded-lg flex justify-between items-center hover:bg-slate-700/70 transition-colors cursor-pointer text-left" 
+                data-testid={`booking-${booking.id}`}
+              >
                 <div>
                   <div className="font-semibold text-white">{booking.booking_number}</div>
                   <div className="text-slate-400 text-sm">
-                    {booking.from_location} → {booking.to_location}
+                    {booking.from_location || booking.pickup_location} → {booking.to_location || booking.drop_location}
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs ${
-                  booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                  booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                  'bg-orange-500/20 text-orange-400'
-                }`}>
-                  {booking.status.replace(/_/g, ' ')}
-                </span>
-              </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-xs ${
+                    booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                    booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                    'bg-orange-500/20 text-orange-400'
+                  }`}>
+                    {booking.status?.replace(/_/g, ' ')}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-slate-500" />
+                </div>
+              </button>
             ))}
           </div>
         )}
