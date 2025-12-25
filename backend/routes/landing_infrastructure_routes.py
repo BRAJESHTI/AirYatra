@@ -537,7 +537,7 @@ async def get_availability_calendar(
 @router.get("/availability/check")
 async def check_availability(
     landing_point_id: str,
-    date: str,
+    check_date: str,
     from_time: Optional[str] = None,
     to_time: Optional[str] = None,
     user: dict = Depends(get_current_user)
