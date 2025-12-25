@@ -199,6 +199,26 @@ function AdminDashboard({ user, onLogout }) {
         return <InventoryManagement />;
       case 'dgca':
         return <DGCACompliance />;
+      // Medium Priority Features
+      case 'push_notifications':
+        return <PushNotifications />;
+      case 'boarding_pass':
+        return <BoardingPass />;
+      case 'currency':
+        return <CurrencyConverter />;
+      case 'predictive':
+        return <PredictiveAnalytics />;
+      case 'voice_video':
+        return <VoiceVideoSupport />;
+      // Low Priority Features
+      case 'ai_chatbot':
+        return <AIChatbot />;
+      case 'two_factor':
+        return <TwoFactorAuth />;
+      case 'calendar_sync':
+        return <CalendarSync />;
+      case 'accounting':
+        return <AccountingIntegration />;
       case 'crm':
         return <CRMDashboard />;
       case 'webhooks':
