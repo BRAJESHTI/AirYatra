@@ -286,9 +286,9 @@ async def get_inquiry_status(inquiry_id: str, user: dict = Depends(get_current_u
     if inquiry["customer_id"] != user["id"] and "admin" not in user.get("roles", []):
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Get operator quotes/responses
+    # Get operator quotes/responses - check both booking_id and inquiry_id fields
     operator_responses = await db.quotes.find(
-        {"booking_id": inquiry_id},
+        {"$or": [{"booking_id": inquiry_id}, {"inquiry_id": inquiry_id}]},
         {"_id": 0}
     ).to_list(50)
     
@@ -299,6 +299,9 @@ async def get_inquiry_status(inquiry_id: str, user: dict = Depends(get_current_u
             {"_id": 0, "company_name": 1, "average_rating": 1, "base_city": 1}
         )
         response["operator"] = op
+        # Add operator_name if not present
+        if not response.get("operator_name") and op:
+            response["operator_name"] = op.get("company_name")
     
     return {
         "inquiry": inquiry,
