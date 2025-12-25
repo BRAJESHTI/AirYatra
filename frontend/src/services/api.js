@@ -487,6 +487,40 @@ export const landingAPI = {
   rejectPermission: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/reject`, data),
 };
 
+// CRM API
+export const crmAPI = {
+  // Dashboard
+  getDashboard: () => api.get('/crm/dashboard'),
+  getSalesTeamPerformance: () => api.get('/crm/sales-team'),
+  
+  // Leads
+  getLeads: (params) => api.get('/crm/leads', { params }),
+  getLead: (id) => api.get(`/crm/leads/${id}`),
+  createLead: (data) => api.post('/crm/leads', data),
+  updateLead: (id, data) => api.put(`/crm/leads/${id}`, data),
+  assignLead: (id, data) => api.post(`/crm/leads/${id}/assign`, data),
+  convertLead: (id, data) => api.post(`/crm/leads/${id}/convert`, data),
+  
+  // Calls
+  getCalls: (params) => api.get('/crm/calls', { params }),
+  logCall: (data) => api.post('/crm/calls', data),
+  
+  // Tasks
+  getTasks: (params) => api.get('/crm/tasks', { params }),
+  createTask: (data) => api.post('/crm/tasks', data),
+  updateTask: (id, data) => api.put(`/crm/tasks/${id}`, data),
+  
+  // Targets
+  getTargets: (params) => api.get('/crm/targets', { params }),
+  createTarget: (data) => api.post('/crm/targets', data),
+  
+  // Auto-reassignment
+  autoReassignLeads: () => api.post('/crm/auto-reassign'),
+  
+  // Webhook (for testing)
+  webhookCreateLead: (source, data) => api.post(`/crm/leads/webhook/${source}`, data),
+};
+
 // Referral & Wallet API
 export const referralAPI = {
   // User referral
