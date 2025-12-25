@@ -126,6 +126,46 @@ curl -X POST "https://airyatra-hr.preview.emergentagent.com/api/crm/leads/webhoo
 - `/app/frontend/src/pages/AdminDashboard.js` (Added CRM + API Keys tabs)
 - `/app/frontend/src/pages/BookingPage.js` (Refactored to use modular components)
 
+## HR & Field Tracking Features - VERIFIED ✅
+Date: 2025-12-25
+
+### Incentive Management ✅
+- **UI:** `/app/frontend/src/components/admin/IncentiveConfig.js`
+- **API:** `/api/hr/incentive-config`
+- Features:
+  - Enable/Disable incentive system
+  - Per Lead Incentive (configurable amount)
+  - Per Conversion Incentive (with min booking value)
+  - Revenue Percentage Share
+  - Target Bonus Slabs
+  - Performance Bonus
+  - Penalty settings
+
+### Attendance & Payroll ✅
+- **UI:** `/app/frontend/src/components/admin/AttendancePayroll.js`
+- **APIs:** 
+  - `/api/hr/attendance/report` - Employee attendance
+  - `/api/hr/payroll` - Payroll records
+  - `/api/hr/leave/pending` - Leave requests
+  - `/api/hr/salary-config` - Salary configuration
+- Features:
+  - Month-wise attendance tracking
+  - Leave request management (approve/reject)
+  - Payroll generation
+  - PF/ESI/Professional Tax configuration
+
+### Live Field Tracking ✅
+- **UI:** `/app/frontend/src/components/admin/LiveTrackingDashboard.js`
+- **APIs:**
+  - `/api/field-tracking/team-dashboard` - Live dashboard
+  - `/api/field-tracking/location/route/{employee_id}` - Route tracking
+  - `/api/field-tracking/visits` - Visit records
+- Features:
+  - Real-time employee location tracking
+  - Route history
+  - Client visit management
+  - Auto-refresh (30 seconds)
+
 ## Known Issues
 - Sales team performance requires users with 'sales' or 'sales_manager' role
 - Customer needs 'customer' role to access /customer/refer page
@@ -134,3 +174,4 @@ curl -X POST "https://airyatra-hr.preview.emergentagent.com/api/crm/leads/webhoo
 - CRM system implemented as per user request
 - Webhook endpoints ready for external integration (Facebook, WhatsApp, IndiaMart, etc.)
 - Auto-reassignment logic implemented (1 hour timeout)
+- **HR & Field Tracking features implemented as per user request**
