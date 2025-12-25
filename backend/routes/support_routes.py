@@ -87,6 +87,9 @@ async def create_ticket(ticket: TicketCreate, current_user: dict = Depends(get_c
     
     await db.support_tickets.insert_one(ticket_data)
     
+    # Remove MongoDB _id for JSON serialization
+    ticket_data.pop("_id", None)
+    
     # Create notification for admin
     await db.notifications.insert_one({
         "id": str(uuid4()),
