@@ -435,3 +435,142 @@ async def get_pending_quotes_for_customer(
         quote["operator"] = operator
     
     return {"quotes": quotes, "total_pending": len(quotes)}
+
+# ============== PASSENGER DETAILS ==============
+
+@router.post("/trips/{inquiry_id}/passenger-details")
+async def submit_passenger_details(
+    inquiry_id: str,
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """
+    Submit passenger details after quote accepted
+    कोट स्वीकार होने के बाद यात्री विवरण जमा करें
+    """
+    # Try to find in inquiries collection first
+    inquiry = await db.inquiries.find_one(
+        {"id": inquiry_id, "customer_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    # If not found in inquiries, try bookings
+    if not inquiry:
+        inquiry = await db.bookings.find_one(
+            {"id": inquiry_id, "customer_id": current_user["id"]},
+            {"_id": 0}
+        )
+    
+    if not inquiry:
+        raise HTTPException(status_code=404, detail="Inquiry/Booking not found")
+    
+    passengers = data.get("passengers", [])
+    
+    if not passengers:
+        raise HTTPException(status_code=400, detail="Passenger details required")
+    
+    # Validate passengers
+    for i, p in enumerate(passengers):
+        if not p.get("name"):
+            raise HTTPException(status_code=400, detail=f"Passenger {i+1}: Name required")
+        if p.get("type") == "adult" and not p.get("weight_kg"):
+            raise HTTPException(status_code=400, detail=f"Passenger {i+1}: Weight required for adults")
+    
+    update_data = {
+        "passenger_details": passengers,
+        "total_passenger_weight": data.get("total_weight", 0),
+        "total_luggage_weight": data.get("total_luggage_weight", 0),
+        "total_luggage_count": data.get("total_luggage_count", 0),
+        "passenger_details_filled_at": datetime.now(timezone.utc).isoformat(),
+        "status": "passenger_details_filled",
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update in inquiries collection
+    result = await db.inquiries.update_one(
+        {"id": inquiry_id},
+        {"$set": update_data}
+    )
+    
+    # If not found in inquiries, update in bookings
+    if result.modified_count == 0:
+        await db.bookings.update_one(
+            {"id": inquiry_id},
+            {"$set": update_data}
+        )
+    
+    # Get payment rules for this booking purpose
+    payment_settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
+    
+    advance_percent = 50  # Default
+    if payment_settings:
+        purpose = inquiry.get("booking_purpose", "other")
+        rules = payment_settings.get("payment_rules", [])
+        for rule in rules:
+            if rule.get("purpose") == purpose:
+                advance_percent = rule.get("advance_percent", 50)
+                break
+    
+    return {
+        "success": True,
+        "message": "Passenger details saved! / यात्री विवरण सहेजा गया!",
+        "next_step": "payment",
+        "advance_percent": advance_percent,
+        "total_amount": inquiry.get("estimated_price", 0),
+        "advance_amount": int(inquiry.get("estimated_price", 0) * advance_percent / 100),
+        "status": "passenger_details_filled"
+    }
+
+@router.get("/trips/{inquiry_id}/payment-info")
+async def get_payment_info(
+    inquiry_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get payment information for an inquiry/booking"""
+    inquiry = await db.inquiries.find_one(
+        {"id": inquiry_id, "customer_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    if not inquiry:
+        inquiry = await db.bookings.find_one(
+            {"id": inquiry_id, "customer_id": current_user["id"]},
+            {"_id": 0}
+        )
+    
+    if not inquiry:
+        raise HTTPException(status_code=404, detail="Inquiry/Booking not found")
+    
+    # Get payment rules
+    payment_settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
+    
+    advance_percent = 50
+    can_pay_later = True
+    
+    if payment_settings:
+        purpose = inquiry.get("booking_purpose", "other")
+        rules = payment_settings.get("payment_rules", [])
+        for rule in rules:
+            if rule.get("purpose") == purpose:
+                advance_percent = rule.get("advance_percent", 50)
+                can_pay_later = rule.get("can_pay_later", True)
+                break
+    
+    total_amount = inquiry.get("accepted_quote", {}).get("amount") or inquiry.get("estimated_price", 0)
+    advance_amount = int(total_amount * advance_percent / 100)
+    remaining_amount = total_amount - advance_amount
+    
+    return {
+        "inquiry_id": inquiry_id,
+        "booking_purpose": inquiry.get("booking_purpose"),
+        "total_amount": total_amount,
+        "advance_percent": advance_percent,
+        "advance_amount": advance_amount,
+        "remaining_amount": remaining_amount,
+        "can_pay_later": can_pay_later,
+        "payment_deadline_hours": payment_settings.get("global_settings", {}).get("payment_deadline_hours", 24) if payment_settings else 24,
+        "status": inquiry.get("status"),
+        "passenger_details_filled": bool(inquiry.get("passenger_details"))
+    }
