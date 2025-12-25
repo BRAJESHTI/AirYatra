@@ -71,6 +71,8 @@ function AdminDashboard({ user, onLogout }) {
         return <AnalyticsDashboard />;
       case 'reports':
         return <ReportsDashboard />;
+      case 'inquiries':
+        return <InquiryManagement />;
       case 'approvals':
         return <ApprovalQueue />;
       case 'multi_approval':
