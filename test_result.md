@@ -318,13 +318,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Admin Analytics Dashboard UI"
-    - "Admin Global Settings UI"
-    - "Customer Dashboard with My Trips Integration"
-    - "Customer ChatWidget/Messages Integration"
-    - "NotificationBell Integration"
+    - "Landing Infrastructure Admin UI - Phase 2"
+    - "Landing Points Management"
+    - "Helipad Calendar"
+    - "Landing Rent Config"
+    - "Village Permission Dashboard"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
