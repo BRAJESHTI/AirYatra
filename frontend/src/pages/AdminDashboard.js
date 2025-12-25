@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -23,6 +23,12 @@ import MultiLevelApproval from '@/components/admin/MultiLevelApproval';
 import InAppChat from '@/components/shared/InAppChat';
 import InquiryManagement from '@/components/admin/InquiryManagement';
 
+// Landing Infrastructure Components
+import LandingInfrastructure from '@/components/admin/LandingInfrastructure';
+import HelipadAvailability from '@/components/admin/HelipadAvailability';
+import LandingRentConfig from '@/components/admin/LandingRentConfig';
+import VillagePermissionDashboard from '@/components/admin/VillagePermissionDashboard';
+
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
@@ -38,6 +44,11 @@ const navItems = [
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'permissions', label: 'Landing Permissions', icon: Shield },
   { id: 'settlements', label: 'Settlements', icon: DollarSign },
+  // Landing Infrastructure Section
+  { id: 'landing_infra', label: 'Landing Points', icon: MapPin, section: 'landing' },
+  { id: 'helipad_calendar', label: 'Helipad Calendar', icon: Calendar, section: 'landing' },
+  { id: 'landing_rent', label: 'Landing Rent', icon: DollarSign, section: 'landing' },
+  { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, section: 'landing', highlight: true },
   { id: 'chat', label: 'Messages', icon: MessageSquare },
   { id: 'audit', label: 'Audit Logs', icon: FileText },
   { id: 'settings', label: 'Settings', icon: Settings },
