@@ -54,6 +54,13 @@ import InsuranceModule from '@/components/admin/InsuranceModule';
 import KnowledgeBase from '@/components/admin/KnowledgeBase';
 import SOSDashboard from '@/components/admin/SOSDashboard';
 
+// Production Advanced Features
+import LiveFlightTracking from '@/components/admin/LiveFlightTracking';
+import DocumentVerification from '@/components/admin/DocumentVerification';
+import MultiLegBooking from '@/components/admin/MultiLegBooking';
+import InventoryManagement from '@/components/admin/InventoryManagement';
+import DGCACompliance from '@/components/admin/DGCACompliance';
+
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'support', label: 'Support Helpdesk', icon: Headphones, highlight: true, section: 'new' },
