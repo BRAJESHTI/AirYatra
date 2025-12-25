@@ -232,6 +232,9 @@ export const customerAPI = {
   getBookingQuotes: (bookingId) => api.get(`/customer/trips/${bookingId}/quotes`),
   respondToQuote: (bookingId, quoteId, data) => api.post(`/customer/trips/${bookingId}/quotes/${quoteId}/respond`, data),
   getPendingQuotes: () => api.get('/customer/quotes/pending'),
+  // Passenger Details
+  submitPassengerDetails: (inquiryId, data) => api.post(`/customer/trips/${inquiryId}/passenger-details`, data),
+  getPaymentInfo: (inquiryId) => api.get(`/customer/trips/${inquiryId}/payment-info`),
 };
 
 // User & Role Management API
