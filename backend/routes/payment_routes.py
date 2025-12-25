@@ -34,10 +34,16 @@ async def create_payment_order(
 ):
     """Create a Razorpay order for booking payment"""
     
-    # Verify booking exists and belongs to user
-    booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
+    # Try to find in inquiries first (new flow)
+    booking = await db.inquiries.find_one({"id": request.booking_id}, {"_id": 0})
+    is_inquiry = bool(booking)
+    
+    # If not found, try bookings collection
     if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
+        booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking/Inquiry not found")
     
     if booking.get("customer_id") != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -52,7 +58,8 @@ async def create_payment_order(
         notes={
             "booking_id": request.booking_id,
             "customer_id": current_user["id"],
-            "customer_email": current_user.get("email")
+            "customer_email": current_user.get("email"),
+            "is_inquiry": is_inquiry
         }
     )
     
@@ -62,6 +69,7 @@ async def create_payment_order(
             "id": str(uuid4()),
             "order_id": result["order_id"],
             "booking_id": request.booking_id,
+            "is_inquiry": is_inquiry,
             "customer_id": current_user["id"],
             "amount": request.amount,
             "amount_paise": amount_paise,
