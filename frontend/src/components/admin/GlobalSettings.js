@@ -469,6 +469,13 @@ function GlobalSettings() {
             </div>
           )}
 
+          {/* Payment Rules by Purpose */}
+          {activeTab === 'payment_rules' && (
+            <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
+              <PaymentSettings />
+            </div>
+          )}
+
           {/* Flight Types Settings */}
           {activeTab === 'flight_types' && (
             <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 space-y-6">
