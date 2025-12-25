@@ -742,7 +742,7 @@ async def calculate_landing_rent(
             dt = datetime.strptime(landing_date, "%Y-%m-%d")
             if dt.weekday() >= 5:  # Saturday or Sunday
                 base_rent *= rent.get("weekend_multiplier", 1.0)
-        except:
+        except ValueError:
             pass
     
     # Parking charges
