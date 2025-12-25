@@ -109,6 +109,9 @@ api_router.include_router(crm_routes.router)
 api_router.include_router(scheduler_routes.router)
 api_router.include_router(hr_routes.router)
 api_router.include_router(field_tracking_routes.router)
+api_router.include_router(support_routes.router)
+api_router.include_router(reviews_routes.router)
+api_router.include_router(weather_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
