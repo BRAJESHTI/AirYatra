@@ -1,9 +1,7 @@
-/**
- * Landing Service - Landing Infrastructure API calls
- */
-import api from './api';
+import api from './apiClient';
 
-export const landingService = {
+// Landing Infrastructure API
+export const landingAPI = {
   // Public endpoints (no auth required)
   publicSearch: (query, type, state) => api.get('/landing/public/search', { params: { query, type, state } }),
   getAirports: (state) => api.get('/landing/public/airports', { params: state ? { state } : {} }),
@@ -41,7 +39,9 @@ export const landingService = {
   getVillagePermission: (id) => api.get(`/landing/village-permission/${id}`),
   getVillagePermissionByInquiry: (inquiryId) => api.get(`/landing/village-permission/inquiry/${inquiryId}`),
   getMyVillagePermissions: () => api.get('/landing/village-permissions'),
-  uploadVillageDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/upload-document`, data),
+  uploadVillageDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/upload-document`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   uploadVillageDocumentDirect: (permissionId, formData) => api.post(`/landing/village-permission/${permissionId}/upload-document-direct`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
@@ -52,4 +52,21 @@ export const landingService = {
   rejectPermission: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/reject`, data),
 };
 
-export default landingService;
+// Landing Permission API
+export const landingPermissionAPI = {
+  create: (data) => api.post('/landing-permissions/', data),
+  uploadDocument: (permissionId, data) => api.post(`/landing-permissions/${permissionId}/upload-document`, data),
+  getBookingPermissions: (bookingId) => api.get(`/landing-permissions/booking/${bookingId}`),
+  getPilotPending: () => api.get('/landing-permissions/pilot/pending'),
+};
+
+// PIN Code API
+export const pincodeAPI = {
+  lookup: (pincode) => api.get(`/pincode/lookup/${pincode}`),
+  lookupLive: (pincode, useLiveApi = true) => api.get(`/pincode/lookup/${pincode}`, { params: { use_live_api: useLiveApi } }),
+  search: (params) => api.get('/pincode/search', { params }),
+  calculatePrice: (params) => api.post('/pincode/calculate-price', null, { params }),
+  estimateDistance: (fromPincode, toPincode) => api.get('/pincode/estimate-distance', { 
+    params: { from_pincode: fromPincode, to_pincode: toPincode } 
+  }),
+};
