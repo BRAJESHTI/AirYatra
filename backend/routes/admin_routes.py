@@ -319,3 +319,95 @@ async def force_assign_operator(booking_id: str, data: dict, user: dict = Depend
     await db.audit_logs.insert_one(audit_log.copy())
     
     return {"message": "Operator force assigned"}
+# ============== INQUIRY MANAGEMENT ==============
+
+@router.get("/inquiries")
+async def get_all_inquiries(
+    status: str = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user: dict = Depends(require_admin),
+    db=Depends(get_database)
+):
+    """Get all booking inquiries for admin"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    # Get from inquiries collection
+    inquiries = await db.inquiries.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Also get from bookings if inquiries is empty or to merge
+    bookings = await db.bookings.find(
+        {**query, "type": {"$in": ["booking_inquiry", "inquiry", None]}},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Merge unique items
+    all_ids = set()
+    merged = []
+    for item in inquiries + bookings:
+        if item["id"] not in all_ids:
+            all_ids.add(item["id"])
+            merged.append(item)
+    
+    # Sort by created_at
+    merged.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    
+    # Count stats
+    all_inquiries = await db.inquiries.find({}, {"_id": 0, "status": 1}).to_list(1000)
+    stats = {
+        "total": len(all_inquiries),
+        "pending": len([i for i in all_inquiries if i.get("status") == "pending_acceptance"]),
+        "quote_received": len([i for i in all_inquiries if i.get("status") == "quote_received"]),
+        "accepted": len([i for i in all_inquiries if i.get("status") in ["quote_accepted", "confirmed"]]),
+    }
+    
+    return {
+        "inquiries": merged[:limit],
+        "stats": stats,
+        "total": len(merged)
+    }
+
+@router.get("/inquiries/{inquiry_id}")
+async def get_inquiry_details(
+    inquiry_id: str,
+    current_user: dict = Depends(require_admin),
+    db=Depends(get_database)
+):
+    """Get detailed inquiry information"""
+    inquiry = await db.inquiries.find_one({"id": inquiry_id}, {"_id": 0})
+    if not inquiry:
+        inquiry = await db.bookings.find_one({"id": inquiry_id}, {"_id": 0})
+    
+    if not inquiry:
+        raise HTTPException(status_code=404, detail="Inquiry not found")
+    
+    # Get operator mappings
+    mappings = await db.inquiry_operator_mappings.find(
+        {"inquiry_id": inquiry_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Get quotes
+    quotes = await db.quotes.find(
+        {"booking_id": inquiry_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Enrich with operator info
+    for mapping in mappings:
+        op = await db.operators.find_one(
+            {"id": mapping["operator_id"]},
+            {"_id": 0, "company_name": 1, "average_rating": 1}
+        )
+        mapping["operator"] = op
+    
+    return {
+        "inquiry": inquiry,
+        "operator_mappings": mappings,
+        "quotes": quotes
+    }
