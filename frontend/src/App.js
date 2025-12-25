@@ -10,6 +10,7 @@ import OperatorDashboard from './pages/OperatorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import RegionalManagerDashboard from './pages/RegionalManagerDashboard';
 import BookingPage from './pages/BookingPage';
+import PaymentPage from './pages/PaymentPage';
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
