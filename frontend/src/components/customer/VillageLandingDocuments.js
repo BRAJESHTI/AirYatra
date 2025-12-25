@@ -87,7 +87,21 @@ function VillageLandingDocuments({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (permissionData?.uploaded_documents) {
+    if (permissionData?.documents && permissionData.documents.length > 0) {
+      const docsMap = {};
+      permissionData.documents.forEach(doc => {
+        docsMap[doc.doc_type] = {
+          document_type: doc.doc_type,
+          file_url: doc.file_url,
+          file_name: doc.file_name,
+          status: doc.status || 'uploaded',
+          rejection_reason: doc.rejection_reason,
+          uploaded_at: doc.uploaded_at
+        };
+      });
+      setDocuments(docsMap);
+    } else if (permissionData?.uploaded_documents) {
+      // Legacy support
       const docsMap = {};
       permissionData.uploaded_documents.forEach(doc => {
         docsMap[doc.document_type] = doc;
