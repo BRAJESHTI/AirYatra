@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -21,9 +21,11 @@ import RolePermissionManager from '@/components/admin/RolePermissionManager';
 import OperatorPerformance from '@/components/admin/OperatorPerformance';
 import MultiLevelApproval from '@/components/admin/MultiLevelApproval';
 import InAppChat from '@/components/shared/InAppChat';
+import InquiryManagement from '@/components/admin/InquiryManagement';
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'reports', label: 'Reports', icon: PieChart },
   { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
