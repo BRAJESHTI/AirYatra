@@ -136,6 +136,12 @@ api_router.include_router(route_optimization_routes.router)
 api_router.include_router(insurance_routes.router)
 api_router.include_router(knowledge_routes.router)
 api_router.include_router(sos_routes.router)
+# Production Advanced Features
+api_router.include_router(flight_tracking_live_routes.router)
+api_router.include_router(document_verification_routes.router)
+api_router.include_router(multileg_booking_routes.router)
+api_router.include_router(inventory_routes.router)
+api_router.include_router(dgca_compliance_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
