@@ -1336,3 +1336,147 @@ async def reject_village_permission(
         )
     
     return {"message": "Village landing permission rejected", "permission_id": permission_id}
+
+
+# ============== HELIPAD OWNER ENDPOINTS ==============
+
+@router.get("/my-helipads")
+async def get_my_helipads(
+    user: dict = Depends(get_current_user)
+):
+    """Get all helipads owned by the current user"""
+    db = get_database()
+    
+    # Find helipads where owner_id matches current user
+    helipads = await db.landing_points.find(
+        {
+            "$or": [
+                {"owner_id": user["id"]},
+                {"contact_email": user.get("email")},
+                {"type": {"$in": ["private_helipad", "govt_helipad"]}, "contact_email": user.get("email")}
+            ]
+        },
+        {"_id": 0}
+    ).to_list(50)
+    
+    return {"helipads": helipads, "total": len(helipads)}
+
+
+@router.get("/helipad/{helipad_id}/stats")
+async def get_helipad_stats(
+    helipad_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Get statistics for a specific helipad"""
+    db = get_database()
+    
+    # Verify ownership
+    helipad = await db.landing_points.find_one(
+        {"id": helipad_id},
+        {"_id": 0}
+    )
+    
+    if not helipad:
+        raise HTTPException(status_code=404, detail="Helipad not found")
+    
+    # Check ownership
+    if helipad.get("owner_id") != user["id"] and helipad.get("contact_email") != user.get("email"):
+        # Check if admin
+        if "admin" not in user.get("roles", []):
+            raise HTTPException(status_code=403, detail="Not authorized to view this helipad's stats")
+    
+    # Count bookings where this helipad is destination or pickup
+    all_bookings = await db.bookings.find(
+        {
+            "$or": [
+                {"pickup_landing_point_id": helipad_id},
+                {"drop_landing_point_id": helipad_id}
+            ]
+        },
+        {"_id": 0}
+    ).to_list(1000)
+    
+    total_bookings = len(all_bookings)
+    pending_bookings = len([b for b in all_bookings if b.get("status") == "pending"])
+    confirmed_bookings = len([b for b in all_bookings if b.get("status") in ["confirmed", "completed"]])
+    
+    # Calculate revenue from landing rent
+    total_revenue = 0
+    this_month_revenue = 0
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    for booking in all_bookings:
+        if booking.get("status") in ["confirmed", "completed"]:
+            landing_charges = booking.get("landing_charges", 0) or 0
+            total_revenue += landing_charges
+            
+            # Check if this month
+            booking_date = booking.get("created_at", "")
+            if booking_date.startswith(current_month):
+                this_month_revenue += landing_charges
+    
+    return {
+        "total_bookings": total_bookings,
+        "pending_bookings": pending_bookings,
+        "confirmed_bookings": confirmed_bookings,
+        "total_revenue": total_revenue,
+        "this_month_revenue": this_month_revenue,
+        "helipad_name": helipad.get("name"),
+        "is_active": helipad.get("is_active", False)
+    }
+
+
+@router.get("/helipad/{helipad_id}/bookings")
+async def get_helipad_bookings(
+    helipad_id: str,
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(get_current_user)
+):
+    """Get bookings for a specific helipad"""
+    db = get_database()
+    
+    # Verify ownership
+    helipad = await db.landing_points.find_one(
+        {"id": helipad_id},
+        {"_id": 0}
+    )
+    
+    if not helipad:
+        raise HTTPException(status_code=404, detail="Helipad not found")
+    
+    # Check ownership
+    if helipad.get("owner_id") != user["id"] and helipad.get("contact_email") != user.get("email"):
+        if "admin" not in user.get("roles", []):
+            raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {
+        "$or": [
+            {"pickup_landing_point_id": helipad_id},
+            {"drop_landing_point_id": helipad_id}
+        ]
+    }
+    
+    if status:
+        query["status"] = status
+    
+    bookings = await db.bookings.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Enrich with operator info
+    for booking in bookings:
+        if booking.get("operator_id"):
+            operator = await db.users.find_one(
+                {"id": booking["operator_id"]},
+                {"_id": 0, "id": 1, "full_name": 1, "company_name": 1}
+            )
+            if operator:
+                booking["operator_name"] = operator.get("company_name") or operator.get("full_name")
+    
+    return {
+        "bookings": bookings,
+        "total": len(bookings),
+        "helipad_name": helipad.get("name")
+    }
