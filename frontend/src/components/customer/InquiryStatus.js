@@ -27,6 +27,7 @@ function InquiryStatus({ user }) {
   const [inquiry, setInquiry] = useState(null);
   const [quotes, setQuotes] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [villagePermission, setVillagePermission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQuotesDialog, setShowQuotesDialog] = useState(false);
   const [showPassengerForm, setShowPassengerForm] = useState(false);
@@ -49,6 +50,16 @@ function InquiryStatus({ user }) {
       if (['quote_accepted', 'passenger_details_filled', 'payment_pending'].includes(response.data.inquiry?.status)) {
         const paymentResponse = await customerAPI.getPaymentInfo(inquiryId);
         setPaymentInfo(paymentResponse.data);
+      }
+      
+      // Load village permission if applicable
+      if (response.data.inquiry?.permission_required) {
+        try {
+          const permResponse = await landingAPI.getVillagePermissionByInquiry(inquiryId);
+          setVillagePermission(permResponse.data);
+        } catch (e) {
+          console.log('No village permission found');
+        }
       }
     } catch (error) {
       toast.error('Failed to load inquiry status');
