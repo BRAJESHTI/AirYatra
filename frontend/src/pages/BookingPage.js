@@ -14,6 +14,8 @@ import { bookingAPI, settingsAPI, landingAPI } from '../services/api';
 import { toast } from 'sonner';
 import PinCodeInput from '../components/shared/PinCodeInput';
 import LandingPointSelector from '../components/shared/LandingPointSelector';
+// Import modular booking components
+import { BookingStepIndicator } from '../components/booking';
 
 // Step indicator component
 const StepIndicator = ({ currentStep, steps }) => (
