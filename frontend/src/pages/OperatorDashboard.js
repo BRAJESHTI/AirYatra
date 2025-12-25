@@ -156,6 +156,7 @@ function OperatorDashboard({ user, onLogout }) {
             <Route path="fuel-records" element={<FuelRecordsManager operator={operator} />} />
             <Route path="live-tracking" element={<LiveTrackingMap operator={operator} />} />
             <Route path="landing-permissions" element={<LandingPermissionViewer operator={operator} />} />
+            <Route path="profile" element={<OperatorProfile operator={operator} onOperatorUpdate={setOperator} />} />
           </Routes>
         </main>
       </div>
