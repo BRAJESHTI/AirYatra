@@ -103,6 +103,13 @@ function AdminDashboard({ user, onLogout }) {
     switch (activeTab) {
       case 'overview':
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} onNavigate={setActiveTab} />;
+      // New Priority 1 Features
+      case 'support':
+        return <SupportDashboard />;
+      case 'reviews':
+        return <ReviewsManagement />;
+      case 'weather':
+        return <WeatherDashboard />;
       case 'crm':
         return <CRMDashboard />;
       case 'webhooks':
