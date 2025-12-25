@@ -789,6 +789,182 @@ async def calculate_landing_rent(
     }
 
 
+# ============== LANDING DOCUMENTS & COMPLIANCE ==============
+
+@router.get("/documents/{landing_point_id}")
+async def get_landing_documents(
+    landing_point_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REGIONAL_MANAGER]))
+):
+    """Get all compliance documents for a landing point"""
+    db = get_database()
+    
+    # Verify landing point exists
+    point = await db.landing_points.find_one({"id": landing_point_id}, {"_id": 0})
+    if not point:
+        raise HTTPException(status_code=404, detail="Landing point not found")
+    
+    documents = await db.landing_documents.find(
+        {"landing_point_id": landing_point_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {
+        "landing_point_id": landing_point_id,
+        "landing_point_name": point.get("name"),
+        "documents": documents,
+        "total": len(documents)
+    }
+
+
+@router.post("/documents")
+async def upload_landing_document(
+    landing_point_id: str = Form(...),
+    doc_type: str = Form(...),  # collector_noc / sp_noc / fire_noc / gram_panchayat / ownership
+    file: UploadFile = File(...),
+    expiry_date: Optional[str] = Form(None),
+    remark: Optional[str] = Form(None),
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.REGIONAL_MANAGER]))
+):
+    """Upload compliance document for a landing point"""
+    db = get_database()
+    import os
+    
+    # Verify landing point exists
+    point = await db.landing_points.find_one({"id": landing_point_id})
+    if not point:
+        raise HTTPException(status_code=404, detail="Landing point not found")
+    
+    # Validate doc_type
+    valid_doc_types = ["collector_noc", "sp_noc", "fire_noc", "gram_panchayat", "ownership"]
+    if doc_type not in valid_doc_types:
+        raise HTTPException(status_code=400, detail=f"Invalid doc_type. Must be one of: {valid_doc_types}")
+    
+    # Validate file type
+    allowed_types = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: PDF, JPG, PNG")
+    
+    # Read and validate file size
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:  # 10MB max
+        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+    
+    # Save file
+    file_extension = file.filename.split('.')[-1].lower()
+    unique_filename = f"{doc_type}_{uuid4()}.{file_extension}"
+    upload_dir = f"/app/uploads/landing_documents/{landing_point_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = f"{upload_dir}/{unique_filename}"
+    
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    
+    file_url = f"/api/uploads/landing_documents/{landing_point_id}/{unique_filename}"
+    
+    # Create document record
+    doc_id = str(uuid4())
+    document = {
+        "id": doc_id,
+        "landing_point_id": landing_point_id,
+        "doc_type": doc_type,
+        "doc_name": file.filename,
+        "file_url": file_url,
+        "file_path": file_path,
+        
+        # Verification status
+        "verified": False,
+        "verified_by": None,
+        "verified_at": None,
+        
+        # Validity
+        "expiry_date": expiry_date,
+        
+        # Remarks
+        "remark": remark,
+        
+        # Status
+        "status": "pending",  # pending, verified, rejected, expired
+        
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": user["id"]
+    }
+    
+    await db.landing_documents.insert_one(document)
+    
+    logger.info(f"Landing document uploaded: {doc_type} for {landing_point_id} by {user['email']}")
+    
+    return {
+        "message": "Document uploaded successfully",
+        "document_id": doc_id,
+        "doc_type": doc_type,
+        "file_url": file_url
+    }
+
+
+@router.put("/documents/{document_id}/verify")
+async def verify_landing_document(
+    document_id: str,
+    verification_data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Verify or reject a landing document"""
+    db = get_database()
+    
+    document = await db.landing_documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    action = verification_data.get("action", "verify")  # verify or reject
+    remark = verification_data.get("remark", "")
+    
+    update_data = {
+        "verified": action == "verify",
+        "verified_by": user["id"],
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "status": "verified" if action == "verify" else "rejected",
+        "remark": remark,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.landing_documents.update_one(
+        {"id": document_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Landing document {action}ed: {document_id} by {user['email']}")
+    
+    return {
+        "message": f"Document {action}ed successfully",
+        "document_id": document_id,
+        "verified": action == "verify"
+    }
+
+
+@router.delete("/documents/{document_id}")
+async def delete_landing_document(
+    document_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Delete a landing document"""
+    db = get_database()
+    import os
+    
+    document = await db.landing_documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Delete file
+    if document.get("file_path") and os.path.exists(document["file_path"]):
+        os.remove(document["file_path"])
+    
+    # Delete record
+    await db.landing_documents.delete_one({"id": document_id})
+    
+    return {"message": "Document deleted successfully"}
+
+
 # ============== VILLAGE LANDING PERMISSIONS ==============
 
 @router.post("/village-permission")
