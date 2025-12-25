@@ -27,6 +27,7 @@ import CRMDashboard from '@/components/admin/CRMDashboard';
 import APIKeysSettings from '@/components/admin/APIKeysSettings';
 import SchedulerStatus from '@/components/admin/SchedulerStatus';
 import WebhookIntegration from '@/components/admin/WebhookIntegration';
+import CallRecordingSettings from '@/components/admin/CallRecordingSettings';
 
 // Landing Infrastructure Components
 import LandingInfrastructure from '@/components/admin/LandingInfrastructure';
