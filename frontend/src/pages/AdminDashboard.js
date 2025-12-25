@@ -28,6 +28,9 @@ import APIKeysSettings from '@/components/admin/APIKeysSettings';
 import SchedulerStatus from '@/components/admin/SchedulerStatus';
 import WebhookIntegration from '@/components/admin/WebhookIntegration';
 import CallRecordingSettings from '@/components/admin/CallRecordingSettings';
+import IncentiveConfig from '@/components/admin/IncentiveConfig';
+import AttendancePayroll from '@/components/admin/AttendancePayroll';
+import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
 
 // Landing Infrastructure Components
 import LandingInfrastructure from '@/components/admin/LandingInfrastructure';
