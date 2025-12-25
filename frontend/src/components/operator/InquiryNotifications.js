@@ -13,8 +13,10 @@ function InquiryNotifications({ operator }) {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showReviseDialog, setShowReviseDialog] = useState(false);
   const [acceptRemark, setAcceptRemark] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [reviseData, setReviseData] = useState({ amount: '', notes: '' });
   const [processing, setProcessing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
