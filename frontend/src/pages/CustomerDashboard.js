@@ -29,10 +29,11 @@ function CustomerDashboard({ user, onLogout }) {
 
   const fetchBookings = async () => {
     try {
-      const response = await bookingAPI.getAll();
-      setBookings(response.data.bookings || []);
+      const response = await customerAPI.getTrips();
+      setBookings(response.data.trips || []);
     } catch (error) {
-      toast.error('Failed to load bookings');
+      console.error('Failed to load bookings:', error);
+      // Silent fail - don't show error toast on dashboard
     } finally {
       setLoading(false);
     }
