@@ -1028,14 +1028,6 @@ async def upload_village_document_direct(
         {"_id": 0}
     )
     
-    # Map document types - handle frontend/backend naming differences
-    doc_type_map = {
-        "collector_noc": "collector_noc",
-        "fire_dept": "fire_noc",
-        "police_station": "gram_panchayat",  # Using as general police acknowledgment
-        "sp_dcp": "sp_noc"
-    }
-    
     all_uploaded = all(
         doc_info.get("uploaded", False) 
         for doc_info in updated_permission.get("required_documents", {}).values()
