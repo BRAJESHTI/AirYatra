@@ -30,6 +30,9 @@ from routes import crm_routes
 from routes import scheduler_routes
 from routes import hr_routes
 from routes import field_tracking_routes
+from routes import support_routes
+from routes import reviews_routes
+from routes import weather_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
