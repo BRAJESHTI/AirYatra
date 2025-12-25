@@ -27,6 +27,7 @@ function CustomerDashboard({ user, onLogout }) {
     if (path.includes('/trips')) setActiveTab('trips');
     else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
+    else if (path.includes('/refer')) setActiveTab('refer');
     else setActiveTab('overview');
   }, [location]);
 
