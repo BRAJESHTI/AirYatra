@@ -174,13 +174,31 @@ async def lookup_pincode(pincode: str):
                 if post_offices:
                     po = post_offices[0]
                     
-                    # Get coordinates if available, or estimate from city
+                    # Get coordinates - try multiple sources
                     lat, lng = None, None
                     district_lower = po.get("District", "").lower()
+                    state_lower = po.get("State", "").lower()
+                    area_lower = po.get("Name", "").lower()
+                    
+                    # 1. Try to match area name
                     for city, coords in CITY_COORDINATES.items():
-                        if city in district_lower:
+                        if city in area_lower:
                             lat, lng = coords
                             break
+                    
+                    # 2. Try to match district
+                    if lat is None:
+                        for city, coords in CITY_COORDINATES.items():
+                            if city in district_lower:
+                                lat, lng = coords
+                                break
+                    
+                    # 3. Fallback to state coordinates
+                    if lat is None:
+                        for state, coords in STATE_COORDINATES.items():
+                            if state in state_lower or state_lower in state:
+                                lat, lng = coords
+                                break
                     
                     locations = []
                     for po in post_offices:
@@ -209,12 +227,10 @@ async def lookup_pincode(pincode: str):
             raise HTTPException(status_code=404, detail="PIN code not found")
             
     except httpx.TimeoutException:
-        # Fallback to hardcoded data on timeout
         return get_fallback_pincode_data(pincode)
     except HTTPException:
         raise
     except Exception as e:
-        # Fallback to hardcoded data on any error
         return get_fallback_pincode_data(pincode)
 
 def get_fallback_pincode_data(pincode: str):
