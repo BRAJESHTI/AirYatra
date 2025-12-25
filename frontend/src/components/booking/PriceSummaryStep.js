@@ -148,7 +148,7 @@ const PriceSummaryStep = ({
             <div>
               <h4 className="text-orange-400 font-semibold">Documents Required / दस्तावेज़ आवश्यक</h4>
               <p className="text-orange-200/70 text-sm mt-1">
-                After booking confirmation, you'll need to upload permission documents for village/private landing.
+                After booking confirmation, you will need to upload permission documents for village/private landing.
               </p>
             </div>
           </div>
