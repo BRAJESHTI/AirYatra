@@ -53,7 +53,7 @@ def calculate_sla_deadline(priority: str, sla_type: str, config: dict) -> dateti
 @router.post("/tickets")
 async def create_ticket(ticket: TicketCreate, current_user: dict = Depends(get_current_user)):
     """Create a new support ticket"""
-    db = await get_database()
+    db = get_database()
     
     # Get SLA config
     sla_config = await db.settings.find_one({"type": "sla_config"}) or {}
@@ -107,7 +107,7 @@ async def get_my_tickets(
     current_user: dict = Depends(get_current_user)
 ):
     """Get current user's tickets"""
-    db = await get_database()
+    db = get_database()
     
     query = {"customer_id": current_user["id"]}
     if status:
@@ -119,7 +119,7 @@ async def get_my_tickets(
 @router.get("/tickets/{ticket_id}")
 async def get_ticket(ticket_id: str, current_user: dict = Depends(get_current_user)):
     """Get ticket details"""
-    db = await get_database()
+    db = get_database()
     
     ticket = await db.support_tickets.find_one(
         {"id": ticket_id},
@@ -150,7 +150,7 @@ async def add_reply(
     current_user: dict = Depends(get_current_user)
 ):
     """Add reply to ticket"""
-    db = await get_database()
+    db = get_database()
     
     ticket = await db.support_tickets.find_one({"id": ticket_id})
     if not ticket:
@@ -209,7 +209,7 @@ async def get_all_tickets(
     if not any(role in current_user.get("roles", []) for role in ["admin", "support"]):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     query = {}
     
     if status:
@@ -238,7 +238,7 @@ async def get_support_dashboard(current_user: dict = Depends(get_current_user)):
     if not any(role in current_user.get("roles", []) for role in ["admin", "support"]):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     now = datetime.now(timezone.utc).isoformat()
     
     # Get counts by status
@@ -312,7 +312,7 @@ async def update_ticket(
     if not any(role in current_user.get("roles", []) for role in ["admin", "support"]):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     
     ticket = await db.support_tickets.find_one({"id": ticket_id})
     if not ticket:
@@ -364,7 +364,7 @@ async def get_sla_config(current_user: dict = Depends(get_current_user)):
     if "admin" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     config = await db.settings.find_one({"type": "sla_config"}, {"_id": 0})
     
     if not config:
@@ -388,7 +388,7 @@ async def update_sla_config(config: SLAConfig, current_user: dict = Depends(get_
     if "admin" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     
     config_data = {
         "type": "sla_config",
@@ -411,7 +411,7 @@ async def get_support_agents(current_user: dict = Depends(get_current_user)):
     if not any(role in current_user.get("roles", []) for role in ["admin", "support"]):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     
     agents = await db.users.find(
         {"roles": {"$in": ["admin", "support"]}},

@@ -384,7 +384,7 @@ async def get_weather_forecast(
 @router.get("/alerts/active")
 async def get_active_weather_alerts(current_user: dict = Depends(get_current_user)):
     """Get active weather alerts for upcoming bookings"""
-    db = await get_database()
+    db = get_database()
     
     # Get upcoming bookings
     now = datetime.now(timezone.utc)

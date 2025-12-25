@@ -33,7 +33,7 @@ class ReviewReport(BaseModel):
 @router.post("/")
 async def create_review(review: ReviewCreate, current_user: dict = Depends(get_current_user)):
     """Create a review for a completed booking"""
-    db = await get_database()
+    db = get_database()
     
     # Verify booking exists and belongs to user
     booking = await db.bookings.find_one({
@@ -137,7 +137,7 @@ async def update_operator_rating(db, operator_id: str):
 @router.get("/my")
 async def get_my_reviews(current_user: dict = Depends(get_current_user)):
     """Get current user's reviews"""
-    db = await get_database()
+    db = get_database()
     
     reviews = await db.reviews.find(
         {"customer_id": current_user["id"]},
@@ -149,7 +149,7 @@ async def get_my_reviews(current_user: dict = Depends(get_current_user)):
 @router.get("/pending")
 async def get_pending_reviews(current_user: dict = Depends(get_current_user)):
     """Get bookings pending review"""
-    db = await get_database()
+    db = get_database()
     
     # Get completed bookings without reviews
     bookings = await db.bookings.find(
@@ -167,7 +167,7 @@ async def get_pending_reviews(current_user: dict = Depends(get_current_user)):
 @router.post("/{review_id}/helpful")
 async def mark_helpful(review_id: str, current_user: dict = Depends(get_current_user)):
     """Mark a review as helpful"""
-    db = await get_database()
+    db = get_database()
     
     # Check if user already marked this review
     existing = await db.review_helpful.find_one({
@@ -198,7 +198,7 @@ async def report_review(
     current_user: dict = Depends(get_current_user)
 ):
     """Report a review"""
-    db = await get_database()
+    db = get_database()
     
     review = await db.reviews.find_one({"id": review_id})
     if not review:
@@ -229,7 +229,7 @@ async def get_operator_reviews(
     limit: int = 20
 ):
     """Get reviews for an operator (public)"""
-    db = await get_database()
+    db = get_database()
     
     query = {"operator_id": operator_id, "status": "published"}
     if rating:
@@ -292,7 +292,7 @@ async def get_my_operator_reviews(
     if "operator" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Operator access required")
     
-    db = await get_database()
+    db = get_database()
     
     # Get operator profile
     operator = await db.operators.find_one({"user_id": current_user["id"]})
@@ -317,7 +317,7 @@ async def respond_to_review(
     if "operator" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Operator access required")
     
-    db = await get_database()
+    db = get_database()
     
     # Get operator profile
     operator = await db.operators.find_one({"user_id": current_user["id"]})
@@ -355,7 +355,7 @@ async def get_all_reviews(
     if "admin" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     
     query = {}
     if status:
@@ -378,7 +378,7 @@ async def moderate_review(
     if "admin" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     
     review = await db.reviews.find_one({"id": review_id})
     if not review:
@@ -410,7 +410,7 @@ async def get_review_reports(
     if "admin" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    db = await get_database()
+    db = get_database()
     
     reports = await db.review_reports.find(
         {"status": status},
