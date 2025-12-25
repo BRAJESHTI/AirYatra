@@ -472,6 +472,9 @@ export const landingAPI = {
   uploadVillageDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/upload-document`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  uploadVillageDocumentDirect: (permissionId, formData) => api.post(`/landing/village-permission/${permissionId}/upload-document-direct`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   
   // Admin Document Verification
   verifyDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/verify-document`, data),
