@@ -188,3 +188,201 @@ class AuditLog(BaseModel):
     changes: dict
     ip_address: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ============== LANDING INFRASTRUCTURE MODELS ==============
+
+class LandingPointType(str, Enum):
+    AIRPORT = "airport"
+    GOVT_HELIPAD = "govt_helipad"
+    PRIVATE_HELIPAD = "private_helipad"
+    VILLAGE_LAND = "village_land"
+
+class LandingOwnerType(str, Enum):
+    GOVT = "govt"
+    PRIVATE = "private"
+    TRUST = "trust"
+    HOSPITAL = "hospital"
+    HOTEL = "hotel"
+    INDIVIDUAL = "individual"
+
+class LandingPointStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
+class RentType(str, Enum):
+    PER_LANDING = "per_landing"
+    PER_HOUR = "per_hour"
+    PER_DAY = "per_day"
+
+class LandingDocType(str, Enum):
+    COLLECTOR_NOC = "collector_noc"
+    SP_NOC = "sp_noc"
+    FIRE_NOC = "fire_noc"
+    GRAM_PANCHAYAT = "gram_panchayat"
+    OWNERSHIP = "ownership"
+
+
+class LandingPoint(BaseModel):
+    """
+    LANDING_POINT MASTER TABLE
+    Stores all landing locations - airports, helipads, village lands
+    """
+    id: Optional[str] = None
+    code: Optional[str] = None  # Auto-generated code like DEL-APT-001
+    name: str
+    type: LandingPointType
+    owner_type: LandingOwnerType = LandingOwnerType.GOVT
+    
+    # Location Details
+    city: str
+    district: str
+    state: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    address: Optional[str] = None
+    pincode: Optional[str] = None
+    
+    # Contact Info
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    
+    # Flags
+    permission_required: bool = False
+    rent_applicable: bool = False
+    calendar_enabled: bool = False  # For private helipads with availability calendar
+    
+    # Status
+    status: LandingPointStatus = LandingPointStatus.ACTIVE
+    is_active: bool = True
+    
+    # Ownership
+    owner_id: Optional[str] = None  # User ID if registered helipad owner
+    
+    # Metadata
+    facilities: List[str] = []  # parking, fuel, hangar, etc.
+    runway_length: Optional[int] = None  # in meters
+    icao_code: Optional[str] = None  # For airports
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+
+
+class LandingRent(BaseModel):
+    """
+    LANDING RENT CONFIGURATION TABLE
+    Stores rent configuration for landing points
+    """
+    id: Optional[str] = None
+    landing_point_id: str
+    
+    # Rent Configuration
+    rent_type: RentType = RentType.PER_LANDING
+    base_rent_amount: float = 0.0
+    
+    # Time-based charges
+    max_hours: Optional[int] = None  # Max hours included in base rent
+    hourly_rate: Optional[float] = None  # Rate per additional hour
+    daily_rate: Optional[float] = None  # Rate per day
+    
+    # Parking charges
+    parking_per_hour: Optional[float] = None
+    night_halt_charge: Optional[float] = None
+    
+    # Tax
+    gst_applicable: bool = True
+    gst_percentage: float = 18.0
+    
+    # Multipliers
+    weekend_multiplier: float = 1.0  # 1.5 = 50% extra on weekends
+    peak_season_multiplier: float = 1.0
+    
+    # Status
+    is_active: bool = True
+    
+    # Remarks
+    remarks: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+
+
+class LandingDocument(BaseModel):
+    """
+    LANDING DOCUMENT & COMPLIANCE TABLE
+    Stores documents for landing points (NOCs, ownership proofs, etc.)
+    """
+    id: Optional[str] = None
+    landing_point_id: str
+    
+    # Document Info
+    doc_type: LandingDocType
+    doc_name: Optional[str] = None
+    file_url: Optional[str] = None
+    file_path: Optional[str] = None
+    
+    # Verification
+    verified: bool = False
+    verified_by: Optional[str] = None
+    verified_at: Optional[datetime] = None
+    
+    # Validity
+    issue_date: Optional[datetime] = None
+    expiry_date: Optional[datetime] = None
+    
+    # Remarks
+    remark: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    
+    # Status
+    status: str = "pending"  # pending, verified, rejected, expired
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    uploaded_by: Optional[str] = None
+
+
+class VillageLandingPermission(BaseModel):
+    """
+    Village Landing Permission Request
+    For tracking customer permission requests for village/private land landings
+    """
+    id: Optional[str] = None
+    
+    # References
+    inquiry_id: Optional[str] = None
+    booking_id: Optional[str] = None
+    customer_id: str
+    landing_point_id: Optional[str] = None
+    
+    # Location
+    location_name: str
+    district: str
+    state: str
+    pincode: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    
+    # Required Documents Checklist
+    required_documents: dict = {}  # {doc_type: {required: bool, uploaded: bool, document_id: str}}
+    
+    # Uploaded Documents
+    documents: List[dict] = []  # List of uploaded documents
+    
+    # Status
+    status: str = "documents_pending"  # documents_pending, under_review, approved, rejected
+    
+    # Approval
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    
+    # Remarks
+    admin_notes: Optional[str] = None
+    customer_notes: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
