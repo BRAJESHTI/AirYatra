@@ -318,3 +318,114 @@ async def trigger_expire_old_inquiries(
     """Manually trigger expiration of old inquiries"""
     await expire_old_inquiries()
     return {"message": "Expiration task completed"}
+
+# ============== OPERATOR REVISE QUOTE ==============
+
+@router.post("/operator/revise-quote/{mapping_id}")
+async def operator_revise_quote(
+    mapping_id: str,
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.OPERATOR]))
+):
+    """
+    Operator sends a revised quote to customer
+    ऑपरेटर ग्राहक को संशोधित कोट भेजता है
+    """
+    db = get_database()
+    
+    # Get mapping
+    mapping = await db.inquiry_operator_mappings.find_one(
+        {"id": mapping_id, "operator_id": user["id"]},
+        {"_id": 0}
+    )
+    
+    if not mapping:
+        raise HTTPException(status_code=404, detail="Inquiry mapping not found")
+    
+    if mapping.get("status") not in ["pending", "sent"]:
+        raise HTTPException(status_code=400, detail="Cannot revise quote - inquiry already processed")
+    
+    amount = data.get("amount")
+    notes = data.get("notes", "")
+    
+    if not amount or amount <= 0:
+        raise HTTPException(status_code=400, detail="Valid amount required")
+    
+    inquiry_id = mapping["inquiry_id"]
+    
+    # Get inquiry details
+    inquiry = await db.inquiries.find_one({"id": inquiry_id}, {"_id": 0})
+    if not inquiry:
+        inquiry = await db.bookings.find_one({"id": inquiry_id}, {"_id": 0})
+    
+    # Create quote record
+    quote_id = str(uuid4())
+    quote = {
+        "id": quote_id,
+        "booking_id": inquiry_id,
+        "inquiry_id": inquiry_id,
+        "operator_id": user["id"],
+        "operator_name": user.get("company_name") or user.get("full_name"),
+        "amount": float(amount),
+        "original_amount": inquiry.get("estimated_price", 0) if inquiry else 0,
+        "notes": notes,
+        "status": "sent",
+        "revision_count": 1,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.quotes.insert_one(quote.copy())
+    
+    # Update mapping status
+    await db.inquiry_operator_mappings.update_one(
+        {"id": mapping_id},
+        {"$set": {
+            "status": "quote_sent",
+            "quote_id": quote_id,
+            "quote_amount": float(amount),
+            "quote_sent_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update inquiry status
+    if inquiry:
+        await db.inquiries.update_one(
+            {"id": inquiry_id},
+            {"$set": {
+                "status": "quote_received",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$push": {
+                "operator_responses": {
+                    "operator_id": user["id"],
+                    "operator_name": quote["operator_name"],
+                    "response_type": "revised_quote",
+                    "amount": float(amount),
+                    "notes": notes,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            }}
+        )
+    
+    # Log the action
+    await db.inquiry_action_logs.insert_one({
+        "id": str(uuid4()),
+        "inquiry_id": inquiry_id,
+        "mapping_id": mapping_id,
+        "operator_id": user["id"],
+        "action": "revised_quote",
+        "amount": float(amount),
+        "notes": notes,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # TODO: Send notification to customer
+    
+    return {
+        "success": True,
+        "message": "Revised quote sent to customer / संशोधित कोट ग्राहक को भेजा गया",
+        "quote_id": quote_id,
+        "amount": float(amount)
+    }
