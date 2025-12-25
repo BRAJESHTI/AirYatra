@@ -550,6 +550,33 @@ agent_communication:
         agent: "main"
         comment: "PassengerDetailsForm component created with: Name, Gender M/F, Age, Weight kg, Luggage Count, Luggage Weight, ID Proof (optional). Backend API /customer/trips/{id}/passenger-details working."
 
+  - task: "Customer Post-Inquiry Flow (Complete)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/customer/InquiryStatus.js"
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Complete Post-Inquiry Customer Flow implemented and tested:
+1) InquiryStatus page shows progress tracker (6 steps)
+2) Customer can view operator quotes and accept
+3) After quote acceptance, fills Passenger Details Form (weight, luggage, ID optional)
+4) Payment page shows advance % based on Admin rules (50%/100%)
+5) After payment, booking status becomes 'confirmed'
+6) Full bilingual UI (Hindi/English)
+All backend APIs updated to work with inquiries collection."
+
+  - task: "Payment Page for Inquiries"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PaymentPage.js"
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "New PaymentPage component created for inquiry payment flow. Shows booking summary, advance amount based on purpose, payment methods (UPI, Card, Netbanking), mock payment support. Backend payment APIs updated to work with inquiries."
+
 agent_communication:
   - agent: "main"
     message: "Implemented: 1) Admin Payment Rules - set 50%/100% advance per booking purpose 2) PassengerDetailsForm - Weight, Luggage, optional ID proof 3) Backend APIs working. Screenshots verified Admin panel showing Payment Rules tab."
+  - agent: "main"
+    message: "COMPLETED: Customer Post-Inquiry & Booking Confirmation Flow - Full journey from inquiry -> quote acceptance -> passenger details -> payment -> confirmation. Tested via curl and screenshots. Backend APIs fixed to work with both inquiries and bookings collections."
