@@ -1008,6 +1008,30 @@ async def get_customer_village_permissions(user: dict = Depends(get_current_user
     return {"permissions": permissions, "total": len(permissions)}
 
 
+@router.get("/village-permission/inquiry/{inquiry_id}")
+async def get_village_permission_by_inquiry(
+    inquiry_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Get village permission by inquiry ID"""
+    db = get_database()
+    
+    permission = await db.village_landing_permissions.find_one(
+        {"inquiry_id": inquiry_id},
+        {"_id": 0}
+    )
+    
+    if not permission:
+        raise HTTPException(status_code=404, detail="Village permission not found for this inquiry")
+    
+    # Check access: customer, admin, or operator
+    if (permission["customer_id"] != user["id"] and 
+        not any(r in user.get("roles", []) for r in ["admin", "super_admin", "operator"])):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return permission
+
+
 # ============== ADMIN DOCUMENT VERIFICATION ==============
 
 @router.post("/village-permission/{permission_id}/verify-document")
