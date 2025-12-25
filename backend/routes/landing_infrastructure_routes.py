@@ -168,8 +168,8 @@ async def create_landing_point(
         "id": point_id,
         "code": code,
         "name": point_data.get("name"),
-        "type": point_type,
-        "owner_type": point_data.get("owner_type", "government"),
+        "type": point_type,  # airport / govt_helipad / private_helipad / village_land
+        "owner_type": point_data.get("owner_type", "govt"),  # govt / private / trust / hospital / hotel / individual
         "category": point_data.get("category"),
         
         # Location
@@ -186,20 +186,24 @@ async def create_landing_point(
         "contact_phone": point_data.get("contact_phone"),
         "contact_email": point_data.get("contact_email"),
         
-        # Rules
-        "permission_required": permission_required,
-        "rent_applicable": rent_applicable,
-        "availability_calendar_required": availability_required,
+        # Flags (as per schema)
+        "permission_required": permission_required,  # BOOLEAN
+        "rent_applicable": rent_applicable,  # BOOLEAN
+        "calendar_enabled": availability_required,  # For private helipads
         
-        # Status
+        # Status (active / inactive)
+        "status": "active",
         "is_active": True,
         "is_verified": point_data.get("is_verified", False),
+        
+        # Ownership
+        "owner_id": point_data.get("owner_id"),  # User ID if helipad owner
         
         # Additional
         "facilities": point_data.get("facilities", []),
         "operating_hours": point_data.get("operating_hours"),
         "icao_code": point_data.get("icao_code"),  # For airports
-        "runway_length_m": point_data.get("runway_length_m"),
+        "runway_length": point_data.get("runway_length_m"),
         "helipad_size_m": point_data.get("helipad_size_m"),
         "surface_type": point_data.get("surface_type"),
         "lighting_available": point_data.get("lighting_available", False),
