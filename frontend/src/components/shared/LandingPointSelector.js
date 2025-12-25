@@ -108,7 +108,19 @@ function LandingPointSelector({
         const response = await pincodeAPI.lookup(pincode);
         const data = response.data;
         
-        if (data.area || data.district) {
+        // Handle response with locations array
+        if (data.success && data.locations && data.locations.length > 0) {
+          const location = data.locations[0];
+          setVillageData({
+            pincode,
+            area: location.area || data.district || '',
+            district: location.district || data.district || '',
+            state: location.state || data.state || '',
+            latitude: location.latitude || data.latitude || null,
+            longitude: location.longitude || data.longitude || null
+          });
+        } else if (data.area || data.district) {
+          // Fallback to direct fields
           setVillageData({
             pincode,
             area: data.area || data.location || '',
