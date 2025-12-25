@@ -59,6 +59,7 @@ const navItems = [
   { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, section: 'landing', highlight: true },
   { id: 'referral', label: 'Referral & Discount', icon: Gift },
   { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
+  { id: 'call_recording', label: 'Call Recording', icon: Phone },
   { id: 'scheduler', label: 'Scheduler', icon: Clock },
   { id: 'chat', label: 'Messages', icon: MessageSquare },
   { id: 'audit', label: 'Audit Logs', icon: FileText },
