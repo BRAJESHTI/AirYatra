@@ -253,17 +253,22 @@ function MyTrips({ user }) {
             <div key={trip.id} className="glass p-6 rounded-xl">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-white font-semibold text-lg">{trip.booking_number || `#${trip.id?.slice(0, 8)}`}</p>
+                  <p className="text-white font-semibold text-lg">
+                    {trip.inquiry_number || trip.booking_number || `#${trip.id?.slice(0, 8)}`}
+                    {trip.source === 'inquiry' && (
+                      <span className="ml-2 text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded">Inquiry</span>
+                    )}
+                  </p>
                   <div className="flex items-center gap-2 mt-2 text-slate-300">
                     <MapPin className="h-4 w-4 text-green-400" />
-                    <span>{trip.from_location}</span>
+                    <span>{trip.pickup_location || trip.from_location}</span>
                     <ChevronRight className="h-4 w-4 text-slate-500" />
                     <MapPin className="h-4 w-4 text-red-400" />
-                    <span>{trip.to_location}</span>
+                    <span>{trip.drop_location || trip.to_location}</span>
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-sm ${getStatusBadge(trip.status)}`}>
-                  {trip.status}
+                  {getStatusLabel(trip.status)}
                 </span>
               </div>
 
@@ -278,9 +283,20 @@ function MyTrips({ user }) {
                 </div>
                 <div className="flex items-center gap-2 text-white font-semibold">
                   <IndianRupee className="h-4 w-4" />
-                  <span>₹{(trip.total_amount || 0).toLocaleString()}</span>
+                  <span>₹{(trip.estimated_price || trip.total_amount || 0).toLocaleString()}</span>
                 </div>
               </div>
+
+              {/* Additional info for inquiries */}
+              {trip.source === 'inquiry' && (
+                <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
+                  <span>✈️ {trip.aircraft_type === 'helicopter' ? 'Helicopter' : 'Plane'}</span>
+                  <span>👥 {trip.total_passengers} Passengers</span>
+                  {trip.quote_count > 0 && (
+                    <span className="text-orange-400">📋 {trip.quote_count} Quote(s) Received</span>
+                  )}
+                </div>
+              )}
 
               {/* Latest Quote Alert */}
               {trip.latest_quote && trip.status !== 'quote_accepted' && (
