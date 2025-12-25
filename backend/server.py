@@ -48,6 +48,17 @@ from routes import document_verification_routes
 from routes import multileg_booking_routes
 from routes import inventory_routes
 from routes import dgca_compliance_routes
+# Medium Priority Features
+from routes import push_notification_routes
+from routes import boarding_pass_routes
+from routes import currency_routes
+from routes import predictive_analytics_routes
+from routes import voice_video_routes
+# Low Priority Features
+from routes import chatbot_routes
+from routes import two_factor_auth_routes
+from routes import calendar_sync_routes
+from routes import accounting_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
