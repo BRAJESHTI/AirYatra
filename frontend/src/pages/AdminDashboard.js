@@ -138,6 +138,13 @@ function AdminDashboard({ user, onLogout }) {
         return <VillagePermissionDashboard />;
       case 'referral':
         return <ReferralSettings />;
+      // HR Section
+      case 'incentives':
+        return <IncentiveConfig />;
+      case 'attendance':
+        return <AttendancePayroll />;
+      case 'field_tracking':
+        return <LiveTrackingDashboard />;
       case 'api_keys':
         return <APIKeysSettings user={user} />;
       case 'call_recording':
