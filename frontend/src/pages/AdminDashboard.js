@@ -104,6 +104,15 @@ function AdminDashboard({ user, onLogout }) {
         return <LandingPermissionApproval />;
       case 'settlements':
         return <SettlementManagement />;
+      // Landing Infrastructure
+      case 'landing_infra':
+        return <LandingInfrastructure />;
+      case 'helipad_calendar':
+        return <HelipadAvailability />;
+      case 'landing_rent':
+        return <LandingRentConfig />;
+      case 'village_permissions':
+        return <VillagePermissionDashboard />;
       case 'chat':
         return <InAppChat user={user} />;
       case 'audit':
