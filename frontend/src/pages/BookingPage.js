@@ -184,24 +184,34 @@ function BookingPage({ user }) {
   }, [formData.adults_male, formData.adults_female]);
 
   useEffect(() => {
-    // Calculate distance when both locations are set
+    // Calculate distance when both landing points are set
+    const pickup = formData.pickup_landing_point;
+    const drop = formData.drop_landing_point;
+    
     console.log('Distance useEffect triggered:', {
-      pickup_lat: formData.pickup_latitude,
-      pickup_lng: formData.pickup_longitude,
-      drop_lat: formData.drop_latitude,
-      drop_lng: formData.drop_longitude
+      pickup_lat: pickup?.latitude,
+      pickup_lng: pickup?.longitude,
+      drop_lat: drop?.latitude,
+      drop_lng: drop?.longitude
     });
     
-    if (formData.pickup_latitude && formData.drop_latitude && 
-        formData.pickup_longitude && formData.drop_longitude) {
+    if (pickup?.latitude && drop?.latitude && 
+        pickup?.longitude && drop?.longitude) {
       const dist = calculateDistance(
-        formData.pickup_latitude, formData.pickup_longitude,
-        formData.drop_latitude, formData.drop_longitude
+        pickup.latitude, pickup.longitude,
+        drop.latitude, drop.longitude
       );
       console.log('Calculated distance:', dist);
       setDistanceKm(Math.round(dist));
     }
-  }, [formData.pickup_latitude, formData.pickup_longitude, formData.drop_latitude, formData.drop_longitude]);
+    
+    // Check if permission is required for any landing point
+    const needsPermission = pickup?.permission_required || drop?.permission_required;
+    setPermissionRequired(needsPermission);
+    
+    // Calculate landing rent
+    calculateLandingRent(pickup, drop);
+  }, [formData.pickup_landing_point, formData.drop_landing_point, formData.departure_date]);
 
   useEffect(() => {
     // Calculate price when we have all required data
