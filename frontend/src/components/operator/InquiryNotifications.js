@@ -232,6 +232,12 @@ function InquiryNotifications({ operator }) {
                       <Check className="h-4 w-4 mr-1" /> Accept
                     </Button>
                     <Button
+                      onClick={() => openReviseDialog(inquiry)}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      <DollarSign className="h-4 w-4 mr-1" /> Revise Quote
+                    </Button>
+                    <Button
                       variant="destructive"
                       onClick={() => openRejectDialog(inquiry)}
                     >
