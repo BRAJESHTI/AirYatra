@@ -24,40 +24,64 @@ async def get_my_trips(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get all trips/bookings for current customer"""
+    """Get all trips/bookings for current customer (from both bookings and inquiries)"""
     query = {"customer_id": current_user["id"]}
     if status:
         query["status"] = status
     
+    # Fetch from both collections
     bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    inquiries = await db.inquiries.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Mark source for each item
+    for booking in bookings:
+        booking["source"] = "booking"
+    for inquiry in inquiries:
+        inquiry["source"] = "inquiry"
+    
+    # Combine and sort by created_at
+    all_trips = bookings + inquiries
+    all_trips.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     
     # Enrich with operator and aircraft info
-    for booking in bookings:
-        if booking.get("operator_id"):
-            operator = await db.operators.find_one({"id": booking["operator_id"]}, {"_id": 0, "company_name": 1, "average_rating": 1})
-            booking["operator"] = operator
-        if booking.get("aircraft_id"):
-            aircraft = await db.aircraft.find_one({"id": booking["aircraft_id"]}, {"_id": 0, "aircraft_type": 1, "registration_number": 1})
-            booking["aircraft"] = aircraft
-        if booking.get("pilot_id"):
-            pilot = await db.pilots.find_one({"id": booking["pilot_id"]}, {"_id": 0, "name": 1})
-            booking["pilot"] = pilot
+    for trip in all_trips:
+        if trip.get("operator_id"):
+            operator = await db.operators.find_one({"id": trip["operator_id"]}, {"_id": 0, "company_name": 1, "average_rating": 1})
+            trip["operator"] = operator
+        if trip.get("aircraft_id"):
+            aircraft = await db.aircraft.find_one({"id": trip["aircraft_id"]}, {"_id": 0, "aircraft_type": 1, "registration_number": 1})
+            trip["aircraft"] = aircraft
+        if trip.get("pilot_id"):
+            pilot = await db.pilots.find_one({"id": trip["pilot_id"]}, {"_id": 0, "name": 1})
+            trip["pilot"] = pilot
+        # Get quote count for inquiries
+        if trip.get("source") == "inquiry":
+            quote_count = await db.quotes.count_documents({
+                "$or": [{"inquiry_id": trip["id"]}, {"booking_id": trip["id"]}]
+            })
+            trip["quote_count"] = quote_count
     
-    # Categorize
-    upcoming = [b for b in bookings if b.get("status") in ["confirmed", "pending"]]
-    completed = [b for b in bookings if b.get("status") == "completed"]
-    cancelled = [b for b in bookings if b.get("status") == "cancelled"]
+    # Categorize - include inquiry statuses
+    upcoming_statuses = ["confirmed", "pending", "quote_accepted", "passenger_details_filled"]
+    pending_statuses = ["pending_acceptance", "quote_received", "pending_quotes", "quotes_received"]
+    
+    upcoming = [t for t in all_trips if t.get("status") in upcoming_statuses]
+    pending = [t for t in all_trips if t.get("status") in pending_statuses]
+    completed = [t for t in all_trips if t.get("status") == "completed"]
+    cancelled = [t for t in all_trips if t.get("status") == "cancelled"]
     
     return {
-        "trips": bookings,
+        "trips": all_trips,
         "upcoming": upcoming,
+        "pending": pending,
         "completed": completed,
         "cancelled": cancelled,
         "statistics": {
-            "total_trips": len(bookings),
+            "total_trips": len(all_trips),
             "upcoming_count": len(upcoming),
+            "pending_count": len(pending),
             "completed_count": len(completed),
-            "total_spent": sum(b.get("total_amount", 0) for b in completed)
+            "total_spent": sum(t.get("total_amount", 0) for t in completed)
         }
     }
 
