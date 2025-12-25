@@ -24,6 +24,7 @@ from routes import pincode_live_routes, settlement_automation_routes
 from routes import inquiry_broadcast_routes
 from routes import google_auth_routes
 from routes import landing_infrastructure_routes
+from routes import referral_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
