@@ -17,6 +17,9 @@ import AIChatbot from './components/shared/AIChatbot';
 // Import Google Auth components
 import { GoogleAuthSuccess, GoogleAuthError, EmergentAuthCallback } from './components/auth/GoogleLogin';
 
+// Import Customer components
+import InquiryStatus from './components/customer/InquiryStatus';
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
