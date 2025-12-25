@@ -1,10 +1,11 @@
 import React from 'react';
-import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw, Target, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PilotDutyWidget from './PilotDutyWidget';
 import BookingPurposeChart from './BookingPurposeChart';
 
-function AdminOverview({ data, onRefresh, loading }) {
+function AdminOverview({ data, onRefresh, loading, onNavigate }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -19,21 +20,21 @@ function AdminOverview({ data, onRefresh, loading }) {
   const emergencyAlerts = data?.emergency_alerts || [];
 
   const statCards = [
-    { label: 'Total Bookings', value: stats.total_bookings || 0, icon: Calendar, color: 'blue' },
-    { label: "Today's Bookings", value: stats.today_bookings || 0, icon: TrendingUp, color: 'green' },
-    { label: 'Active Operators', value: stats.active_operators || 0, icon: Users, color: 'purple' },
-    { label: 'Total Aircraft', value: stats.total_aircraft || 0, icon: Plane, color: 'cyan' },
-    { label: 'Pending Approvals', value: stats.pending_operator_approvals || 0, icon: FileWarning, color: 'orange' },
-    { label: 'Pending Permissions', value: stats.pending_landing_permissions || 0, icon: AlertTriangle, color: 'yellow' },
+    { label: 'Total Bookings', value: stats.total_bookings || 0, icon: Calendar, color: 'blue', navigateTo: 'bookings' },
+    { label: "Today's Bookings", value: stats.today_bookings || 0, icon: TrendingUp, color: 'green', navigateTo: 'bookings' },
+    { label: 'Active Operators', value: stats.active_operators || 0, icon: Users, color: 'purple', navigateTo: 'operators' },
+    { label: 'Total Aircraft', value: stats.total_aircraft || 0, icon: Plane, color: 'cyan', navigateTo: 'operators' },
+    { label: 'Pending Approvals', value: stats.pending_operator_approvals || 0, icon: FileWarning, color: 'orange', navigateTo: 'approvals' },
+    { label: 'Pending Permissions', value: stats.pending_landing_permissions || 0, icon: AlertTriangle, color: 'yellow', navigateTo: 'village_permissions' },
   ];
 
   const colorClasses = {
-    blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    green: 'bg-green-500/20 text-green-400 border-green-500/30',
-    purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    cyan: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-    orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-    yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30',
+    green: 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30',
+    purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30',
+    cyan: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/30',
+    orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30',
+    yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30',
   };
 
   const iconColorClasses = {
@@ -43,6 +44,12 @@ function AdminOverview({ data, onRefresh, loading }) {
     cyan: 'text-cyan-400',
     orange: 'text-orange-400',
     yellow: 'text-yellow-400',
+  };
+
+  const handleCardClick = (navigateTo) => {
+    if (onNavigate && navigateTo) {
+      onNavigate(navigateTo);
+    }
   };
 
   return (
@@ -57,47 +64,70 @@ function AdminOverview({ data, onRefresh, loading }) {
         </Button>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - CLICKABLE */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className={`p-4 rounded-xl border ${colorClasses[stat.color]}`}>
+            <button
+              key={index}
+              onClick={() => handleCardClick(stat.navigateTo)}
+              className={`p-4 rounded-xl border ${colorClasses[stat.color]} cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg text-left w-full group`}
+            >
               <div className="flex items-center justify-between">
                 <Icon className={`h-8 w-8 ${iconColorClasses[stat.color]}`} />
                 <span className="text-3xl font-bold text-white">{stat.value}</span>
               </div>
-              <p className="text-sm mt-2 text-slate-300">{stat.label}</p>
-            </div>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-sm text-slate-300">{stat.label}</p>
+                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-white transition-colors" />
+              </div>
+            </button>
           );
         })}
       </div>
 
-      {/* Revenue Section */}
+      {/* Revenue Section - CLICKABLE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="p-6 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30">
-          <div className="flex items-center space-x-3">
-            <IndianRupee className="h-10 w-10 text-green-400" />
-            <div>
-              <p className="text-sm text-slate-400">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">₹{(revenue.total_revenue || 0).toLocaleString()}</p>
+        <button
+          onClick={() => handleCardClick('settlements')}
+          className="p-6 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 hover:from-green-500/30 hover:to-green-600/20 transition-all duration-200 transform hover:scale-[1.02] text-left group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <IndianRupee className="h-10 w-10 text-green-400" />
+              <div>
+                <p className="text-sm text-slate-400">Total Revenue</p>
+                <p className="text-2xl font-bold text-white">₹{(revenue.total_revenue || 0).toLocaleString()}</p>
+              </div>
             </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white transition-colors" />
           </div>
-        </div>
-        <div className="p-6 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30">
-          <div className="flex items-center space-x-3">
-            <IndianRupee className="h-10 w-10 text-orange-400" />
-            <div>
-              <p className="text-sm text-slate-400">Platform Commission</p>
-              <p className="text-2xl font-bold text-white">₹{(revenue.total_commission || 0).toLocaleString()}</p>
+        </button>
+        <button
+          onClick={() => handleCardClick('settlements')}
+          className="p-6 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 hover:from-orange-500/30 hover:to-orange-600/20 transition-all duration-200 transform hover:scale-[1.02] text-left group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <IndianRupee className="h-10 w-10 text-orange-400" />
+              <div>
+                <p className="text-sm text-slate-400">Platform Commission</p>
+                <p className="text-2xl font-bold text-white">₹{(revenue.total_commission || 0).toLocaleString()}</p>
+              </div>
             </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white transition-colors" />
           </div>
-        </div>
-        <div className="p-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30">
-          <div className="flex items-center space-x-3">
-            <IndianRupee className="h-10 w-10 text-blue-400" />
-            <div>
-              <p className="text-sm text-slate-400">Operator Payouts</p>
+        </button>
+        <button
+          onClick={() => handleCardClick('settlements')}
+          className="p-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 hover:from-blue-500/30 hover:to-blue-600/20 transition-all duration-200 transform hover:scale-[1.02] text-left group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <IndianRupee className="h-10 w-10 text-blue-400" />
+              <div>
+                <p className="text-sm text-slate-400">Operator Payouts</p>
               <p className="text-2xl font-bold text-white">₹{(revenue.operator_payout || 0).toLocaleString()}</p>
             </div>
           </div>
