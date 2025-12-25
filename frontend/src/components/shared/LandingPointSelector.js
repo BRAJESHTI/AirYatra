@@ -113,27 +113,55 @@ function LandingPointSelector({
           const location = data.locations[0];
           setVillageData({
             pincode,
-            area: location.area || data.district || '',
+            area: location.area || data.district || data.area || '',
             district: location.district || data.district || '',
             state: location.state || data.state || '',
             latitude: location.latitude || data.latitude || null,
             longitude: location.longitude || data.longitude || null
           });
+          
+          // Show warning for estimated locations
+          if (data.source === 'estimated' || data.source === 'default_fallback') {
+            toast.warning('Approximate location detected. Verify coordinates. / अनुमानित स्थान। कृपया निर्देशांक सत्यापित करें।');
+          }
         } else if (data.area || data.district) {
           // Fallback to direct fields
           setVillageData({
             pincode,
-            area: data.area || data.location || '',
-            district: data.district || '',
-            state: data.state || '',
+            area: data.area || data.location || `Area ${pincode}`,
+            district: data.district || 'Unknown',
+            state: data.state || 'India',
             latitude: data.latitude || null,
             longitude: data.longitude || null
           });
+          
+          if (data.warning) {
+            toast.warning(data.warning);
+          }
         } else {
-          toast.error('Invalid PIN Code / अमान्य पिन कोड');
+          // Even if response doesn't have expected fields, use whatever is available
+          setVillageData({
+            pincode,
+            area: `Area ${pincode}`,
+            district: 'Please verify',
+            state: 'India',
+            latitude: data.latitude || 20.5937,  // Center of India fallback
+            longitude: data.longitude || 78.9629
+          });
+          toast.warning('Location details limited. Please verify before booking. / स्थान विवरण सीमित। कृपया बुकिंग से पहले सत्यापित करें।');
         }
       } catch (error) {
-        toast.error('Failed to fetch location / स्थान प्राप्त करने में विफल');
+        console.error('PIN code lookup error:', error);
+        // Graceful fallback - don't block user
+        setVillageData({
+          pincode,
+          area: `Area ${pincode}`,
+          district: 'Please verify manually',
+          state: 'India',
+          latitude: 20.5937,  // Center of India
+          longitude: 78.9629
+        });
+        toast.warning('Could not verify PIN code. Please verify location manually. / पिन कोड सत्यापित नहीं हो सका। कृपया मैन्युअल रूप से स्थान सत्यापित करें।');
       } finally {
         setLoadingPincode(false);
       }
