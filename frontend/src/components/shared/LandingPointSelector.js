@@ -76,6 +76,7 @@ function LandingPointSelector({
   // Search landing points
   const handleSearch = async (term) => {
     setSearchTerm(term);
+    setShowVillageInput(false); // Reset village input when searching
     
     if (term.length < 2) {
       setSearchResults([]);
@@ -95,6 +96,67 @@ function LandingPointSelector({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle PIN code lookup for village area
+  const handlePincodeChange = async (pincode) => {
+    setVillageData(prev => ({ ...prev, pincode }));
+    
+    if (pincode.length === 6) {
+      setLoadingPincode(true);
+      try {
+        const response = await bookingAPI.getPincodeInfo(pincode);
+        const data = response.data;
+        
+        if (data.area || data.district) {
+          setVillageData({
+            pincode,
+            area: data.area || data.location || '',
+            district: data.district || '',
+            state: data.state || '',
+            latitude: data.latitude || null,
+            longitude: data.longitude || null
+          });
+        } else {
+          toast.error('Invalid PIN Code / अमान्य पिन कोड');
+        }
+      } catch (error) {
+        toast.error('Failed to fetch location / स्थान प्राप्त करने में विफल');
+      } finally {
+        setLoadingPincode(false);
+      }
+    }
+  };
+
+  // Select village area as landing point
+  const handleSelectVillageArea = () => {
+    if (!villageData.area || !villageData.pincode) {
+      toast.error('Please enter valid PIN code / कृपया सही पिन कोड दर्ज करें');
+      return;
+    }
+
+    const villageLandingData = {
+      landing_point_id: `custom_village_${villageData.pincode}`,
+      landing_point_code: `VLN-CUSTOM-${villageData.pincode}`,
+      landing_point_name: `${villageData.area}, ${villageData.district}`,
+      landing_point_type: 'village_land',
+      city: villageData.area,
+      state: villageData.state,
+      district: villageData.district,
+      pincode: villageData.pincode,
+      latitude: villageData.latitude,
+      longitude: villageData.longitude,
+      permission_required: true, // Village land always requires permission
+      rent_applicable: false,
+      availability_calendar_required: false,
+      is_custom_village: true // Flag to identify custom village entries
+    };
+
+    onSelect(villageLandingData);
+    setSearchTerm(`${villageData.area}, ${villageData.district}`);
+    setShowDropdown(false);
+    setShowVillageInput(false);
+    toast.success('Village area selected / गांव क्षेत्र चुना गया');
   };
 
   // Check availability for private helipads
