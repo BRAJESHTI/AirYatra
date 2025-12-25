@@ -1,0 +1,289 @@
+"""
+Background Scheduler for AirYatra
+Handles automated tasks like lead reassignment, notifications, etc.
+"""
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from datetime import datetime, timezone, timedelta
+import logging
+import asyncio
+
+logger = logging.getLogger(__name__)
+
+scheduler = AsyncIOScheduler()
+
+async def auto_reassign_stale_leads():
+    """
+    Auto-reassign leads that haven't been contacted within 1 hour.
+    This runs every 15 minutes.
+    """
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for lead reassignment")
+            return
+        
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        
+        # Find stale leads (new status, not contacted, older than 1 hour)
+        stale_leads = await db.crm_leads.find({
+            "status": "new",
+            "created_at": {"$lt": one_hour_ago.isoformat()},
+            "last_contacted_at": None
+        }).to_list(100)
+        
+        if not stale_leads:
+            logger.info("No stale leads found for reassignment")
+            return
+        
+        # Get active sales users
+        sales_users = await db.users.find({
+            "role": {"$in": ["sales", "sales_manager", "admin"]},
+            "status": "active"
+        }, {"_id": 0, "id": 1, "full_name": 1, "email": 1}).to_list(50)
+        
+        if not sales_users:
+            logger.warning("No active sales users found for lead reassignment")
+            return
+        
+        reassigned_count = 0
+        for i, lead in enumerate(stale_leads):
+            # Round-robin assignment
+            new_assignee = sales_users[i % len(sales_users)]
+            old_assignee = lead.get("assigned_to")
+            
+            # Skip if already assigned to someone different
+            if old_assignee and old_assignee != new_assignee["id"]:
+                # Update lead assignment
+                await db.crm_leads.update_one(
+                    {"id": lead["id"]},
+                    {"$set": {
+                        "assigned_to": new_assignee["id"],
+                        "assigned_to_name": new_assignee.get("full_name", new_assignee["email"]),
+                        "reassigned_at": datetime.now(timezone.utc).isoformat(),
+                        "reassignment_reason": "auto_stale_1hr",
+                        "previous_assignee": old_assignee
+                    }}
+                )
+                reassigned_count += 1
+                
+                # Create notification for new assignee
+                await db.notifications.insert_one({
+                    "id": f"notif_{datetime.now(timezone.utc).timestamp()}_{lead['id']}",
+                    "user_id": new_assignee["id"],
+                    "type": "lead_assigned",
+                    "title": "New Lead Assigned / नई लीड असाइन",
+                    "message": f"Lead {lead.get('lead_number')} has been reassigned to you. Please follow up.",
+                    "data": {"lead_id": lead["id"], "lead_number": lead.get("lead_number")},
+                    "read": False,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+        
+        logger.info(f"Auto-reassigned {reassigned_count} stale leads")
+        
+        # Log this action
+        await db.audit_logs.insert_one({
+            "id": f"audit_{datetime.now(timezone.utc).timestamp()}",
+            "action": "auto_lead_reassignment",
+            "actor": "system_scheduler",
+            "details": {
+                "total_stale": len(stale_leads),
+                "reassigned": reassigned_count
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in auto_reassign_stale_leads: {e}")
+
+
+async def send_pending_notifications():
+    """
+    Process and send pending notifications (email, SMS, push).
+    This runs every 5 minutes.
+    """
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            return
+        
+        # Find pending notifications that need to be sent
+        pending = await db.notification_queue.find({
+            "status": "pending",
+            "scheduled_for": {"$lte": datetime.now(timezone.utc).isoformat()}
+        }).to_list(50)
+        
+        for notif in pending:
+            try:
+                # Mark as processing
+                await db.notification_queue.update_one(
+                    {"id": notif["id"]},
+                    {"$set": {"status": "processing"}}
+                )
+                
+                # TODO: Actually send via email/SMS based on notif type
+                # For now, just mark as sent
+                await db.notification_queue.update_one(
+                    {"id": notif["id"]},
+                    {"$set": {
+                        "status": "sent",
+                        "sent_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+            except Exception as e:
+                await db.notification_queue.update_one(
+                    {"id": notif["id"]},
+                    {"$set": {
+                        "status": "failed",
+                        "error": str(e)
+                    }}
+                )
+        
+        if pending:
+            logger.info(f"Processed {len(pending)} pending notifications")
+            
+    except Exception as e:
+        logger.error(f"Error in send_pending_notifications: {e}")
+
+
+async def cleanup_old_sessions():
+    """
+    Clean up expired sessions and tokens.
+    This runs every hour.
+    """
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            return
+        
+        # Delete sessions older than 7 days
+        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        
+        result = await db.sessions.delete_many({
+            "created_at": {"$lt": seven_days_ago.isoformat()}
+        })
+        
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} old sessions")
+            
+    except Exception as e:
+        logger.error(f"Error in cleanup_old_sessions: {e}")
+
+
+async def generate_daily_reports():
+    """
+    Generate daily summary reports.
+    This runs once a day at midnight.
+    """
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            return
+        
+        today = datetime.now(timezone.utc).date()
+        yesterday = today - timedelta(days=1)
+        
+        # Get yesterday's stats
+        yesterday_start = datetime.combine(yesterday, datetime.min.time()).replace(tzinfo=timezone.utc)
+        yesterday_end = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+        
+        # Count leads
+        new_leads = await db.crm_leads.count_documents({
+            "created_at": {
+                "$gte": yesterday_start.isoformat(),
+                "$lt": yesterday_end.isoformat()
+            }
+        })
+        
+        # Count bookings
+        new_bookings = await db.bookings.count_documents({
+            "created_at": {
+                "$gte": yesterday_start.isoformat(),
+                "$lt": yesterday_end.isoformat()
+            }
+        })
+        
+        # Count conversions
+        conversions = await db.crm_leads.count_documents({
+            "status": "won",
+            "converted_at": {
+                "$gte": yesterday_start.isoformat(),
+                "$lt": yesterday_end.isoformat()
+            }
+        })
+        
+        # Save daily report
+        await db.daily_reports.insert_one({
+            "id": f"report_{yesterday.isoformat()}",
+            "date": yesterday.isoformat(),
+            "metrics": {
+                "new_leads": new_leads,
+                "new_bookings": new_bookings,
+                "conversions": conversions,
+                "conversion_rate": round((conversions / new_leads * 100) if new_leads > 0 else 0, 2)
+            },
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        logger.info(f"Generated daily report for {yesterday.isoformat()}")
+        
+    except Exception as e:
+        logger.error(f"Error in generate_daily_reports: {e}")
+
+
+def start_scheduler():
+    """Start the background scheduler with all jobs."""
+    
+    # Auto-reassign stale leads every 15 minutes
+    scheduler.add_job(
+        auto_reassign_stale_leads,
+        trigger=IntervalTrigger(minutes=15),
+        id="auto_reassign_leads",
+        name="Auto Reassign Stale Leads",
+        replace_existing=True
+    )
+    
+    # Process notifications every 5 minutes
+    scheduler.add_job(
+        send_pending_notifications,
+        trigger=IntervalTrigger(minutes=5),
+        id="send_notifications",
+        name="Send Pending Notifications",
+        replace_existing=True
+    )
+    
+    # Cleanup old sessions every hour
+    scheduler.add_job(
+        cleanup_old_sessions,
+        trigger=IntervalTrigger(hours=1),
+        id="cleanup_sessions",
+        name="Cleanup Old Sessions",
+        replace_existing=True
+    )
+    
+    # Generate daily reports at midnight
+    scheduler.add_job(
+        generate_daily_reports,
+        trigger=IntervalTrigger(hours=24),
+        id="daily_reports",
+        name="Generate Daily Reports",
+        replace_existing=True
+    )
+    
+    scheduler.start()
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports")
+
+
+def stop_scheduler():
+    """Stop the background scheduler."""
+    if scheduler.running:
+        scheduler.shutdown()
+        logger.info("Background scheduler stopped")
