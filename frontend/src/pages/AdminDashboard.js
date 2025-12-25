@@ -93,6 +93,17 @@ const navItems = [
   { id: 'multileg', label: 'Multi-Leg Booking', icon: Route, section: 'prod' },
   { id: 'inventory', label: 'Inventory Management', icon: Package, section: 'prod' },
   { id: 'dgca', label: 'DGCA Compliance', icon: Shield, section: 'prod', highlight: true },
+  // Medium Priority Features
+  { id: 'push_notifications', label: 'Push Notifications', icon: Bell, section: 'medium' },
+  { id: 'boarding_pass', label: 'Digital Boarding Pass', icon: FileCheck, section: 'medium' },
+  { id: 'currency', label: 'Currency Converter', icon: DollarSign, section: 'medium' },
+  { id: 'predictive', label: 'Predictive Analytics', icon: BarChart3, section: 'medium', highlight: true },
+  { id: 'voice_video', label: 'Voice/Video Support', icon: Phone, section: 'medium' },
+  // Low Priority Features
+  { id: 'ai_chatbot', label: 'AI Chatbot', icon: MessageSquare, section: 'low' },
+  { id: 'two_factor', label: '2FA Security', icon: Shield, section: 'low' },
+  { id: 'calendar_sync', label: 'Calendar Sync', icon: Calendar, section: 'low' },
+  { id: 'accounting', label: 'Accounting Integration', icon: Calculator, section: 'low' },
   { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
   { id: 'webhooks', label: 'Webhooks', icon: Globe },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
