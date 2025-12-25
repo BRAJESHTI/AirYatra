@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell } from 'lucide-react';
+import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ import LandingPermissionViewer from '../components/operator/LandingPermissionVie
 import JourneyOTPManager from '../components/operator/JourneyOTPManager';
 import ReviseQuoteManager from '../components/operator/ReviseQuoteManager';
 import InquiryNotifications from '../components/operator/InquiryNotifications';
+import OperatorProfile from '../components/operator/OperatorProfile';
 
 function OperatorDashboard({ user, onLogout }) {
   const [hasProfile, setHasProfile] = useState(false);
