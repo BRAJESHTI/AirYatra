@@ -172,28 +172,9 @@ function BookingPage({ user }) {
       setPricingSettings(response.data);
     } catch (err) {
       console.error('Failed to load pricing settings');
-      // Default pricing
-      setPricingSettings({
-        base_price: 50000,
-        rate_per_km: 500,
-        helicopter_multiplier: 1,
-        plane_multiplier: 1.5,
-        dynamic_pricing_enabled: true,
-        custom_price_enabled: true,
-      });
+      // Use default pricing from config
+      setPricingSettings(defaultPricingSettings);
     }
-  };
-
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    // Haversine formula
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
   };
 
   // Calculate landing rent for pickup and drop locations
