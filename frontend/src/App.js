@@ -9,6 +9,7 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import OperatorDashboard from './pages/OperatorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import RegionalManagerDashboard from './pages/RegionalManagerDashboard';
+import HelipadOwnerDashboard from './pages/HelipadOwnerDashboard';
 import BookingPage from './pages/BookingPage';
 import PaymentPage from './pages/PaymentPage';
 
