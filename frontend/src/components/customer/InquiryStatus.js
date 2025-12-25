@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Clock, Check, X, DollarSign, Users, MapPin, Plane, Calendar, 
   CreditCard, ChevronRight, RefreshCw, Bell, AlertCircle, Star,
-  FileText, Loader2
+  FileText, Loader2, TreePine
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { customerAPI, bookingAPI } from '@/services/api';
+import { customerAPI, bookingAPI, landingAPI } from '@/services/api';
 import { toast } from 'sonner';
 import PassengerDetailsForm from './PassengerDetailsForm';
+import VillageLandingDocuments from './VillageLandingDocuments';
 
 const STATUS_STEPS = [
   { id: 'pending_acceptance', label: 'Inquiry Sent', labelHi: 'इंक्वायरी भेजी गई', icon: Clock },
