@@ -1,56 +1,35 @@
-/**
- * Auth Service - Authentication related API calls
- */
-import api from './api';
+import api from './apiClient';
 
-export const authService = {
-  // Login
-  login: (credentials) => api.post('/auth/login', credentials),
-  
-  // Register
-  register: (userData) => api.post('/auth/register', userData),
-  
-  // Get current user profile
-  getProfile: () => api.get('/auth/profile'),
-  
-  // Update profile
+// Auth API
+export const authAPI = {
+  login: (data) => api.post('/auth/login', data),
+  register: (data) => api.post('/auth/register', data),
+  getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
-  
-  // Change password
-  changePassword: (data) => api.post('/auth/change-password', data),
-  
-  // Request password reset
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  
-  // Reset password
-  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, new_password: newPassword }),
-  
-  // Logout
   logout: () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    return Promise.resolve();
   },
-  
-  // Get stored token
-  getToken: () => localStorage.getItem('token'),
-  
-  // Get stored user
-  getUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
-  },
-  
-  // Check if logged in
-  isAuthenticated: () => !!localStorage.getItem('token'),
-  
-  // Google OAuth
-  googleAuthUrl: () => api.get('/google/auth/url'),
-  googleCallback: (code) => api.post('/google/auth/callback', { code }),
-  
-  // Emergent Auth
-  emergentAuthUrl: () => api.get('/google/auth/emergent/url'),
-  emergentCallback: (code) => api.post('/google/auth/emergent/callback', { code }),
 };
 
-export default authService;
+// Google Auth API
+export const googleAuthAPI = {
+  getSettings: () => api.get('/auth/google/settings'),
+  verifyToken: (data) => api.post('/auth/google/verify-token', data),
+};
+
+// Verification API
+export const verificationAPI = {
+  sendOTP: (data) => api.post('/verification/send-otp', data),
+  verifyOTP: (data) => api.post('/verification/verify-otp', data),
+  agreeTerms: (data) => api.post('/verification/agree-terms', data),
+  checkVerification: (email) => api.get(`/verification/check-verification/${email}`),
+};
+
+// GST & PAN Verification API
+export const gstPanAPI = {
+  verifyGST: (gstin) => api.post('/verification/gst/verify', { gstin }),
+  verifyPAN: (pan, name) => api.post('/verification/pan/verify', { pan, name }),
+  getSampleGSTNumbers: () => api.get('/verification/gst/sample-numbers'),
+  getSamplePANNumbers: () => api.get('/verification/pan/sample-numbers'),
+};
