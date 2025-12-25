@@ -451,13 +451,18 @@ export const landingAPI = {
   updateLandingPoint: (id, data) => api.put(`/landing/points/${id}`, data),
   deleteLandingPoint: (id) => api.delete(`/landing/points/${id}`),
   
+  // Helipad Owner specific APIs
+  getMyHelipads: () => api.get('/landing/my-helipads'),
+  getHelipadStats: (helipadId) => api.get(`/landing/helipad/${helipadId}/stats`),
+  getHelipadBookings: (helipadId) => api.get(`/landing/helipad/${helipadId}/bookings`),
+  
   // Helipad Availability
   getAvailabilityCalendar: (landingPointId, month) => 
     api.get(`/landing/availability/${landingPointId}`, { params: { month } }),
   createAvailabilitySlot: (data) => api.post('/landing/availability', data),
   createBulkAvailability: (data) => api.post('/landing/availability/bulk', data),
   checkAvailability: (landingPointId, date, fromTime, toTime) => 
-    api.get('/landing/availability/check', { params: { landing_point_id: landingPointId, date, from_time: fromTime, to_time: toTime } }),
+    api.get('/landing/availability/check', { params: { landing_point_id: landingPointId, check_date: date, from_time: fromTime, to_time: toTime } }),
   
   // Landing Rent
   getRentConfig: (landingPointId) => api.get(`/landing/rent/${landingPointId}`),
