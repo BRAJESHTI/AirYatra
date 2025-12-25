@@ -47,6 +47,13 @@ import LoyaltyProgram from '@/components/admin/LoyaltyProgram';
 import MarketingCampaigns from '@/components/admin/MarketingCampaigns';
 import FleetMaintenance from '@/components/admin/FleetMaintenance';
 
+// Priority 3 Features
+import DynamicPricing from '@/components/admin/DynamicPricing';
+import RouteOptimization from '@/components/admin/RouteOptimization';
+import InsuranceModule from '@/components/admin/InsuranceModule';
+import KnowledgeBase from '@/components/admin/KnowledgeBase';
+import SOSDashboard from '@/components/admin/SOSDashboard';
+
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'support', label: 'Support Helpdesk', icon: Headphones, highlight: true, section: 'new' },
