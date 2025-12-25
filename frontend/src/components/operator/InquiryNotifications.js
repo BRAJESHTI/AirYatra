@@ -411,6 +411,67 @@ function InquiryNotifications({ operator }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Revise Quote Dialog */}
+      <Dialog open={showReviseDialog} onOpenChange={setShowReviseDialog}>
+        <DialogContent className="bg-slate-900 border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-orange-400" />
+              Send Revised Quote / संशोधित कोट भेजें
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+              <p className="text-slate-400 text-sm">Customer's Expected Amount:</p>
+              <p className="text-white text-xl font-bold">
+                ₹{(selectedInquiry?.booking_details?.estimated_amount || 0).toLocaleString()}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-slate-300">Your Quote Amount (₹) / आपकी कोट राशि *</Label>
+              <Input
+                type="number"
+                value={reviseData.amount}
+                onChange={(e) => setReviseData(prev => ({ ...prev, amount: e.target.value }))}
+                placeholder="Enter your quote amount"
+                className="bg-slate-800 border-slate-700 text-white text-lg"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-slate-300">Notes for Customer (Optional) / टिप्पणी</Label>
+              <textarea
+                value={reviseData.notes}
+                onChange={(e) => setReviseData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Explain your pricing, included services, etc..."
+                className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white h-24"
+              />
+            </div>
+
+            {reviseData.amount && (
+              <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                <p className="text-orange-400 text-sm">Your Revised Quote:</p>
+                <p className="text-orange-400 text-2xl font-bold">
+                  ₹{parseFloat(reviseData.amount || 0).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowReviseDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleReviseQuote}
+              disabled={processing || !reviseData.amount}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {processing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <DollarSign className="h-4 w-4 mr-2" />}
+              Send Revised Quote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
