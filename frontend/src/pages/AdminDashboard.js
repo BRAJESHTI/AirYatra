@@ -63,6 +63,12 @@ const navItems = [
   { id: 'loyalty', label: 'VIP & Loyalty', icon: Gift, section: 'p2' },
   { id: 'marketing', label: 'Marketing', icon: TrendingUp, section: 'p2' },
   { id: 'fleet_maintenance', label: 'Fleet Maintenance', icon: Settings, section: 'p2' },
+  // Priority 3 Features
+  { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator, section: 'p3', highlight: true },
+  { id: 'route_optimization', label: 'Route Optimization', icon: Route, section: 'p3' },
+  { id: 'insurance', label: 'Insurance Module', icon: Shield, section: 'p3' },
+  { id: 'knowledge_base', label: 'Knowledge Base/FAQ', icon: BookOpen, section: 'p3' },
+  { id: 'sos', label: 'Emergency SOS', icon: Siren, section: 'p3', highlight: true },
   { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
   { id: 'webhooks', label: 'Webhooks', icon: Globe },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
