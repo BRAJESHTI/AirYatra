@@ -126,6 +126,78 @@ curl -X POST "https://airyatra-hr.preview.emergentagent.com/api/crm/leads/webhoo
 - `/app/frontend/src/pages/AdminDashboard.js` (Added CRM + API Keys tabs)
 - `/app/frontend/src/pages/BookingPage.js` (Refactored to use modular components)
 
+## Priority 2 Features - IMPLEMENTED ✅
+Date: 2025-12-25
+
+### 1. Invoice & Billing Module (GST Compliant) ✅
+- **Backend:** `/app/backend/routes/invoice_routes.py`
+- **Frontend:** `/app/frontend/src/components/admin/InvoiceManagement.js`
+- **APIs:**
+  - `POST /api/invoices` - Create invoice
+  - `GET /api/invoices` - List invoices
+  - `GET /api/invoices/dashboard` - Invoice stats
+  - `PUT /api/invoices/{id}/status` - Update status
+  - `POST /api/invoices/{id}/payment` - Record payment
+  - `POST /api/invoices/refund` - Create refund
+  - `GET /api/invoices/reports/gst` - GST report
+- **Features:**
+  - GST compliant (CGST/SGST/IGST)
+  - Invoice types: Tax Invoice, Proforma, Credit Note
+  - Payment tracking, Due dates
+  - Refund management
+  - GST Report generator for tax filing
+
+### 2. VIP & Loyalty Program ✅
+- **Backend:** `/app/backend/routes/loyalty_routes.py`
+- **Frontend:** `/app/frontend/src/components/admin/LoyaltyProgram.js`
+- **APIs:**
+  - `GET /api/loyalty/my-status` - User's loyalty status
+  - `GET /api/loyalty/my-history` - Points history
+  - `POST /api/loyalty/redeem` - Redeem points
+  - `GET /api/loyalty/admin/dashboard` - Admin dashboard
+  - `POST /api/loyalty/admin/points/adjust` - Adjust points
+  - `POST /api/loyalty/corporate/create` - Corporate account
+  - `GET/POST /api/loyalty/tiers/config` - Tier settings
+- **Features:**
+  - 4-Tier system: Bronze, Silver, Gold, Platinum
+  - Points earning & redemption (1 pt = ₹1)
+  - Corporate B2B accounts
+  - Tier benefits (discount %, priority booking, lounge access)
+
+### 3. Marketing & Campaign Management ✅
+- **Backend:** `/app/backend/routes/marketing_routes.py`
+- **Frontend:** `/app/frontend/src/components/admin/MarketingCampaigns.js`
+- **APIs:**
+  - `POST /api/marketing/campaigns` - Create campaign
+  - `GET /api/marketing/campaigns` - List campaigns
+  - `GET /api/marketing/dashboard` - Marketing stats
+  - `POST /api/marketing/promo-codes` - Create promo code
+  - `POST /api/marketing/promo-codes/validate` - Validate promo
+  - `POST /api/marketing/notifications` - Push notifications
+- **Features:**
+  - Campaign types: Email, SMS, Push, WhatsApp
+  - Promo codes with % or fixed discount
+  - Campaign performance tracking (sent, opened, clicked, converted)
+  - Push notification management
+
+### 4. Fleet Maintenance Scheduling ✅
+- **Backend:** `/app/backend/routes/maintenance_routes.py`
+- **Frontend:** `/app/frontend/src/components/admin/FleetMaintenance.js`
+- **APIs:**
+  - `POST /api/maintenance/schedule` - Schedule maintenance
+  - `GET /api/maintenance/schedule` - List schedules
+  - `GET /api/maintenance/dashboard` - Maintenance stats
+  - `POST /api/maintenance/parts` - Add parts
+  - `PUT /api/maintenance/parts/{id}/stock` - Update stock
+  - `POST /api/maintenance/compliance` - Add compliance docs
+- **Features:**
+  - Scheduled/Unscheduled/Inspection/Overhaul types
+  - Priority levels: Low, Medium, High, Critical
+  - Parts inventory with low stock alerts
+  - Compliance tracking (Airworthiness, Insurance, Registration)
+
+---
+
 ## Critical Priority 1 Features - IMPLEMENTED ✅
 Date: 2025-12-25
 
