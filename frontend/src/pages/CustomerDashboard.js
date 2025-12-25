@@ -42,6 +42,7 @@ function CustomerDashboard({ user, onLogout }) {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
     { id: 'trips', label: 'My Trips', icon: MapPin, path: '/customer/trips' },
+    { id: 'profile', label: 'Profile', icon: FileText, path: '/customer/profile' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/customer/messages' },
     { id: 'booking', label: 'New Booking', icon: Calendar, path: '/booking', external: true },
   ];
