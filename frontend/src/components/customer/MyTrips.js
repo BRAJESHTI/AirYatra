@@ -215,15 +215,26 @@ function MyTrips({ user }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        {['upcoming', 'completed', 'cancelled', 'all'].map(tab => (
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {[
+          { id: 'pending', label: 'Pending Inquiries / इंक्वायरी' },
+          { id: 'upcoming', label: 'Upcoming' },
+          { id: 'completed', label: 'Completed' },
+          { id: 'cancelled', label: 'Cancelled' },
+          { id: 'all', label: 'All' }
+        ].map(tab => (
           <Button
-            key={tab}
-            variant={activeTab === tab ? 'default' : 'outline'}
-            onClick={() => setActiveTab(tab)}
-            className={activeTab === tab ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-600 text-slate-300'}
+            key={tab.id}
+            variant={activeTab === tab.id ? 'default' : 'outline'}
+            onClick={() => setActiveTab(tab.id)}
+            className={activeTab === tab.id ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-600 text-slate-300'}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab.label}
+            {tab.id === 'pending' && statistics.pending_count > 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-orange-600 rounded-full text-xs">
+                {statistics.pending_count}
+              </span>
+            )}
           </Button>
         ))}
       </div>
