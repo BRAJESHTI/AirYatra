@@ -172,6 +172,7 @@ function GlobalSettings() {
   const tabs = [
     { id: 'platform', label: 'Platform', icon: Settings },
     { id: 'pricing', label: 'Pricing', icon: Calculator },
+    { id: 'payment_rules', label: 'Payment Rules', icon: CreditCard, highlight: true },
     { id: 'flight_types', label: 'Flight Types', icon: Plane, highlight: true },
     { id: 'inquiry_distribution', label: 'Inquiry Distribution', icon: Radio, highlight: true },
     { id: 'settlement', label: 'Settlement Automation', icon: DollarSign, highlight: true },
