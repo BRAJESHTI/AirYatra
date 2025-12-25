@@ -517,22 +517,31 @@ async def get_operator_pending_inquiries(operator_id: str) -> List[dict]:
     mappings = await db.inquiry_operator_mappings.find(
         {
             "operator_id": operator_id,
-            "status": "pending",
-            "expire_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+            "status": "pending"
         },
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     
-    # Enrich with booking details
+    # Enrich with inquiry/booking details
+    result = []
     for mapping in mappings:
-        booking = await db.bookings.find_one(
-            {"id": mapping["booking_id"]},
+        # Try inquiries first (new flow), then bookings (old flow)
+        inquiry = await db.inquiries.find_one(
+            {"id": mapping.get("inquiry_id") or mapping.get("booking_id")},
             {"_id": 0}
         )
-        if booking:
-            mapping["booking_details"] = prepare_operator_notification(booking, mapping["distance_km"])
+        if not inquiry:
+            inquiry = await db.bookings.find_one(
+                {"id": mapping.get("booking_id")},
+                {"_id": 0}
+            )
+        
+        if inquiry:
+            mapping["booking_details"] = prepare_operator_notification(inquiry, mapping.get("distance_km", 0))
+            mapping["inquiry_number"] = inquiry.get("inquiry_number") or inquiry.get("booking_number")
+            result.append(mapping)
     
-    return mappings
+    return result
 
 async def expire_old_inquiries():
     """Background task to expire old pending inquiries"""
