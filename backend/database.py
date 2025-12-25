@@ -24,3 +24,9 @@ async def close_mongo_connection():
 def get_database():
     """Get database instance"""
     return db.client[settings.db_name]
+
+def get_database_sync():
+    """Get database instance for sync/scheduler contexts"""
+    if db.client is None:
+        return None
+    return db.client[settings.db_name]
