@@ -271,16 +271,21 @@ function BookingPage({ user }) {
   };
 
   const handleLocationSelect = (type, locationData) => {
+    console.log(`handleLocationSelect called for ${type}:`, locationData);
     const prefix = type === 'pickup' ? 'pickup' : 'drop';
-    setFormData(prev => ({
-      ...prev,
-      [`${prefix}_pincode`]: locationData.pincode || '',
-      [`${prefix}_location`]: locationData.area || locationData.location || '',
-      [`${prefix}_state`]: locationData.state || '',
-      [`${prefix}_district`]: locationData.district || '',
-      [`${prefix}_latitude`]: locationData.latitude || null,
-      [`${prefix}_longitude`]: locationData.longitude || null,
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [`${prefix}_pincode`]: locationData.pincode || '',
+        [`${prefix}_location`]: locationData.area || locationData.location || '',
+        [`${prefix}_state`]: locationData.state || '',
+        [`${prefix}_district`]: locationData.district || '',
+        [`${prefix}_latitude`]: parseFloat(locationData.latitude) || null,
+        [`${prefix}_longitude`]: parseFloat(locationData.longitude) || null,
+      };
+      console.log(`Updated ${prefix} coordinates:`, newData[`${prefix}_latitude`], newData[`${prefix}_longitude`]);
+      return newData;
+    });
   };
 
   const validateStep = (step) => {
