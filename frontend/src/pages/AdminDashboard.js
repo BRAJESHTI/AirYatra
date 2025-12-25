@@ -61,6 +61,10 @@ const navItems = [
   { id: 'landing_rent', label: 'Landing Rent', icon: DollarSign, section: 'landing' },
   { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, section: 'landing', highlight: true },
   { id: 'referral', label: 'Referral & Discount', icon: Gift },
+  // HR Section
+  { id: 'incentives', label: 'Incentives / इंसेंटिव', icon: Wallet, section: 'hr' },
+  { id: 'attendance', label: 'Attendance & Payroll', icon: CreditCard, section: 'hr' },
+  { id: 'field_tracking', label: 'Live Tracking', icon: Navigation, section: 'hr', highlight: true },
   { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
   { id: 'call_recording', label: 'Call Recording', icon: Phone },
   { id: 'scheduler', label: 'Scheduler', icon: Clock },
