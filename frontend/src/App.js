@@ -94,6 +94,10 @@ function App() {
           path="/regional/*"
           element={user && (user.roles.includes('regional_manager') || user.roles.includes('admin')) ? <RegionalManagerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
+        <Route
+          path="/helipad-owner/*"
+          element={user && (user.roles.includes('helipad_owner') || user.roles.includes('admin')) ? <HelipadOwnerDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />}
+        />
         <Route path="/booking" element={<BookingPage user={user} />} />
       </Routes>
       
