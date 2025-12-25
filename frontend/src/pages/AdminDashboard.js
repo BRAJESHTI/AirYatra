@@ -133,6 +133,8 @@ function AdminDashboard({ user, onLogout }) {
         return <ReferralSettings />;
       case 'api_keys':
         return <APIKeysSettings user={user} />;
+      case 'call_recording':
+        return <CallRecordingSettings />;
       case 'scheduler':
         return <SchedulerStatus />;
       case 'chat':
