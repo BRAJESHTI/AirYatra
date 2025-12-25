@@ -18,20 +18,16 @@ function DGCACompliance() {
   const loadData = async () => {
     setLoading(true);
     try {
-      console.log('DGCA: Starting API calls...');
       const [dashRes, alertsRes, limitsRes] = await Promise.all([
         api.get('/dgca/dashboard'),
         api.get('/dgca/alerts'),
         api.get('/dgca/limits')
       ]);
-      console.log('DGCA Dashboard Response:', dashRes.data);
-      console.log('DGCA Alerts Response:', alertsRes.data);
-      console.log('DGCA Limits Response:', limitsRes.data);
       setDashboard(dashRes.data);
       setAlerts(alertsRes.data.alerts || []);
       setLimits(limitsRes.data.limits || limitsRes.data || {});
     } catch (error) { 
-      console.error('DGCA API Error:', error); 
+      console.error('Failed to load DGCA data:', error); 
     }
     finally { setLoading(false); }
   };
