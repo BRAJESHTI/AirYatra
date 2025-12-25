@@ -531,3 +531,25 @@ agent_communication:
     4. मूल्य/Price: KM calculation + Price breakdown + Generate Inquiry
     
     Backend API working - creates inquiry with pending_acceptance status and broadcasts to nearby operators."
+
+  - task: "Payment Rules by Booking Purpose"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/admin/PaymentSettings.js"
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Admin can now set 50% or 100% payment advance per booking purpose. New PaymentSettings component in Global Settings. Backend API /settings/payment-rules working."
+
+  - task: "Passenger Details Form"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/customer/PassengerDetailsForm.js"
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "PassengerDetailsForm component created with: Name, Gender M/F, Age, Weight kg, Luggage Count, Luggage Weight, ID Proof (optional). Backend API /customer/trips/{id}/passenger-details working."
+
+agent_communication:
+  - agent: "main"
+    message: "Implemented: 1) Admin Payment Rules - set 50%/100% advance per booking purpose 2) PassengerDetailsForm - Weight, Luggage, optional ID proof 3) Backend APIs working. Screenshots verified Admin panel showing Payment Rules tab."
