@@ -127,12 +127,14 @@ async def health_check():
 async def startup_event():
     logger.info("Starting AirYatra API...")
     await connect_to_mongo()
-    logger.info("AirYatra API started successfully")
+    start_scheduler()
+    logger.info("AirYatra API started successfully with background scheduler")
 
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down AirYatra API...")
+    stop_scheduler()
     await close_mongo_connection()
     logger.info("AirYatra API shut down successfully")
 
