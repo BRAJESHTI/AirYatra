@@ -672,3 +672,65 @@ async def update_payment_rules(
     })
     
     return {"message": "Payment rules updated successfully / भुगतान नियम अपडेट हो गए", "settings": settings_data}
+
+
+# ============== GST/PAN VERIFICATION API SETTINGS ==============
+
+class VerificationAPISettings(BaseModel):
+    gst_verification_enabled: str = "false"
+    gst_verification_api_key: str = ""
+    gst_verification_api_url: str = ""
+    pan_verification_enabled: str = "false"
+    pan_verification_api_key: str = ""
+    pan_verification_api_url: str = ""
+
+@router.get("/api-keys")
+async def get_api_keys_settings(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get API keys settings including GST/PAN verification"""
+    api_keys = await db.api_keys_settings.find_one({"type": "api_keys"}, {"_id": 0})
+    if not api_keys:
+        api_keys = {
+            "type": "api_keys",
+            "gst_verification_enabled": "false",
+            "gst_verification_api_key": "",
+            "gst_verification_api_url": "",
+            "pan_verification_enabled": "false", 
+            "pan_verification_api_key": "",
+            "pan_verification_api_url": ""
+        }
+    return api_keys
+
+@router.post("/api-keys")
+async def update_api_keys_settings(
+    settings: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update API keys settings including GST/PAN verification"""
+    settings["type"] = "api_keys"
+    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    settings["updated_by"] = current_user["id"]
+    
+    await db.api_keys_settings.update_one(
+        {"type": "api_keys"},
+        {"$set": settings},
+        upsert=True
+    )
+    
+    # Audit log (without actual key values)
+    await db.audit_logs.insert_one({
+        "id": str(uuid4()),
+        "action": "api_keys_settings_update",
+        "entity_type": "settings",
+        "entity_id": "api_keys",
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "changes": {"updated_fields": list(settings.keys())},
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "API settings updated successfully"}
+
