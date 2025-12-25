@@ -217,10 +217,10 @@ function EmergentAuthCallback({ onLogin }) {
 
 function GoogleLoginButton({ onSuccess, onError, buttonText = "Continue with Google / Google से जारी रखें" }) {
   const [loading, setLoading] = useState(false);
-  const [googleSettings, setGoogleSettings] = useState(null);
+  const [googleSettings, setGoogleSettings] = useState({ enabled: true, use_emergent_auth: true });
 
   useEffect(() => {
-    // No need to load Google settings for Emergent Auth
+    loadGoogleSettings();
   }, []);
 
   const loadGoogleSettings = async () => {
@@ -229,6 +229,8 @@ function GoogleLoginButton({ onSuccess, onError, buttonText = "Continue with Goo
       setGoogleSettings(response.data);
     } catch (error) {
       console.error('Failed to load Google settings');
+      // Default to enabled
+      setGoogleSettings({ enabled: true, use_emergent_auth: true });
     }
   };
 
