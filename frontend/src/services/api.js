@@ -437,7 +437,8 @@ export const settlementAutomationAPI = {
 
 // Landing Infrastructure API
 export const landingAPI = {
-  // Public endpoints
+  // Public endpoints (no auth required)
+  publicSearch: (query, type, state) => api.get('/landing/public/search', { params: { query, type, state } }),
   getAirports: (state) => api.get('/landing/public/airports', { params: state ? { state } : {} }),
   getHelipads: (state, type) => api.get('/landing/public/helipads', { params: { state, type } }),
   
