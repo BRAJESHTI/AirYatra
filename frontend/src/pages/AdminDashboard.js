@@ -77,7 +77,7 @@ function AdminDashboard({ user, onLogout }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} />;
+        return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} onNavigate={setActiveTab} />;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'reports':
