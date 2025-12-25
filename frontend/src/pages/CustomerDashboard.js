@@ -60,6 +60,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <CustomerProfile user={user} />;
       case 'messages':
         return <ChatWidget user={user} />;
+      case 'refer':
+        return <ReferAndEarn user={user} />;
       default:
         return (
           <div className="max-w-6xl mx-auto">
