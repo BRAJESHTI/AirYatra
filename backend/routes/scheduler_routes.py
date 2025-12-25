@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
-from middleware import get_current_user, require_admin
+from middleware import get_current_user, require_roles, UserRole
 from scheduler import scheduler, auto_reassign_stale_leads
 import asyncio
 
 router = APIRouter(prefix="/scheduler", tags=["Background Scheduler"])
+
+# Admin-only dependency
+require_admin = require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])
 
 @router.get("/status")
 async def get_scheduler_status(current_user: dict = Depends(require_admin)):
