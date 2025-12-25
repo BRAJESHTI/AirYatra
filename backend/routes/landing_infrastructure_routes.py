@@ -17,6 +17,82 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/landing", tags=["Landing Infrastructure"])
 
 
+# ============== PUBLIC ENDPOINTS (No Auth Required) ==============
+
+@router.get("/public/search")
+async def public_search_landing_points(
+    query: Optional[str] = None,
+    type: Optional[str] = None,
+    state: Optional[str] = None,
+    limit: int = 20
+):
+    """Public search for landing points - for booking page"""
+    db = get_database()
+    
+    search_query = {"is_active": True}
+    
+    if type:
+        search_query["type"] = type
+    if state:
+        search_query["state"] = {"$regex": state, "$options": "i"}
+    
+    # Text search on name, city, state
+    if query and len(query) >= 2:
+        search_query["$or"] = [
+            {"name": {"$regex": query, "$options": "i"}},
+            {"city": {"$regex": query, "$options": "i"}},
+            {"state": {"$regex": query, "$options": "i"}},
+            {"code": {"$regex": query, "$options": "i"}}
+        ]
+    
+    landing_points = await db.landing_points.find(
+        search_query, {"_id": 0}
+    ).limit(limit).to_list(limit)
+    
+    return {
+        "landing_points": landing_points,
+        "total": len(landing_points)
+    }
+
+
+@router.get("/public/airports")
+async def get_public_airports(state: Optional[str] = None):
+    """Get list of airports for public use"""
+    db = get_database()
+    query = {"type": "airport", "is_active": True}
+    if state:
+        query["state"] = {"$regex": state, "$options": "i"}
+    
+    airports = await db.landing_points.find(
+        query, {"_id": 0, "id": 1, "name": 1, "code": 1, "city": 1, "state": 1, "latitude": 1, "longitude": 1}
+    ).to_list(100)
+    
+    return {"airports": airports}
+
+
+@router.get("/public/helipads")
+async def get_public_helipads(state: Optional[str] = None, type: Optional[str] = None):
+    """Get list of helipads for public use"""
+    db = get_database()
+    query = {"is_active": True}
+    
+    if type == "govt":
+        query["type"] = "govt_helipad"
+    elif type == "private":
+        query["type"] = "private_helipad"
+    else:
+        query["type"] = {"$in": ["govt_helipad", "private_helipad"]}
+    
+    if state:
+        query["state"] = {"$regex": state, "$options": "i"}
+    
+    helipads = await db.landing_points.find(
+        query, {"_id": 0}
+    ).to_list(100)
+    
+    return {"helipads": helipads}
+
+
 # ============== HELPER FUNCTIONS ==============
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
