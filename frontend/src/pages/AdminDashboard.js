@@ -142,6 +142,17 @@ function AdminDashboard({ user, onLogout }) {
         return <MarketingCampaigns />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
+      // Priority 3 Features
+      case 'dynamic_pricing':
+        return <DynamicPricing />;
+      case 'route_optimization':
+        return <RouteOptimization />;
+      case 'insurance':
+        return <InsuranceModule />;
+      case 'knowledge_base':
+        return <KnowledgeBase />;
+      case 'sos':
+        return <SOSDashboard />;
       case 'crm':
         return <CRMDashboard />;
       case 'webhooks':
