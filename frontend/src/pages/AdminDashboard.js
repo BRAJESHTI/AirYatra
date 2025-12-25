@@ -269,9 +269,9 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       </nav>
 
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-73px)]">
         {/* Sidebar Navigation */}
-        <aside className="w-64 min-h-[calc(100vh-73px)] bg-slate-900/50 border-r border-slate-800">
+        <aside className="w-64 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
           <nav className="p-4 space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
