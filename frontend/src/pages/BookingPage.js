@@ -375,8 +375,10 @@ function BookingPage({ user }) {
       
       toast.success('🎉 Inquiry submitted! Operators will respond soon / इंक्वायरी जमा! ऑपरेटर जल्द जवाब देंगे');
       
-      // Navigate to status page or dashboard
-      navigate('/customer', { state: { newInquiry: response.data.inquiry_id } });
+      // Navigate to inquiry status page
+      navigate(`/customer/inquiry/${response.data.inquiry_id}`, { 
+        state: { newInquiry: true } 
+      });
       
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit inquiry');
