@@ -27,6 +27,22 @@ GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "")
 EMERGENT_GOOGLE_AUTH_URL = "https://auth.emergentagent.com/google"
 EMERGENT_CALLBACK_URL = os.environ.get("EMERGENT_CALLBACK_URL", "")
 
+
+@router.get("/settings")
+async def get_google_auth_settings():
+    """Get Google Auth settings for frontend"""
+    db = get_database()
+    settings = await db.settings.find_one({"type": "google_auth"}, {"_id": 0})
+    
+    if not settings:
+        return {"enabled": True, "use_emergent_auth": True}
+    
+    return {
+        "enabled": settings.get("enabled", True),
+        "use_emergent_auth": settings.get("use_emergent_auth", True)
+    }
+
+
 @router.get("/login")
 async def google_login(request: Request):
     """
