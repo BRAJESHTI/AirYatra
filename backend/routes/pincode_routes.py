@@ -353,8 +353,7 @@ def get_fallback_pincode_data(pincode: str):
         "82": ("Bihar", "Muzaffarpur", 26.1225, 85.3906),
         # Jharkhand
         "83": ("Jharkhand", "Ranchi", 23.3441, 85.3096),
-        # Goa
-        "40": ("Goa", "Panaji", 15.4909, 73.8278),  # Some Goa pincodes start with 40
+        # Note: Goa pincodes (403xxx) are handled by live API, not prefix-based fallback
     }
     
     if prefix in state_map:
