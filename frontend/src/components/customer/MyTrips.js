@@ -324,8 +324,18 @@ function MyTrips({ user }) {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t border-slate-700">
+                {/* View Status for Inquiries */}
+                {trip.source === 'inquiry' && (
+                  <Button
+                    size="sm"
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={() => window.location.href = `/customer/inquiry/${trip.id}`}
+                  >
+                    <FileText className="h-4 w-4 mr-1" /> View Status / स्थिति देखें
+                  </Button>
+                )}
                 {/* View Quotes Button for pending bookings */}
-                {['pending', 'pending_quotes', 'quote_sent', 'quotes_received'].includes(trip.status) && (
+                {['pending', 'pending_quotes', 'quote_sent', 'quotes_received', 'quote_received'].includes(trip.status) && trip.source !== 'inquiry' && (
                   <Button
                     size="sm"
                     className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"
