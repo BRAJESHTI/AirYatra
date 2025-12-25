@@ -166,6 +166,17 @@ function AdminDashboard({ user, onLogout }) {
         return <KnowledgeBase />;
       case 'sos':
         return <SOSDashboard />;
+      // Production Advanced Features
+      case 'live_tracking':
+        return <LiveFlightTracking />;
+      case 'doc_verify':
+        return <DocumentVerification />;
+      case 'multileg':
+        return <MultiLegBooking />;
+      case 'inventory':
+        return <InventoryManagement />;
+      case 'dgca':
+        return <DGCACompliance />;
       case 'crm':
         return <CRMDashboard />;
       case 'webhooks':
