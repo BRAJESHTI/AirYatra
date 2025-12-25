@@ -128,25 +128,39 @@ function AdminOverview({ data, onRefresh, loading, onNavigate }) {
               <IndianRupee className="h-10 w-10 text-blue-400" />
               <div>
                 <p className="text-sm text-slate-400">Operator Payouts</p>
-              <p className="text-2xl font-bold text-white">₹{(revenue.operator_payout || 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">₹{(revenue.operator_payout || 0).toLocaleString()}</p>
+              </div>
             </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white transition-colors" />
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Recent Bookings & Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Bookings */}
+        {/* Recent Bookings - CLICKABLE */}
         <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
-          <h3 className="text-lg font-semibold text-white mb-4">Recent Bookings</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Recent Bookings</h3>
+            <button 
+              onClick={() => handleCardClick('bookings')}
+              className="text-sm text-orange-400 hover:text-orange-300 flex items-center gap-1"
+            >
+              View All <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
           <div className="space-y-3">
             {recentBookings.length > 0 ? (
               recentBookings.slice(0, 5).map((booking, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50">
+                <button 
+                  key={index} 
+                  onClick={() => handleCardClick('bookings')}
+                  className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer text-left"
+                >
                   <div>
                     <p className="text-white font-medium">{booking.booking_number || `#${booking.id?.slice(0, 8)}`}</p>
                     <p className="text-sm text-slate-400">
-                      {booking.from_location} → {booking.to_location}
+                      {booking.from_location || booking.pickup_location} → {booking.to_location || booking.drop_location}
                     </p>
                   </div>
                   <div className="text-right">
@@ -160,7 +174,7 @@ function AdminOverview({ data, onRefresh, loading, onNavigate }) {
                     </span>
                     <p className="text-sm text-slate-400 mt-1">{booking.customer_name || 'Customer'}</p>
                   </div>
-                </div>
+                </button>
               ))
             ) : (
               <p className="text-slate-400 text-center py-4">No recent bookings</p>
