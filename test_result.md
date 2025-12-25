@@ -53,10 +53,30 @@ Date: 2025-12-25
   - `ReferAndEarn.js` - Customer referral component
   - `ReferralSettings.js` - Admin referral/discount management
 
-### BookingPage Refactoring - IN PROGRESS
+### BookingPage Refactoring - COMPLETED ✅
 - Created modular components in `/app/frontend/src/components/booking/`
-- `BookingStepIndicator.js` - Now integrated into BookingPage.js
-- `AircraftPassengerStep.js`, `BookingPurposeStep.js`, `RouteSelectionStep.js`, `PriceSummaryStep.js` - Created but full integration pending
+- `BookingStepIndicator.js` - Integrated into BookingPage.js
+- Created `bookingConfig.js` - Shared constants for:
+  - Aircraft types
+  - Udan Prakar options (flight types)
+  - Booking purpose options
+  - Pricing multipliers
+  - Default settings
+- Updated `BookingPage.js` to import from modular config
+- Removed duplicate inline constants
+
+### GST/PAN API Integration - COMPLETED ✅
+- **Backend:** `/app/backend/routes/verification_gst_pan_routes.py`
+  - Live API integration ready (when enabled + keys configured)
+  - Sample/mock data for testing
+  - Caching of verified records
+- **Frontend:** `/app/frontend/src/components/admin/APIKeysSettings.js`
+  - GST API URL + Key configuration
+  - PAN API URL + Key configuration
+  - Enable/Disable toggles
+  - Test buttons
+  - Sample test data displayed
+- Added `API Keys (GST/PAN)` tab to Admin Dashboard
 
 ## Test Scenarios
 
