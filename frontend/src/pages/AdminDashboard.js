@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Bot, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -72,75 +72,141 @@ import TwoFactorAuth from '@/components/admin/TwoFactorAuth';
 import CalendarSync from '@/components/admin/CalendarSync';
 import AccountingIntegration from '@/components/admin/AccountingIntegration';
 
-const navItems = [
-  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'support', label: 'Support Helpdesk', icon: Headphones, highlight: true, section: 'new' },
-  { id: 'reviews', label: 'Reviews & Ratings', icon: Star, section: 'new' },
-  { id: 'weather', label: 'Weather / Flight Safety', icon: Cloud, highlight: true, section: 'new' },
-  { id: 'invoices', label: 'Invoice & Billing', icon: FileText, section: 'p2' },
-  { id: 'loyalty', label: 'VIP & Loyalty', icon: Gift, section: 'p2' },
-  { id: 'marketing', label: 'Marketing', icon: TrendingUp, section: 'p2' },
-  { id: 'fleet_maintenance', label: 'Fleet Maintenance', icon: Settings, section: 'p2' },
-  // Priority 3 Features
-  { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator, section: 'p3', highlight: true },
-  { id: 'route_optimization', label: 'Route Optimization', icon: Route, section: 'p3' },
-  { id: 'insurance', label: 'Insurance Module', icon: Shield, section: 'p3' },
-  { id: 'knowledge_base', label: 'Knowledge Base/FAQ', icon: BookOpen, section: 'p3' },
-  { id: 'sos', label: 'Emergency SOS', icon: Siren, section: 'p3', highlight: true },
-  // Production Advanced Features
-  { id: 'live_tracking', label: 'Live Flight Tracking', icon: Radio, section: 'prod', highlight: true },
-  { id: 'doc_verify', label: 'Document Verification', icon: FileCheck, section: 'prod' },
-  { id: 'multileg', label: 'Multi-Leg Booking', icon: Route, section: 'prod' },
-  { id: 'inventory', label: 'Inventory Management', icon: Package, section: 'prod' },
-  { id: 'dgca', label: 'DGCA Compliance', icon: Shield, section: 'prod', highlight: true },
-  // Medium Priority Features
-  { id: 'push_notifications', label: 'Push Notifications', icon: Bell, section: 'medium' },
-  { id: 'boarding_pass', label: 'Digital Boarding Pass', icon: FileCheck, section: 'medium' },
-  { id: 'currency', label: 'Currency Converter', icon: DollarSign, section: 'medium' },
-  { id: 'predictive', label: 'Predictive Analytics', icon: BarChart3, section: 'medium', highlight: true },
-  { id: 'voice_video', label: 'Voice/Video Support', icon: Phone, section: 'medium' },
-  // Low Priority Features
-  { id: 'ai_chatbot', label: 'AI Chatbot', icon: MessageSquare, section: 'low' },
-  { id: 'two_factor', label: '2FA Security', icon: Shield, section: 'low' },
-  { id: 'calendar_sync', label: 'Calendar Sync', icon: Calendar, section: 'low' },
-  { id: 'accounting', label: 'Accounting Integration', icon: Calculator, section: 'low' },
-  { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
-  { id: 'webhooks', label: 'Webhooks', icon: Globe },
-  { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'reports', label: 'Reports', icon: PieChart },
-  { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
-  { id: 'multi_approval', label: 'Multi-Level Approvals', icon: Shield, highlight: true },
-  { id: 'users', label: 'User Management', icon: UserCog },
-  { id: 'roles', label: 'Roles & Permissions', icon: Shield },
-  { id: 'operators', label: 'Operators', icon: Building2 },
-  { id: 'operator_performance', label: 'Operator Performance', icon: TrendingUp },
-  { id: 'suspended', label: 'Suspended Operators', icon: Ban },
-  { id: 'bookings', label: 'Bookings', icon: Calendar },
-  { id: 'permissions', label: 'Landing Permissions', icon: Shield },
-  { id: 'settlements', label: 'Settlements', icon: DollarSign },
-  // Landing Infrastructure Section
-  { id: 'landing_infra', label: 'Landing Points', icon: MapPin, section: 'landing' },
-  { id: 'helipad_calendar', label: 'Helipad Calendar', icon: Calendar, section: 'landing' },
-  { id: 'landing_rent', label: 'Landing Rent', icon: DollarSign, section: 'landing' },
-  { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, section: 'landing', highlight: true },
-  { id: 'referral', label: 'Referral & Discount', icon: Gift },
-  // HR Section
-  { id: 'incentives', label: 'Incentives / इंसेंटिव', icon: Wallet, section: 'hr' },
-  { id: 'attendance', label: 'Attendance & Payroll', icon: CreditCard, section: 'hr' },
-  { id: 'field_tracking', label: 'Live Tracking', icon: Navigation, section: 'hr', highlight: true },
-  { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
-  { id: 'call_recording', label: 'Call Recording', icon: Phone },
-  { id: 'scheduler', label: 'Scheduler', icon: Clock },
-  { id: 'chat', label: 'Messages', icon: MessageSquare },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'settings', label: 'Settings', icon: Settings },
+// Organized Navigation Structure - 8 Main Categories
+const navGroups = [
+  {
+    id: 'main',
+    label: 'Main Dashboard',
+    icon: LayoutDashboard,
+    items: [
+      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+      { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
+      { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
+      { id: 'multi_approval', label: 'Multi-Level Approvals', icon: Shield },
+    ]
+  },
+  {
+    id: 'bookings',
+    label: 'Bookings & Flights',
+    icon: Calendar,
+    items: [
+      { id: 'bookings', label: 'All Bookings', icon: Calendar },
+      { id: 'multileg', label: 'Multi-Leg Booking', icon: Route },
+      { id: 'live_tracking', label: 'Live Flight Tracking', icon: Radio, highlight: true },
+      { id: 'boarding_pass', label: 'Digital Boarding Pass', icon: FileCheck },
+      { id: 'inventory', label: 'Inventory / Slots', icon: Package },
+      { id: 'weather', label: 'Weather / Flight Safety', icon: Cloud },
+      { id: 'sos', label: 'Emergency SOS', icon: Siren, highlight: true },
+    ]
+  },
+  {
+    id: 'operators',
+    label: 'Operators & Fleet',
+    icon: Building2,
+    items: [
+      { id: 'operators', label: 'Operator Management', icon: Building2 },
+      { id: 'operator_performance', label: 'Operator Performance', icon: TrendingUp },
+      { id: 'suspended', label: 'Suspended Operators', icon: Ban },
+      { id: 'fleet_maintenance', label: 'Fleet Maintenance', icon: Settings },
+      { id: 'doc_verify', label: 'Document Verification', icon: FileCheck },
+      { id: 'dgca', label: 'DGCA Compliance', icon: Shield, highlight: true },
+      { id: 'permissions', label: 'Landing Permissions', icon: Shield },
+    ]
+  },
+  {
+    id: 'landing',
+    label: 'Landing Infrastructure',
+    icon: Map,
+    items: [
+      { id: 'landing_infra', label: 'Landing Points', icon: MapPin },
+      { id: 'helipad_calendar', label: 'Helipad Calendar', icon: Calendar },
+      { id: 'landing_rent', label: 'Landing Rent', icon: DollarSign },
+      { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, highlight: true },
+      { id: 'route_optimization', label: 'Route Optimization', icon: Route },
+    ]
+  },
+  {
+    id: 'finance',
+    label: 'Finance & Billing',
+    icon: DollarSign,
+    items: [
+      { id: 'settlements', label: 'Settlements', icon: DollarSign },
+      { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
+      { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator, highlight: true },
+      { id: 'currency', label: 'Currency Converter', icon: DollarSign },
+      { id: 'insurance', label: 'Insurance Module', icon: Shield },
+      { id: 'accounting', label: 'Accounting Integration', icon: Calculator },
+    ]
+  },
+  {
+    id: 'crm_support',
+    label: 'CRM & Support',
+    icon: Headphones,
+    items: [
+      { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
+      { id: 'support', label: 'Support Helpdesk', icon: Headphones },
+      { id: 'reviews', label: 'Reviews & Ratings', icon: Star },
+      { id: 'chat', label: 'Messages', icon: MessageSquare },
+      { id: 'ai_chatbot', label: 'AI Chatbot', icon: Bot },
+      { id: 'voice_video', label: 'Voice/Video Support', icon: Phone },
+      { id: 'knowledge_base', label: 'Knowledge Base/FAQ', icon: BookOpen },
+    ]
+  },
+  {
+    id: 'users_hr',
+    label: 'Users & HR',
+    icon: Users2,
+    items: [
+      { id: 'users', label: 'User Management', icon: UserCog },
+      { id: 'roles', label: 'Roles & Permissions', icon: Shield },
+      { id: 'incentives', label: 'Incentives / इंसेंटिव', icon: Wallet },
+      { id: 'attendance', label: 'Attendance & Payroll', icon: CreditCard },
+      { id: 'field_tracking', label: 'Field Live Tracking', icon: Navigation, highlight: true },
+      { id: 'two_factor', label: '2FA Security', icon: Shield },
+    ]
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics & Reports',
+    icon: BarChart3,
+    items: [
+      { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
+      { id: 'reports', label: 'Reports', icon: PieChart },
+      { id: 'predictive', label: 'Predictive Analytics', icon: BarChart3, highlight: true },
+      { id: 'audit', label: 'Audit Logs', icon: FileText },
+    ]
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing & Loyalty',
+    icon: Gift,
+    items: [
+      { id: 'marketing', label: 'Marketing Campaigns', icon: TrendingUp },
+      { id: 'loyalty', label: 'VIP & Loyalty Program', icon: Gift },
+      { id: 'referral', label: 'Referral & Discount', icon: Gift },
+      { id: 'push_notifications', label: 'Push Notifications', icon: Bell },
+    ]
+  },
+  {
+    id: 'settings',
+    label: 'Settings & System',
+    icon: Cog,
+    items: [
+      { id: 'settings', label: 'Global Settings', icon: Settings },
+      { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
+      { id: 'webhooks', label: 'Webhooks', icon: Globe },
+      { id: 'call_recording', label: 'Call Recording', icon: Phone },
+      { id: 'calendar_sync', label: 'Calendar Sync', icon: Calendar },
+      { id: 'scheduler', label: 'Scheduler', icon: Clock },
+    ]
+  },
 ];
 
 function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState(['main']); // Main dashboard expanded by default
 
   useEffect(() => {
     loadDashboard();
@@ -155,6 +221,32 @@ function AdminDashboard({ user, onLogout }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  const handleNavClick = (itemId, groupId) => {
+    setActiveTab(itemId);
+    // Auto-expand the group when item is selected
+    if (!expandedGroups.includes(groupId)) {
+      setExpandedGroups(prev => [...prev, groupId]);
+    }
+  };
+
+  // Find which group the active tab belongs to
+  const getActiveGroup = () => {
+    for (const group of navGroups) {
+      if (group.items.some(item => item.id === activeTab)) {
+        return group.id;
+      }
+    }
+    return null;
   };
 
   const renderContent = () => {
@@ -284,6 +376,8 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  const activeGroup = getActiveGroup();
+
   return (
     <div className="min-h-screen bg-slate-950" data-testid="admin-dashboard">
       {/* Top Navigation */}
@@ -312,26 +406,67 @@ function AdminDashboard({ user, onLogout }) {
       </nav>
 
       <div className="flex min-h-[calc(100vh-73px)]">
-        {/* Sidebar Navigation */}
-        <aside className="w-64 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
-          <nav className="p-4 space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
+        {/* Sidebar Navigation - Collapsible Groups */}
+        <aside className="w-72 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
+          <nav className="p-3 space-y-1">
+            {navGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isExpanded = expandedGroups.includes(group.id);
+              const isActiveGroup = activeGroup === group.id;
+              const hasHighlight = group.items.some(item => item.highlight);
+
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                    activeTab === item.id
-                      ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                      : item.highlight 
-                        ? 'text-yellow-400 hover:bg-yellow-500/20 border border-yellow-500/30'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                </button>
+                <div key={group.id} className="mb-1">
+                  {/* Group Header - Collapsible */}
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                      isActiveGroup
+                        ? 'bg-orange-500/20 text-orange-400'
+                        : hasHighlight
+                          ? 'text-slate-200 hover:bg-slate-800'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <GroupIcon className={`h-5 w-5 ${isActiveGroup ? 'text-orange-400' : ''}`} />
+                      <span className="font-medium text-sm">{group.label}</span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+
+                  {/* Group Items - Expandable */}
+                  {isExpanded && (
+                    <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
+                      {group.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleNavClick(item.id, group.id)}
+                            className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
+                              activeTab === item.id
+                                ? 'bg-orange-500 text-white'
+                                : item.highlight
+                                  ? 'text-yellow-400 hover:bg-yellow-500/20'
+                                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <ItemIcon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                            {item.highlight && activeTab !== item.id && (
+                              <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
