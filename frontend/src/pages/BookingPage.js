@@ -889,8 +889,25 @@ function BookingPage({ user }) {
           <div className="text-slate-400">Flight Type:</div>
           <div className="text-white">{udanPrakarOptions.find(o => o.value === formData.udan_prakar)?.label || '-'}</div>
           
-          <div className="text-slate-400">Route:</div>
-          <div className="text-white">{formData.pickup_location} → {formData.drop_location}</div>
+          <div className="text-slate-400">Pickup:</div>
+          <div className="text-white">
+            {formData.pickup_landing_point?.landing_point_name || formData.pickup_location}
+            {formData.pickup_landing_point?.landing_point_type && (
+              <span className="ml-2 text-xs px-2 py-0.5 bg-slate-700 rounded">
+                {formData.pickup_landing_point.landing_point_type.replace('_', ' ')}
+              </span>
+            )}
+          </div>
+          
+          <div className="text-slate-400">Drop:</div>
+          <div className="text-white">
+            {formData.drop_landing_point?.landing_point_name || formData.drop_location}
+            {formData.drop_landing_point?.landing_point_type && (
+              <span className="ml-2 text-xs px-2 py-0.5 bg-slate-700 rounded">
+                {formData.drop_landing_point.landing_point_type.replace('_', ' ')}
+              </span>
+            )}
+          </div>
           
           <div className="text-slate-400">Distance:</div>
           <div className="text-orange-400 font-bold">{distanceKm} KM</div>
@@ -899,6 +916,24 @@ function BookingPage({ user }) {
           <div className="text-white">{formData.departure_date} at {formData.pickup_time}</div>
         </div>
       </div>
+
+      {/* Permission Required Warning */}
+      {permissionRequired && (
+        <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/30">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-6 w-6 text-yellow-400 shrink-0" />
+            <div>
+              <h4 className="text-yellow-400 font-semibold">⚠️ Village Landing - Admin Approval Required</h4>
+              <p className="text-yellow-400/70 text-sm mt-1">
+                Your inquiry will be submitted for admin approval. Payment will be enabled after approval.
+              </p>
+              <p className="text-yellow-400/70 text-sm">
+                आपकी इंक्वायरी एडमिन अप्रूवल के लिए भेजी जाएगी। अप्रूवल के बाद पेमेंट enabled होगी।
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Price Breakdown */}
       {priceEstimate && (
@@ -926,6 +961,30 @@ function BookingPage({ user }) {
               <span>₹{priceEstimate.gst?.toLocaleString()}</span>
             </div>
             
+            {/* Landing Charges */}
+            {priceEstimate.landing_charges > 0 && (
+              <>
+                <div className="border-t border-orange-500/30 pt-3 mt-3">
+                  <p className="text-slate-400 text-sm mb-2 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Landing Charges / लैंडिंग शुल्क:
+                  </p>
+                  {priceEstimate.pickup_landing_rent && (
+                    <div className="flex justify-between text-slate-300 text-sm pl-4">
+                      <span>Pickup ({priceEstimate.pickup_landing_rent.landing_point}):</span>
+                      <span>₹{priceEstimate.pickup_landing_rent.total_rent?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {priceEstimate.drop_landing_rent && (
+                    <div className="flex justify-between text-slate-300 text-sm pl-4">
+                      <span>Drop ({priceEstimate.drop_landing_rent.landing_point}):</span>
+                      <span>₹{priceEstimate.drop_landing_rent.total_rent?.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            
             <div className="border-t border-orange-500/30 pt-3 mt-3">
               <div className="flex justify-between text-lg font-bold">
                 <span className="text-white">Estimated Total:</span>
@@ -934,7 +993,7 @@ function BookingPage({ user }) {
             </div>
           </div>
           
-          <p className="text-amber-400 text-sm mt-4 flex items-center gap-2">
+          <p className={`text-sm mt-4 flex items-center gap-2 ${permissionRequired ? 'text-yellow-400' : 'text-amber-400'}`}>
             <AlertCircle className="h-4 w-4" />
             {priceEstimate.note}
           </p>
@@ -958,7 +1017,7 @@ function BookingPage({ user }) {
       <Button
         onClick={handleSubmitInquiry}
         disabled={submitting || !priceEstimate}
-        className="w-full py-6 text-lg bg-orange-500 hover:bg-orange-600"
+        className={`w-full py-6 text-lg ${permissionRequired ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-orange-500 hover:bg-orange-600'}`}
       >
         {submitting ? (
           <>
@@ -968,15 +1027,25 @@ function BookingPage({ user }) {
         ) : (
           <>
             <Send className="h-5 w-5 mr-2" />
-            Generate Inquiry / इंक्वायरी भेजें
+            {permissionRequired ? 'Submit for Approval / अनुमति के लिए भेजें' : 'Generate Inquiry / इंक्वायरी भेजें'}
           </>
         )}
       </Button>
 
       <p className="text-center text-slate-400 text-sm">
-        After inquiry, operators will review and send you their quotes.
-        <br />
-        इंक्वायरी के बाद, ऑपरेटर्स आपको कोट भेजेंगे।
+        {permissionRequired ? (
+          <>
+            Your inquiry requires admin approval for village landing.
+            <br />
+            गांव लैंडिंग के लिए एडमिन अप्रूवल जरूरी है।
+          </>
+        ) : (
+          <>
+            After inquiry, operators will review and send you their quotes.
+            <br />
+            इंक्वायरी के बाद, ऑपरेटर्स आपको कोट भेजेंगे।
+          </>
+        )}
       </p>
     </div>
   );
