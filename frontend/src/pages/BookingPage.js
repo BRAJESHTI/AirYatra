@@ -14,8 +14,20 @@ import { bookingAPI, settingsAPI, landingAPI } from '../services/api';
 import { toast } from 'sonner';
 import PinCodeInput from '../components/shared/PinCodeInput';
 import LandingPointSelector from '../components/shared/LandingPointSelector';
-// Import modular booking components
-import { BookingStepIndicator } from '../components/booking';
+// Import modular booking components and config
+import { 
+  BookingStepIndicator,
+  aircraftTypes,
+  udanPrakarOptions,
+  bookingForOptions,
+  bookingPurposeOptions,
+  bookingSteps,
+  udanPrakarMultipliers,
+  defaultPricingSettings,
+  villageLandingDocuments,
+  getOptionLabel,
+  calculateDistance,
+} from '../components/booking';
 
 // Customer Profile Card
 const CustomerProfileCard = ({ user }) => {
