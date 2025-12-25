@@ -242,6 +242,13 @@ def get_fallback_pincode_data(pincode: str):
         "600001": {"state": "Tamil Nadu", "district": "Chennai", "area": "Parrys", "lat": 13.0878, "lng": 80.2785},
         "700001": {"state": "West Bengal", "district": "Kolkata", "area": "BBD Bag", "lat": 22.5726, "lng": 88.3639},
         "560001": {"state": "Karnataka", "district": "Bangalore", "area": "MG Road", "lat": 12.9716, "lng": 77.5946},
+        "500001": {"state": "Telangana", "district": "Hyderabad", "area": "Abids", "lat": 17.3850, "lng": 78.4867},
+        "380001": {"state": "Gujarat", "district": "Ahmedabad", "area": "Lal Darwaja", "lat": 23.0225, "lng": 72.5714},
+        "302001": {"state": "Rajasthan", "district": "Jaipur", "area": "Pink City", "lat": 26.9124, "lng": 75.7873},
+        "226001": {"state": "Uttar Pradesh", "district": "Lucknow", "area": "Hazratganj", "lat": 26.8467, "lng": 80.9462},
+        "411001": {"state": "Maharashtra", "district": "Pune", "area": "Shivaji Nagar", "lat": 18.5204, "lng": 73.8567},
+        "201301": {"state": "Uttar Pradesh", "district": "Noida", "area": "Sector 1", "lat": 28.5355, "lng": 77.3910},
+        "122001": {"state": "Haryana", "district": "Gurgaon", "area": "Sector 14", "lat": 28.4595, "lng": 77.0266},
     }
     
     if pincode in FALLBACK_DATA:
@@ -264,31 +271,135 @@ def get_fallback_pincode_data(pincode: str):
             "longitude": data["lng"]
         }
     
-    # Estimate based on first 2 digits
+    # Comprehensive state mapping based on first 2 digits of PIN code
     prefix = pincode[:2]
     state_map = {
-        "11": ("Delhi", 28.6139, 77.2090),
-        "40": ("Maharashtra", 19.0760, 72.8777),
-        "56": ("Karnataka", 12.9716, 77.5946),
-        "60": ("Tamil Nadu", 13.0827, 80.2707),
-        "70": ("West Bengal", 22.5726, 88.3639),
+        # Delhi & NCR
+        "11": ("Delhi", "Delhi", 28.6139, 77.2090),
+        # Haryana
+        "12": ("Haryana", "Gurgaon", 28.4595, 77.0266),
+        "13": ("Punjab", "Chandigarh", 30.7333, 76.7794),
+        # Punjab
+        "14": ("Punjab", "Amritsar", 31.6340, 74.8723),
+        "15": ("Punjab", "Ludhiana", 30.9010, 75.8573),
+        "16": ("Punjab", "Jalandhar", 31.3260, 75.5762),
+        # Himachal Pradesh
+        "17": ("Himachal Pradesh", "Shimla", 31.1048, 77.1734),
+        # Jammu & Kashmir
+        "18": ("Jammu & Kashmir", "Jammu", 32.7266, 74.8570),
+        "19": ("Jammu & Kashmir", "Srinagar", 34.0837, 74.7973),
+        # Uttar Pradesh
+        "20": ("Uttar Pradesh", "Noida", 28.5355, 77.3910),
+        "21": ("Uttar Pradesh", "Agra", 27.1767, 78.0081),
+        "22": ("Uttar Pradesh", "Lucknow", 26.8467, 80.9462),
+        "23": ("Uttar Pradesh", "Varanasi", 25.3176, 82.9739),
+        "24": ("Uttarakhand", "Dehradun", 30.3165, 78.0322),
+        "25": ("Uttar Pradesh", "Allahabad", 25.4358, 81.8463),
+        "26": ("Uttar Pradesh", "Kanpur", 26.4499, 80.3319),
+        "27": ("Uttar Pradesh", "Bareilly", 28.3670, 79.4304),
+        "28": ("Uttar Pradesh", "Meerut", 28.9845, 77.7064),
+        # Rajasthan
+        "30": ("Rajasthan", "Jaipur", 26.9124, 75.7873),
+        "31": ("Rajasthan", "Bikaner", 28.0229, 73.3119),
+        "32": ("Rajasthan", "Jodhpur", 26.2389, 73.0243),
+        "33": ("Rajasthan", "Udaipur", 24.5854, 73.7125),
+        "34": ("Rajasthan", "Kota", 25.2138, 75.8648),
+        # Gujarat
+        "36": ("Gujarat", "Surat", 21.1702, 72.8311),
+        "37": ("Gujarat", "Vadodara", 22.3072, 73.1812),
+        "38": ("Gujarat", "Ahmedabad", 23.0225, 72.5714),
+        "39": ("Gujarat", "Rajkot", 22.3039, 70.8022),
+        # Maharashtra
+        "40": ("Maharashtra", "Mumbai", 19.0760, 72.8777),
+        "41": ("Maharashtra", "Pune", 18.5204, 73.8567),
+        "42": ("Maharashtra", "Nashik", 19.9975, 73.7898),
+        "43": ("Maharashtra", "Aurangabad", 19.8762, 75.3433),
+        "44": ("Maharashtra", "Nagpur", 21.1458, 79.0882),
+        # Madhya Pradesh
+        "45": ("Madhya Pradesh", "Indore", 22.7196, 75.8577),
+        "46": ("Madhya Pradesh", "Bhopal", 23.2599, 77.4126),
+        "47": ("Madhya Pradesh", "Jabalpur", 23.1815, 79.9864),
+        "48": ("Madhya Pradesh", "Gwalior", 26.2183, 78.1828),
+        # Chhattisgarh
+        "49": ("Chhattisgarh", "Raipur", 21.2514, 81.6296),
+        # Telangana / Andhra Pradesh
+        "50": ("Telangana", "Hyderabad", 17.3850, 78.4867),
+        "51": ("Telangana", "Warangal", 17.9784, 79.6000),
+        "52": ("Andhra Pradesh", "Vijayawada", 16.5062, 80.6480),
+        "53": ("Andhra Pradesh", "Visakhapatnam", 17.6868, 83.2185),
+        # Karnataka
+        "56": ("Karnataka", "Bangalore", 12.9716, 77.5946),
+        "57": ("Karnataka", "Mysore", 12.2958, 76.6394),
+        "58": ("Karnataka", "Hubli", 15.3647, 75.1240),
+        "59": ("Karnataka", "Mangalore", 12.9141, 74.8560),
+        # Tamil Nadu
+        "60": ("Tamil Nadu", "Chennai", 13.0827, 80.2707),
+        "62": ("Tamil Nadu", "Madurai", 9.9252, 78.1198),
+        "64": ("Tamil Nadu", "Coimbatore", 11.0168, 76.9558),
+        # Kerala
+        "67": ("Kerala", "Kozhikode", 11.2588, 75.7804),
+        "68": ("Kerala", "Ernakulam", 9.9312, 76.2673),
+        "69": ("Kerala", "Thiruvananthapuram", 8.5241, 76.9366),
+        # West Bengal
+        "70": ("West Bengal", "Kolkata", 22.5726, 88.3639),
+        "73": ("West Bengal", "Siliguri", 26.7271, 88.3953),
+        # Odisha
+        "75": ("Odisha", "Bhubaneswar", 20.2961, 85.8245),
+        "76": ("Odisha", "Cuttack", 20.4625, 85.8830),
+        # Assam & NE
+        "78": ("Assam", "Guwahati", 26.1445, 91.7362),
+        # Bihar
+        "80": ("Bihar", "Patna", 25.6117, 85.1376),
+        "81": ("Bihar", "Gaya", 24.7955, 85.0002),
+        "82": ("Bihar", "Muzaffarpur", 26.1225, 85.3906),
+        # Jharkhand
+        "83": ("Jharkhand", "Ranchi", 23.3441, 85.3096),
+        # Goa
+        "40": ("Goa", "Panaji", 15.4909, 73.8278),  # Some Goa pincodes start with 40
     }
     
     if prefix in state_map:
-        state, lat, lng = state_map[prefix]
+        state, district, lat, lng = state_map[prefix]
         return {
             "success": True,
             "source": "estimated",
             "pincode": pincode,
             "state": state,
-            "district": "Unknown",
-            "locations": [],
+            "district": district,
+            "area": f"Area near {district}",
+            "locations": [LocationInfo(
+                pincode=pincode,
+                state=state,
+                district=district,
+                area=f"Area near {district}",
+                latitude=lat,
+                longitude=lng
+            )],
             "latitude": lat,
             "longitude": lng,
-            "warning": "Estimated location - verify before booking"
+            "warning": "Estimated location based on PIN code region - verify before booking"
         }
     
-    raise HTTPException(status_code=404, detail="PIN code not found and no fallback available")
+    # Ultimate fallback - return center of India with warning
+    return {
+        "success": True,
+        "source": "default_fallback",
+        "pincode": pincode,
+        "state": "India",
+        "district": "Unknown",
+        "area": f"Area {pincode}",
+        "locations": [LocationInfo(
+            pincode=pincode,
+            state="India",
+            district="Unknown",
+            area=f"Area {pincode}",
+            latitude=20.5937,  # Center of India
+            longitude=78.9629
+        )],
+        "latitude": 20.5937,
+        "longitude": 78.9629,
+        "warning": "Location could not be determined precisely - please verify coordinates before booking"
+    }
 
 @router.get("/search")
 async def search_by_area(
