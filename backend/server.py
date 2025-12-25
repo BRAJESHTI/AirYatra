@@ -116,6 +116,10 @@ api_router.include_router(field_tracking_routes.router)
 api_router.include_router(support_routes.router)
 api_router.include_router(reviews_routes.router)
 api_router.include_router(weather_routes.router)
+api_router.include_router(invoice_routes.router)
+api_router.include_router(loyalty_routes.router)
+api_router.include_router(marketing_routes.router)
+api_router.include_router(maintenance_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
