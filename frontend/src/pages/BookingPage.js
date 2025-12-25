@@ -427,12 +427,12 @@ function BookingPage({ user }) {
         return true;
         
       case 2: // Route
-        if (!formData.pickup_location || !formData.pickup_pincode) {
-          toast.error('Please enter pickup location / पिकअप स्थान दर्ज करें');
+        if (!formData.pickup_landing_point) {
+          toast.error('Please select pickup location / पिकअप स्थान चुनें');
           return false;
         }
-        if (!formData.drop_location || !formData.drop_pincode) {
-          toast.error('Please enter drop location / ड्रॉप स्थान दर्ज करें');
+        if (!formData.drop_landing_point) {
+          toast.error('Please select drop location / ड्रॉप स्थान चुनें');
           return false;
         }
         if (!formData.departure_date) {
