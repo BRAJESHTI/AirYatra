@@ -24,6 +24,7 @@ function CustomerDashboard({ user, onLogout }) {
   useEffect(() => {
     const path = location.pathname;
     if (path.includes('/trips')) setActiveTab('trips');
+    else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
     else setActiveTab('overview');
   }, [location]);
