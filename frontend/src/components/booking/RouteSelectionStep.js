@@ -131,7 +131,7 @@ const RouteSelectionStep = ({
             <div>
               <h4 className="text-orange-400 font-semibold">Permission Required / अनुमति आवश्यक</h4>
               <p className="text-orange-200/70 text-sm mt-1">
-                Village/Private land landing requires additional permissions. You'll need to submit documents after booking confirmation.
+                Village/Private land landing requires additional permissions. You will need to submit documents after booking confirmation.
               </p>
               <p className="text-orange-200/70 text-sm mt-1">
                 गाँव/निजी भूमि पर उतरने के लिए अतिरिक्त अनुमति की आवश्यकता है। बुकिंग पुष्टि के बाद आपको दस्तावेज़ जमा करने होंगे।
