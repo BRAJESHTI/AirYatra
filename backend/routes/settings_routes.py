@@ -82,6 +82,14 @@ class APIKeysSettings(BaseModel):
     # Insurance Provider
     insurance_provider_api_key: str = ""
     insurance_provider_email: str = ""
+    # GST Verification API
+    gst_verification_enabled: str = "false"
+    gst_verification_api_key: str = ""
+    gst_verification_api_url: str = ""
+    # PAN Verification API
+    pan_verification_enabled: str = "false"
+    pan_verification_api_key: str = ""
+    pan_verification_api_url: str = ""
 
 class TermsConditionsSettings(BaseModel):
     customer_terms: str = ""
