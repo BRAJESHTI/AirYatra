@@ -5,7 +5,41 @@ Date: 2025-12-25
 
 ## Features Implemented
 
-### Referral & Wallet System - NEW ✅
+### CRM System - NEW ✅
+- **Backend:** `/app/backend/routes/crm_routes.py`
+  - `/api/crm/leads` - CRUD for leads management
+  - `/api/crm/leads/webhook/{source}` - Auto-capture leads from Facebook, WhatsApp, IndiaMart, etc.
+  - `/api/crm/calls` - Call logging and records
+  - `/api/crm/tasks` - Task management for sales team
+  - `/api/crm/targets` - Sales targets management
+  - `/api/crm/dashboard` - CRM analytics dashboard
+  - `/api/crm/sales-team` - Sales team performance metrics
+  - `/api/crm/auto-reassign` - Auto-reassign stale leads (1hr timeout)
+
+- **Frontend:**
+  - `CRMDashboard.js` - Complete CRM dashboard in Admin Panel
+  - Features: Lead management, Call logging, Task management, Sales team performance
+
+### CRM Dashboard Features:
+1. Dashboard Overview - Total leads, conversions, calls, tasks
+2. Lead Sources breakdown (Facebook, WhatsApp, IndiaMart, etc.)
+3. Status breakdown (New, Contacted, Qualified, Won, Lost)
+4. Urgent leads alert (not contacted in 1+ hour)
+5. Lead list with filters (status, source, priority, search)
+6. Add/Edit lead modal
+7. Call logging modal
+8. Task management (Kanban style)
+9. Sales team performance view
+10. Auto-reassignment of stale leads
+
+### API Test Results
+- Create Lead: ✅ Working
+- Webhook Lead (Facebook): ✅ Working
+- Get Leads: ✅ Working
+- CRM Dashboard: ✅ Working
+- Auto-reassign: ✅ Working
+
+### Referral & Wallet System ✅
 - **Backend:** `/app/backend/routes/referral_routes.py`
   - `/api/referral/my-code` - Get/Generate user referral code
   - `/api/referral/stats` - Get referral statistics
@@ -19,49 +53,41 @@ Date: 2025-12-25
   - `ReferAndEarn.js` - Customer referral component
   - `ReferralSettings.js` - Admin referral/discount management
 
-### Admin Features:
-1. Referral bonus settings (fixed or percentage)
-2. First booking discount settings
-3. Discount code generator
-4. Enable/Disable wallet system
-
-### Customer Features:
-1. Get unique referral code
-2. Share via WhatsApp/Email
-3. View wallet balance
-4. View referral history
-5. Use wallet balance for booking
+### BookingPage Refactoring - IN PROGRESS
+- Created modular components in `/app/frontend/src/components/booking/`
+- `BookingStepIndicator.js` - Now integrated into BookingPage.js
+- `AircraftPassengerStep.js`, `BookingPurposeStep.js`, `RouteSelectionStep.js`, `PriceSummaryStep.js` - Created but full integration pending
 
 ## Test Scenarios
 
-### Scenario 1: Admin Creates Discount Code
+### Scenario 1: CRM Lead Management
 1. Login as admin
-2. Go to Referral & Discount
-3. Click "Discount Codes" tab
-4. Click "Create Discount Code"
-5. Fill form and save
+2. Go to CRM / Sales
+3. View dashboard with lead stats
+4. Click "Leads" tab to see all leads
+5. Click "Add Lead" to create new lead
+6. Use filters to search leads
 
-### Scenario 2: Customer Uses Referral
-1. Register new customer
-2. Apply referral code during signup/booking
-3. Complete first booking with discount
-4. Referrer gets bonus in wallet
-
-## API Test Results
-- Referral Code Generation: ✅ Working (e.g., LNOVKE9B)
-- Wallet Balance: ✅ Working (₹0 initial)
-- Settings: ✅ Working (Bonus ₹500, First Discount 10%)
-- Stats: ✅ Working
+### Scenario 2: Webhook Lead Capture (for integration)
+```bash
+curl -X POST "https://aviation-booker.preview.emergentagent.com/api/crm/leads/webhook/facebook" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Customer Name", "phone": "+91XXXXXXXXXX", "requirements": "Need helicopter"}'
+```
 
 ## Files Created/Modified
-- `/app/backend/routes/referral_routes.py` (NEW)
-- `/app/backend/server.py` (Added route)
-- `/app/frontend/src/services/api.js` (Added referralAPI)
-- `/app/frontend/src/components/customer/ReferAndEarn.js` (NEW)
-- `/app/frontend/src/components/admin/ReferralSettings.js` (NEW)
-- `/app/frontend/src/pages/CustomerDashboard.js` (Added Refer tab)
-- `/app/frontend/src/pages/AdminDashboard.js` (Added Referral section)
-- `/app/frontend/src/App.js` (Added routes)
+- `/app/backend/routes/crm_routes.py` (NEW - 1030+ lines)
+- `/app/backend/server.py` (Added crm_routes)
+- `/app/frontend/src/services/api.js` (Added crmAPI)
+- `/app/frontend/src/components/admin/CRMDashboard.js` (NEW)
+- `/app/frontend/src/pages/AdminDashboard.js` (Added CRM tab)
+- `/app/frontend/src/pages/BookingPage.js` (Refactored to use modular components)
 
 ## Known Issues
-- Customer needs 'customer' role to access /customer/refer page (admin redirected to login)
+- Sales team performance requires users with 'sales' or 'sales_manager' role
+- Customer needs 'customer' role to access /customer/refer page
+
+## Incorporate User Feedback
+- CRM system implemented as per user request
+- Webhook endpoints ready for external integration (Facebook, WhatsApp, IndiaMart, etc.)
+- Auto-reassignment logic implemented (1 hour timeout)
