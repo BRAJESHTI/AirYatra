@@ -82,6 +82,39 @@ function InquiryNotifications({ operator }) {
     setShowRejectDialog(true);
   };
 
+  const openReviseDialog = (inquiry) => {
+    setSelectedInquiry(inquiry);
+    setReviseData({ 
+      amount: inquiry.booking_details?.estimated_amount || '', 
+      notes: '' 
+    });
+    setShowReviseDialog(true);
+  };
+
+  const handleReviseQuote = async () => {
+    if (!selectedInquiry) return;
+    if (!reviseData.amount || reviseData.amount <= 0) {
+      toast.error('Please enter valid amount / कृपया वैध राशि दर्ज करें');
+      return;
+    }
+    
+    setProcessing(true);
+    try {
+      await inquiryBroadcastAPI.reviseQuote(selectedInquiry.id, {
+        amount: parseFloat(reviseData.amount),
+        notes: reviseData.notes
+      });
+      toast.success('💰 Revised quote sent to customer! / संशोधित कोट भेजा गया!');
+      setShowReviseDialog(false);
+      setReviseData({ amount: '', notes: '' });
+      loadInquiries();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to send revised quote');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getTimeRemaining = (expireAt) => {
     const expire = new Date(expireAt);
     const now = new Date();
