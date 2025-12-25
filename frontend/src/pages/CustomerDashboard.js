@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
 import MyTrips from '../components/customer/MyTrips';
 import ChatWidget from '../components/customer/ChatWidget';
+import CustomerProfile from '../components/customer/CustomerProfile';
 import NotificationBell from '../components/shared/NotificationBell';
 
 function CustomerDashboard({ user, onLogout }) {
