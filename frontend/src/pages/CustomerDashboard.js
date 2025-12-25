@@ -53,6 +53,8 @@ function CustomerDashboard({ user, onLogout }) {
     switch (activeTab) {
       case 'trips':
         return <MyTrips user={user} />;
+      case 'profile':
+        return <CustomerProfile user={user} />;
       case 'messages':
         return <ChatWidget user={user} />;
       default:
