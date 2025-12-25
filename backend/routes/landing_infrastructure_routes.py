@@ -561,7 +561,7 @@ async def check_availability(
     # Check availability slot
     slot = await db.helipad_availability.find_one({
         "landing_point_id": landing_point_id,
-        "date": date
+        "date": check_date
     }, {"_id": 0})
     
     if not slot:
