@@ -33,6 +33,10 @@ from routes import field_tracking_routes
 from routes import support_routes
 from routes import reviews_routes
 from routes import weather_routes
+from routes import invoice_routes
+from routes import loyalty_routes
+from routes import marketing_routes
+from routes import maintenance_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
