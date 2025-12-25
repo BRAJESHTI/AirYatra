@@ -66,3 +66,40 @@ async def login(credentials: UserLogin):
 async def get_current_user_info(user: dict = Depends(get_current_user)):
     """Get current user information"""
     return {k: v for k, v in user.items() if k != "password_hash"}
+
+@router.put("/profile")
+async def update_profile(
+    profile_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user profile"""
+    db = get_database()
+    
+    # Fields that can be updated
+    allowed_fields = ["full_name", "phone", "address", "city", "state", "pincode"]
+    
+    update_data = {
+        k: v for k, v in profile_data.items() 
+        if k in allowed_fields and v is not None
+    }
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    
+    update_data["updated_at"] = datetime.utcnow().isoformat()
+    
+    result = await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Fetch updated user
+    updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password_hash": 0})
+    
+    return {
+        "message": "Profile updated successfully",
+        "user": updated_user
+    }
