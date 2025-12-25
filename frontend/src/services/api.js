@@ -354,6 +354,7 @@ export const inquiryBroadcastAPI = {
   getInquiryDetails: (mappingId) => api.get(`/inquiry-broadcast/operator/inquiry/${mappingId}`),
   acceptInquiry: (mappingId, data) => api.post(`/inquiry-broadcast/operator/accept/${mappingId}`, data),
   rejectInquiry: (mappingId, data) => api.post(`/inquiry-broadcast/operator/reject/${mappingId}`, data),
+  reviseQuote: (mappingId, data) => api.post(`/inquiry-broadcast/operator/revise-quote/${mappingId}`, data),
   getInquiryHistory: (status) => api.get('/inquiry-broadcast/operator/history', { params: { status } }),
   // Admin
   getAllBroadcasts: (status) => api.get('/inquiry-broadcast/admin/broadcasts', { params: { status } }),
