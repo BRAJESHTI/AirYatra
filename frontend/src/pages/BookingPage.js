@@ -230,17 +230,8 @@ function BookingPage({ user }) {
       ? (settings.plane_multiplier || 1.5) 
       : (settings.helicopter_multiplier || 1);
     
-    // Udan Prakar based pricing
-    let udanMultiplier = 1;
-    switch (formData.udan_prakar) {
-      case 'one_hour': udanMultiplier = 0.8; break;
-      case 'two_hour': udanMultiplier = 1; break;
-      case 'half_day': udanMultiplier = 1.5; break;
-      case 'full_day': udanMultiplier = 2.5; break;
-      case 'multi_city': udanMultiplier = 3; break;
-      case 'point_to_point': udanMultiplier = 1; break;
-      default: udanMultiplier = 1;
-    }
+    // Udan Prakar based pricing - using imported multipliers from config
+    const udanMultiplier = udanPrakarMultipliers[formData.udan_prakar] || 1;
     
     const subtotal = (basePrice + kmPrice) * multiplier * udanMultiplier;
     const gst = subtotal * 0.18;
