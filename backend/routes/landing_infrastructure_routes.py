@@ -11,7 +11,13 @@ import logging
 
 from database import get_database
 from middleware import get_current_user, require_roles
-from models import UserRole
+from models import (
+    UserRole, 
+    LandingPoint, LandingPointType, LandingOwnerType, LandingPointStatus,
+    LandingRent, RentType,
+    LandingDocument, LandingDocType,
+    VillageLandingPermission
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/landing", tags=["Landing Infrastructure"])
