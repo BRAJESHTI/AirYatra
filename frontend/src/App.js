@@ -111,6 +111,23 @@ function App() {
           path="/helipad-owner/*"
           element={user && (user.roles.includes('helipad_owner') || user.roles.includes('admin')) ? <HelipadOwnerDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />}
         />
+        {/* New Role-based Dashboards */}
+        <Route
+          path="/hr/*"
+          element={user && (user.roles.includes('hr') || user.roles.includes('admin')) ? <HRDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/sales/*"
+          element={user && (user.roles.includes('sales') || user.roles.includes('marketing') || user.roles.includes('admin')) ? <SalesDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/support/*"
+          element={user && (user.roles.includes('support') || user.roles.includes('admin')) ? <SupportDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/finance/*"
+          element={user && (user.roles.includes('finance') || user.roles.includes('admin')) ? <FinanceDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
         <Route path="/booking" element={<BookingPage user={user} />} />
       </Routes>
       
