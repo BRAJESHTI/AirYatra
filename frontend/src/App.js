@@ -12,6 +12,11 @@ import RegionalManagerDashboard from './pages/RegionalManagerDashboard';
 import HelipadOwnerDashboard from './pages/HelipadOwnerDashboard';
 import BookingPage from './pages/BookingPage';
 import PaymentPage from './pages/PaymentPage';
+// New Role-based Dashboards
+import HRDashboard from './pages/HRDashboard';
+import SalesDashboard from './pages/SalesDashboard';
+import SupportDashboard from './pages/SupportDashboard';
+import FinanceDashboard from './pages/FinanceDashboard';
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
