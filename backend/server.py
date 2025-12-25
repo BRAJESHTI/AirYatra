@@ -99,6 +99,15 @@ api_router.include_router(google_auth_routes.router)
 # Include API router in main app
 app.include_router(api_router)
 
+# Create uploads directory for village documents
+uploads_dir = Path("/app/uploads")
+uploads_dir.mkdir(exist_ok=True)
+village_docs_dir = uploads_dir / "village_documents"
+village_docs_dir.mkdir(exist_ok=True)
+
+# Mount static files for uploads
+app.mount("/api/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
