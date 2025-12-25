@@ -229,7 +229,7 @@ async def lookup_pincode(pincode: str):
             
     except httpx.TimeoutException:
         return get_fallback_pincode_data(pincode)
-    except Exception as e:
+    except Exception:
         return get_fallback_pincode_data(pincode)
 
 def get_fallback_pincode_data(pincode: str):
