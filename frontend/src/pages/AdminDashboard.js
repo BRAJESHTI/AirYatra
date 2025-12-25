@@ -54,6 +54,7 @@ const navItems = [
   { id: 'landing_rent', label: 'Landing Rent', icon: DollarSign, section: 'landing' },
   { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, section: 'landing', highlight: true },
   { id: 'referral', label: 'Referral & Discount', icon: Gift },
+  { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Settings },
   { id: 'chat', label: 'Messages', icon: MessageSquare },
   { id: 'audit', label: 'Audit Logs', icon: FileText },
   { id: 'settings', label: 'Settings', icon: Settings },
