@@ -95,18 +95,43 @@ async def verify_payment(
     )
     
     if result.get("verified"):
-        # Update booking status
-        await db.bookings.update_one(
-            {"id": request.booking_id},
-            {"$set": {
-                "payment_status": "paid",
-                "payment_id": request.razorpay_payment_id,
-                "payment_order_id": request.razorpay_order_id,
-                "paid_at": datetime.now(timezone.utc).isoformat(),
-                "status": "confirmed",
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
+        # Get payment order to check if it's an inquiry
+        payment_order = await db.payment_orders.find_one(
+            {"order_id": request.razorpay_order_id},
+            {"_id": 0}
         )
+        is_inquiry = payment_order.get("is_inquiry", False) if payment_order else False
+        
+        update_data = {
+            "payment_status": "paid",
+            "payment_id": request.razorpay_payment_id,
+            "payment_order_id": request.razorpay_order_id,
+            "paid_at": datetime.now(timezone.utc).isoformat(),
+            "status": "confirmed",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Update inquiry or booking
+        if is_inquiry:
+            await db.inquiries.update_one(
+                {"id": request.booking_id},
+                {"$set": update_data}
+            )
+            booking = await db.inquiries.find_one({"id": request.booking_id}, {"_id": 0})
+        else:
+            # Try inquiries first, then bookings (for new flow)
+            update_result = await db.inquiries.update_one(
+                {"id": request.booking_id},
+                {"$set": update_data}
+            )
+            if update_result.modified_count == 0:
+                await db.bookings.update_one(
+                    {"id": request.booking_id},
+                    {"$set": update_data}
+                )
+                booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
+            else:
+                booking = await db.inquiries.find_one({"id": request.booking_id}, {"_id": 0})
         
         # Update payment order
         await db.payment_orders.update_one(
@@ -119,7 +144,6 @@ async def verify_payment(
         )
         
         # Send confirmation notifications
-        booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
         if booking:
             await notification_service.send_booking_confirmation(
                 booking=booking,
