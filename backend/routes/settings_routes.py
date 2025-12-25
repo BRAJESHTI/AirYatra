@@ -580,3 +580,95 @@ async def update_flight_type_pricing(
     })
     
     return {"message": "Flight type pricing updated", "pricing": pricing_data}
+
+# ============== PAYMENT RULES BY PURPOSE ==============
+
+DEFAULT_PAYMENT_RULES = [
+    {"purpose": "wedding", "label": "Wedding / शादी", "icon": "💒", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "temple_yatra", "label": "Temple Yatra / मंदिर यात्रा", "icon": "🛕", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "company_tour", "label": "Corporate Tour / कॉर्पोरेट टूर", "icon": "🏢", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "election_tour", "label": "Election Campaign / चुनाव प्रचार", "icon": "🗳️", "advance_percent": 100, "can_pay_later": False},
+    {"purpose": "medical_emergency", "label": "Medical Emergency / मेडिकल", "icon": "🏥", "advance_percent": 100, "can_pay_later": False},
+    {"purpose": "film_shooting", "label": "Film Shooting / फिल्म शूटिंग", "icon": "🎬", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "general_tour", "label": "General Tour / सामान्य यात्रा", "icon": "✈️", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "pilgrimage", "label": "Pilgrimage / तीर्थ यात्रा", "icon": "🙏", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "business", "label": "Business Meeting / बिज़नेस", "icon": "💼", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "other", "label": "Other / अन्य", "icon": "📝", "advance_percent": 100, "can_pay_later": False},
+]
+
+DEFAULT_GLOBAL_PAYMENT_SETTINGS = {
+    "default_advance_percent": 50,
+    "allow_partial_payment": True,
+    "minimum_advance_percent": 25,
+    "payment_deadline_hours": 24,
+}
+
+@router.get("/payment-rules")
+async def get_payment_rules(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Get payment rules by booking purpose"""
+    settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
+    
+    if not settings:
+        return {
+            "payment_rules": DEFAULT_PAYMENT_RULES,
+            "global_settings": DEFAULT_GLOBAL_PAYMENT_SETTINGS
+        }
+    
+    return {
+        "payment_rules": settings.get("payment_rules", DEFAULT_PAYMENT_RULES),
+        "global_settings": settings.get("global_settings", DEFAULT_GLOBAL_PAYMENT_SETTINGS)
+    }
+
+@router.get("/payment-rules/public")
+async def get_payment_rules_public(db=Depends(get_database)):
+    """Get payment rules (public - for booking page)"""
+    settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
+    
+    if not settings:
+        return {
+            "payment_rules": DEFAULT_PAYMENT_RULES,
+            "global_settings": DEFAULT_GLOBAL_PAYMENT_SETTINGS
+        }
+    
+    return {
+        "payment_rules": settings.get("payment_rules", DEFAULT_PAYMENT_RULES),
+        "global_settings": settings.get("global_settings", DEFAULT_GLOBAL_PAYMENT_SETTINGS)
+    }
+
+@router.put("/payment-rules")
+async def update_payment_rules(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update payment rules by booking purpose"""
+    settings_data = {
+        "type": "payment_rules",
+        "payment_rules": data.get("payment_rules", DEFAULT_PAYMENT_RULES),
+        "global_settings": data.get("global_settings", DEFAULT_GLOBAL_PAYMENT_SETTINGS),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    await db.payment_rules_settings.update_one(
+        {"type": "payment_rules"},
+        {"$set": settings_data},
+        upsert=True
+    )
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid4()),
+        "action": "payment_rules_update",
+        "entity_type": "settings",
+        "entity_id": "payment_rules",
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "changes": settings_data,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Payment rules updated successfully / भुगतान नियम अपडेट हो गए", "settings": settings_data}
