@@ -18,7 +18,7 @@ function LiveFlightTracking() {
 
   const loadDashboard = async () => {
     try {
-      const res = await api.get('/api/flight-live/dashboard');
+      const res = await api.get('/flight-live/dashboard');
       setDashboard(res.data);
       setActiveFlights(res.data.active_flights || []);
     } catch (error) {
@@ -30,7 +30,7 @@ function LiveFlightTracking() {
 
   const viewFlight = async (flightId) => {
     try {
-      const res = await api.get(`/api/flight-live/track/${flightId}`);
+      const res = await api.get(`/flight-live/track/${flightId}`);
       setSelectedFlight(res.data);
     } catch (error) {
       console.error('Failed to load flight:', error);

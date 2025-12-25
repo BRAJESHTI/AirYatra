@@ -20,7 +20,7 @@ function InventoryManagement() {
 
   const loadDashboard = async () => {
     try {
-      const res = await api.get('/api/inventory/dashboard');
+      const res = await api.get('/inventory/dashboard');
       setDashboard(res.data);
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
@@ -28,14 +28,14 @@ function InventoryManagement() {
 
   const loadSlots = async () => {
     try {
-      const res = await api.get(`/api/inventory/slots/available?date=${selectedDate}`);
+      const res = await api.get(`/inventory/slots/available?date=${selectedDate}`);
       setSlots(res.data.available_slots || []);
     } catch (error) { console.error(error); }
   };
 
   const createSlot = async () => {
     try {
-      await api.post('/api/inventory/slots/create', newSlot);
+      await api.post('/inventory/slots/create', newSlot);
       setShowCreateModal(false);
       loadSlots();
       loadDashboard();
@@ -43,12 +43,12 @@ function InventoryManagement() {
   };
 
   const blockSlot = async (id) => {
-    await api.post(`/api/inventory/slots/${id}/block`, { slot_id: id, reason: 'maintenance' });
+    await api.post(`/inventory/slots/${id}/block`, { slot_id: id, reason: 'maintenance' });
     loadSlots();
   };
 
   const unblockSlot = async (id) => {
-    await api.post(`/api/inventory/slots/${id}/unblock`);
+    await api.post(`/inventory/slots/${id}/unblock`);
     loadSlots();
   };
 

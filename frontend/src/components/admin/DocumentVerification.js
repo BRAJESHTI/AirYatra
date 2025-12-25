@@ -20,10 +20,10 @@ function DocumentVerification() {
     setLoading(true);
     try {
       const [dashRes, pendingRes, expiringRes, typesRes] = await Promise.all([
-        api.get('/api/document-verify/dashboard'),
-        api.get('/api/document-verify/pending'),
-        api.get('/api/document-verify/expiring?days=30'),
-        api.get('/api/document-verify/types')
+        api.get('/document-verify/dashboard'),
+        api.get('/document-verify/pending'),
+        api.get('/document-verify/expiring?days=30'),
+        api.get('/document-verify/types')
       ]);
       setDashboard(dashRes.data);
       setPendingDocs(pendingRes.data.pending_documents || []);
@@ -38,7 +38,7 @@ function DocumentVerification() {
 
   const verifyDocument = async () => {
     try {
-      await api.post(`/api/document-verify/verify/${selectedDoc.id}`, verifyData);
+      await api.post(`/document-verify/verify/${selectedDoc.id}`, verifyData);
       setVerifyModal(false);
       loadData();
     } catch (error) {

@@ -19,9 +19,9 @@ function DGCACompliance() {
     setLoading(true);
     try {
       const [dashRes, alertsRes, limitsRes] = await Promise.all([
-        api.get('/api/dgca/dashboard'),
-        api.get('/api/dgca/alerts'),
-        api.get('/api/dgca/limits')
+        api.get('/dgca/dashboard'),
+        api.get('/dgca/alerts'),
+        api.get('/dgca/limits')
       ]);
       setDashboard(dashRes.data);
       setAlerts(alertsRes.data.alerts || []);
@@ -33,7 +33,7 @@ function DGCACompliance() {
   const checkPilotCompliance = async () => {
     if (!pilotSearch) return;
     try {
-      const res = await api.get(`/api/dgca/pilot/${pilotSearch}/compliance`);
+      const res = await api.get(`/dgca/pilot/${pilotSearch}/compliance`);
       setPilotCompliance(res.data);
     } catch (error) { alert('Pilot not found'); }
   };

@@ -21,7 +21,7 @@ function MultiLegBooking() {
 
   const loadBookings = async () => {
     try {
-      const res = await api.get('/api/multileg/my-bookings');
+      const res = await api.get('/multileg/my-bookings');
       setBookings(res.data.bookings || []);
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
@@ -43,7 +43,7 @@ function MultiLegBooking() {
 
   const calculatePrice = async () => {
     try {
-      const res = await api.get(`/api/multileg/calculate-price?legs=${encodeURIComponent(JSON.stringify(legs))}`);
+      const res = await api.get(`/multileg/calculate-price?legs=${encodeURIComponent(JSON.stringify(legs))}`);
       setPricePreview(res.data);
     } catch (error) { console.error(error); }
   };
@@ -51,7 +51,7 @@ function MultiLegBooking() {
   const createBooking = async () => {
     setCreating(true);
     try {
-      await api.post('/api/multileg/create', {
+      await api.post('/multileg/create', {
         booking_type: bookingType, legs, contact_name: contact.name,
         contact_phone: contact.phone, contact_email: contact.email,
         total_passengers: Math.max(...legs.map(l => l.passengers))
