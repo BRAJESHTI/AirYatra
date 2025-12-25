@@ -17,9 +17,6 @@ import LandingPointSelector from '../components/shared/LandingPointSelector';
 // Import modular booking components
 import { BookingStepIndicator } from '../components/booking';
 
-// Import modular booking components
-import { BookingStepIndicator } from '../components/booking';
-
 // Customer Profile Card
 const CustomerProfileCard = ({ user }) => {
   if (!user) return null;
