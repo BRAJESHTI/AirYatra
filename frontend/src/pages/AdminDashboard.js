@@ -25,6 +25,7 @@ import InquiryManagement from '@/components/admin/InquiryManagement';
 import ReferralSettings from '@/components/admin/ReferralSettings';
 import CRMDashboard from '@/components/admin/CRMDashboard';
 import APIKeysSettings from '@/components/admin/APIKeysSettings';
+import SchedulerStatus from '@/components/admin/SchedulerStatus';
 
 // Landing Infrastructure Components
 import LandingInfrastructure from '@/components/admin/LandingInfrastructure';
