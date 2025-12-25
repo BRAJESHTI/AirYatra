@@ -115,6 +115,8 @@ function AdminDashboard({ user, onLogout }) {
         return <LandingRentConfig />;
       case 'village_permissions':
         return <VillagePermissionDashboard />;
+      case 'referral':
+        return <ReferralSettings />;
       case 'chat':
         return <InAppChat user={user} />;
       case 'audit':
