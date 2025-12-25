@@ -73,39 +73,9 @@ function LandingPointSelector({
 
     setLoading(true);
     try {
-      // Search by city name
-      const response = await landingAPI.getLandingPoints({ 
-        city: term,
-        limit: 20 
-      });
-      
+      // Use public search endpoint (no auth required)
+      const response = await landingAPI.publicSearch(term, aircraftType === 'chartered_plane' ? 'airport' : null);
       let results = response.data.landing_points || [];
-      
-      // Also search by name if city search returns less results
-      if (results.length < 5) {
-        const nameResponse = await landingAPI.getLandingPoints({ 
-          limit: 50 
-        });
-        const allPoints = nameResponse.data.landing_points || [];
-        const nameMatches = allPoints.filter(p => 
-          p.name?.toLowerCase().includes(term.toLowerCase()) ||
-          p.city?.toLowerCase().includes(term.toLowerCase()) ||
-          p.state?.toLowerCase().includes(term.toLowerCase())
-        );
-        
-        // Merge and dedupe
-        const existingIds = new Set(results.map(r => r.id));
-        nameMatches.forEach(m => {
-          if (!existingIds.has(m.id)) {
-            results.push(m);
-          }
-        });
-      }
-
-      // Filter based on aircraft type
-      if (aircraftType === 'chartered_plane') {
-        results = results.filter(p => p.type === 'airport');
-      }
 
       setSearchResults(results.slice(0, 15));
       setShowDropdown(true);
