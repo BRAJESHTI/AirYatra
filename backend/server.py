@@ -37,6 +37,11 @@ from routes import invoice_routes
 from routes import loyalty_routes
 from routes import marketing_routes
 from routes import maintenance_routes
+from routes import pricing_routes
+from routes import route_optimization_routes
+from routes import insurance_routes
+from routes import knowledge_routes
+from routes import sos_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
