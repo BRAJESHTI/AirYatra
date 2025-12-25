@@ -317,7 +317,10 @@ function BookingPage({ user }) {
     
     const subtotal = (basePrice + kmPrice) * multiplier * udanMultiplier;
     const gst = subtotal * 0.18;
-    const total = subtotal + gst;
+    
+    // Add landing rent
+    const landingCharges = landingRent.total || 0;
+    const total = subtotal + gst + landingCharges;
     
     setPriceEstimate({
       base_price: Math.round(basePrice),
@@ -327,9 +330,15 @@ function BookingPage({ user }) {
       udan_multiplier: udanMultiplier,
       subtotal: Math.round(subtotal),
       gst: Math.round(gst),
+      landing_charges: Math.round(landingCharges),
+      pickup_landing_rent: landingRent.pickup,
+      drop_landing_rent: landingRent.drop,
       total: Math.round(total),
       is_approximate: true,
-      note: 'Final price will be confirmed by operator / अंतिम मूल्य ऑपरेटर द्वारा पुष्टि होगी'
+      permission_required: permissionRequired,
+      note: permissionRequired 
+        ? 'Village landing requires admin approval / गांव लैंडिंग के लिए एडमिन अनुमति जरूरी' 
+        : 'Final price will be confirmed by operator / अंतिम मूल्य ऑपरेटर द्वारा पुष्टि होगी'
     });
   };
 
