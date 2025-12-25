@@ -4,15 +4,16 @@ import {
   Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, 
   MapPin, ChevronLeft, ChevronRight, Check, AlertCircle, 
   Briefcase, Target, Navigation, Calculator, Send, Loader2,
-  UserCircle, Mail, Weight, Luggage, Baby, UserPlus
+  UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { bookingAPI, settingsAPI } from '../services/api';
+import { bookingAPI, settingsAPI, landingAPI } from '../services/api';
 import { toast } from 'sonner';
 import PinCodeInput from '../components/shared/PinCodeInput';
+import LandingPointSelector from '../components/shared/LandingPointSelector';
 
 // Step indicator component
 const StepIndicator = ({ currentStep, steps }) => (
