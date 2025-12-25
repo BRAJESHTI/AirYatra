@@ -178,11 +178,20 @@ function BookingPage({ user }) {
 
   useEffect(() => {
     // Calculate distance when both locations are set
-    if (formData.pickup_latitude && formData.drop_latitude) {
+    console.log('Distance useEffect triggered:', {
+      pickup_lat: formData.pickup_latitude,
+      pickup_lng: formData.pickup_longitude,
+      drop_lat: formData.drop_latitude,
+      drop_lng: formData.drop_longitude
+    });
+    
+    if (formData.pickup_latitude && formData.drop_latitude && 
+        formData.pickup_longitude && formData.drop_longitude) {
       const dist = calculateDistance(
         formData.pickup_latitude, formData.pickup_longitude,
         formData.drop_latitude, formData.drop_longitude
       );
+      console.log('Calculated distance:', dist);
       setDistanceKm(Math.round(dist));
     }
   }, [formData.pickup_latitude, formData.pickup_longitude, formData.drop_latitude, formData.drop_longitude]);
