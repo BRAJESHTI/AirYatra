@@ -79,7 +79,7 @@ function App() {
         />
         <Route
           path="/customer/payment/:inquiryId"
-          element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          element={user && user.roles.includes('customer') ? <PaymentPage user={user} /> : <Navigate to="/login" />}
         />
         <Route
           path="/operator/*"
