@@ -120,6 +120,15 @@ function AdminDashboard({ user, onLogout }) {
         return <ReviewsManagement />;
       case 'weather':
         return <WeatherDashboard />;
+      // Priority 2 Features
+      case 'invoices':
+        return <InvoiceManagement />;
+      case 'loyalty':
+        return <LoyaltyProgram />;
+      case 'marketing':
+        return <MarketingCampaigns />;
+      case 'fleet_maintenance':
+        return <FleetMaintenance />;
       case 'crm':
         return <CRMDashboard />;
       case 'webhooks':
