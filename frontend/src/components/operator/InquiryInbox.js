@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, MapPin, Calendar, Users, Send, Sparkles } from 'lucide-react';
+import { MessageSquare, MapPin, Calendar, Users, Send, Sparkles, AlertTriangle, TreePine, Building2, Plane, DollarSign, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
