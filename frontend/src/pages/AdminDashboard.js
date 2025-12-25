@@ -41,11 +41,21 @@ import HelipadAvailability from '@/components/admin/HelipadAvailability';
 import LandingRentConfig from '@/components/admin/LandingRentConfig';
 import VillagePermissionDashboard from '@/components/admin/VillagePermissionDashboard';
 
+// Priority 2 Features
+import InvoiceManagement from '@/components/admin/InvoiceManagement';
+import LoyaltyProgram from '@/components/admin/LoyaltyProgram';
+import MarketingCampaigns from '@/components/admin/MarketingCampaigns';
+import FleetMaintenance from '@/components/admin/FleetMaintenance';
+
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'support', label: 'Support Helpdesk', icon: Headphones, highlight: true, section: 'new' },
   { id: 'reviews', label: 'Reviews & Ratings', icon: Star, section: 'new' },
   { id: 'weather', label: 'Weather / Flight Safety', icon: Cloud, highlight: true, section: 'new' },
+  { id: 'invoices', label: 'Invoice & Billing', icon: FileText, section: 'p2' },
+  { id: 'loyalty', label: 'VIP & Loyalty', icon: Gift, section: 'p2' },
+  { id: 'marketing', label: 'Marketing', icon: TrendingUp, section: 'p2' },
+  { id: 'fleet_maintenance', label: 'Fleet Maintenance', icon: Settings, section: 'p2' },
   { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
   { id: 'webhooks', label: 'Webhooks', icon: Globe },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
