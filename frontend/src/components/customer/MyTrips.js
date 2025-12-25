@@ -123,15 +123,38 @@ function MyTrips({ user }) {
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'bg-yellow-500/20 text-yellow-400',
-      confirmed: 'bg-blue-500/20 text-blue-400',
+      pending_acceptance: 'bg-yellow-500/20 text-yellow-400',
+      pending_quotes: 'bg-yellow-500/20 text-yellow-400',
+      quote_received: 'bg-orange-500/20 text-orange-400',
+      quotes_received: 'bg-orange-500/20 text-orange-400',
+      quote_accepted: 'bg-blue-500/20 text-blue-400',
+      passenger_details_filled: 'bg-purple-500/20 text-purple-400',
+      confirmed: 'bg-green-500/20 text-green-400',
       completed: 'bg-green-500/20 text-green-400',
       cancelled: 'bg-red-500/20 text-red-400',
     };
     return badges[status] || badges.pending;
   };
 
+  const getStatusLabel = (status) => {
+    const labels = {
+      pending: 'Pending',
+      pending_acceptance: 'Awaiting Quotes / कोट का इंतजार',
+      pending_quotes: 'Awaiting Quotes',
+      quote_received: 'Quotes Received / कोट मिला',
+      quotes_received: 'Quotes Received',
+      quote_accepted: 'Quote Accepted / कोट स्वीकार',
+      passenger_details_filled: 'Details Filled / विवरण भरा',
+      confirmed: 'Confirmed / पुष्टि',
+      completed: 'Completed / पूर्ण',
+      cancelled: 'Cancelled / रद्द',
+    };
+    return labels[status] || status;
+  };
+
   const filteredTrips = trips.filter(trip => {
-    if (activeTab === 'upcoming') return ['pending', 'confirmed'].includes(trip.status);
+    if (activeTab === 'upcoming') return ['pending', 'confirmed', 'quote_accepted', 'passenger_details_filled'].includes(trip.status);
+    if (activeTab === 'pending') return ['pending_acceptance', 'quote_received', 'pending_quotes', 'quotes_received'].includes(trip.status);
     if (activeTab === 'completed') return trip.status === 'completed';
     if (activeTab === 'cancelled') return trip.status === 'cancelled';
     return true;
