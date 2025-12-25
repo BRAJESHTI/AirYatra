@@ -779,44 +779,36 @@ function BookingPage({ user }) {
   // Render Step 3: Route Details
   const renderRouteStep = () => (
     <div className="space-y-6">
-      {/* Pickup Location */}
+      {/* Pickup Location - Landing Point Selector */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Navigation className="h-5 w-5 text-green-400" />
-          Pickup Location / पिकअप स्थान <span className="text-red-500">*</span>
+          Pickup Location / पिकअप स्थान
         </h3>
-        <PinCodeInput
-          label="Pickup PIN Code"
-          value={formData.pickup_pincode}
-          onChange={(value) => handleInputChange('pickup_pincode', value)}
-          onLocationSelect={(data) => handleLocationSelect('pickup', data)}
+        <LandingPointSelector
+          label="Select Pickup Point / पिकअप पॉइंट चुनें"
+          type="pickup"
+          selectedDate={formData.departure_date}
+          aircraftType={formData.aircraft_type}
+          onSelect={(data) => handleLandingPointSelect('pickup', data)}
+          selectedPoint={formData.pickup_landing_point}
         />
-        {formData.pickup_location && (
-          <div className="mt-3 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
-            <p className="text-green-400 font-medium">{formData.pickup_location}</p>
-            <p className="text-slate-400 text-sm">{formData.pickup_district}, {formData.pickup_state}</p>
-          </div>
-        )}
       </div>
 
-      {/* Drop Location */}
+      {/* Drop Location - Landing Point Selector */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <MapPin className="h-5 w-5 text-red-400" />
-          Drop Location / ड्रॉप स्थान <span className="text-red-500">*</span>
+          Drop Location / ड्रॉप स्थान
         </h3>
-        <PinCodeInput
-          label="Drop PIN Code"
-          value={formData.drop_pincode}
-          onChange={(value) => handleInputChange('drop_pincode', value)}
-          onLocationSelect={(data) => handleLocationSelect('drop', data)}
+        <LandingPointSelector
+          label="Select Drop Point / ड्रॉप पॉइंट चुनें"
+          type="drop"
+          selectedDate={formData.departure_date}
+          aircraftType={formData.aircraft_type}
+          onSelect={(data) => handleLandingPointSelect('drop', data)}
+          selectedPoint={formData.drop_landing_point}
         />
-        {formData.drop_location && (
-          <div className="mt-3 p-3 bg-red-500/10 rounded-lg border border-red-500/30">
-            <p className="text-red-400 font-medium">{formData.drop_location}</p>
-            <p className="text-slate-400 text-sm">{formData.drop_district}, {formData.drop_state}</p>
-          </div>
-        )}
       </div>
 
       {/* Distance Display */}
@@ -824,6 +816,24 @@ function BookingPage({ user }) {
         <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/30 text-center">
           <p className="text-blue-400 text-sm">Estimated Distance / अनुमानित दूरी</p>
           <p className="text-white text-3xl font-bold">{distanceKm} KM</p>
+        </div>
+      )}
+
+      {/* Permission Warning */}
+      {permissionRequired && (
+        <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/30">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-6 w-6 text-yellow-400 shrink-0" />
+            <div>
+              <h4 className="text-yellow-400 font-semibold">Village Landing Permission Required</h4>
+              <p className="text-yellow-400/70 text-sm mt-1">
+                This route includes a village/private land. Admin approval is required before booking confirmation.
+              </p>
+              <p className="text-yellow-400/70 text-sm mt-1">
+                गांव/निजी जमीन पर लैंडिंग के लिए एडमिन अनुमति आवश्यक है।
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
