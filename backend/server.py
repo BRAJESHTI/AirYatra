@@ -153,6 +153,17 @@ api_router.include_router(document_verification_routes.router)
 api_router.include_router(multileg_booking_routes.router)
 api_router.include_router(inventory_routes.router)
 api_router.include_router(dgca_compliance_routes.router)
+# Medium Priority Features
+api_router.include_router(push_notification_routes.router)
+api_router.include_router(boarding_pass_routes.router)
+api_router.include_router(currency_routes.router)
+api_router.include_router(predictive_analytics_routes.router)
+api_router.include_router(voice_video_routes.router)
+# Low Priority Features
+api_router.include_router(chatbot_routes.router)
+api_router.include_router(two_factor_auth_routes.router)
+api_router.include_router(calendar_sync_routes.router)
+api_router.include_router(accounting_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
