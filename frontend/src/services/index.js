@@ -1,31 +1,22 @@
 /**
- * Services Index - Re-export all service modules
- * Import from here for cleaner imports
+ * Services Index - Clean imports for all API services
  * 
  * Usage:
- * import { authService, bookingService, landingService, referralService } from '@/services';
- * OR
- * import authService from '@/services/authService';
+ * import { authAPI, bookingAPI, fleetAPI } from '@/services';
  */
 
-// Main API instance (for direct use if needed)
-export { default as api } from './api';
+// Base API Client
+export { default as api } from './apiClient';
 
-// Domain-specific services
-export { authService } from './authService';
-export { bookingService } from './bookingService';
-export { landingService } from './landingService';
-export { referralService } from './referralService';
-
-// Legacy exports from api.js (for backwards compatibility)
-export { 
-  authAPI, 
-  bookingAPI, 
-  customerAPI, 
-  operatorAPI, 
-  adminAPI, 
-  settingsAPI, 
-  pincodeAPI,
-  landingAPI,
-  referralAPI 
-} from './api';
+// All Services
+export * from './authService';
+export * from './bookingService';
+export * from './fleetService';
+export * from './operatorService';
+export * from './adminService';
+export * from './crmService';
+export * from './landingService';
+export * from './settingsService';
+export * from './supportService';
+export * from './analyticsService';
+export * from './paymentService';
