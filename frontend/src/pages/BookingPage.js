@@ -116,51 +116,8 @@ function BookingPage({ user }) {
   const [landingRent, setLandingRent] = useState({ pickup: null, drop: null, total: 0 });
   const [permissionRequired, setPermissionRequired] = useState(false);
 
-  const steps = [
-    { id: 'passengers', title: 'यात्री / Passengers' },
-    { id: 'booking_type', title: 'बुकिंग प्रकार' },
-    { id: 'route', title: 'मार्ग / Route' },
-    { id: 'price_inquiry', title: 'मूल्य / Price' },
-  ];
-
-  // Aircraft Types
-  const aircraftTypes = [
-    { value: 'helicopter', label: 'Helicopter / हेलीकॉप्टर', icon: '🚁', maxPassengers: 6 },
-    { value: 'chartered_plane', label: 'Chartered Plane / चार्टर्ड प्लेन', icon: '✈️', maxPassengers: 19 },
-  ];
-
-  // Udan Ka Prakar (Flight Type)
-  const udanPrakarOptions = [
-    { value: 'one_hour', label: '1 Hour Flight / 1 घंटे की उड़ान', icon: '⏱️' },
-    { value: 'two_hour', label: '2 Hour Flight / 2 घंटे की उड़ान', icon: '⏰' },
-    { value: 'half_day', label: 'Half Day / आधा दिन', icon: '🌤️' },
-    { value: 'full_day', label: 'Full Day / पूरा दिन', icon: '☀️' },
-    { value: 'multi_city', label: 'Multi-City / बहु-शहर', icon: '🗺️' },
-    { value: 'point_to_point', label: 'Point-to-Point / पॉइंट-टू-पॉइंट', icon: '📍' },
-  ];
-
-  // Booking For Options
-  const bookingForOptions = [
-    { value: 'self', label: 'Self / खुद के लिए', icon: '👤' },
-    { value: 'friend_family', label: 'Friend & Family / दोस्त और परिवार', icon: '👨‍👩‍👧' },
-    { value: 'company', label: 'Company / Corporate / कंपनी', icon: '🏢' },
-    { value: 'political', label: 'Political / VIP / राजनीतिक', icon: '🎖️' },
-    { value: 'other', label: 'Other / अन्य', icon: '📝' },
-  ];
-
-  // Booking Purpose Options
-  const bookingPurposeOptions = [
-    { value: 'wedding', label: 'Wedding / शादी', icon: '💒' },
-    { value: 'temple_yatra', label: 'Temple Yatra / मंदिर यात्रा', icon: '🛕' },
-    { value: 'company_tour', label: 'Corporate Tour / कॉर्पोरेट टूर', icon: '🏢' },
-    { value: 'election_tour', label: 'Election Campaign / चुनाव प्रचार', icon: '🗳️' },
-    { value: 'medical_emergency', label: 'Medical Emergency / मेडिकल', icon: '🏥' },
-    { value: 'film_shooting', label: 'Film Shooting / फिल्म शूटिंग', icon: '🎬' },
-    { value: 'general_tour', label: 'General Tour / सामान्य यात्रा', icon: '✈️' },
-    { value: 'pilgrimage', label: 'Pilgrimage / तीर्थ यात्रा', icon: '🙏' },
-    { value: 'business', label: 'Business Meeting / बिज़नेस', icon: '💼' },
-    { value: 'other', label: 'Other / अन्य', icon: '📝' },
-  ];
+  // Use imported steps from config
+  const steps = bookingSteps;
 
   useEffect(() => {
     loadPricingSettings();
