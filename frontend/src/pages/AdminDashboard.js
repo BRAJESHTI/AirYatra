@@ -50,6 +50,7 @@ const navItems = [
   { id: 'helipad_calendar', label: 'Helipad Calendar', icon: Calendar, section: 'landing' },
   { id: 'landing_rent', label: 'Landing Rent', icon: DollarSign, section: 'landing' },
   { id: 'village_permissions', label: 'Village Permissions', icon: TreePine, section: 'landing', highlight: true },
+  { id: 'referral', label: 'Referral & Discount', icon: Gift },
   { id: 'chat', label: 'Messages', icon: MessageSquare },
   { id: 'audit', label: 'Audit Logs', icon: FileText },
   { id: 'settings', label: 'Settings', icon: Settings },
