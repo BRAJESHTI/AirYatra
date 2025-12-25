@@ -96,7 +96,13 @@ function BookingPage({ user }) {
     booking_purpose: '',
     booking_purpose_other: '',
     
-    // Step 3: Route Details
+    // Step 3: Route Details - Landing Points
+    pickup_landing_point: null, // Full landing point object
+    drop_landing_point: null,   // Full landing point object
+    departure_date: '',
+    pickup_time: '',
+    
+    // Legacy fields (for compatibility)
     pickup_pincode: '',
     pickup_location: '',
     pickup_state: '',
@@ -109,8 +115,6 @@ function BookingPage({ user }) {
     drop_district: '',
     drop_latitude: null,
     drop_longitude: null,
-    departure_date: '',
-    pickup_time: '',
     
     // Step 4: Price will be calculated
     special_requirements: '',
@@ -120,6 +124,8 @@ function BookingPage({ user }) {
   const [priceEstimate, setPriceEstimate] = useState(null);
   const [pricingSettings, setPricingSettings] = useState(null);
   const [distanceKm, setDistanceKm] = useState(0);
+  const [landingRent, setLandingRent] = useState({ pickup: null, drop: null, total: 0 });
+  const [permissionRequired, setPermissionRequired] = useState(false);
 
   const steps = [
     { id: 'passengers', title: 'यात्री / Passengers' },
