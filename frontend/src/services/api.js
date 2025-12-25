@@ -467,8 +467,11 @@ export const landingAPI = {
   // Village Landing Permissions
   createVillagePermission: (data) => api.post('/landing/village-permission', data),
   getVillagePermission: (id) => api.get(`/landing/village-permission/${id}`),
+  getVillagePermissionByInquiry: (inquiryId) => api.get(`/landing/village-permission/inquiry/${inquiryId}`),
   getMyVillagePermissions: () => api.get('/landing/village-permissions'),
-  uploadVillageDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/upload-document`, data),
+  uploadVillageDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/upload-document`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   
   // Admin Document Verification
   verifyDocument: (permissionId, data) => api.post(`/landing/village-permission/${permissionId}/verify-document`, data),
