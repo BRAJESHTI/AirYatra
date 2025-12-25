@@ -98,6 +98,7 @@ api_router.include_router(pincode_live_routes.router)
 api_router.include_router(settlement_automation_routes.router)
 api_router.include_router(inquiry_broadcast_routes.router)
 api_router.include_router(google_auth_routes.router)
+api_router.include_router(crm_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
