@@ -469,26 +469,82 @@ function BookingPage({ user }) {
     
     setSubmitting(true);
     try {
+      const pickup = formData.pickup_landing_point;
+      const drop = formData.drop_landing_point;
+      
       const inquiryData = {
         ...formData,
         customer_id: user.id,
         customer_name: user.full_name || user.email,
         customer_email: user.email,
         customer_phone: user.phone,
+        
+        // Landing point details
+        pickup_landing_point_id: pickup?.landing_point_id,
+        pickup_landing_point_name: pickup?.landing_point_name,
+        pickup_landing_point_type: pickup?.landing_point_type,
+        drop_landing_point_id: drop?.landing_point_id,
+        drop_landing_point_name: drop?.landing_point_name,
+        drop_landing_point_type: drop?.landing_point_type,
+        
+        // Location details
+        pickup_location: pickup?.landing_point_name || formData.pickup_location,
+        pickup_city: pickup?.city,
+        pickup_state: pickup?.state || formData.pickup_state,
+        pickup_latitude: pickup?.latitude,
+        pickup_longitude: pickup?.longitude,
+        drop_location: drop?.landing_point_name || formData.drop_location,
+        drop_city: drop?.city,
+        drop_state: drop?.state || formData.drop_state,
+        drop_latitude: drop?.latitude,
+        drop_longitude: drop?.longitude,
+        
         distance_km: distanceKm,
         estimated_price: priceEstimate?.total || 0,
         price_breakdown: priceEstimate,
-        status: 'pending_acceptance',
+        landing_rent_breakdown: landingRent,
+        
+        // Permission workflow
+        permission_required: permissionRequired,
+        pickup_permission_required: pickup?.permission_required || false,
+        drop_permission_required: drop?.permission_required || false,
+        
+        status: permissionRequired ? 'pending_permission' : 'pending_acceptance',
         created_at: new Date().toISOString(),
       };
       
       const response = await bookingAPI.createInquiry(inquiryData);
       
-      toast.success('🎉 Inquiry submitted! Operators will respond soon / इंक्वायरी जमा! ऑपरेटर जल्द जवाब देंगे');
+      // If permission required, create village landing permission request
+      if (permissionRequired) {
+        try {
+          const permissionLandingPoint = pickup?.permission_required ? pickup : drop;
+          await landingAPI.createVillagePermission({
+            inquiry_id: response.data.inquiry_id,
+            landing_point_id: permissionLandingPoint.landing_point_id,
+            landing_point_name: permissionLandingPoint.landing_point_name,
+            city: permissionLandingPoint.city,
+            district: permissionLandingPoint.district,
+            state: permissionLandingPoint.state,
+            landing_date: formData.departure_date,
+            landing_time: formData.pickup_time,
+            customer_id: user.id,
+            customer_name: user.full_name,
+            customer_email: user.email,
+            customer_phone: user.phone,
+          });
+          
+          toast.success('🎉 Inquiry submitted! Admin approval required for village landing.');
+        } catch (permError) {
+          console.error('Permission request failed:', permError);
+        }
+      } else {
+        toast.success('🎉 Inquiry submitted! Operators will respond soon / इंक्वायरी जमा! ऑपरेटर जल्द जवाब देंगे');
+      }
       
       // Navigate to inquiry status page
       navigate(`/customer/inquiry/${response.data.inquiry_id}`, { 
-        state: { newInquiry: true } 
+        state: { newInquiry: true, permissionRequired } 
       });
       
     } catch (error) {
