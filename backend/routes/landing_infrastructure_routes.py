@@ -519,8 +519,6 @@ async def get_availability_calendar(
             {"date": {"$regex": f"^{next_month}"}}
         ]
     
-    from datetime import timedelta
-    
     slots = await db.helipad_availability.find(
         query, {"_id": 0}
     ).sort("date", 1).to_list(100)
