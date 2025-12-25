@@ -1063,8 +1063,8 @@ function BookingPage({ user }) {
         {/* Customer Profile */}
         <CustomerProfileCard user={user} />
 
-        {/* Step Indicator */}
-        <StepIndicator currentStep={currentStep} steps={steps} />
+        {/* Step Indicator - Using modular component */}
+        <BookingStepIndicator currentStep={currentStep} steps={steps} />
 
         {/* Form Content */}
         <div className="bg-slate-900/50 rounded-2xl p-6 md:p-8 border border-slate-800">
