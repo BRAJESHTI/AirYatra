@@ -82,6 +82,8 @@ function AdminDashboard({ user, onLogout }) {
     switch (activeTab) {
       case 'overview':
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} onNavigate={setActiveTab} />;
+      case 'crm':
+        return <CRMDashboard />;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'reports':
