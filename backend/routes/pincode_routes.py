@@ -224,12 +224,11 @@ async def lookup_pincode(pincode: str):
                         "longitude": lng
                     }
             
-            raise HTTPException(status_code=404, detail="PIN code not found")
+            # API didn't find the PIN code - use fallback instead of raising error
+            return get_fallback_pincode_data(pincode)
             
     except httpx.TimeoutException:
         return get_fallback_pincode_data(pincode)
-    except HTTPException:
-        raise
     except Exception as e:
         return get_fallback_pincode_data(pincode)
 
