@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -22,6 +22,7 @@ import OperatorPerformance from '@/components/admin/OperatorPerformance';
 import MultiLevelApproval from '@/components/admin/MultiLevelApproval';
 import InAppChat from '@/components/shared/InAppChat';
 import InquiryManagement from '@/components/admin/InquiryManagement';
+import ReferralSettings from '@/components/admin/ReferralSettings';
 
 // Landing Infrastructure Components
 import LandingInfrastructure from '@/components/admin/LandingInfrastructure';
