@@ -825,12 +825,19 @@ function BookingPage({ user }) {
           <div className="flex items-start gap-3">
             <AlertCircle className="h-6 w-6 text-yellow-400 shrink-0" />
             <div>
-              <h4 className="text-yellow-400 font-semibold">Village Landing Permission Required</h4>
+              <h4 className="text-yellow-400 font-semibold">Village Landing - Documents Required</h4>
               <p className="text-yellow-400/70 text-sm mt-1">
-                This route includes a village/private land. Admin approval is required before booking confirmation.
+                गांव/निजी जमीन पर लैंडिंग के लिए आपको Authority से निम्न Documents लेने होंगे:
               </p>
-              <p className="text-yellow-400/70 text-sm mt-1">
-                गांव/निजी जमीन पर लैंडिंग के लिए एडमिन अनुमति आवश्यक है।
+              <ul className="text-yellow-400/70 text-sm mt-2 list-disc list-inside space-y-1">
+                <li>Collector NOC / कलेक्टर NOC</li>
+                <li>Fire Department Acknowledgment / फायर विभाग की पावती</li>
+                <li>Local Police Station Acknowledgment / स्थानीय थाना की पावती</li>
+                <li>SP/DCP Acknowledgment / SP/DCP की पावती</li>
+              </ul>
+              <p className="text-yellow-400/80 text-xs mt-3 font-medium">
+                ⚠️ Booking confirm hone ke baad, aapko ye documents upload karne honge. 
+                Admin/Operator verify karenge, tab hi Pilot udan bharega.
               </p>
             </div>
           </div>
