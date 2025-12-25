@@ -342,6 +342,10 @@ export const settingsAPI = {
   getInquiryBroadcastSettings: () => api.get('/inquiry-broadcast/settings'),
   updateInquiryBroadcastSettings: (data) => api.put('/inquiry-broadcast/settings', data),
   testInquiryBroadcast: (data) => api.post('/inquiry-broadcast/admin/test-broadcast', data),
+  // Payment Rules by Purpose
+  getPaymentRules: () => api.get('/settings/payment-rules'),
+  getPaymentRulesPublic: () => api.get('/settings/payment-rules/public'),
+  updatePaymentRules: (data) => api.put('/settings/payment-rules', data),
 };
 
 // Inquiry Broadcast API (Operator)
