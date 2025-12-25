@@ -672,4 +672,3 @@ async def update_payment_rules(
     })
     
     return {"message": "Payment rules updated successfully / भुगतान नियम अपडेट हो गए", "settings": settings_data}
-@router.get("/terms-agreements")
