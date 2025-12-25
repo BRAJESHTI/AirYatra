@@ -250,6 +250,47 @@ function BookingPage({ user }) {
     return R * c;
   };
 
+  // Calculate landing rent for pickup and drop locations
+  const calculateLandingRent = async (pickup, drop) => {
+    let pickupRent = null;
+    let dropRent = null;
+    let totalLandingRent = 0;
+
+    // Calculate pickup landing rent
+    if (pickup?.rent_applicable && pickup.landing_point_id && formData.departure_date) {
+      try {
+        const response = await landingAPI.calculateRent({
+          landing_point_id: pickup.landing_point_id,
+          landing_date: formData.departure_date,
+          duration_hours: 2, // Default 2 hours
+          aircraft_type: formData.aircraft_type || 'helicopter'
+        });
+        pickupRent = response.data;
+        totalLandingRent += pickupRent.total_rent || 0;
+      } catch (error) {
+        console.error('Failed to calculate pickup rent:', error);
+      }
+    }
+
+    // Calculate drop landing rent
+    if (drop?.rent_applicable && drop.landing_point_id && formData.departure_date) {
+      try {
+        const response = await landingAPI.calculateRent({
+          landing_point_id: drop.landing_point_id,
+          landing_date: formData.departure_date,
+          duration_hours: 2,
+          aircraft_type: formData.aircraft_type || 'helicopter'
+        });
+        dropRent = response.data;
+        totalLandingRent += dropRent.total_rent || 0;
+      } catch (error) {
+        console.error('Failed to calculate drop rent:', error);
+      }
+    }
+
+    setLandingRent({ pickup: pickupRent, drop: dropRent, total: totalLandingRent });
+  };
+
   const calculatePrice = () => {
     if (!pricingSettings) return;
     
