@@ -346,6 +346,36 @@ function BookingPage({ user }) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Handle landing point selection
+  const handleLandingPointSelect = (type, landingData) => {
+    console.log(`handleLandingPointSelect called for ${type}:`, landingData);
+    
+    if (!landingData) {
+      // Clear selection
+      setFormData(prev => ({
+        ...prev,
+        [`${type}_landing_point`]: null,
+        [`${type}_location`]: '',
+        [`${type}_state`]: '',
+        [`${type}_district`]: '',
+        [`${type}_latitude`]: null,
+        [`${type}_longitude`]: null,
+      }));
+      return;
+    }
+    
+    // Update form data with landing point details
+    setFormData(prev => ({
+      ...prev,
+      [`${type}_landing_point`]: landingData,
+      [`${type}_location`]: landingData.landing_point_name || '',
+      [`${type}_state`]: landingData.state || '',
+      [`${type}_district`]: landingData.district || '',
+      [`${type}_latitude`]: landingData.latitude,
+      [`${type}_longitude`]: landingData.longitude,
+    }));
+  };
+
   const handleLocationSelect = (type, locationData) => {
     console.log(`handleLocationSelect called for ${type}:`, locationData);
     const prefix = type === 'pickup' ? 'pickup' : 'drop';
