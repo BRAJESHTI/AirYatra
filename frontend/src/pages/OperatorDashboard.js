@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User } from 'lucide-react';
+import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -21,10 +21,65 @@ import ReviseQuoteManager from '../components/operator/ReviseQuoteManager';
 import InquiryNotifications from '../components/operator/InquiryNotifications';
 import OperatorProfile from '../components/operator/OperatorProfile';
 
+// Organized Navigation Structure - 5 Main Categories
+const navGroups = [
+  {
+    id: 'main',
+    label: 'Dashboard / डैशबोर्ड',
+    icon: Home,
+    items: [
+      { id: 'home', label: 'Overview', icon: Home, path: '/operator' },
+      { id: 'new-inquiries', label: 'New Inquiries / नई पूछताछ', icon: Bell, path: '/operator/new-inquiries', highlight: true },
+    ]
+  },
+  {
+    id: 'business',
+    label: 'Business / व्यापार',
+    icon: Briefcase,
+    items: [
+      { id: 'inquiries', label: 'All Inquiries / सभी पूछताछ', icon: MessageSquare, path: '/operator/inquiries' },
+      { id: 'quotes', label: 'Quote Requests / कोटेशन', icon: DollarSign, path: '/operator/quotes', highlight: true },
+      { id: 'journey-otp', label: 'Journey OTP / यात्रा OTP', icon: Key, path: '/operator/journey-otp', highlight: true },
+    ]
+  },
+  {
+    id: 'fleet',
+    label: 'Fleet & Crew / फ्लीट और क्रू',
+    icon: Plane,
+    items: [
+      { id: 'fleet', label: 'Fleet Management / फ्लीट', icon: Plane, path: '/operator/fleet' },
+      { id: 'pilots', label: 'Pilots / पायलट', icon: Users, path: '/operator/pilots' },
+    ]
+  },
+  {
+    id: 'tracking',
+    label: 'Tracking & Records / ट्रैकिंग',
+    icon: Navigation,
+    items: [
+      { id: 'live-tracking', label: 'Live Tracking / लाइव ट्रैकिंग', icon: MapPin, path: '/operator/live-tracking', highlight: true },
+      { id: 'flight-records', label: 'Flight Records / उड़ान रिकॉर्ड', icon: BookOpen, path: '/operator/flight-records' },
+      { id: 'fuel-records', label: 'Fuel Records / ईंधन रिकॉर्ड', icon: Fuel, path: '/operator/fuel-records' },
+      { id: 'landing-permissions', label: 'Landing Permissions / अनुमतियां', icon: Shield, path: '/operator/landing-permissions' },
+    ]
+  },
+  {
+    id: 'account',
+    label: 'Account / खाता',
+    icon: User,
+    items: [
+      { id: 'profile', label: 'Profile / प्रोफाइल', icon: User, path: '/operator/profile' },
+      { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings, path: '/operator/settings' },
+    ]
+  },
+];
+
 function OperatorDashboard({ user, onLogout }) {
   const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [operator, setOperator] = useState(null);
+  const [expandedGroups, setExpandedGroups] = useState(['main', 'business']);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     checkProfile();
@@ -42,6 +97,31 @@ function OperatorDashboard({ user, onLogout }) {
     }
   };
 
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  const getCurrentTabFromPath = () => {
+    const path = location.pathname;
+    if (path === '/operator' || path === '/operator/') return 'home';
+    const segment = path.replace('/operator/', '').split('/')[0];
+    return segment || 'home';
+  };
+
+  const getActiveGroup = () => {
+    const currentTab = getCurrentTabFromPath();
+    for (const group of navGroups) {
+      if (group.items.some(item => item.id === currentTab)) {
+        return group.id;
+      }
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -55,11 +135,14 @@ function OperatorDashboard({ user, onLogout }) {
     return <OperatorOnboarding user={user} onComplete={checkProfile} />;
   }
 
+  const currentTab = getCurrentTabFromPath();
+  const activeGroup = getActiveGroup();
+
   return (
     <div className="min-h-screen bg-slate-950" data-testid="operator-dashboard">
       {/* Top Navigation */}
-      <nav className="bg-slate-900 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Plane className="h-8 w-8 text-orange-500" />
             <span className="text-2xl font-bold text-white">AirYatra Operator</span>
@@ -74,76 +157,79 @@ function OperatorDashboard({ user, onLogout }) {
                 </span>
               </div>
             </div>
-            <Button variant="ghost" onClick={onLogout} className="text-white" data-testid="logout-btn">
+            <Button variant="ghost" onClick={onLogout} className="text-white hover:text-orange-400" data-testid="logout-btn">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </nav>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-slate-900 min-h-screen p-6">
-          <nav className="space-y-2">
-            <Link to="/operator" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="dashboard-link">
-              <Home className="h-5 w-5" />
-              <span>Dashboard</span>
-            </Link>
-            <Link to="/operator/new-inquiries" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-white bg-orange-500/20 border border-orange-500/50 animate-pulse" data-testid="new-inquiries-link">
-              <Bell className="h-5 w-5 text-orange-400" />
-              <span className="text-orange-400 font-medium">New Inquiries</span>
-            </Link>
-            <Link to="/operator/fleet" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="fleet-link">
-              <Plane className="h-5 w-5" />
-              <span>Fleet Management</span>
-            </Link>
-            <Link to="/operator/pilots" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="pilots-link">
-              <Users className="h-5 w-5" />
-              <span>Pilots</span>
-            </Link>
-            <Link to="/operator/inquiries" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="inquiries-link">
-              <MessageSquare className="h-5 w-5" />
-              <span>Inquiries</span>
-            </Link>
-            <Link to="/operator/quotes" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 bg-green-500/10 border border-green-500/30" data-testid="quotes-link">
-              <DollarSign className="h-5 w-5 text-green-400" />
-              <span className="text-green-400">Quote Requests</span>
-            </Link>
-            <Link to="/operator/journey-otp" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 bg-orange-500/10 border border-orange-500/30" data-testid="journey-otp-link">
-              <Key className="h-5 w-5 text-orange-400" />
-              <span className="text-orange-400">Journey OTP</span>
-            </Link>
-            
-            {/* Tracking Section */}
-            <div className="pt-4 mt-4 border-t border-slate-700">
-              <p className="text-xs text-slate-500 uppercase tracking-wider px-4 mb-2">Tracking</p>
-              <Link to="/operator/flight-records" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="flight-records-link">
-                <BookOpen className="h-5 w-5" />
-                <span>Flight Records</span>
-              </Link>
-              <Link to="/operator/fuel-records" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="fuel-records-link">
-                <Fuel className="h-5 w-5" />
-                <span>Fuel Records</span>
-              </Link>
-              <Link to="/operator/live-tracking" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="live-tracking-link">
-                <MapPin className="h-5 w-5" />
-                <span>Live Tracking</span>
-              </Link>
-              <Link to="/operator/landing-permissions" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800" data-testid="permissions-link">
-                <Shield className="h-5 w-5" />
-                <span>Landing Permissions</span>
-              </Link>
-            </div>
+      <div className="flex min-h-[calc(100vh-73px)]">
+        {/* Sidebar - Collapsible Groups */}
+        <aside className="w-72 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
+          <nav className="p-3 space-y-1">
+            {navGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isExpanded = expandedGroups.includes(group.id);
+              const isActiveGroup = activeGroup === group.id;
+              const hasHighlight = group.items.some(item => item.highlight);
 
-            <Link to="/operator/profile" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 mt-4" data-testid="profile-link">
-              <Settings className="h-5 w-5" />
-              <span>Profile</span>
-            </Link>
+              return (
+                <div key={group.id} className="mb-1">
+                  {/* Group Header */}
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                      isActiveGroup
+                        ? 'bg-orange-500/20 text-orange-400'
+                        : hasHighlight
+                          ? 'text-slate-200 hover:bg-slate-800'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <GroupIcon className={`h-5 w-5 ${isActiveGroup ? 'text-orange-400' : ''}`} />
+                      <span className="font-medium text-sm">{group.label}</span>
+                    </div>
+                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </button>
+
+                  {/* Group Items */}
+                  {isExpanded && (
+                    <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
+                      {group.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        const isActive = currentTab === item.id;
+                        return (
+                          <Link
+                            key={item.id}
+                            to={item.path}
+                            className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
+                              isActive
+                                ? 'bg-orange-500 text-white'
+                                : item.highlight
+                                  ? 'text-yellow-400 hover:bg-yellow-500/20'
+                                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <ItemIcon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                            {item.highlight && !isActive && (
+                              <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-6 overflow-y-auto">
           <Routes>
             <Route index element={<OperatorHome operator={operator} />} />
             <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
