@@ -276,11 +276,48 @@ function InquiryStatus({ user }) {
                 Booking Confirmed! / बुकिंग पुष्टि!
               </h3>
               <p className="text-slate-300 mt-2">
-                Your booking has been confirmed. Have a safe flight!
+                {inquiry.permission_required 
+                  ? 'Please upload required documents for village landing approval.'
+                  : 'Your booking has been confirmed. Have a safe flight!'}
               </p>
             </div>
           )}
         </div>
+
+        {/* Village Landing Documents Section */}
+        {inquiry.permission_required && inquiry.status === 'confirmed' && (
+          <div className="mb-8">
+            <VillageLandingDocuments
+              inquiryId={inquiryId}
+              permissionId={villagePermission?.id}
+              permissionData={villagePermission}
+              onUpdate={loadInquiryStatus}
+            />
+          </div>
+        )}
+
+        {/* Village Landing Info for Non-Confirmed Status */}
+        {inquiry.permission_required && inquiry.status !== 'confirmed' && (
+          <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/30 mb-8">
+            <div className="flex items-start gap-3">
+              <TreePine className="h-6 w-6 text-yellow-400 shrink-0" />
+              <div>
+                <h4 className="text-yellow-400 font-semibold">
+                  Village Landing - Documents Required / गांव लैंडिंग - दस्तावेज़ आवश्यक
+                </h4>
+                <p className="text-yellow-400/70 text-sm mt-1">
+                  After booking is confirmed, you will need to upload documents from authorities:
+                </p>
+                <ul className="text-yellow-400/70 text-sm mt-2 list-disc list-inside">
+                  <li>Collector NOC / कलेक्टर NOC</li>
+                  <li>Fire Department Acknowledgment / फायर विभाग की पावती</li>
+                  <li>Local Police Station Acknowledgment / स्थानीय थाना की पावती</li>
+                  <li>SP/DCP Acknowledgment / SP/DCP की पावती</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Booking Summary */}
         <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
