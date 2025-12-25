@@ -27,6 +27,7 @@ from routes import google_auth_routes
 from routes import landing_infrastructure_routes
 from routes import referral_routes
 from routes import crm_routes
+from routes import scheduler_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
