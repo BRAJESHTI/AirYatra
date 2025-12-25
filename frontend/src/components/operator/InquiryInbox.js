@@ -115,7 +115,7 @@ function InquiryInbox({ operator }) {
                       <div className="flex items-center space-x-4 text-sm text-slate-400">
                         <div className="flex items-center space-x-1">
                           <MapPin className="h-4 w-4" />
-                          <span>{booking.from_location} → {booking.to_location}</span>
+                          <span>{booking.from_location || booking.pickup_location} → {booking.to_location || booking.drop_location}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Calendar className="h-4 w-4" />
@@ -123,7 +123,7 @@ function InquiryInbox({ operator }) {
                         </div>
                         <div className="flex items-center space-x-1">
                           <Users className="h-4 w-4" />
-                          <span>{booking.passengers} passengers</span>
+                          <span>{booking.passengers || booking.total_passengers} passengers</span>
                         </div>
                       </div>
                     </div>
@@ -136,6 +136,119 @@ function InquiryInbox({ operator }) {
                       Send Quote
                     </Button>
                   </div>
+
+                  {/* Landing Point Details */}
+                  {(booking.pickup_landing_point_type || booking.drop_landing_point_type) && (
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      {/* Pickup Landing Point */}
+                      <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                        <p className="text-xs text-green-400 font-medium mb-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> Pickup Point
+                        </p>
+                        <p className="text-white text-sm font-medium">
+                          {booking.pickup_landing_point_name || booking.pickup_location}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {booking.pickup_landing_point_type === 'airport' && (
+                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs flex items-center gap-1">
+                              <Plane className="h-3 w-3" /> Airport
+                            </span>
+                          )}
+                          {booking.pickup_landing_point_type === 'govt_helipad' && (
+                            <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs flex items-center gap-1">
+                              <Building2 className="h-3 w-3" /> Govt Helipad
+                            </span>
+                          )}
+                          {booking.pickup_landing_point_type === 'private_helipad' && (
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs flex items-center gap-1">
+                              <Building2 className="h-3 w-3" /> Private Helipad
+                            </span>
+                          )}
+                          {booking.pickup_landing_point_type === 'village_land' && (
+                            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded text-xs flex items-center gap-1">
+                              <TreePine className="h-3 w-3" /> Village Land
+                            </span>
+                          )}
+                          {booking.pickup_permission_required && (
+                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" /> Permission
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Drop Landing Point */}
+                      <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                        <p className="text-xs text-red-400 font-medium mb-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> Drop Point
+                        </p>
+                        <p className="text-white text-sm font-medium">
+                          {booking.drop_landing_point_name || booking.drop_location}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {booking.drop_landing_point_type === 'airport' && (
+                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs flex items-center gap-1">
+                              <Plane className="h-3 w-3" /> Airport
+                            </span>
+                          )}
+                          {booking.drop_landing_point_type === 'govt_helipad' && (
+                            <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs flex items-center gap-1">
+                              <Building2 className="h-3 w-3" /> Govt Helipad
+                            </span>
+                          )}
+                          {booking.drop_landing_point_type === 'private_helipad' && (
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs flex items-center gap-1">
+                              <Building2 className="h-3 w-3" /> Private Helipad
+                            </span>
+                          )}
+                          {booking.drop_landing_point_type === 'village_land' && (
+                            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded text-xs flex items-center gap-1">
+                              <TreePine className="h-3 w-3" /> Village Land
+                            </span>
+                          )}
+                          {booking.drop_permission_required && (
+                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" /> Permission
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Village Landing Permission Warning */}
+                  {booking.permission_required && (
+                    <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-yellow-400 font-medium text-sm">Village Landing - Documents Required</p>
+                          <p className="text-yellow-400/70 text-xs mt-1">
+                            Customer needs to upload: Collector NOC, Fire Dept, Police & SP/DCP Acknowledgments.
+                            Flight only after all documents approved.
+                          </p>
+                          <p className="text-yellow-400/70 text-xs">
+                            ग्राहक को दस्तावेज़ अपलोड करने होंगे। सभी दस्तावेज़ स्वीकृत होने के बाद ही उड़ान।
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Landing Rent Info */}
+                  {booking.landing_rent_breakdown?.total > 0 && (
+                    <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-green-400" />
+                        <div>
+                          <p className="text-green-400 font-medium text-sm">Landing Charges Included</p>
+                          <p className="text-green-400/70 text-xs">
+                            Total Landing Rent: ₹{booking.landing_rent_breakdown.total.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {booking.special_requirements && (
                     <div className="mt-4 p-3 bg-slate-900/50 rounded border border-slate-700">
