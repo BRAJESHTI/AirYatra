@@ -152,7 +152,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
           <Building2 className="h-16 w-16 text-slate-600 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">No Helipad Registered</h2>
           <p className="text-slate-400 mb-4">
-            You don't have any registered helipad yet. Contact admin to register your helipad.
+            You do not have any registered helipad yet. Contact admin to register your helipad.
           </p>
           <p className="text-slate-500 text-sm">
             आपका कोई पंजीकृत हेलीपैड नहीं है। अपना हेलीपैड पंजीकृत करने के लिए एडमिन से संपर्क करें।
