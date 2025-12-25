@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plane, Building2, TreePine, MapPin, Search, Check, X, 
-  AlertTriangle, Calendar, DollarSign, Loader2, ChevronDown
+  AlertTriangle, Calendar, DollarSign, Loader2, ChevronDown, Home
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { landingAPI } from '@/services/api';
+import { Button } from '@/components/ui/button';
+import { landingAPI, bookingAPI } from '@/services/api';
 import { toast } from 'sonner';
 
 // Landing Point Type Icons & Colors
