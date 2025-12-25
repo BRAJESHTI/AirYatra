@@ -247,7 +247,7 @@ async def credit_wallet(
         raise HTTPException(status_code=400, detail="Amount must be positive")
     
     # Get or create wallet
-    wallet = await db.wallets.find_one({"user_id": target_user_id})
+    wallet = await db.wallets.find_one({"user_id": target_user_id}, {"_id": 0})
     
     if not wallet:
         wallet = {
