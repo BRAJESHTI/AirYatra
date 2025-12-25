@@ -33,6 +33,7 @@ import VillagePermissionDashboard from '@/components/admin/VillagePermissionDash
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'reports', label: 'Reports', icon: PieChart },
