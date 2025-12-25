@@ -60,6 +60,17 @@ import DocumentVerification from '@/components/admin/DocumentVerification';
 import MultiLegBooking from '@/components/admin/MultiLegBooking';
 import InventoryManagement from '@/components/admin/InventoryManagement';
 import DGCACompliance from '@/components/admin/DGCACompliance';
+// Medium Priority Features
+import PushNotifications from '@/components/admin/PushNotifications';
+import BoardingPass from '@/components/admin/BoardingPass';
+import CurrencyConverter from '@/components/admin/CurrencyConverter';
+import PredictiveAnalytics from '@/components/admin/PredictiveAnalytics';
+import VoiceVideoSupport from '@/components/admin/VoiceVideoSupport';
+// Low Priority Features
+import AIChatbot from '@/components/admin/AIChatbot';
+import TwoFactorAuth from '@/components/admin/TwoFactorAuth';
+import CalendarSync from '@/components/admin/CalendarSync';
+import AccountingIntegration from '@/components/admin/AccountingIntegration';
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
