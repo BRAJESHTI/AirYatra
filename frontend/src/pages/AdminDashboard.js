@@ -76,6 +76,12 @@ const navItems = [
   { id: 'insurance', label: 'Insurance Module', icon: Shield, section: 'p3' },
   { id: 'knowledge_base', label: 'Knowledge Base/FAQ', icon: BookOpen, section: 'p3' },
   { id: 'sos', label: 'Emergency SOS', icon: Siren, section: 'p3', highlight: true },
+  // Production Advanced Features
+  { id: 'live_tracking', label: 'Live Flight Tracking', icon: Radio, section: 'prod', highlight: true },
+  { id: 'doc_verify', label: 'Document Verification', icon: FileCheck, section: 'prod' },
+  { id: 'multileg', label: 'Multi-Leg Booking', icon: Route, section: 'prod' },
+  { id: 'inventory', label: 'Inventory Management', icon: Package, section: 'prod' },
+  { id: 'dgca', label: 'DGCA Compliance', icon: Shield, section: 'prod', highlight: true },
   { id: 'crm', label: 'CRM / Sales', icon: Headphones, highlight: true },
   { id: 'webhooks', label: 'Webhooks', icon: Globe },
   { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
