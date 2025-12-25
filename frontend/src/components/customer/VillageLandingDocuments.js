@@ -120,25 +120,26 @@ function VillageLandingDocuments({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('document_type', docType);
-      formData.append('permission_id', permissionId);
 
-      const response = await landingAPI.uploadVillageDocument(permissionId, formData);
+      const response = await landingAPI.uploadVillageDocumentDirect(permissionId, formData);
       
       setDocuments(prev => ({
         ...prev,
         [docType]: {
           document_type: docType,
           file_url: response.data.file_url,
-          file_name: file.name,
-          status: 'uploaded',
+          file_name: response.data.file_name || file.name,
+          status: response.data.status || 'uploaded',
           uploaded_at: new Date().toISOString()
         }
       }));
 
-      toast.success(`${REQUIRED_DOCUMENTS.find(d => d.id === docType)?.name} uploaded successfully!`);
+      const docName = REQUIRED_DOCUMENTS.find(d => d.id === docType)?.name || docType;
+      toast.success(`${docName} uploaded successfully! / सफलतापूर्वक अपलोड हुआ!`);
       
       if (onUpdate) onUpdate();
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error(error.response?.data?.detail || 'Upload failed / अपलोड विफल');
     } finally {
       setUploading(prev => ({ ...prev, [docType]: false }));
