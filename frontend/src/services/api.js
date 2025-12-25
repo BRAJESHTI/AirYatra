@@ -102,6 +102,9 @@ export const adminAPI = {
   getEntityAuditTrail: (type, id) => api.get(`/admin/audit-logs/entity/${type}/${id}`),
   getCriticalActions: () => api.get('/admin/audit-logs/critical'),
   createUser: (data) => api.post('/admin/users', data),
+  // Inquiry Management
+  getInquiries: (params) => api.get('/admin/inquiries', { params }),
+  getInquiryDetails: (id) => api.get(`/admin/inquiries/${id}`),
 };
 
 // Admin Landing Permissions API
