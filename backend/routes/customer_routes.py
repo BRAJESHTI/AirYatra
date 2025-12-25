@@ -326,19 +326,32 @@ async def respond_to_quote(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Customer accepts or rejects a revised quote"""
-    # Verify booking belongs to customer
-    booking = await db.bookings.find_one(
+    """
+    Customer accepts or rejects a revised quote
+    Works for both bookings and inquiries
+    ग्राहक कोट स्वीकार या अस्वीकार करता है
+    """
+    # Try to find in inquiries collection first (new flow)
+    inquiry = await db.inquiries.find_one(
         {"id": booking_id, "customer_id": current_user["id"]},
         {"_id": 0}
     )
     
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
+    is_inquiry = bool(inquiry)
     
-    # Verify quote exists
+    # If not found in inquiries, try bookings
+    if not inquiry:
+        inquiry = await db.bookings.find_one(
+            {"id": booking_id, "customer_id": current_user["id"]},
+            {"_id": 0}
+        )
+    
+    if not inquiry:
+        raise HTTPException(status_code=404, detail="Booking/Inquiry not found")
+    
+    # Verify quote exists - check both inquiry_id and booking_id fields
     quote = await db.quotes.find_one(
-        {"id": quote_id, "booking_id": booking_id},
+        {"id": quote_id, "$or": [{"booking_id": booking_id}, {"inquiry_id": booking_id}]},
         {"_id": 0}
     )
     
@@ -356,31 +369,50 @@ async def respond_to_quote(
             }}
         )
         
-        # Reject other quotes for this booking
+        # Reject other quotes for this booking/inquiry
         await db.quotes.update_many(
-            {"booking_id": booking_id, "id": {"$ne": quote_id}},
+            {"$or": [{"booking_id": booking_id}, {"inquiry_id": booking_id}], "id": {"$ne": quote_id}},
             {"$set": {"status": "rejected"}}
         )
         
-        # Update booking
-        await db.bookings.update_one(
-            {"id": booking_id},
-            {"$set": {
-                "status": "quote_accepted",
-                "accepted_quote_id": quote_id,
+        # Prepare update data
+        update_data = {
+            "status": "quote_accepted",
+            "accepted_quote_id": quote_id,
+            "accepted_operator_id": quote["operator_id"],
+            "operator_id": quote["operator_id"],
+            "accepted_quote": {
+                "id": quote_id,
+                "amount": quote["amount"],
                 "operator_id": quote["operator_id"],
-                "total_amount": quote["amount"],
-                "quote_accepted_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
+                "operator_name": quote.get("operator_name"),
+                "notes": quote.get("notes")
+            },
+            "total_amount": quote["amount"],
+            "quote_accepted_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Update inquiry or booking
+        if is_inquiry:
+            await db.inquiries.update_one(
+                {"id": booking_id},
+                {"$set": update_data}
+            )
+        else:
+            await db.bookings.update_one(
+                {"id": booking_id},
+                {"$set": update_data}
+            )
         
         # TODO: Notify operator
         
         return {
             "status": "success",
-            "message": "Quote accepted! / कोट स्वीकार! Proceed to payment.",
+            "message": "Quote accepted! / कोट स्वीकार! Now fill passenger details.",
             "amount": quote["amount"],
-            "operator_name": quote.get("operator_name")
+            "operator_name": quote.get("operator_name"),
+            "next_step": "fill_passenger_details"
         }
     
     elif response_data.action == "reject":
