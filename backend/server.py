@@ -42,6 +42,12 @@ from routes import route_optimization_routes
 from routes import insurance_routes
 from routes import knowledge_routes
 from routes import sos_routes
+# Production Advanced Features
+from routes import flight_tracking_live_routes
+from routes import document_verification_routes
+from routes import multileg_booking_routes
+from routes import inventory_routes
+from routes import dgca_compliance_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
