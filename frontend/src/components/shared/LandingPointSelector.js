@@ -105,7 +105,7 @@ function LandingPointSelector({
     if (pincode.length === 6) {
       setLoadingPincode(true);
       try {
-        const response = await bookingAPI.getPincodeInfo(pincode);
+        const response = await pincodeAPI.lookup(pincode);
         const data = response.data;
         
         if (data.area || data.district) {
