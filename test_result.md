@@ -100,7 +100,10 @@ curl -X POST "https://aviation-booker.preview.emergentagent.com/api/crm/leads/we
 - `/app/backend/server.py` (Added crm_routes)
 - `/app/frontend/src/services/api.js` (Added crmAPI)
 - `/app/frontend/src/components/admin/CRMDashboard.js` (NEW)
-- `/app/frontend/src/pages/AdminDashboard.js` (Added CRM tab)
+- `/app/frontend/src/components/admin/APIKeysSettings.js` (Updated - Added to Admin Dashboard)
+- `/app/frontend/src/components/booking/bookingConfig.js` (NEW - Shared config)
+- `/app/frontend/src/components/booking/index.js` (Updated exports)
+- `/app/frontend/src/pages/AdminDashboard.js` (Added CRM + API Keys tabs)
 - `/app/frontend/src/pages/BookingPage.js` (Refactored to use modular components)
 
 ## Known Issues
