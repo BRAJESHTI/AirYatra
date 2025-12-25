@@ -50,6 +50,16 @@ function LandingPointSelector({
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [showVillageInput, setShowVillageInput] = useState(false);
+  const [villageData, setVillageData] = useState({
+    pincode: '',
+    area: '',
+    district: '',
+    state: '',
+    latitude: null,
+    longitude: null
+  });
+  const [loadingPincode, setLoadingPincode] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown on outside click
