@@ -88,13 +88,8 @@ function FinanceDashboard({ user, onLogout }) {
     pending_invoices: 12,
     pending_approvals: 0
   });
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const response = await api.get('/payments/finance/dashboard');
       if (response.data) {
@@ -107,7 +102,11 @@ function FinanceDashboard({ user, onLogout }) {
     } catch (error) {
       console.error('Dashboard fetch error:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => 
