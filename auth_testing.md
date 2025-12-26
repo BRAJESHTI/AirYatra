@@ -67,14 +67,14 @@ await page.context.add_cookies([{
     "domain": "yatrahub.preview.emergentagent.com",
     "path": "/",
 }])
-await page.goto("https://skyjets-india.preview.emergentagent.com/customer")
+await page.goto("https://airyatra-dev.preview.emergentagent.com/customer")
 ```
 
 ## Step 4: Test Google Login Button Click
 
 ```python
 # Go to login page
-await page.goto("https://skyjets-india.preview.emergentagent.com/login")
+await page.goto("https://airyatra-dev.preview.emergentagent.com/login")
 await page.wait_for_load_state('networkidle')
 
 # Find and click Google login button
