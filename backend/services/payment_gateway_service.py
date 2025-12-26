@@ -296,7 +296,6 @@ class CashfreeGateway(BasePaymentGateway):
                 }
             )
             if response.status_code == 200:
-                data = response.json()
                 return {
                     "id": bene_id,
                     "name": name,
