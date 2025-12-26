@@ -36,7 +36,7 @@ async def get_my_notifications(
     }
 
 @router.put("/mark-read/{notification_id}")
-async def mark_notification_read(notification_id: str, user: dict = Depends(get_current_user)):
+async def mark_notification_as_read(notification_id: str, user: dict = Depends(get_current_user)):
     """Mark a notification as read"""
     db = get_database()
     
