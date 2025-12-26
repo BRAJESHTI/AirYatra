@@ -1,5 +1,34 @@
 import api from './apiClient';
 
+// Aviation-Grade Pricing Engine API
+export const pricingEngineAPI = {
+  // Public Endpoints
+  calculatePrice: (data) => api.post('/pricing-engine/calculate', data),
+  quickEstimate: (params) => api.post('/pricing-engine/quick-estimate', null, { params }),
+  getPublicConfig: () => api.get('/pricing-engine/config/public'),
+  
+  // Operator Endpoints
+  getOperatorPricing: () => api.get('/pricing-engine/operator/my-pricing'),
+  setBasePricing: (data) => api.post('/pricing-engine/operator/base-pricing', data),
+  setDeadLegConfig: (data) => api.post('/pricing-engine/operator/dead-leg-config', data),
+  setAdditionalCharges: (data) => api.post('/pricing-engine/operator/additional-charges', data),
+  
+  // Admin Endpoints
+  getAdminControls: () => api.get('/pricing-engine/admin/controls'),
+  setAdminControls: (data) => api.post('/pricing-engine/admin/controls', data),
+  setCommissionOverride: (params) => api.post('/pricing-engine/admin/commission-override', null, { params }),
+  setPeakDates: (data) => api.post('/pricing-engine/admin/peak-dates', data),
+  setRoutePricing: (data) => api.post('/pricing-engine/admin/route-pricing', data),
+  getRoutes: () => api.get('/pricing-engine/admin/routes'),
+  createCorporateContract: (data) => api.post('/pricing-engine/admin/corporate-contract', data),
+  getContracts: () => api.get('/pricing-engine/admin/contracts'),
+  getAuditLogs: (limit = 100) => api.get('/pricing-engine/admin/audit-logs', { params: { limit } }),
+  getCalculations: (limit = 50) => api.get('/pricing-engine/admin/calculations', { params: { limit } }),
+  
+  // Cancellation
+  getCancellationCharges: (params) => api.get('/pricing-engine/cancellation-charges', { params }),
+};
+
 // Settings API
 export const settingsAPI = {
   getPlatformSettings: () => api.get('/settings/platform'),
