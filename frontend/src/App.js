@@ -142,7 +142,8 @@ function App() {
           element={user && (user.roles.includes('finance') || user.roles.includes('admin')) ? <FinanceDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route path="/booking" element={<BookingPage user={user} />} />
-      </Routes>
+        </Routes>
+      </Suspense>
       
       {/* AI Chatbot - Available on all pages */}
       <AIChatbot user={user} />
