@@ -147,6 +147,25 @@ function BookingPage({ user }) {
   // Use imported steps from config
   const steps = bookingSteps;
 
+  // Restore saved step after login
+  useEffect(() => {
+    if (user && savedStep > 0) {
+      setCurrentStep(savedStep);
+      toast.success('📋 Form data restored! / फॉर्म डाटा बहाल किया गया!');
+    }
+  }, [user, savedStep]);
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    if (formData.aircraft_type || formData.pickup_landing_point || formData.departure_date) {
+      localStorage.setItem(BOOKING_FORM_KEY, JSON.stringify({
+        formData,
+        currentStep,
+        savedAt: new Date().toISOString()
+      }));
+    }
+  }, [formData, currentStep]);
+
   useEffect(() => {
     loadPricingSettings();
   }, []);
