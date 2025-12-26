@@ -168,6 +168,10 @@ api_router.include_router(chatbot_routes.router)
 api_router.include_router(two_factor_auth_routes.router)
 api_router.include_router(calendar_sync_routes.router)
 api_router.include_router(accounting_routes.router)
+# Advanced Integrations
+api_router.include_router(twilio_routes.router)
+api_router.include_router(tally_routes.router)
+api_router.include_router(zoho_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
