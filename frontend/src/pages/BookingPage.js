@@ -427,8 +427,14 @@ function BookingPage({ user }) {
 
   const handleSubmitInquiry = async () => {
     if (!user) {
-      toast.error('Please login to submit inquiry / इंक्वायरी के लिए लॉगिन करें');
-      navigate('/login');
+      // Save form data before redirecting to login
+      localStorage.setItem(BOOKING_FORM_KEY, JSON.stringify({
+        formData,
+        currentStep,
+        savedAt: new Date().toISOString()
+      }));
+      toast.info('🔐 Login karein, form data save ho gaya hai! / Please login, form data is saved!');
+      navigate('/login', { state: { returnTo: '/booking' } });
       return;
     }
     
@@ -479,6 +485,9 @@ function BookingPage({ user }) {
       };
       
       const response = await bookingAPI.createInquiry(inquiryData);
+      
+      // Clear saved form data after successful submission
+      localStorage.removeItem(BOOKING_FORM_KEY);
       
       // If permission required, create village landing permission request
       if (permissionRequired) {
