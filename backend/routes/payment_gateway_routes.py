@@ -273,7 +273,7 @@ async def initiate_bulk_salary_transfer(
     await db.payment_batches.insert_one(batch_record)
     
     return {
-        "message": f"Bulk salary transfer initiated / बल्क सैलरी ट्रांसफर शुरू",
+        "message": "Bulk salary transfer initiated / बल्क सैलरी ट्रांसफर शुरू",
         "batch_id": batch_id,
         "batch_number": batch_number,
         "summary": {
@@ -871,7 +871,7 @@ async def process_bulk_vendor_payment(
         })
     
     return {
-        "message": f"Bulk vendor payment initiated / बल्क वेंडर पेमेंट शुरू",
+        "message": "Bulk vendor payment initiated / बल्क वेंडर पेमेंट शुरू",
         "batch_id": batch_id,
         "batch_number": batch_number,
         "summary": {
