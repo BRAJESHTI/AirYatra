@@ -80,13 +80,34 @@ const navGroups = [
 
 function FinanceDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [expandedGroups, setExpandedGroups] = useState(['main', 'billing']);
+  const [expandedGroups, setExpandedGroups] = useState(['main', 'payroll']);
   const [stats, setStats] = useState({
     total_revenue: 1250000,
     pending_settlements: 45000,
     this_month: 350000,
-    pending_invoices: 12
+    pending_invoices: 12,
+    pending_approvals: 0
   });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await api.get('/payments/finance/dashboard');
+      if (response.data) {
+        setStats(prev => ({
+          ...prev,
+          pending_approvals: response.data.pending_approvals || 0,
+          pending_settlements: response.data.today_transactions?.total_amount || prev.pending_settlements
+        }));
+      }
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+    }
+  };
 
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => 
