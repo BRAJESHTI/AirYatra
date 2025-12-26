@@ -204,6 +204,16 @@ const navGroups = [
       { id: 'scheduler', label: 'Scheduler', icon: Clock },
     ]
   },
+  {
+    id: 'integrations',
+    label: 'Integrations / इंटीग्रेशन',
+    icon: HardDrive,
+    items: [
+      { id: 'twilio', label: 'Twilio (VoIP/Calls)', icon: Phone, highlight: true },
+      { id: 'tally', label: 'Tally Accounting', icon: Calculator, highlight: true },
+      { id: 'zoho', label: 'Zoho CRM/Books', icon: Cloud, highlight: true },
+    ]
+  },
 ];
 
 function AdminDashboard({ user, onLogout }) {
