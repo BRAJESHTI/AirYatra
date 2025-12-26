@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { bookingAPI, settingsAPI, landingAPI } from '../services/api';
+import { bookingAPI, settingsAPI, landingAPI, pricingEngineAPI } from '../services/api';
 import { toast } from 'sonner';
 import PinCodeInput from '../components/shared/PinCodeInput';
 import LandingPointSelector from '../components/shared/LandingPointSelector';
