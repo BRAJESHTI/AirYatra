@@ -64,7 +64,7 @@ async def create_internal_user(
         raise HTTPException(status_code=400, detail="Email already registered")
     
     # Validate roles
-    valid_roles = ["regional_manager", "hr", "finance", "marketing", "operations", "admin", "super_admin"]
+    valid_roles = ["regional_manager", "helipad_owner", "hr", "finance", "marketing", "sales", "support", "operations", "admin", "super_admin"]
     roles = data.get("roles", [])
     for role in roles:
         if role not in valid_roles:
