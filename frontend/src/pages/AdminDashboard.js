@@ -49,6 +49,7 @@ import FleetMaintenance from '@/components/admin/FleetMaintenance';
 
 // Priority 3 Features
 import DynamicPricing from '@/components/admin/DynamicPricing';
+import AdminPricingControls from '@/components/admin/AdminPricingControls';
 import RouteOptimization from '@/components/admin/RouteOptimization';
 import InsuranceModule from '@/components/admin/InsuranceModule';
 import KnowledgeBase from '@/components/admin/KnowledgeBase';
@@ -136,7 +137,8 @@ const navGroups = [
     items: [
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
-      { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator, highlight: true },
+      { id: 'pricing_engine', label: 'Pricing Engine / मूल्य इंजन', icon: Calculator, highlight: true },
+      { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator },
       { id: 'currency', label: 'Currency Converter', icon: DollarSign },
       { id: 'insurance', label: 'Insurance Module', icon: Shield },
       { id: 'accounting', label: 'Accounting Integration', icon: Calculator },
