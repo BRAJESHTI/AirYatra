@@ -129,6 +129,29 @@ function InquiryStatus({ user }) {
   }
 
   const currentStep = getCurrentStepIndex();
+  
+  // Format date helper
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+    } catch (e) { return dateStr; }
+  };
+  
+  // Format time helper
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '-';
+    try {
+      if (timeStr.includes(':')) {
+        const [hours, minutes] = timeStr.split(':');
+        const h = parseInt(hours);
+        return `${h > 12 ? h - 12 : h}:${minutes} ${h >= 12 ? 'PM' : 'AM'}`;
+      }
+      return timeStr;
+    } catch (e) { return timeStr; }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 py-8 px-4">
@@ -142,6 +165,121 @@ function InquiryStatus({ user }) {
             {inquiry.inquiry_number || inquiry.id?.slice(0, 8)}
           </p>
         </div>
+
+        {/* ========== BOOKING SUMMARY CARD ========== */}
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 border border-orange-500/30 mb-8 shadow-lg">
+          <h2 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5" /> Booking Details / बुकिंग विवरण
+          </h2>
+          
+          {/* Main Info Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <p className="text-slate-400 text-xs mb-1">Ref No. / रेफ नं.</p>
+              <p className="text-white font-bold text-sm">{inquiry.inquiry_number || inquiry.id?.slice(0, 8).toUpperCase()}</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <p className="text-slate-400 text-xs mb-1">Passengers / यात्री</p>
+              <p className="text-white font-bold text-sm flex items-center gap-1">
+                <Users className="h-4 w-4 text-blue-400" /> {inquiry.total_passengers || inquiry.adults_male + inquiry.adults_female || 1}
+              </p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <p className="text-slate-400 text-xs mb-1">Aircraft / विमान</p>
+              <p className="text-white font-bold text-sm flex items-center gap-1">
+                <Plane className="h-4 w-4 text-orange-400" /> {inquiry.aircraft_type === 'helicopter' ? 'Helicopter' : 'Plane'}
+              </p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <p className="text-slate-400 text-xs mb-1">Distance / दूरी</p>
+              <p className="text-white font-bold text-sm">{inquiry.distance_km || '-'} km</p>
+            </div>
+          </div>
+
+          {/* Route Info */}
+          <div className="bg-slate-800/30 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex-1 min-w-[150px]">
+                <p className="text-slate-400 text-xs mb-1">From / से</p>
+                <p className="text-white font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-green-400" />
+                  {inquiry.pickup_landing_point_name || inquiry.pickup_location || inquiry.pickup_city || '-'}
+                </p>
+                <p className="text-slate-500 text-xs">{inquiry.pickup_city}, {inquiry.pickup_state}</p>
+              </div>
+              
+              <div className="flex items-center text-slate-600">
+                <div className="w-8 h-0.5 bg-slate-600"></div>
+                <Plane className="h-5 w-5 mx-2 text-orange-400 rotate-90" />
+                <div className="w-8 h-0.5 bg-slate-600"></div>
+              </div>
+              
+              <div className="flex-1 min-w-[150px] text-right">
+                <p className="text-slate-400 text-xs mb-1">To / तक</p>
+                <p className="text-white font-semibold flex items-center justify-end gap-2">
+                  {inquiry.drop_landing_point_name || inquiry.drop_location || inquiry.drop_city || '-'}
+                  <MapPin className="h-4 w-4 text-red-400" />
+                </p>
+                <p className="text-slate-500 text-xs">{inquiry.drop_city}, {inquiry.drop_state}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Date, Time & Price Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-orange-500/10 rounded-lg p-3 border border-orange-500/20">
+              <p className="text-slate-400 text-xs mb-1">Travel Date / यात्रा तारीख</p>
+              <p className="text-orange-400 font-bold text-sm flex items-center gap-1">
+                <Calendar className="h-4 w-4" /> {formatDate(inquiry.departure_date)}
+              </p>
+            </div>
+            <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
+              <p className="text-slate-400 text-xs mb-1">Pickup Time / समय</p>
+              <p className="text-blue-400 font-bold text-sm flex items-center gap-1">
+                <Clock className="h-4 w-4" /> {formatTime(inquiry.pickup_time)}
+              </p>
+            </div>
+            <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+              <p className="text-slate-400 text-xs mb-1">Est. Amount / अनुमानित राशि</p>
+              <p className="text-green-400 font-bold text-sm flex items-center gap-1">
+                <DollarSign className="h-4 w-4" /> ₹{(inquiry.estimated_price || 0).toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
+              <p className="text-slate-400 text-xs mb-1">Inquiry Date / इंक्वायरी तारीख</p>
+              <p className="text-purple-400 font-bold text-sm flex items-center gap-1">
+                <Calendar className="h-4 w-4" /> {formatDate(inquiry.created_at)}
+              </p>
+            </div>
+          </div>
+
+          {/* Operator Status Row */}
+          <div className="mt-4 pt-4 border-t border-slate-700">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-sm">Operator Status:</span>
+                {quotes.length > 0 ? (
+                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+                    ✅ {quotes.length} Operator(s) Accepted
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-medium animate-pulse">
+                    ⏳ Waiting for Operators...
+                  </span>
+                )}
+              </div>
+              <Button 
+                onClick={loadInquiryStatus} 
+                variant="outline" 
+                size="sm"
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+              </Button>
+            </div>
+          </div>
+        </div>
+        {/* ========== END BOOKING SUMMARY CARD ========== */}
 
         {/* Progress Steps */}
         <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-8">
