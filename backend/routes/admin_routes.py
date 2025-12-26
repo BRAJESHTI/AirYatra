@@ -278,6 +278,29 @@ async def seed_demo_operators(user: dict = Depends(require_roles([UserRole.ADMIN
     
     return {"message": f"Seeded {created} demo operators", "total_operators": len(demo_operators)}
 
+@router.put("/operators/{operator_id}/location")
+async def update_operator_location(operator_id: str, data: dict, user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    """Update operator base location coordinates"""
+    db = get_database()
+    
+    operator = await db.operators.find_one({"id": operator_id}, {"_id": 0})
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    
+    update_data = {
+        "base_latitude": data.get("base_latitude"),
+        "base_longitude": data.get("base_longitude"),
+        "base_state": data.get("base_state", operator.get("base_state")),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.operators.update_one(
+        {"id": operator_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Operator location updated", "operator_id": operator_id}
+
 @router.get("/bookings")
 async def get_all_bookings(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])), status: str = None, limit: int = 100):
     """Get all bookings with optional status filter"""
