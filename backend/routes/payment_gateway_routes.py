@@ -1031,3 +1031,899 @@ async def get_payment_batches(
     
     batches = await db.payment_batches.find(query, {"_id": 0}).sort("initiated_at", -1).to_list(100)
     return {"batches": batches}
+
+
+
+# ==================== MULTI-GATEWAY & APPROVAL WORKFLOW ====================
+
+from services.payment_gateway_service import payment_gateway_manager, PaymentGateway
+from services.approval_workflow import ApprovalWorkflow, TDSConfigManager, ApprovalType, ApprovalStatus
+
+
+@router.get("/gateways/available")
+async def get_available_gateways(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE]))
+):
+    """Get list of available payment gateways / उपलब्ध पेमेंट गेटवे"""
+    gateways = payment_gateway_manager.get_available_gateways()
+    return {
+        "gateways": gateways,
+        "default_gateway": payment_gateway_manager.default_gateway
+    }
+
+
+@router.post("/gateways/config")
+async def update_gateway_config(
+    config: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Update gateway configuration / गेटवे कॉन्फ़िगरेशन अपडेट करें"""
+    gateway_name = config.get("gateway")
+    credentials = config.get("credentials", {})
+    
+    # Store encrypted credentials
+    await db.gateway_config.update_one(
+        {"gateway": gateway_name},
+        {"$set": {
+            "gateway": gateway_name,
+            "is_active": config.get("is_active", True),
+            "credentials_set": bool(credentials),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user["id"]
+        }},
+        upsert=True
+    )
+    
+    return {"message": f"{gateway_name} configuration updated / कॉन्फ़िगरेशन अपडेट हो गया"}
+
+
+# ==================== APPROVAL WORKFLOW ENDPOINTS ====================
+
+@router.post("/approval/create")
+async def create_approval_request(
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Create approval request for payment / पेमेंट के लिए अनुमोदन अनुरोध बनाएं"""
+    workflow = ApprovalWorkflow(db)
+    
+    result = await workflow.create_approval_request(
+        request_type=data.get("type", ApprovalType.BULK_TRANSFER.value),
+        reference_id=data["reference_id"],
+        amount=data["amount"],
+        requestor_id=current_user["id"],
+        requestor_name=current_user.get("full_name", current_user.get("email")),
+        details=data.get("details", {}),
+        requires_hr=data.get("requires_hr", True),
+        requires_finance=data.get("requires_finance", True),
+        requires_admin=data.get("requires_admin", True)
+    )
+    
+    return result
+
+
+@router.get("/approval/pending")
+async def get_pending_approvals(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get pending approvals for current user's role / लंबित अनुमोदन प्राप्त करें"""
+    workflow = ApprovalWorkflow(db)
+    role = current_user.get("role", "")
+    
+    approvals = await workflow.get_pending_approvals(role=role, user_id=current_user["id"])
+    
+    return {
+        "pending_approvals": approvals,
+        "count": len(approvals),
+        "user_role": role
+    }
+
+
+@router.post("/approval/{approval_id}/approve/hr")
+async def approve_by_hr(
+    approval_id: str,
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """HR approval / HR अनुमोदन"""
+    workflow = ApprovalWorkflow(db)
+    
+    result = await workflow.approve_by_hr(
+        approval_id=approval_id,
+        approver_id=current_user["id"],
+        approver_name=current_user.get("full_name", current_user.get("email")),
+        comments=data.get("comments", "")
+    )
+    
+    return result
+
+
+@router.post("/approval/{approval_id}/approve/finance")
+async def approve_by_finance(
+    approval_id: str,
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.FINANCE, UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Finance approval / Finance अनुमोदन"""
+    workflow = ApprovalWorkflow(db)
+    
+    result = await workflow.approve_by_finance(
+        approval_id=approval_id,
+        approver_id=current_user["id"],
+        approver_name=current_user.get("full_name", current_user.get("email")),
+        comments=data.get("comments", "")
+    )
+    
+    return result
+
+
+@router.post("/approval/{approval_id}/approve/admin")
+async def approve_by_admin(
+    approval_id: str,
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Admin final approval / Admin अंतिम अनुमोदन"""
+    workflow = ApprovalWorkflow(db)
+    
+    result = await workflow.approve_by_admin(
+        approval_id=approval_id,
+        approver_id=current_user["id"],
+        approver_name=current_user.get("full_name", current_user.get("email")),
+        comments=data.get("comments", "")
+    )
+    
+    return result
+
+
+@router.post("/approval/{approval_id}/admin-override")
+async def admin_override_approve(
+    approval_id: str,
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """
+    Admin override - Approve directly without HR/Finance
+    Admin override - HR/Finance के बिना सीधे अनुमोदित करें
+    """
+    workflow = ApprovalWorkflow(db)
+    
+    result = await workflow.admin_override_approve(
+        approval_id=approval_id,
+        admin_id=current_user["id"],
+        admin_name=current_user.get("full_name", current_user.get("email")),
+        reason=data.get("reason", "Admin override")
+    )
+    
+    return result
+
+
+@router.post("/approval/{approval_id}/reject")
+async def reject_approval(
+    approval_id: str,
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.HR, UserRole.FINANCE, UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """Reject approval request / अनुमोदन अनुरोध अस्वीकार करें"""
+    workflow = ApprovalWorkflow(db)
+    
+    result = await workflow.reject(
+        approval_id=approval_id,
+        rejector_id=current_user["id"],
+        rejector_name=current_user.get("full_name", current_user.get("email")),
+        rejector_role=current_user.get("role", "unknown"),
+        reason=data.get("reason", "No reason provided")
+    )
+    
+    return result
+
+
+@router.get("/approval/history")
+async def get_approval_history(
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get approval history / अनुमोदन इतिहास प्राप्त करें"""
+    workflow = ApprovalWorkflow(db)
+    
+    history = await workflow.get_approval_history(
+        approval_type=type,
+        status=status
+    )
+    
+    return {"history": history, "count": len(history)}
+
+
+# ==================== TDS CONFIGURATION ====================
+
+@router.get("/tds/config")
+async def get_tds_config(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get TDS configuration / TDS कॉन्फ़िगरेशन प्राप्त करें"""
+    tds_manager = TDSConfigManager(db)
+    config = await tds_manager.get_tds_config()
+    return config
+
+
+@router.post("/tds/config")
+async def update_tds_config(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
+    db=Depends(get_database)
+):
+    """Update TDS configuration / TDS कॉन्फ़िगरेशन अपडेट करें"""
+    tds_manager = TDSConfigManager(db)
+    
+    config = await tds_manager.update_tds_config(
+        rates=data.get("rates"),
+        custom_rates=data.get("custom_rates"),
+        updater_id=current_user["id"]
+    )
+    
+    return {"message": "TDS configuration updated / TDS कॉन्फ़िगरेशन अपडेट हो गया", "config": config}
+
+
+@router.post("/tds/custom-rate")
+async def add_custom_tds_rate(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
+    db=Depends(get_database)
+):
+    """Add custom TDS rate for vendor / वेंडर के लिए कस्टम TDS रेट जोड़ें"""
+    tds_manager = TDSConfigManager(db)
+    
+    custom_rate = await tds_manager.add_custom_rate(
+        vendor_id=data["vendor_id"],
+        vendor_name=data["vendor_name"],
+        tds_section=data["tds_section"],
+        custom_rate=data["rate"],
+        reason=data.get("reason", ""),
+        updater_id=current_user["id"]
+    )
+    
+    return {"message": "Custom TDS rate added / कस्टम TDS रेट जोड़ा गया", "custom_rate": custom_rate}
+
+
+@router.post("/tds/calculate")
+async def calculate_tds(
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Calculate TDS for amount / राशि के लिए TDS की गणना करें"""
+    tds_manager = TDSConfigManager(db)
+    
+    result = await tds_manager.calculate_tds(
+        vendor_id=data.get("vendor_id", ""),
+        vendor_type=data.get("vendor_type", "individual"),
+        tds_section=data["tds_section"],
+        amount=data["amount"],
+        has_pan=data.get("has_pan", True)
+    )
+    
+    return result
+
+
+@router.get("/tds/sections")
+async def get_tds_sections(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get all TDS sections with rates / सभी TDS सेक्शन प्राप्त करें"""
+    tds_manager = TDSConfigManager(db)
+    sections = await tds_manager.get_tds_sections()
+    return {"sections": sections}
+
+
+# ==================== MULTI-GATEWAY SALARY TRANSFER ====================
+
+@router.post("/salary/multi-gateway/transfer")
+async def multi_gateway_salary_transfer(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
+    db=Depends(get_database)
+):
+    """
+    Process salary transfer using selected gateway
+    चयनित गेटवे का उपयोग करके सैलरी ट्रांसफर करें
+    """
+    gateway_name = data.get("gateway", "razorpayx")
+    approval_id = data.get("approval_id")
+    month = data.get("month", datetime.now().month)
+    year = data.get("year", datetime.now().year)
+    mode = data.get("mode", "NEFT")
+    
+    # Check if approval is required and approved
+    if approval_id:
+        workflow = ApprovalWorkflow(db)
+        is_approved = await workflow.is_approved(approval_id)
+        if not is_approved:
+            raise HTTPException(status_code=400, detail="Approval pending / अनुमोदन लंबित है")
+    
+    # Get approved payrolls
+    payrolls = await db.payroll.find({
+        "month": month,
+        "year": year,
+        "status": "approved"
+    }, {"_id": 0}).to_list(500)
+    
+    if not payrolls:
+        raise HTTPException(status_code=400, detail="No approved payrolls found / कोई अनुमोदित पेरोल नहीं मिला")
+    
+    # Prepare employee data with bank details
+    employees = []
+    missing_bank_details = []
+    
+    for payroll in payrolls:
+        bank_details = await db.employee_bank_details.find_one(
+            {"employee_id": payroll["employee_id"]},
+            {"_id": 0}
+        )
+        
+        if not bank_details:
+            missing_bank_details.append({
+                "employee_id": payroll["employee_id"],
+                "employee_name": payroll.get("employee_name")
+            })
+            continue
+        
+        employees.append({
+            "employee_id": payroll["employee_id"],
+            "name": payroll.get("employee_name", ""),
+            "email": payroll.get("email", ""),
+            "phone": payroll.get("phone", ""),
+            "account_number": bank_details["account_number"],
+            "ifsc_code": bank_details["ifsc_code"],
+            "account_holder_name": bank_details.get("account_holder_name", payroll.get("employee_name")),
+            "bank_name": bank_details.get("bank_name"),
+            "amount": payroll["net_salary"]
+        })
+    
+    if not employees:
+        raise HTTPException(status_code=400, detail="No employees with bank details found / बैंक विवरण वाले कोई कर्मचारी नहीं मिले")
+    
+    # Process bulk transfer
+    result = await payment_gateway_manager.process_bulk_salary(
+        gateway_name=gateway_name,
+        employees=employees,
+        mode=mode
+    )
+    
+    # Create batch record
+    batch_id = str(uuid4())
+    batch_number = f"BATCH-{gateway_name.upper()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    batch_record = {
+        "id": batch_id,
+        "batch_number": batch_number,
+        "type": "salary",
+        "gateway": gateway_name,
+        "month": month,
+        "year": year,
+        "total_count": len(employees),
+        "success_count": result.get("successful", 0),
+        "failed_count": result.get("failed", 0),
+        "missing_bank_details": len(missing_bank_details),
+        "total_amount": sum(e["amount"] for e in employees),
+        "payment_mode": mode,
+        "status": "processing",
+        "approval_id": approval_id,
+        "initiated_by": current_user["id"],
+        "initiated_at": datetime.now(timezone.utc).isoformat(),
+        "results": result.get("results", [])
+    }
+    
+    await db.payment_batches.insert_one(batch_record)
+    
+    # Update payroll statuses
+    for payout in result.get("results", []):
+        if payout.get("success"):
+            await db.payroll.update_one(
+                {"employee_id": payout.get("employee_id")},
+                {"$set": {
+                    "status": "payment_processing",
+                    "payment_batch_id": batch_id,
+                    "payment_gateway": gateway_name,
+                    "utr_number": payout.get("utr")
+                }}
+            )
+    
+    return {
+        "message": f"Bulk salary transfer initiated via {gateway_name} / {gateway_name} के माध्यम से बल्क सैलरी ट्रांसफर शुरू",
+        "batch_id": batch_id,
+        "batch_number": batch_number,
+        "gateway": gateway_name,
+        "is_mock": result.get("mock", not payment_gateway_manager.get_gateway(gateway_name).is_configured if hasattr(payment_gateway_manager.get_gateway(gateway_name), 'is_configured') else True),
+        "summary": {
+            "total_employees": len(employees),
+            "successful": result.get("successful", 0),
+            "failed": result.get("failed", 0),
+            "missing_bank_details": len(missing_bank_details),
+            "total_amount": sum(e["amount"] for e in employees)
+        },
+        "missing_bank_details": missing_bank_details
+    }
+
+
+@router.post("/vendor/multi-gateway/payment")
+async def multi_gateway_vendor_payment(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
+    db=Depends(get_database)
+):
+    """
+    Process vendor payment using selected gateway with TDS
+    चयनित गेटवे और TDS के साथ वेंडर पेमेंट करें
+    """
+    gateway_name = data.get("gateway", "razorpayx")
+    bill_ids = data.get("bill_ids", [])
+    mode = data.get("mode", "NEFT")
+    approval_id = data.get("approval_id")
+    
+    # Check approval if required
+    if approval_id:
+        workflow = ApprovalWorkflow(db)
+        is_approved = await workflow.is_approved(approval_id)
+        if not is_approved:
+            raise HTTPException(status_code=400, detail="Approval pending / अनुमोदन लंबित है")
+    
+    # Get approved unpaid bills
+    query = {"status": "approved", "payment_status": "unpaid"}
+    if bill_ids:
+        query["id"] = {"$in": bill_ids}
+    
+    bills = await db.vendor_bills.find(query, {"_id": 0}).to_list(100)
+    
+    if not bills:
+        raise HTTPException(status_code=400, detail="No approved unpaid bills found / कोई अनुमोदित अवैतनिक बिल नहीं मिला")
+    
+    successful_payments = []
+    failed_payments = []
+    total_gross = 0
+    total_tds = 0
+    total_net = 0
+    
+    for bill in bills:
+        vendor = await db.vendors.find_one({"id": bill["vendor_id"]}, {"_id": 0})
+        if not vendor or not vendor.get("account_number"):
+            failed_payments.append({
+                "bill_id": bill["id"],
+                "vendor_name": bill["vendor_name"],
+                "reason": "Bank details not found"
+            })
+            continue
+        
+        vendor_data = {
+            "vendor_id": vendor["id"],
+            "name": vendor["name"],
+            "email": vendor.get("email", ""),
+            "phone": vendor.get("phone", ""),
+            "account_number": vendor["account_number"],
+            "ifsc_code": vendor["ifsc_code"],
+            "account_holder_name": vendor.get("account_holder_name", vendor["name"])
+        }
+        
+        result = await payment_gateway_manager.process_vendor_payment(
+            gateway_name=gateway_name,
+            vendor_data=vendor_data,
+            gross_amount=bill["gross_amount"],
+            tds_amount=bill["tds_amount"],
+            mode=mode,
+            reference_id=f"VEN_{bill['id'][:8]}"
+        )
+        
+        if result.get("success"):
+            # Update bill status
+            await db.vendor_bills.update_one(
+                {"id": bill["id"]},
+                {"$set": {
+                    "payment_status": "processing",
+                    "payment_gateway": gateway_name,
+                    "payment_reference": result.get("payout_id"),
+                    "utr_number": result.get("utr")
+                }}
+            )
+            
+            successful_payments.append({
+                "bill_id": bill["id"],
+                "bill_number": bill["bill_number"],
+                "vendor_name": bill["vendor_name"],
+                "gross_amount": bill["gross_amount"],
+                "tds_deducted": bill["tds_amount"],
+                "net_paid": bill["net_payable"],
+                "utr": result.get("utr"),
+                "gateway": gateway_name
+            })
+            
+            total_gross += bill["gross_amount"]
+            total_tds += bill["tds_amount"]
+            total_net += bill["net_payable"]
+        else:
+            failed_payments.append({
+                "bill_id": bill["id"],
+                "vendor_name": bill["vendor_name"],
+                "reason": result.get("error", "Unknown error")
+            })
+    
+    # Create batch record
+    batch_id = str(uuid4())
+    batch_number = f"BATCH-VEN-{gateway_name.upper()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    await db.payment_batches.insert_one({
+        "id": batch_id,
+        "batch_number": batch_number,
+        "type": "vendor",
+        "gateway": gateway_name,
+        "total_count": len(bills),
+        "success_count": len(successful_payments),
+        "failed_count": len(failed_payments),
+        "total_gross": total_gross,
+        "total_tds": total_tds,
+        "total_net": total_net,
+        "payment_mode": mode,
+        "status": "processing",
+        "approval_id": approval_id,
+        "initiated_by": current_user["id"],
+        "initiated_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "message": f"Vendor payments initiated via {gateway_name} / {gateway_name} के माध्यम से वेंडर पेमेंट शुरू",
+        "batch_id": batch_id,
+        "batch_number": batch_number,
+        "gateway": gateway_name,
+        "summary": {
+            "total_bills": len(bills),
+            "successful": len(successful_payments),
+            "failed": len(failed_payments),
+            "total_gross": total_gross,
+            "total_tds_deducted": total_tds,
+            "total_net_paid": total_net
+        },
+        "successful_payments": successful_payments,
+        "failed_payments": failed_payments
+    }
+
+
+# ==================== AUTO SALARY PAYMENT ====================
+
+@router.post("/salary/auto-run")
+async def create_auto_salary_run(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
+    db=Depends(get_database)
+):
+    """
+    Create auto salary run with approval workflow
+    अनुमोदन वर्कफ़्लो के साथ ऑटो सैलरी रन बनाएं
+    """
+    month = data.get("month", datetime.now().month)
+    year = data.get("year", datetime.now().year)
+    gateway = data.get("gateway", "razorpayx")
+    mode = data.get("mode", "NEFT")
+    
+    # Check for existing run
+    existing = await db.salary_runs.find_one({
+        "month": month,
+        "year": year,
+        "status": {"$nin": ["cancelled", "rejected"]}
+    })
+    
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Salary run already exists for {month}/{year} with status: {existing['status']}"
+        )
+    
+    # Get approved payrolls
+    payrolls = await db.payroll.find({
+        "month": month,
+        "year": year,
+        "status": "approved"
+    }, {"_id": 0}).to_list(500)
+    
+    if not payrolls:
+        raise HTTPException(status_code=400, detail="No approved payrolls found for this period")
+    
+    total_amount = sum(p["net_salary"] for p in payrolls)
+    
+    # Create salary run
+    run_id = str(uuid4())
+    run_number = f"SALRUN-{year}{str(month).zfill(2)}-{run_id[:6].upper()}"
+    
+    salary_run = {
+        "id": run_id,
+        "run_number": run_number,
+        "month": month,
+        "year": year,
+        "employee_count": len(payrolls),
+        "total_gross": sum(p.get("gross_earnings", p["net_salary"]) for p in payrolls),
+        "total_deductions": sum(p.get("total_deductions", 0) for p in payrolls),
+        "total_net": total_amount,
+        "gateway": gateway,
+        "payment_mode": mode,
+        "status": "pending_approval",
+        "approval_id": None,
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.salary_runs.insert_one(salary_run)
+    
+    # Create approval request
+    workflow = ApprovalWorkflow(db)
+    approval = await workflow.create_approval_request(
+        request_type=ApprovalType.SALARY_RUN,
+        reference_id=run_id,
+        amount=total_amount,
+        requestor_id=current_user["id"],
+        requestor_name=current_user.get("full_name", current_user.get("email")),
+        details={
+            "run_number": run_number,
+            "month": month,
+            "year": year,
+            "employee_count": len(payrolls),
+            "gateway": gateway
+        },
+        requires_hr=True,
+        requires_finance=True,
+        requires_admin=True
+    )
+    
+    # Update run with approval ID
+    await db.salary_runs.update_one(
+        {"id": run_id},
+        {"$set": {"approval_id": approval["approval_id"]}}
+    )
+    
+    return {
+        "message": "Salary run created and sent for approval / सैलरी रन बनाया गया और अनुमोदन के लिए भेजा गया",
+        "run_id": run_id,
+        "run_number": run_number,
+        "approval_id": approval["approval_id"],
+        "summary": {
+            "employee_count": len(payrolls),
+            "total_amount": total_amount,
+            "gateway": gateway
+        },
+        "approval_flow": "HR → Finance → Admin → Auto Transfer"
+    }
+
+
+@router.post("/salary/auto-run/{run_id}/execute")
+async def execute_auto_salary_run(
+    run_id: str,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    db=Depends(get_database)
+):
+    """
+    Execute approved salary run - Auto transfer to bank accounts
+    अनुमोदित सैलरी रन निष्पादित करें - बैंक खातों में ऑटो ट्रांसफर
+    """
+    # Get salary run
+    run = await db.salary_runs.find_one({"id": run_id}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail="Salary run not found")
+    
+    # Check approval status
+    if run.get("approval_id"):
+        workflow = ApprovalWorkflow(db)
+        is_approved = await workflow.is_approved(run["approval_id"])
+        if not is_approved:
+            raise HTTPException(status_code=400, detail="Salary run not approved yet / सैलरी रन अभी तक अनुमोदित नहीं है")
+    
+    if run["status"] in ["processing", "completed"]:
+        raise HTTPException(status_code=400, detail=f"Salary run already {run['status']}")
+    
+    # Update status to processing
+    await db.salary_runs.update_one(
+        {"id": run_id},
+        {"$set": {
+            "status": "processing",
+            "execution_started_at": datetime.now(timezone.utc).isoformat(),
+            "executed_by": current_user["id"]
+        }}
+    )
+    
+    # Process transfer
+    transfer_result = await multi_gateway_salary_transfer(
+        data={
+            "gateway": run["gateway"],
+            "month": run["month"],
+            "year": run["year"],
+            "mode": run["payment_mode"],
+            "approval_id": run["approval_id"]
+        },
+        current_user=current_user,
+        db=db
+    )
+    
+    # Update salary run with results
+    await db.salary_runs.update_one(
+        {"id": run_id},
+        {"$set": {
+            "status": "completed" if transfer_result["summary"]["failed"] == 0 else "partially_completed",
+            "batch_id": transfer_result["batch_id"],
+            "execution_completed_at": datetime.now(timezone.utc).isoformat(),
+            "execution_summary": transfer_result["summary"]
+        }}
+    )
+    
+    return {
+        "message": "Salary run executed / सैलरी रन निष्पादित हो गया",
+        "run_id": run_id,
+        "run_number": run["run_number"],
+        **transfer_result
+    }
+
+
+@router.get("/salary/auto-runs")
+async def get_salary_runs(
+    status: Optional[str] = None,
+    year: Optional[int] = None,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get all salary runs / सभी सैलरी रन प्राप्त करें"""
+    query = {}
+    if status:
+        query["status"] = status
+    if year:
+        query["year"] = year
+    
+    runs = await db.salary_runs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return {"salary_runs": runs, "count": len(runs)}
+
+
+@router.get("/salary/auto-run/{run_id}")
+async def get_salary_run_details(
+    run_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get salary run details with approval status"""
+    run = await db.salary_runs.find_one({"id": run_id}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail="Salary run not found")
+    
+    # Get approval details
+    approval = None
+    if run.get("approval_id"):
+        approval = await db.approval_requests.find_one({"id": run["approval_id"]}, {"_id": 0})
+    
+    # Get batch details if executed
+    batch = None
+    if run.get("batch_id"):
+        batch = await db.payment_batches.find_one({"id": run["batch_id"]}, {"_id": 0})
+    
+    return {
+        "salary_run": run,
+        "approval": approval,
+        "batch": batch
+    }
+
+
+# ==================== EMPLOYEE BANK DETAILS ====================
+
+@router.post("/employee/bank-details")
+async def add_employee_bank_details(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
+    db=Depends(get_database)
+):
+    """Add/Update employee bank details / कर्मचारी बैंक विवरण जोड़ें"""
+    employee_id = data["employee_id"]
+    
+    bank_details = {
+        "employee_id": employee_id,
+        "bank_name": data["bank_name"],
+        "account_number": data["account_number"],
+        "ifsc_code": data["ifsc_code"],
+        "account_holder_name": data["account_holder_name"],
+        "account_type": data.get("account_type", "savings"),
+        "is_verified": False,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    await db.employee_bank_details.update_one(
+        {"employee_id": employee_id},
+        {"$set": bank_details},
+        upsert=True
+    )
+    
+    return {"message": "Bank details saved / बैंक विवरण सहेजे गए", "employee_id": employee_id}
+
+
+@router.get("/employee/{employee_id}/bank-details")
+async def get_employee_bank_details(
+    employee_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get employee bank details"""
+    details = await db.employee_bank_details.find_one(
+        {"employee_id": employee_id},
+        {"_id": 0}
+    )
+    
+    if not details:
+        raise HTTPException(status_code=404, detail="Bank details not found")
+    
+    # Mask account number for security
+    if details.get("account_number"):
+        details["account_number_masked"] = details["account_number"][-4:].rjust(len(details["account_number"]), "*")
+    
+    return details
+
+
+# ==================== FINANCE DASHBOARD ====================
+
+@router.get("/finance/dashboard")
+async def get_finance_dashboard(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
+    db=Depends(get_database)
+):
+    """Get finance dashboard data / फाइनेंस डैशबोर्ड डेटा प्राप्त करें"""
+    
+    # Pending approvals
+    pending_approvals = await db.approval_requests.count_documents({
+        "status": {"$in": ["pending_hr", "pending_finance", "pending_admin"]}
+    })
+    
+    # Today's transactions
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_transactions = await db.payment_transactions.find({
+        "initiated_at": {"$gte": today_start.isoformat()}
+    }, {"_id": 0}).to_list(100)
+    
+    # Pending vendor bills
+    pending_bills = await db.vendor_bills.count_documents({
+        "payment_status": "unpaid",
+        "status": "approved"
+    })
+    
+    # Recent salary runs
+    recent_runs = await db.salary_runs.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).to_list(5)
+    
+    # Gateway status
+    gateways = payment_gateway_manager.get_available_gateways()
+    
+    # TDS summary this quarter
+    current_quarter = f"Q{((datetime.now().month - 1) // 3) + 1}"
+    tds_entries = await db.tds_entries.find({
+        "quarter": current_quarter
+    }, {"_id": 0}).to_list(100)
+    
+    total_tds_quarter = sum(e.get("total_tds", 0) for e in tds_entries)
+    
+    return {
+        "pending_approvals": pending_approvals,
+        "today_transactions": {
+            "count": len(today_transactions),
+            "total_amount": sum(t.get("net_amount", 0) for t in today_transactions)
+        },
+        "pending_vendor_bills": pending_bills,
+        "recent_salary_runs": recent_runs,
+        "gateways": gateways,
+        "tds_summary": {
+            "quarter": current_quarter,
+            "total_tds": total_tds_quarter,
+            "entries_count": len(tds_entries)
+        }
+    }
