@@ -1009,6 +1009,47 @@ function BookingPage({ user }) {
           />
         </div>
       </div>
+
+      {/* Additional Aviation Options */}
+      <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
+        <p className="text-slate-400 text-sm mb-3 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-yellow-400" />
+          Additional Options / अतिरिक्त विकल्प (Optional)
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label className="text-slate-300 mb-2 block text-sm">
+              Waiting Time / प्रतीक्षा समय (minutes)
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              step="30"
+              value={formData.waiting_time || 0}
+              onChange={(e) => handleInputChange('waiting_time', parseInt(e.target.value) || 0)}
+              placeholder="0"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
+            <p className="text-xs text-slate-500 mt-1">First 30 min free, then charges apply</p>
+          </div>
+          
+          <div>
+            <Label className="text-slate-300 mb-2 block text-sm">
+              Night Halts / रात्रि ठहराव
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              max="30"
+              value={formData.night_halts || 0}
+              onChange={(e) => handleInputChange('night_halts', parseInt(e.target.value) || 0)}
+              placeholder="0"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
+            <p className="text-xs text-slate-500 mt-1">Includes crew accommodation charges</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
