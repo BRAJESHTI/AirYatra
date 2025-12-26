@@ -124,12 +124,32 @@ function FinanceDashboard({ user, onLogout }) {
         return <AccountingIntegration />;
       case 'currency':
         return <CurrencyConverter />;
+      case 'bulk_salary':
+      case 'salary_reconciliation':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <BulkSalaryPayment activeTab={activeTab} />
+          </React.Suspense>
+        );
+      case 'vendor_bills':
+      case 'vendor_master':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <VendorBillPayment activeTab={activeTab} />
+          </React.Suspense>
+        );
+      case 'tds_reports':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <TDSReports />
+          </React.Suspense>
+        );
       default:
         return (
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-white">Finance Dashboard / वित्त डैशबोर्ड</h1>
-              <p className="text-slate-400">Revenue, settlements and billing management</p>
+              <p className="text-slate-400">Revenue, settlements, payroll and vendor payments</p>
             </div>
 
             {/* Stats Cards */}
