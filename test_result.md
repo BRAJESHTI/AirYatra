@@ -634,8 +634,57 @@ Date: 2025-12-25
 
 ---
 
-## Integration Features - NEW ✅
+## Aviation-Grade Pricing Engine Implementation
 Date: 2025-12-26
+
+### Backend Implementation Complete ✅
+- **Models:** `/app/backend/pricing_models.py`
+  - OperatorBasePricing (hourly, route, day packages)
+  - DeadLegPricing (positioning costs)
+  - AdditionalCharges (night halt, waiting, fuel)
+  - AdminPricingControls (commission, surge, GST)
+  - RoutePricing, CorporateContract, PriceCalculationRequest/Response
+
+- **Service:** `/app/backend/services/pricing_engine.py`
+  - Complete HelicopterPricingEngine class
+  - Master price calculation formula
+  - All aviation factors implemented
+
+- **Routes:** `/app/backend/routes/pricing_engine_routes.py`
+  - Public: `/api/pricing-engine/calculate`, `/api/pricing-engine/quick-estimate`, `/api/pricing-engine/config/public`
+  - Operator: `/api/pricing-engine/operator/my-pricing`, `base-pricing`, `dead-leg-config`, `additional-charges`
+  - Admin: `/api/pricing-engine/admin/controls`, `commission-override`, `peak-dates`, `route-pricing`, `corporate-contract`
+  - Cancellation: `/api/pricing-engine/cancellation-charges`
+
+### Frontend Implementation Complete ✅
+- **Operator UI:** `/app/frontend/src/components/operator/OperatorPricingConfig.js`
+  - Base pricing configuration
+  - Dead-leg/positioning cost settings
+  - Additional charges (night halt, waiting, fuel)
+  - Purpose multipliers
+
+- **Admin UI:** `/app/frontend/src/components/admin/AdminPricingControls.js`
+  - Commission & Fees management
+  - Peak Season surge configuration
+  - Route-based pricing
+  - Corporate contracts
+  - Cancellation slabs
+  - Audit logs
+
+### API Service: `/app/frontend/src/services/settingsService.js`
+- pricingEngineAPI with all endpoints
+
+### APIs Tested via curl:
+- ✅ Pricing Config Public - Working (GST, purpose options, pricing types)
+- ✅ Price Calculate - Working (Mumbai-Pune wedding: ₹646,120 customer, ₹421,200 operator)
+
+### UI Verified via Screenshots:
+- ✅ Admin Dashboard - Pricing Engine tab visible under Finance & Billing
+- ✅ Admin Pricing Controls - All tabs working (Commission, Peak Season, Routes, Contracts, Cancellation, Audit)
+- ✅ Operator Dashboard - Pricing Config visible under Account
+- ✅ Operator Pricing Config - Base pricing, day packages, purpose multipliers working
+
+---
 
 ### 1. Twilio Integration (VoIP/Call Recording) ✅
 - **Backend:** `/app/backend/routes/twilio_routes.py`
