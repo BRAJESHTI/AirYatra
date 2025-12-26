@@ -1082,48 +1082,104 @@ function BookingPage({ user }) {
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <Calculator className="h-5 w-5 text-orange-400" />
             Price Breakdown / मूल्य विवरण
+            {priceEstimate.calculation_id && (
+              <span className="text-xs text-slate-500 ml-auto">ID: {priceEstimate.calculation_id}</span>
+            )}
           </h3>
           
           <div className="space-y-2 text-sm">
             {/* Base Charges Section */}
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-              <p className="text-orange-400 font-semibold mb-2 text-xs uppercase tracking-wide">Base Charges / आधार शुल्क</p>
+              <p className="text-orange-400 font-semibold mb-2 text-xs uppercase tracking-wide">Base Flight Cost / उड़ान लागत</p>
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-300">
-                  <span>Base Price / आधार मूल्य:</span>
-                  <span>₹{priceEstimate.base_price?.toLocaleString()}</span>
+                  <span>Flight Cost ({distanceKm} km):</span>
+                  <span>₹{(priceEstimate.base_flight_cost || priceEstimate.base_price || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Distance ({distanceKm} KM × ₹{pricingSettings?.rate_per_km || 500}/km):</span>
-                  <span>₹{priceEstimate.km_price?.toLocaleString()}</span>
-                </div>
-                {priceEstimate.aircraft_multiplier !== 1 && (
-                  <div className="flex justify-between text-slate-400 text-xs">
-                    <span>Aircraft Multiplier:</span>
-                    <span>×{priceEstimate.aircraft_multiplier}</span>
+                {priceEstimate.dead_leg_cost > 0 && (
+                  <div className="flex justify-between text-slate-300">
+                    <span>Positioning Cost / डेड-लेग:</span>
+                    <span>₹{priceEstimate.dead_leg_cost?.toLocaleString()}</span>
+                  </div>
+                )}
+                {priceEstimate.mdg_adjustment > 0 && (
+                  <div className="flex justify-between text-slate-300">
+                    <span>Min Guarantee (MDG) Adjustment:</span>
+                    <span>₹{priceEstimate.mdg_adjustment?.toLocaleString()}</span>
+                  </div>
+                )}
+                {priceEstimate.purpose_adjustment > 0 && (
+                  <div className="flex justify-between text-amber-400">
+                    <span>{priceEstimate.purpose} Multiplier ({priceEstimate.purpose_multiplier}x):</span>
+                    <span>+₹{priceEstimate.purpose_adjustment?.toLocaleString()}</span>
+                  </div>
+                )}
+                {priceEstimate.round_trip_discount > 0 && (
+                  <div className="flex justify-between text-green-400">
+                    <span>Round Trip Discount:</span>
+                    <span>-₹{priceEstimate.round_trip_discount?.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
-                  <span>Subtotal:</span>
-                  <span>₹{priceEstimate.base_subtotal?.toLocaleString()}</span>
+                  <span>Operator Gross Cost:</span>
+                  <span>₹{(priceEstimate.operator_gross_cost || priceEstimate.base_subtotal || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
-            {/* Fees & Charges Section */}
+            {/* Additional Aviation Charges */}
+            {(priceEstimate.waiting_charges > 0 || priceEstimate.night_halt_cost > 0 || priceEstimate.crew_charges > 0) && (
+              <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                <p className="text-yellow-400 font-semibold mb-2 text-xs uppercase tracking-wide">Additional Charges / अतिरिक्त शुल्क</p>
+                <div className="space-y-1">
+                  {priceEstimate.waiting_charges > 0 && (
+                    <div className="flex justify-between text-slate-300">
+                      <span>Waiting / Ground Holding:</span>
+                      <span>₹{priceEstimate.waiting_charges?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {priceEstimate.night_halt_cost > 0 && (
+                    <div className="flex justify-between text-slate-300">
+                      <span>Night Halt ({priceEstimate.night_halts || formData.night_halts} nights):</span>
+                      <span>₹{priceEstimate.night_halt_cost?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {priceEstimate.crew_charges > 0 && (
+                    <div className="flex justify-between text-slate-300">
+                      <span>Crew Accommodation & Food:</span>
+                      <span>₹{priceEstimate.crew_charges?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {priceEstimate.fuel_surcharge > 0 && (
+                    <div className="flex justify-between text-slate-300">
+                      <span>Fuel Surcharge:</span>
+                      <span>₹{priceEstimate.fuel_surcharge?.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Platform Fees & Charges */}
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-              <p className="text-blue-400 font-semibold mb-2 text-xs uppercase tracking-wide">Fees & Charges / शुल्क</p>
+              <p className="text-blue-400 font-semibold mb-2 text-xs uppercase tracking-wide">Platform Fees / प्लेटफॉर्म शुल्क</p>
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-300">
-                  <span>Convenience Fee ({priceEstimate.convenience_fee_percent}%):</span>
-                  <span>₹{priceEstimate.convenience_fee?.toLocaleString()}</span>
+                  <span>Convenience Fee ({priceEstimate.convenience_fee_percent || 5}%):</span>
+                  <span>₹{(priceEstimate.convenience_fee || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Insurance ({priceEstimate.insurance_percent}%):</span>
-                  <span>₹{priceEstimate.insurance?.toLocaleString()}</span>
+                  <span>Insurance ({priceEstimate.insurance_percent || 2}%):</span>
+                  <span>₹{(priceEstimate.insurance || 0).toLocaleString()}</span>
                 </div>
+                {priceEstimate.peak_surge_applied && (
+                  <div className="flex justify-between text-red-400">
+                    <span>Peak Season Surge ({priceEstimate.peak_surge_multiplier}x):</span>
+                    <span>+₹{priceEstimate.peak_surge_amount?.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-slate-400 text-xs">
-                  <span>Platform Commission ({priceEstimate.commission_percent}%):</span>
+                  <span>Platform Commission ({priceEstimate.platform_commission_percent || priceEstimate.commission_percent || 10}%):</span>
                   <span className="text-slate-500">Included</span>
                 </div>
               </div>
@@ -1137,15 +1193,15 @@ function BookingPage({ user }) {
                   Helipad Landing Charges / हेलीपैड शुल्क
                 </p>
                 <div className="space-y-1">
-                  {priceEstimate.pickup_landing_rent && (
+                  {priceEstimate.pickup_landing_charge > 0 && (
                     <div className="flex justify-between text-slate-300">
-                      <span>Pickup - {priceEstimate.pickup_landing_rent.landing_point}:</span>
+                      <span>Pickup {priceEstimate.pickup_landing_name ? `- ${priceEstimate.pickup_landing_name}` : ''}:</span>
                       <span>₹{priceEstimate.pickup_landing_charge?.toLocaleString()}</span>
                     </div>
                   )}
-                  {priceEstimate.drop_landing_rent && (
+                  {priceEstimate.drop_landing_charge > 0 && (
                     <div className="flex justify-between text-slate-300">
-                      <span>Drop - {priceEstimate.drop_landing_rent.landing_point}:</span>
+                      <span>Drop {priceEstimate.drop_landing_name ? `- ${priceEstimate.drop_landing_name}` : ''}:</span>
                       <span>₹{priceEstimate.drop_landing_charge?.toLocaleString()}</span>
                     </div>
                   )}
@@ -1159,23 +1215,34 @@ function BookingPage({ user }) {
 
             {/* GST Breakdown */}
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-              <p className="text-purple-400 font-semibold mb-2 text-xs uppercase tracking-wide">GST / जीएसटी ({priceEstimate.gst_rate}%)</p>
+              <p className="text-purple-400 font-semibold mb-2 text-xs uppercase tracking-wide">
+                GST / जीएसटी ({priceEstimate.gst_type === 'inter_state' ? 'IGST' : 'CGST+SGST'})
+              </p>
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-400 text-xs">
                   <span>Taxable Amount:</span>
-                  <span>₹{priceEstimate.subtotal_before_gst?.toLocaleString()}</span>
+                  <span>₹{(priceEstimate.taxable_amount || priceEstimate.subtotal_before_gst || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>CGST ({priceEstimate.gst_rate/2}%):</span>
-                  <span>₹{priceEstimate.cgst?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>SGST ({priceEstimate.gst_rate/2}%):</span>
-                  <span>₹{priceEstimate.sgst?.toLocaleString()}</span>
-                </div>
+                {priceEstimate.gst_type === 'inter_state' ? (
+                  <div className="flex justify-between text-slate-300">
+                    <span>IGST ({priceEstimate.igst_percent || 18}%):</span>
+                    <span>₹{(priceEstimate.igst || 0).toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-slate-300">
+                      <span>CGST ({priceEstimate.cgst_percent || 9}%):</span>
+                      <span>₹{(priceEstimate.cgst || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span>SGST ({priceEstimate.sgst_percent || 9}%):</span>
+                      <span>₹{(priceEstimate.sgst || 0).toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
                   <span>Total GST:</span>
-                  <span>₹{priceEstimate.gst?.toLocaleString()}</span>
+                  <span>₹{(priceEstimate.total_gst || priceEstimate.gst || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -1187,9 +1254,26 @@ function BookingPage({ user }) {
                   <span className="text-white font-bold text-lg">Grand Total</span>
                   <span className="text-slate-400 text-xs block">कुल राशि (Inclusive of all taxes)</span>
                 </div>
-                <span className="text-orange-400 font-bold text-2xl">₹{priceEstimate.total?.toLocaleString()}</span>
+                <span className="text-orange-400 font-bold text-2xl">₹{(priceEstimate.total || 0).toLocaleString()}</span>
               </div>
+              {priceEstimate.operator_payout > 0 && (
+                <div className="mt-2 pt-2 border-t border-orange-500/30 flex justify-between text-xs text-slate-400">
+                  <span>Operator will receive:</span>
+                  <span>₹{priceEstimate.operator_payout?.toLocaleString()}</span>
+                </div>
+              )}
             </div>
+
+            {/* Notes */}
+            {priceEstimate.notes && priceEstimate.notes.length > 0 && (
+              <div className="text-xs text-amber-400 mt-2">
+                {priceEstimate.notes.map((note, i) => (
+                  <p key={i} className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {note}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
           
           <p className={`text-sm mt-4 flex items-center gap-2 ${permissionRequired ? 'text-yellow-400' : 'text-amber-400'}`}>
