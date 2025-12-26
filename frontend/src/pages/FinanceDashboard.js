@@ -25,7 +25,7 @@ const navGroups = [
     icon: Home,
     items: [
       { id: 'overview', label: 'Overview / ओवरव्यू', icon: BarChart3 },
-      { id: 'pending_settlements', label: 'Pending Settlements', icon: DollarSign, highlight: true },
+      { id: 'pending_approvals', label: 'Pending Approvals', icon: Clock, highlight: true },
     ]
   },
   {
@@ -34,7 +34,7 @@ const navGroups = [
     icon: BanknoteIcon,
     items: [
       { id: 'bulk_salary', label: 'Bulk Salary Payment', icon: Users, highlight: true },
-      { id: 'salary_reconciliation', label: 'Salary Reconciliation', icon: RefreshCw },
+      { id: 'approval_workflow', label: 'Approval Workflow', icon: CheckCircle },
     ]
   },
   {
@@ -43,8 +43,7 @@ const navGroups = [
     icon: Building2,
     items: [
       { id: 'vendor_bills', label: 'Vendor Bill Payment', icon: Receipt, highlight: true },
-      { id: 'tds_reports', label: 'TDS Reports / टीडीएस', icon: Percent },
-      { id: 'vendor_master', label: 'Vendor Master', icon: Building2 },
+      { id: 'tds_config', label: 'TDS Configuration', icon: Percent },
     ]
   },
   {
