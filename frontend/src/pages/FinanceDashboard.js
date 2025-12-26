@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent } from 'lucide-react';
+import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
+import api from '@/services/apiClient';
 
 // Import Finance Components
 import SettlementManagement from '@/components/admin/SettlementManagement';
@@ -10,10 +11,11 @@ import DynamicPricing from '@/components/admin/DynamicPricing';
 import AccountingIntegration from '@/components/admin/AccountingIntegration';
 import CurrencyConverter from '@/components/admin/CurrencyConverter';
 
-// Lazy load new components
+// Lazy load new Finance components
 const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSalaryPayment'));
 const VendorBillPayment = React.lazy(() => import('@/components/finance/VendorBillPayment'));
-const TDSReports = React.lazy(() => import('@/components/finance/TDSReports'));
+const TDSConfiguration = React.lazy(() => import('@/components/finance/TDSConfiguration'));
+const ApprovalWorkflow = React.lazy(() => import('@/components/finance/ApprovalWorkflow'));
 
 // Organized Navigation Structure - 6 Main Categories
 const navGroups = [
