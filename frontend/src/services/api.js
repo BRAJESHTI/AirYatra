@@ -72,3 +72,6 @@ export { analyticsAPI, reportsAPI, aiAPI } from './analyticsService';
 
 // Payment Services
 export { paymentAPI, paymentsAPI } from './paymentService';
+
+// Integrations Services (Twilio, Tally, Zoho)
+export { twilioAPI, tallyAPI, zohoAPI, integrationsAPI } from './integrationsService';
