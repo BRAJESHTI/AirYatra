@@ -3,6 +3,7 @@ Ultra-High Performance Middleware for 50K+ Concurrent Users
 - Optimized for throughput
 - Minimal memory footprint
 - Async-first design
+- Memory leak prevention
 """
 
 from fastapi import Request, Response
@@ -11,14 +12,35 @@ import time
 import hashlib
 from typing import Dict
 from datetime import datetime, timedelta
+import gc
 
 # ==================== SIMPLE IN-MEMORY CACHE ====================
-# LRU Cache with TTL
+# LRU Cache with TTL and auto-cleanup
 response_cache: Dict[str, dict] = {}
 MAX_CACHE_SIZE = 5000
+LAST_CLEANUP = time.time()
+CLEANUP_INTERVAL = 300  # 5 minutes
+
+def cleanup_cache():
+    """Remove expired entries"""
+    global LAST_CLEANUP
+    now = time.time()
+    
+    if now - LAST_CLEANUP < CLEANUP_INTERVAL:
+        return
+    
+    LAST_CLEANUP = now
+    expired = [k for k, v in response_cache.items() if v["exp"] < now]
+    for k in expired:
+        del response_cache[k]
+    
+    # Force garbage collection if cache was large
+    if len(expired) > 100:
+        gc.collect()
 
 def get_cached(key: str):
     """Get from cache if valid"""
+    cleanup_cache()  # Periodic cleanup
     item = response_cache.get(key)
     if item and item["exp"] > time.time():
         return item["data"]
@@ -38,9 +60,25 @@ def set_cached(key: str, data: bytes, ttl: int = 60):
 rate_buckets: Dict[str, dict] = {}
 RATE_LIMIT_RPS = 50
 RATE_LIMIT_BURST = 100
+RATE_BUCKET_CLEANUP = time.time()
+
+def cleanup_rate_buckets():
+    """Remove old rate limit entries"""
+    global RATE_BUCKET_CLEANUP
+    now = time.time()
+    
+    if now - RATE_BUCKET_CLEANUP < 600:  # Every 10 min
+        return
+    
+    RATE_BUCKET_CLEANUP = now
+    cutoff = now - 600  # Remove entries older than 10 min
+    old_keys = [k for k, v in rate_buckets.items() if v["last"] < cutoff]
+    for k in old_keys:
+        del rate_buckets[k]
 
 def check_rate_limit(client_id: str) -> tuple:
     """Check rate limit using token bucket"""
+    cleanup_rate_buckets()
     now = time.time()
     
     bucket = rate_buckets.get(client_id)
