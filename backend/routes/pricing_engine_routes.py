@@ -10,7 +10,7 @@ from uuid import uuid4
 import logging
 
 from database import get_database
-from auth import get_current_user, require_roles
+from middleware import get_current_user, require_roles
 from models import UserRole
 from models.pricing_models import (
     PricingType, BookingPurpose, DeadLegRateType, CommissionType,
