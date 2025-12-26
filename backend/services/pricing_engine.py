@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from uuid import uuid4
 
 from database import get_database
-from models.pricing_models import (
+from pricing_models import (
     PricingType, BookingPurpose, DeadLegRateType, CommissionType, FuelCostType,
     PriceCalculationRequest, PriceBreakdown, PriceCalculationResponse
 )
