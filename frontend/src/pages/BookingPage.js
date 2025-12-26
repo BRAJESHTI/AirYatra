@@ -287,8 +287,8 @@ function BookingPage({ user }) {
         passenger_count: parseInt(formData.passenger_count) || 1,
         waiting_time_minutes: parseInt(formData.waiting_time) || 0,
         night_halts: parseInt(formData.night_halts) || 0,
-        pickup_landing_point_id: selectedLandingPoints.pickup?.landing_point_id,
-        drop_landing_point_id: selectedLandingPoints.drop?.landing_point_id
+        pickup_landing_point_id: formData.pickup_landing_point?.landing_point_id,
+        drop_landing_point_id: formData.drop_landing_point?.landing_point_id
       });
       
       if (response.data?.success) {
