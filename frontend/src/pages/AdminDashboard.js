@@ -71,6 +71,10 @@ import AIChatbot from '@/components/admin/AIChatbot';
 import TwoFactorAuth from '@/components/admin/TwoFactorAuth';
 import CalendarSync from '@/components/admin/CalendarSync';
 import AccountingIntegration from '@/components/admin/AccountingIntegration';
+// Advanced Integrations
+import TwilioIntegration from '@/components/admin/TwilioIntegration';
+import TallyIntegration from '@/components/admin/TallyIntegration';
+import ZohoIntegration from '@/components/admin/ZohoIntegration';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
