@@ -66,7 +66,14 @@ async def find_operators_in_radius(
     Find all eligible operators within radius of pickup location
     Uses operator base location OR aircraft location
     """
-    db = get_database()
+    try:
+        db = get_database()
+        if db is None:
+            logger.error("Database connection not available in find_operators_in_radius")
+            return []
+    except Exception as e:
+        logger.error(f"Database error in find_operators_in_radius: {e}")
+        return []
     
     # Get all active, verified operators
     operators = await db.operators.find(
@@ -76,6 +83,8 @@ async def find_operators_in_radius(
         },
         {"_id": 0}
     ).to_list(1000)
+    
+    logger.info(f"Found {len(operators)} active operators to check")
     
     eligible_operators = []
     
