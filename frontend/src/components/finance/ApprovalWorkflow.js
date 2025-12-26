@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,11 +29,7 @@ const ApprovalWorkflow = ({ userRole }) => {
   const [processing, setProcessing] = useState(false);
   const [comments, setComments] = useState({});
 
-  useEffect(() => {
-    fetchApprovals();
-  }, []);
-
-  const fetchApprovals = async () => {
+  const fetchApprovals = useCallback(async () => {
     setLoading(true);
     try {
       const [pendingRes, historyRes] = await Promise.all([
@@ -46,7 +42,11 @@ const ApprovalWorkflow = ({ userRole }) => {
       console.error('Error:', error);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchApprovals();
+  }, [fetchApprovals]);
 
   const handleApprove = async (approvalId, role) => {
     setProcessing(true);
