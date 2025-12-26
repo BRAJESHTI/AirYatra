@@ -6,12 +6,10 @@ from starlette.middleware.gzip import GZipMiddleware
 from pathlib import Path
 import os
 import logging
-import asyncio
 from database import connect_to_mongo, close_mongo_connection
 from scheduler import start_scheduler, stop_scheduler
 
 # High-Performance Modules (50K+ users)
-from high_performance_cache import cache, initialize_cache, get_cache_stats
 from ultra_performance_middleware import (
     FastCacheMiddleware,
     FastRateLimitMiddleware,
