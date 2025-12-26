@@ -147,23 +147,28 @@ function FinanceDashboard({ user, onLogout }) {
       case 'currency':
         return <CurrencyConverter />;
       case 'bulk_salary':
-      case 'salary_reconciliation':
         return (
-          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
-            <BulkSalaryPayment activeTab={activeTab} />
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <BulkSalaryPayment />
+          </React.Suspense>
+        );
+      case 'approval_workflow':
+      case 'pending_approvals':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <ApprovalWorkflow userRole={user?.role} />
           </React.Suspense>
         );
       case 'vendor_bills':
-      case 'vendor_master':
         return (
-          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
-            <VendorBillPayment activeTab={activeTab} />
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <VendorBillPayment />
           </React.Suspense>
         );
-      case 'tds_reports':
+      case 'tds_config':
         return (
-          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
-            <TDSReports />
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <TDSConfiguration />
           </React.Suspense>
         );
       default:
@@ -175,7 +180,7 @@ function FinanceDashboard({ user, onLogout }) {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               <div className="bg-green-500/20 rounded-lg p-4 border border-green-500/50">
                 <TrendingUp className="h-5 w-5 text-green-400 mb-2" />
                 <p className="text-2xl font-bold text-white">₹{(stats.total_revenue / 100000).toFixed(1)}L</p>
@@ -196,36 +201,75 @@ function FinanceDashboard({ user, onLogout }) {
                 <p className="text-2xl font-bold text-white">{stats.pending_invoices}</p>
                 <p className="text-slate-400 text-sm">Pending Invoices</p>
               </div>
+              <button onClick={() => setActiveTab('pending_approvals')} className="bg-purple-500/20 rounded-lg p-4 border border-purple-500/50 text-left hover:bg-purple-500/30 transition-colors">
+                <CheckCircle className="h-5 w-5 text-purple-400 mb-2" />
+                <p className="text-2xl font-bold text-white">{stats.pending_approvals}</p>
+                <p className="text-slate-400 text-sm">Pending Approvals</p>
+              </button>
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
+              <button onClick={() => setActiveTab('bulk_salary')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
+                <Users className="h-8 w-8 text-emerald-400 mb-3" />
+                <h3 className="text-lg font-semibold text-white">Bulk Salary Payment</h3>
+                <p className="text-slate-400 text-sm">बल्क सैलरी भुगतान</p>
+              </button>
+              <button onClick={() => setActiveTab('vendor_bills')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
+                <Receipt className="h-8 w-8 text-orange-400 mb-3" />
+                <h3 className="text-lg font-semibold text-white">Vendor Payments</h3>
+                <p className="text-slate-400 text-sm">TDS के साथ वेंडर भुगतान</p>
+              </button>
               <button onClick={() => setActiveTab('invoices')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <FileText className="h-8 w-8 text-blue-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Manage Invoices</h3>
                 <p className="text-slate-400 text-sm">चालान प्रबंधित करें</p>
               </button>
-              <button onClick={() => setActiveTab('all_settlements')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
-                <DollarSign className="h-8 w-8 text-green-400 mb-3" />
-                <h3 className="text-lg font-semibold text-white">Process Settlements</h3>
-                <p className="text-slate-400 text-sm">निपटान प्रक्रिया</p>
-              </button>
-              <button onClick={() => setActiveTab('accounting_integration')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
-                <Calculator className="h-8 w-8 text-purple-400 mb-3" />
-                <h3 className="text-lg font-semibold text-white">Accounting</h3>
-                <p className="text-slate-400 text-sm">लेखा एकीकरण</p>
+              <button onClick={() => setActiveTab('tds_config')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
+                <Percent className="h-8 w-8 text-yellow-400 mb-3" />
+                <h3 className="text-lg font-semibold text-white">TDS Configuration</h3>
+                <p className="text-slate-400 text-sm">टीडीएस सेटिंग्स</p>
               </button>
             </div>
 
-            {/* Revenue Chart Placeholder */}
+            {/* Approval Workflow Info */}
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-              <h2 className="text-lg font-semibold text-white mb-4">Revenue Overview / राजस्व अवलोकन</h2>
-              <div className="h-64 flex items-center justify-center">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <Shield className="h-5 w-5 mr-2 text-purple-400" />
+                Approval Workflow / अनुमोदन वर्कफ़्लो
+              </h2>
+              <div className="flex items-center justify-center space-x-4 py-4">
                 <div className="text-center">
-                  <BarChart3 className="h-16 w-16 mx-auto text-slate-600 mb-4" />
-                  <p className="text-slate-400">Revenue chart visualization</p>
+                  <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto">
+                    <Users className="h-6 w-6 text-orange-400" />
+                  </div>
+                  <p className="text-white mt-2 text-sm">HR</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-600" />
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto">
+                    <BanknoteIcon className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <p className="text-white mt-2 text-sm">Finance</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-600" />
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto">
+                    <Shield className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <p className="text-white mt-2 text-sm">Admin</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-600" />
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+                    <CheckCircle className="h-6 w-6 text-emerald-400" />
+                  </div>
+                  <p className="text-white mt-2 text-sm">Execute</p>
                 </div>
               </div>
+              <p className="text-center text-slate-400 text-sm mt-2">
+                Admin can override and approve directly / एडमिन सीधे अनुमोदित कर सकते हैं
+              </p>
             </div>
           </div>
         );
