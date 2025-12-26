@@ -11,7 +11,8 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from enum import Enum
 from database import get_database
-from auth import get_current_user, require_roles
+from routes.auth_routes import get_current_user
+from middleware import require_roles
 from models import UserRole
 import logging
 import os
