@@ -213,7 +213,24 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "airyatra-api",
-        "version": "1.0.0"
+        "version": "2.0.0",
+        "optimizations": ["gzip", "caching", "rate-limiting", "indexed-db"]
+    }
+
+# Performance stats endpoint
+@app.get("/api/performance/stats")
+async def performance_stats():
+    """Get current performance statistics"""
+    from performance_middleware import cache_store, rate_limit_store
+    return {
+        "cache_entries": len(cache_store),
+        "rate_limited_clients": len(rate_limit_store),
+        "optimizations_enabled": {
+            "gzip_compression": True,
+            "response_caching": True,
+            "rate_limiting": True,
+            "db_indexes": True
+        }
     }
 
 # Startup event
@@ -221,8 +238,20 @@ async def health_check():
 async def startup_event():
     logger.info("Starting AirYatra API...")
     await connect_to_mongo()
+    
+    # Optimize database with indexes
+    try:
+        result = await optimize_database()
+        logger.info(f"Database optimization complete: {result}")
+    except Exception as e:
+        logger.warning(f"Database optimization warning: {e}")
+    
     start_scheduler()
-    logger.info("AirYatra API started successfully with background scheduler")
+    
+    # Start cache cleanup task
+    asyncio.create_task(cleanup_expired_cache())
+    
+    logger.info("AirYatra API started successfully with performance optimizations")
 
 # Shutdown event
 @app.on_event("shutdown")
