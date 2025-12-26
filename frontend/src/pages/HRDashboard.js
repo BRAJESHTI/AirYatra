@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, Users, Calendar, DollarSign, Clock, MapPin, ChevronDown, ChevronRight, BarChart3, Settings, User, Wallet, CreditCard, Navigation, Target, Award, FileText, CheckSquare } from 'lucide-react';
+import { LogOut, Plane, Home, Users, Calendar, DollarSign, Clock, MapPin, ChevronDown, ChevronRight, BarChart3, Settings, User, Wallet, CreditCard, Navigation, Target, Award, FileText, CheckSquare, Receipt, Upload, BanknoteIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
 
@@ -8,7 +8,12 @@ import IncentiveConfig from '@/components/admin/IncentiveConfig';
 import AttendancePayroll from '@/components/admin/AttendancePayroll';
 import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
 
-// Organized Navigation Structure - 5 Main Categories
+// Lazy load new components
+const ExpenseReimbursement = React.lazy(() => import('@/components/hr/ExpenseReimbursement'));
+const SalesTargets = React.lazy(() => import('@/components/hr/SalesTargets'));
+const AutoSalaryPayment = React.lazy(() => import('@/components/hr/AutoSalaryPayment'));
+
+// Organized Navigation Structure - 6 Main Categories
 const navGroups = [
   {
     id: 'main',
@@ -36,7 +41,18 @@ const navGroups = [
     items: [
       { id: 'attendance_payroll', label: 'Attendance & Payroll', icon: Calendar },
       { id: 'salary', label: 'Salary Processing / वेतन', icon: DollarSign },
+      { id: 'auto_salary', label: 'Auto Salary Payment / ऑटो वेतन', icon: BanknoteIcon, highlight: true },
       { id: 'leaves', label: 'Leave Management / छुट्टी', icon: Calendar },
+    ]
+  },
+  {
+    id: 'expenses',
+    label: 'Expenses / खर्च',
+    icon: Receipt,
+    items: [
+      { id: 'expense_claims', label: 'Expense Claims / खर्च क्लेम', icon: Receipt, highlight: true },
+      { id: 'pending_approvals', label: 'Pending Approvals / अनुमोदन', icon: CheckSquare },
+      { id: 'reimbursement_history', label: 'Reimbursement History', icon: FileText },
     ]
   },
   {
@@ -45,8 +61,9 @@ const navGroups = [
     icon: Award,
     items: [
       { id: 'incentive_config', label: 'Incentive Config / सेटिंग्स', icon: Settings },
-      { id: 'targets', label: 'Targets / लक्ष्य', icon: Target },
-      { id: 'achievements', label: 'Achievements / उपलब्धियां', icon: Award, highlight: true },
+      { id: 'sales_targets', label: 'Sales Targets / सेल्स टारगेट', icon: Target, highlight: true },
+      { id: 'achievements', label: 'Achievements / उपलब्धियां', icon: Award },
+      { id: 'leaderboard', label: 'Leaderboard / लीडरबोर्ड', icon: BarChart3 },
     ]
   },
   {
