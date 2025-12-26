@@ -9,6 +9,47 @@ from services.notification_service import notification_service
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
+@router.get("/my")
+async def get_my_notifications(
+    unread_only: bool = False,
+    limit: int = 50,
+    user: dict = Depends(get_current_user)
+):
+    """Get current user's notifications"""
+    db = get_database()
+    
+    query = {"user_id": user["id"]}
+    if unread_only:
+        query["read"] = False
+    
+    notifications = await db.notifications.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    unread_count = await db.notifications.count_documents({"user_id": user["id"], "read": False})
+    
+    return {
+        "notifications": notifications,
+        "unread_count": unread_count,
+        "total": len(notifications)
+    }
+
+@router.put("/mark-read/{notification_id}")
+async def mark_notification_read(notification_id: str, user: dict = Depends(get_current_user)):
+    """Mark a notification as read"""
+    db = get_database()
+    
+    result = await db.notifications.update_one(
+        {"id": notification_id, "user_id": user["id"]},
+        {"$set": {"read": True, "read_at": datetime.utcnow().isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return {"message": "Notification marked as read"}
+
 class SendEmailRequest(BaseModel):
     to_email: str
     subject: str
