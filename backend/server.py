@@ -211,6 +211,8 @@ api_router.include_router(zoho_routes.router)
 api_router.include_router(hr_advanced_routes.router)
 # Payment Gateway & Auto Transfer
 api_router.include_router(payment_gateway_routes.router)
+# GST Compliance
+api_router.include_router(gst_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
