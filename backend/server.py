@@ -99,6 +99,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Performance Middleware Stack (order matters!)
+# 1. GZip Compression - Reduces response size by 60-80%
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# 2. Performance Headers - Adds timing and security headers
+app.add_middleware(PerformanceHeadersMiddleware)
+
+# 3. Rate Limiting - Prevents abuse (100 requests/minute per user)
+app.add_middleware(RateLimitMiddleware)
+
+# 4. Response Caching - Caches GET responses for 60 seconds
+app.add_middleware(CacheMiddleware)
+
 # Create API router with /api prefix
 api_router = APIRouter(prefix="/api")
 
