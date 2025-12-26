@@ -120,6 +120,27 @@ function HRDashboard({ user, onLogout }) {
         return <AttendancePayroll />;
       case 'incentive_config':
         return <IncentiveConfig />;
+      case 'expense_claims':
+      case 'pending_approvals':
+      case 'reimbursement_history':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <ExpenseReimbursement activeTab={activeTab} user={user} />
+          </React.Suspense>
+        );
+      case 'sales_targets':
+      case 'leaderboard':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <SalesTargets activeTab={activeTab} user={user} />
+          </React.Suspense>
+        );
+      case 'auto_salary':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <AutoSalaryPayment user={user} />
+          </React.Suspense>
+        );
       default:
         return (
           <div className="space-y-6">
@@ -153,21 +174,26 @@ function HRDashboard({ user, onLogout }) {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <button onClick={() => setActiveTab('attendance_payroll')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Calendar className="h-8 w-8 text-green-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Mark Attendance</h3>
                 <p className="text-slate-400 text-sm">उपस्थिति दर्ज करें</p>
               </button>
-              <button onClick={() => setActiveTab('field_tracking')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
-                <Navigation className="h-8 w-8 text-blue-400 mb-3" />
-                <h3 className="text-lg font-semibold text-white">Track Field Staff</h3>
-                <p className="text-slate-400 text-sm">फील्ड स्टाफ ट्रैक करें</p>
+              <button onClick={() => setActiveTab('expense_claims')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
+                <Receipt className="h-8 w-8 text-orange-400 mb-3" />
+                <h3 className="text-lg font-semibold text-white">Expense Claims</h3>
+                <p className="text-slate-400 text-sm">खर्च क्लेम प्रबंधित करें</p>
               </button>
-              <button onClick={() => setActiveTab('incentive_config')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
-                <Award className="h-8 w-8 text-yellow-400 mb-3" />
-                <h3 className="text-lg font-semibold text-white">Manage Incentives</h3>
-                <p className="text-slate-400 text-sm">इंसेंटिव प्रबंधित करें</p>
+              <button onClick={() => setActiveTab('auto_salary')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
+                <BanknoteIcon className="h-8 w-8 text-blue-400 mb-3" />
+                <h3 className="text-lg font-semibold text-white">Auto Salary</h3>
+                <p className="text-slate-400 text-sm">ऑटो सैलरी भुगतान</p>
+              </button>
+              <button onClick={() => setActiveTab('sales_targets')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
+                <Target className="h-8 w-8 text-yellow-400 mb-3" />
+                <h3 className="text-lg font-semibold text-white">Sales Targets</h3>
+                <p className="text-slate-400 text-sm">सेल्स टारगेट देखें</p>
               </button>
             </div>
           </div>
