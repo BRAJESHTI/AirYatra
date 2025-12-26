@@ -70,8 +70,24 @@ function BookingPage({ user }) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  // Form state
-  const [formData, setFormData] = useState({
+  // Storage key for preserving form data
+  const BOOKING_FORM_KEY = 'airyatra_booking_form';
+  
+  // Load saved form data from localStorage
+  const getSavedFormData = () => {
+    try {
+      const saved = localStorage.getItem(BOOKING_FORM_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error loading saved form:', e);
+    }
+    return null;
+  };
+  
+  // Default form state
+  const defaultFormData = {
     // Step 1: Passenger & Aircraft Selection
     aircraft_type: '', // helicopter, chartered_plane
     total_passengers: 1,
@@ -107,6 +123,18 @@ function BookingPage({ user }) {
     
     // Step 4: Price will be calculated
     special_requirements: '',
+  };
+  
+  // Form state - initialize from localStorage if available
+  const [formData, setFormData] = useState(() => {
+    const saved = getSavedFormData();
+    return saved ? { ...defaultFormData, ...saved.formData } : defaultFormData;
+  });
+  
+  // Restore step if saved
+  const [savedStep] = useState(() => {
+    const saved = getSavedFormData();
+    return saved?.currentStep || 0;
   });
 
   // Pricing state
