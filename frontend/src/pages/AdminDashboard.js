@@ -286,6 +286,8 @@ function AdminDashboard({ user, onLogout }) {
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features
+      case 'pricing_engine':
+        return <AdminPricingControls />;
       case 'dynamic_pricing':
         return <DynamicPricing />;
       case 'route_optimization':
