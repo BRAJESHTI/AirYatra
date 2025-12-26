@@ -356,6 +356,20 @@ async def get_all_roles(
             "permissions": ["view_analytics", "manage_promotions"]
         },
         {
+            "id": "sales",
+            "name": "Sales",
+            "name_hi": "सेल्स",
+            "is_system": True,
+            "permissions": ["view_leads", "manage_leads", "view_analytics", "create_booking"]
+        },
+        {
+            "id": "support",
+            "name": "Support",
+            "name_hi": "सपोर्ट",
+            "is_system": True,
+            "permissions": ["view_tickets", "manage_tickets", "view_bookings", "chat_support"]
+        },
+        {
             "id": "operations",
             "name": "Operations",
             "name_hi": "ऑपरेशंस",
