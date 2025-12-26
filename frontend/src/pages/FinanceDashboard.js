@@ -58,6 +58,18 @@ const navGroups = [
     ]
   },
   {
+    id: 'gst',
+    label: 'GST Compliance / GST',
+    icon: FileText,
+    items: [
+      { id: 'gst_dashboard', label: 'GST Dashboard', icon: BarChart3, highlight: true },
+      { id: 'gst_returns', label: 'File GST Returns', icon: FileText },
+      { id: 'gst_payments', label: 'GST Payments', icon: CreditCard },
+      { id: 'itc_management', label: 'Input/Output ITC', icon: TrendingUp },
+      { id: 'vendor_compliance', label: 'Vendor Compliance', icon: Building2 },
+    ]
+  },
+  {
     id: 'settlements',
     label: 'Settlements / निपटान',
     icon: DollarSign,
@@ -74,7 +86,6 @@ const navGroups = [
     items: [
       { id: 'accounting_integration', label: 'Tally/QuickBooks', icon: FileText },
       { id: 'reports', label: 'Financial Reports', icon: BarChart3 },
-      { id: 'gst_reports', label: 'GST Reports', icon: FileText },
     ]
   },
 ];
