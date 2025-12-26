@@ -93,15 +93,22 @@ async def find_operators_in_radius(
         base_lat = operator.get("base_latitude")
         base_lon = operator.get("base_longitude")
         
+        logger.debug(f"Checking operator: {operator.get('company_name')} - lat: {base_lat}, lon: {base_lon}")
+        
         if base_lat and base_lon:
-            distance = haversine_distance(pickup_lat, pickup_lon, base_lat, base_lon)
-            if distance <= radius_km:
-                eligible_operators.append({
-                    **operator,
-                    "distance_km": round(distance, 2),
-                    "match_type": "base_location"
-                })
-                continue
+            try:
+                distance = haversine_distance(pickup_lat, pickup_lon, float(base_lat), float(base_lon))
+                logger.debug(f"  Distance: {distance} km (max: {radius_km})")
+                if distance <= radius_km:
+                    eligible_operators.append({
+                        **operator,
+                        "distance_km": round(distance, 2),
+                        "match_type": "base_location"
+                    })
+                    logger.info(f"  ✅ Eligible: {operator.get('company_name')} ({distance:.1f} km)")
+                    continue
+            except Exception as e:
+                logger.error(f"  Distance calc error for {operator.get('company_name')}: {e}")
         
         # Check aircraft locations for this operator
         aircraft_list = await db.aircraft.find(
