@@ -106,6 +106,8 @@ function BookingPage({ user }) {
     drop_landing_point: null,   // Full landing point object
     departure_date: '',
     pickup_time: '',
+    waiting_time: 0, // Waiting/Ground holding time in minutes
+    night_halts: 0,  // Number of night halts
     
     // Legacy fields (for compatibility)
     pickup_pincode: '',
