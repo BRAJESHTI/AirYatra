@@ -325,6 +325,13 @@ function AdminDashboard({ user, onLogout }) {
         return <CalendarSync />;
       case 'accounting':
         return <AccountingIntegration />;
+      // Advanced Integrations
+      case 'twilio':
+        return <TwilioIntegration />;
+      case 'tally':
+        return <TallyIntegration />;
+      case 'zoho':
+        return <ZohoIntegration />;
       case 'crm':
         return <CRMDashboard />;
       case 'webhooks':
