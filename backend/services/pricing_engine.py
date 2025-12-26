@@ -183,15 +183,20 @@ class HelicopterPricingEngine:
             
         if not landing_point_id:
             return {"rent": 0, "name": None}
-            
+        
+        # Try multiple ID fields for compatibility
         landing = await self.db.landing_points.find_one(
-            {"landing_point_id": landing_point_id}, 
-            {"_id": 0, "landing_point_name": 1, "rent_per_landing": 1, "rent": 1}
+            {"$or": [
+                {"landing_point_id": landing_point_id},
+                {"id": landing_point_id}
+            ]}, 
+            {"_id": 0, "landing_point_name": 1, "name": 1, "rent_per_landing": 1, "rent": 1}
         )
         
         if landing:
             rent = landing.get("rent_per_landing") or landing.get("rent") or 0
-            return {"rent": rent, "name": landing.get("landing_point_name")}
+            name = landing.get("landing_point_name") or landing.get("name")
+            return {"rent": rent, "name": name}
         return {"rent": 0, "name": None}
     
     async def check_peak_season(self, date_str: str, region: str = None) -> Tuple[bool, float]:
