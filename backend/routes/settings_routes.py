@@ -321,18 +321,43 @@ async def get_public_pricing(db=Depends(get_database)):
     """Get pricing settings (public - for price calculator)"""
     pricing = await db.pricing_settings.find_one({"type": "helicopter_pricing"}, {"_id": 0})
     if not pricing:
-        pricing = PricingSettings().dict()
+        pricing = {}
+    
     return {
+        # Base Pricing
+        "base_price": pricing.get("base_price_upto_50km", 50000),
         "base_price_upto_50km": pricing.get("base_price_upto_50km", 50000),
-        "rate_per_km_after_50": pricing.get("rate_per_km_after_50", 1000),
-        "waiting_charge_per_hour": pricing.get("waiting_charge_per_hour", 5000),
+        "rate_per_km": pricing.get("rate_per_km_after_50", 500),
+        "rate_per_km_after_50": pricing.get("rate_per_km_after_50", 500),
+        
+        # Aircraft Multipliers
+        "helicopter_multiplier": pricing.get("helicopter_multiplier", 1.0),
+        "plane_multiplier": pricing.get("plane_multiplier", 1.5),
+        
+        # Fees & Charges
+        "convenience_fee_percent": pricing.get("convenience_fee_percent", 5),
+        "commission_percent": pricing.get("commission_percent", 10),
+        "insurance_percent": pricing.get("insurance_percent", 2),
+        
+        # GST
+        "gst_rate": pricing.get("gst_percent", 18),
         "gst_percent": pricing.get("gst_percent", 18),
+        
+        # Waiting Charges
+        "waiting_charge_per_hour": pricing.get("waiting_charge_per_hour", 5000),
+        
+        # Advance Payment
         "advance_percent": pricing.get("advance_percent", 5),
+        
+        # Insurance Details
         "insurance_enabled": pricing.get("insurance_enabled", True),
         "insurance_coverage_amount": pricing.get("insurance_coverage_amount", 10000000),
-        "insurance_rate_type": pricing.get("insurance_rate_type", "fixed"),
+        "insurance_rate_type": pricing.get("insurance_rate_type", "percentage"),
         "insurance_fixed_rate": pricing.get("insurance_fixed_rate", 500),
-        "insurance_percentage_rate": pricing.get("insurance_percentage_rate", 0.00001)
+        "insurance_percentage_rate": pricing.get("insurance_percentage_rate", 2),
+        
+        # Landing Charges Note
+        "landing_charges_note": "Landing charges vary by helipad/airport and will be added separately"
     }
 
 # API Keys Management
