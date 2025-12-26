@@ -223,11 +223,11 @@ async def health_check():
         "version": "3.0.0-highperf",
         "capacity": "50K+ concurrent users",
         "optimizations": [
-            "multi-layer-cache",
             "gzip-compression",
+            "response-cache",
             "token-bucket-rate-limit",
-            "connection-pooling",
-            "indexed-db",
+            "connection-pooling-200",
+            "57-db-indexes",
             "keepalive"
         ]
     }
@@ -238,13 +238,11 @@ async def performance_stats():
     """Get comprehensive performance statistics"""
     return {
         "performance": get_performance_stats(),
-        "cache": get_cache_stats(),
         "capacity": {
             "target_users": "50,000+",
             "rate_limit": "50 req/sec per user",
             "burst": "100 requests",
-            "db_pool_size": 200,
-            "cache_layers": 2
+            "db_pool_size": 200
         }
     }
 
@@ -252,10 +250,6 @@ async def performance_stats():
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting AirYatra High-Performance API...")
-    
-    # Initialize multi-layer cache
-    await initialize_cache()
-    logger.info("Multi-layer cache initialized")
     
     # Connect to MongoDB with optimized pool
     await connect_to_mongo()
