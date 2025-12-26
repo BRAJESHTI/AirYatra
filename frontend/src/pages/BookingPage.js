@@ -280,30 +280,78 @@ function BookingPage({ user }) {
     // Udan Prakar based pricing - using imported multipliers from config
     const udanMultiplier = udanPrakarMultipliers[formData.udan_prakar] || 1;
     
-    const subtotal = (basePrice + kmPrice) * multiplier * udanMultiplier;
-    const gst = subtotal * 0.18;
+    // Base subtotal before fees
+    const baseSubtotal = (basePrice + kmPrice) * multiplier * udanMultiplier;
     
-    // Add landing rent
-    const landingCharges = landingRent.total || 0;
-    const total = subtotal + gst + landingCharges;
+    // Platform Convenience Fee (5% of base)
+    const convenienceFee = Math.round(baseSubtotal * (settings.convenience_fee_percent || 5) / 100);
+    
+    // Commission for operators (10% - deducted from operator share, shown to customer)
+    const commission = Math.round(baseSubtotal * (settings.commission_percent || 10) / 100);
+    
+    // Insurance (2% of base or fixed amount)
+    const insurance = Math.round(baseSubtotal * (settings.insurance_percent || 2) / 100);
+    
+    // Helipad Landing Charges
+    const pickupLandingCharge = landingRent.pickup?.rent || 0;
+    const dropLandingCharge = landingRent.drop?.rent || 0;
+    const totalLandingCharges = pickupLandingCharge + dropLandingCharge;
+    
+    // Subtotal before GST
+    const subtotalBeforeGST = baseSubtotal + convenienceFee + insurance + totalLandingCharges;
+    
+    // GST (18% on services)
+    const gstRate = settings.gst_rate || 18;
+    const gst = Math.round(subtotalBeforeGST * gstRate / 100);
+    
+    // CGST and SGST breakdown (9% each for intra-state)
+    const cgst = Math.round(gst / 2);
+    const sgst = Math.round(gst / 2);
+    
+    // Total Amount
+    const total = subtotalBeforeGST + gst;
     
     setPriceEstimate({
+      // Base Pricing
       base_price: Math.round(basePrice),
       km_price: Math.round(kmPrice),
       distance_km: distanceKm,
-      multiplier: multiplier,
+      aircraft_multiplier: multiplier,
       udan_multiplier: udanMultiplier,
-      subtotal: Math.round(subtotal),
-      gst: Math.round(gst),
-      landing_charges: Math.round(landingCharges),
+      base_subtotal: Math.round(baseSubtotal),
+      
+      // Fees & Charges
+      convenience_fee: convenienceFee,
+      convenience_fee_percent: settings.convenience_fee_percent || 5,
+      commission: commission,
+      commission_percent: settings.commission_percent || 10,
+      insurance: insurance,
+      insurance_percent: settings.insurance_percent || 2,
+      
+      // Landing Charges
+      pickup_landing_charge: pickupLandingCharge,
+      drop_landing_charge: dropLandingCharge,
+      total_landing_charges: totalLandingCharges,
       pickup_landing_rent: landingRent.pickup,
       drop_landing_rent: landingRent.drop,
+      
+      // GST Breakdown
+      subtotal_before_gst: subtotalBeforeGST,
+      gst_rate: gstRate,
+      gst: gst,
+      cgst: cgst,
+      sgst: sgst,
+      
+      // Final Amount
       total: Math.round(total),
+      
+      // Meta
       is_approximate: true,
       permission_required: permissionRequired,
       note: permissionRequired 
         ? 'Village landing requires admin approval / गांव लैंडिंग के लिए एडमिन अनुमति जरूरी' 
-        : 'Final price will be confirmed by operator / अंतिम मूल्य ऑपरेटर द्वारा पुष्टि होगी'
+        : 'Final price will be confirmed by operator / अंतिम मूल्य ऑपरेटर द्वारा पुष्टि होगी',
+      calculated_at: new Date().toISOString()
     });
   };
 
