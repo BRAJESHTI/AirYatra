@@ -548,7 +548,7 @@ function InquiryStatus({ user }) {
                     <div>
                       <p className="text-white font-semibold">{quote.operator_name || 'Operator'}</p>
                       {quote.notes && (
-                        <p className="text-slate-400 text-sm mt-1">"{quote.notes}"</p>
+                        <p className="text-slate-400 text-sm mt-1">&ldquo;{quote.notes}&rdquo;</p>
                       )}
                     </div>
                     <div className="text-right">
