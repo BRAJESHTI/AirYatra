@@ -1403,13 +1403,16 @@ class AirYatraAPITester:
 def main():
     import sys
     
-    # Check if we should run operator tests
+    # Check command line arguments
     run_operator = len(sys.argv) > 1 and sys.argv[1] == "operator"
+    run_pricing = len(sys.argv) > 1 and sys.argv[1] == "pricing"
     
     tester = AirYatraAPITester()
     
     if run_operator:
         report = tester.run_operator_tests()
+    elif run_pricing:
+        report = tester.run_pricing_engine_tests()
     else:
         report = tester.run_all_tests()
     
