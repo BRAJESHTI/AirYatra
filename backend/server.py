@@ -2,11 +2,20 @@ from fastapi import FastAPI, APIRouter
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from pathlib import Path
 import os
 import logging
+import asyncio
 from database import connect_to_mongo, close_mongo_connection
 from scheduler import start_scheduler, stop_scheduler
+from performance_middleware import (
+    CacheMiddleware, 
+    RateLimitMiddleware, 
+    PerformanceHeadersMiddleware,
+    cleanup_expired_cache
+)
+from db_optimization import optimize_database
 
 # Import route modules
 from routes import auth_routes, booking_routes, quote_routes, fleet_routes
