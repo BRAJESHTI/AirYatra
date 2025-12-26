@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,14 +34,9 @@ const BulkSalaryPayment = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [selectedRun, setSelectedRun] = useState(null);
   const [approvalComments, setApprovalComments] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [runsRes, approvalsRes, gatewaysRes] = await Promise.all([
@@ -57,12 +52,16 @@ const BulkSalaryPayment = () => {
       toast.error('Failed to load data');
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const createSalaryRun = async () => {
     setProcessing(true);
     try {
-      const response = await api.post('/payments/salary/auto-run', {
+      await api.post('/payments/salary/auto-run', {
         month: selectedMonth,
         year: selectedYear,
         gateway: selectedGateway,
