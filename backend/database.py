@@ -9,16 +9,34 @@ class Database:
     
 db = Database()
 
+# Optimized connection settings for 50K+ users
+MONGO_OPTIONS = {
+    "maxPoolSize": 200,           # Max connections
+    "minPoolSize": 20,            # Keep 20 ready
+    "maxIdleTimeMS": 30000,       # Close idle after 30s
+    "connectTimeoutMS": 5000,
+    "serverSelectionTimeoutMS": 5000,
+    "socketTimeoutMS": 30000,
+    "retryWrites": True,
+    "retryReads": True,
+    "w": 1,                       # Fast writes
+    "journal": False,             # Skip journal for speed
+}
+
 async def connect_to_mongo():
-    """Connect to MongoDB"""
-    logger.info("Connecting to MongoDB...")
-    db.client = AsyncIOMotorClient(settings.mongo_url)
-    logger.info("Connected to MongoDB!")
+    """Connect to MongoDB with optimized pool"""
+    logger.info("Connecting to MongoDB with optimized pool...")
+    db.client = AsyncIOMotorClient(settings.mongo_url, **MONGO_OPTIONS)
+    
+    # Verify connection
+    await db.client.admin.command('ping')
+    logger.info(f"Connected to MongoDB! Pool: {MONGO_OPTIONS['maxPoolSize']} connections")
 
 async def close_mongo_connection():
     """Close MongoDB connection"""
     logger.info("Closing MongoDB connection...")
-    db.client.close()
+    if db.client:
+        db.client.close()
     logger.info("MongoDB connection closed!")
 
 def get_database():
