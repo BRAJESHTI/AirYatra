@@ -22,15 +22,35 @@ async def create_operator_profile(profile_data: dict, user: dict = Depends(get_c
     if existing:
         raise HTTPException(status_code=400, detail="Operator profile already exists")
     
+    # Default coordinates for major cities
+    city_coords = {
+        "mumbai": (19.0760, 72.8777),
+        "delhi": (28.7041, 77.1025),
+        "pune": (18.5204, 73.8567),
+        "bangalore": (12.9716, 77.5946),
+        "chennai": (13.0827, 80.2707),
+        "kolkata": (22.5726, 88.3639),
+        "hyderabad": (17.3850, 78.4867),
+        "ahmedabad": (23.0225, 72.5714),
+        "jaipur": (26.9124, 75.7873),
+        "lucknow": (26.8467, 80.9462)
+    }
+    
+    base_city = profile_data["base_city"].lower()
+    default_lat, default_lon = city_coords.get(base_city, (28.6139, 77.209))  # Default to Delhi
+    
     operator_id = str(uuid.uuid4())
     operator = {
         "id": operator_id,
         "user_id": user["id"],
         "company_name": profile_data["company_name"],
         "base_city": profile_data["base_city"],
-        "contact_person": profile_data["contact_person"],
-        "contact_phone": profile_data["contact_phone"],
-        "contact_email": profile_data["contact_email"],
+        "base_state": profile_data.get("base_state", ""),
+        "base_latitude": profile_data.get("base_latitude", default_lat),
+        "base_longitude": profile_data.get("base_longitude", default_lon),
+        "contact_person": profile_data.get("contact_person", user.get("full_name", "")),
+        "contact_phone": profile_data.get("contact_phone", user.get("phone", "")),
+        "contact_email": profile_data.get("contact_email", user.get("email", "")),
         "gstin": profile_data.get("gstin"),
         "bank_account": profile_data.get("bank_account"),
         "status": OperatorStatus.PENDING.value,
