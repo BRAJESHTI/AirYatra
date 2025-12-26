@@ -2,3 +2,8 @@ export { default as BulkSalaryPayment } from './BulkSalaryPayment';
 export { default as VendorBillPayment } from './VendorBillPayment';
 export { default as ApprovalWorkflow } from './ApprovalWorkflow';
 export { default as TDSConfiguration } from './TDSConfiguration';
+export { default as GSTDashboard } from './GSTDashboard';
+export { default as GSTReturns } from './GSTReturns';
+export { default as GSTPayments } from './GSTPayments';
+export { default as ITCManagement } from './ITCManagement';
+export { default as VendorCompliance } from './VendorCompliance';
