@@ -51,8 +51,8 @@ class FuelCostType(str, Enum):
 class OperatorBasePricing(BaseModel):
     """Operator's base pricing configuration for each helicopter"""
     id: Optional[str] = None
-    operator_id: str
-    helicopter_id: str
+    operator_id: Optional[str] = None  # Auto-populated from authenticated user
+    helicopter_id: str = "default"
     helicopter_name: Optional[str] = None
     pricing_type: PricingType = PricingType.HOURLY
     
