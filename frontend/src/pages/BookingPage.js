@@ -265,7 +265,119 @@ function BookingPage({ user }) {
     setLandingRent({ pickup: pickupRent, drop: dropRent, total: totalLandingRent });
   };
 
-  const calculatePrice = () => {
+  // ===== NEW AVIATION-GRADE PRICING ENGINE =====
+  const calculatePrice = async () => {
+    if (!formData.pickup_location || !formData.drop_location) return;
+    
+    try {
+      const response = await pricingEngineAPI.calculatePrice({
+        pickup_city: formData.pickup_location,
+        pickup_latitude: formData.pickup_lat || 19.076,
+        pickup_longitude: formData.pickup_lng || 72.877,
+        drop_city: formData.drop_location,
+        drop_latitude: formData.drop_lat || 18.520,
+        drop_longitude: formData.drop_lng || 73.856,
+        distance_km: distanceKm || 100,
+        departure_date: formData.departure_date || new Date().toISOString().split('T')[0],
+        departure_time: formData.departure_time || '10:00',
+        is_round_trip: formData.udan_prakar === 'round_trip',
+        booking_purpose: formData.booking_purpose || 'personal',
+        passenger_count: parseInt(formData.passenger_count) || 1,
+        waiting_time_minutes: parseInt(formData.waiting_time) || 0,
+        night_halts: parseInt(formData.night_halts) || 0,
+        pickup_landing_point_id: selectedLandingPoints.pickup?.landing_point_id,
+        drop_landing_point_id: selectedLandingPoints.drop?.landing_point_id
+      });
+      
+      if (response.data?.success) {
+        const data = response.data;
+        const breakdown = data.price_breakdown;
+        const customerView = data.customer_view;
+        
+        setPriceEstimate({
+          // From new pricing engine
+          base_flight_cost: breakdown.base_flight_cost,
+          dead_leg_cost: breakdown.dead_leg_cost,
+          mdg_adjustment: breakdown.mdg_adjustment,
+          waiting_charges: breakdown.waiting_charges,
+          night_halt_cost: breakdown.night_halt_cost,
+          crew_charges: breakdown.crew_charges,
+          fuel_surcharge: breakdown.fuel_surcharge,
+          
+          // Landing Charges
+          pickup_landing_charge: breakdown.pickup_landing_rent,
+          pickup_landing_name: breakdown.pickup_landing_name,
+          drop_landing_charge: breakdown.drop_landing_rent,
+          drop_landing_name: breakdown.drop_landing_name,
+          total_landing_charges: breakdown.total_landing_rent,
+          
+          // Purpose & Discounts
+          purpose: breakdown.purpose,
+          purpose_multiplier: breakdown.purpose_multiplier,
+          purpose_adjustment: breakdown.purpose_adjustment,
+          round_trip_discount: breakdown.round_trip_discount,
+          
+          // Platform Fees
+          operator_gross_cost: breakdown.operator_gross_cost,
+          platform_commission: breakdown.platform_commission,
+          platform_commission_percent: breakdown.platform_commission_percent,
+          convenience_fee: breakdown.convenience_fee,
+          convenience_fee_percent: breakdown.convenience_fee_percent,
+          insurance: breakdown.insurance,
+          insurance_percent: breakdown.insurance_percent,
+          
+          // Peak Surge
+          peak_surge_applied: breakdown.peak_surge_applied,
+          peak_surge_multiplier: breakdown.peak_surge_multiplier,
+          peak_surge_amount: breakdown.peak_surge_amount,
+          
+          // GST Breakdown
+          taxable_amount: breakdown.taxable_amount,
+          gst_type: breakdown.gst_type,
+          cgst: breakdown.cgst,
+          cgst_percent: breakdown.cgst_percent,
+          sgst: breakdown.sgst,
+          sgst_percent: breakdown.sgst_percent,
+          igst: breakdown.igst,
+          igst_percent: breakdown.igst_percent,
+          total_gst: breakdown.total_gst,
+          
+          // Final Amounts
+          total: breakdown.final_customer_price,
+          operator_payout: breakdown.operator_net_payout,
+          platform_earnings: breakdown.platform_earnings,
+          
+          // Meta
+          is_approximate: breakdown.is_estimate,
+          calculated_at: breakdown.calculated_at,
+          valid_until: breakdown.valid_until,
+          calculation_id: data.calculation_id,
+          notes: breakdown.notes || [],
+          
+          // For display - simplified customer view
+          customer_view: customerView,
+          
+          // Legacy fields for compatibility
+          distance_km: distanceKm,
+          base_price: breakdown.base_flight_cost,
+          permission_required: permissionRequired,
+          note: permissionRequired 
+            ? 'Village landing requires admin approval / गांव लैंडिंग के लिए एडमिन अनुमति जरूरी' 
+            : 'Price calculated by Aviation-Grade Pricing Engine / एविएशन-ग्रेड प्राइसिंग इंजन द्वारा गणना'
+        });
+        
+      } else {
+        // Fallback to basic calculation if engine fails
+        fallbackCalculatePrice();
+      }
+    } catch (error) {
+      console.error('Pricing engine error:', error);
+      fallbackCalculatePrice();
+    }
+  };
+  
+  // Fallback pricing (old method) if engine fails
+  const fallbackCalculatePrice = () => {
     if (!pricingSettings) return;
     
     const settings = pricingSettings;
