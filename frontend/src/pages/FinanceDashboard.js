@@ -186,15 +186,35 @@ function FinanceDashboard({ user, onLogout }) {
             <TDSConfiguration />
           </React.Suspense>
         );
-      // GST Compliance Routes
+      // GST Compliance Routes - Individual Components
       case 'gst_dashboard':
-      case 'gst_returns':
-      case 'gst_payments':
-      case 'itc_management':
-      case 'vendor_compliance':
         return (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
             <GSTDashboard />
+          </React.Suspense>
+        );
+      case 'gst_returns':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <GSTReturns />
+          </React.Suspense>
+        );
+      case 'gst_payments':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <GSTPayments />
+          </React.Suspense>
+        );
+      case 'itc_management':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <ITCManagement />
+          </React.Suspense>
+        );
+      case 'vendor_compliance':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <VendorCompliance />
           </React.Suspense>
         );
       default:
