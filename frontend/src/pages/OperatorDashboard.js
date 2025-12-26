@@ -20,6 +20,7 @@ import JourneyOTPManager from '../components/operator/JourneyOTPManager';
 import ReviseQuoteManager from '../components/operator/ReviseQuoteManager';
 import InquiryNotifications from '../components/operator/InquiryNotifications';
 import OperatorProfile from '../components/operator/OperatorProfile';
+import OperatorPricingConfig from '../components/operator/OperatorPricingConfig';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -67,6 +68,7 @@ const navGroups = [
     label: 'Account / खाता',
     icon: User,
     items: [
+      { id: 'pricing', label: 'Pricing Config / मूल्य', icon: DollarSign, path: '/operator/pricing', highlight: true },
       { id: 'profile', label: 'Profile / प्रोफाइल', icon: User, path: '/operator/profile' },
       { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings, path: '/operator/settings' },
     ]
@@ -242,6 +244,7 @@ function OperatorDashboard({ user, onLogout }) {
             <Route path="fuel-records" element={<FuelRecordsManager operator={operator} />} />
             <Route path="live-tracking" element={<LiveTrackingMap operator={operator} />} />
             <Route path="landing-permissions" element={<LandingPermissionViewer operator={operator} />} />
+            <Route path="pricing" element={<OperatorPricingConfig />} />
             <Route path="profile" element={<OperatorProfile operator={operator} onOperatorUpdate={setOperator} />} />
           </Routes>
         </main>
