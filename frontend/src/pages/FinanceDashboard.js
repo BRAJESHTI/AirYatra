@@ -16,8 +16,9 @@ const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSala
 const VendorBillPayment = React.lazy(() => import('@/components/finance/VendorBillPayment'));
 const TDSConfiguration = React.lazy(() => import('@/components/finance/TDSConfiguration'));
 const ApprovalWorkflow = React.lazy(() => import('@/components/finance/ApprovalWorkflow'));
+const GSTDashboard = React.lazy(() => import('@/components/finance/GSTDashboard'));
 
-// Organized Navigation Structure - 6 Main Categories
+// Organized Navigation Structure - 7 Main Categories
 const navGroups = [
   {
     id: 'main',
