@@ -1,10 +1,13 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
 // Critical pages - loaded immediately
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+
+// Global Navigation Component
+import GlobalNav from './components/shared/GlobalNav';
 
 // Lazy loaded pages - loaded on demand for faster initial load
 const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
@@ -40,25 +43,18 @@ const PageLoader = () => (
 );
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check for stored auth token
-    const token = localStorage.getItem('token');
+  const [user, setUser] = useState(() => {
+    // Initialize user from localStorage synchronously
     const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
-  }, []);
+    return userData ? JSON.parse(userData) : null;
+  });
+  const [loading, setLoading] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -70,6 +66,9 @@ function App() {
 
   return (
     <BrowserRouter>
+      {/* Global Navigation - Home Button */}
+      <GlobalNav user={user} />
+      
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<LandingPage user={user} />} />
