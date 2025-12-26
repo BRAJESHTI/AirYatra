@@ -105,7 +105,7 @@ export default function TwilioIntegration() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{dashboard?.stats?.today_calls || 0}</p>
-                <p className="text-slate-400 text-sm">Today's Calls / आज की कॉल</p>
+                <p className="text-slate-400 text-sm">Today Calls / आज की कॉल</p>
               </div>
             </div>
           </CardContent>
