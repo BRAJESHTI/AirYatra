@@ -674,9 +674,43 @@ Date: 2025-12-26
 ### API Service: `/app/frontend/src/services/settingsService.js`
 - pricingEngineAPI with all endpoints
 
-### APIs Tested via curl:
-- ✅ Pricing Config Public - Working (GST, purpose options, pricing types)
-- ✅ Price Calculate - Working (Mumbai-Pune wedding: ₹646,120 customer, ₹421,200 operator)
+### COMPREHENSIVE API TESTING COMPLETED ✅
+**Date:** 2025-12-26 | **Test Agent:** Backend Testing Agent | **Total Tests:** 42 | **Success Rate:** 90.5%
+
+#### Public Endpoints (No Authentication) - ALL WORKING ✅
+- ✅ **GET /api/pricing-engine/config/public** - Returns GST rates, purpose options, pricing types
+- ✅ **POST /api/pricing-engine/calculate** - Complete price calculation with detailed breakdown
+  - Mumbai-Pune Personal: ₹497,016 customer, ₹324,000 operator payout
+  - Mumbai-Pune Wedding (1.3x): ₹646,120 customer with purpose adjustment ₹108,000
+  - Delhi-Agra Medical (0.9x): Discount applied correctly for medical emergency
+  - Mumbai-Pune Election (1.5x): ₹1.5x multiplier applied correctly
+- ✅ **GET /api/pricing-engine/cancellation-charges** - Cancellation slabs working correctly
+- ✅ **GST Calculation** - Intra-state (CGST/SGST) and Inter-state (IGST) working perfectly
+- ✅ **Waiting Charges** - 60min waiting = ₹15,000 calculated correctly
+- ✅ **Night Halt Charges** - 1 night = ₹25,000 calculated correctly
+
+#### Admin Endpoints (admin@airyatra.com) - MOSTLY WORKING ✅
+- ✅ **GET/POST /api/pricing-engine/admin/controls** - Commission, GST, fees configuration
+- ✅ **GET/POST /api/pricing-engine/admin/routes** - Route pricing management
+- ✅ **GET /api/pricing-engine/admin/contracts** - Corporate contracts management
+- ❌ **GET /api/pricing-engine/admin/audit-logs** - Server Error 520 (ObjectId serialization issue)
+
+#### Operator Endpoints (operator@airyatra.com) - PARTIALLY WORKING ⚠️
+- ✅ **GET /api/pricing-engine/operator/my-pricing** - Returns operator config with default multipliers
+- ❌ **POST /api/pricing-engine/operator/base-pricing** - Validation Error: operator_id required in body
+- ❌ **POST /api/pricing-engine/operator/dead-leg-config** - Validation Error: operator_id required in body  
+- ❌ **POST /api/pricing-engine/operator/additional-charges** - Validation Error: operator_id required in body
+
+### CRITICAL FINDINGS:
+1. **✅ CORE PRICING ENGINE FULLY FUNCTIONAL** - All price calculations working perfectly
+2. **✅ AUTHENTICATION WORKING** - Admin and operator login successful
+3. **✅ GST COMPLIANCE** - Proper intra-state/inter-state GST calculation
+4. **✅ PURPOSE MULTIPLIERS** - Wedding (1.3x), Medical (0.9x), Election (1.5x) working
+5. **✅ ADDITIONAL CHARGES** - Waiting time, night halts calculated correctly
+
+### MINOR ISSUES TO FIX:
+1. **Audit Logs Endpoint** - ObjectId serialization error in `/api/pricing-engine/admin/audit-logs`
+2. **Operator API Design** - Operator endpoints should auto-populate operator_id from authenticated user instead of requiring it in request body
 
 ### UI Verified via Screenshots:
 - ✅ Admin Dashboard - Pricing Engine tab visible under Finance & Billing
