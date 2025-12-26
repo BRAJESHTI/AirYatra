@@ -600,6 +600,12 @@ function BookingPage({ user }) {
       return;
     }
     
+    // STRICT RULE: No booking without resolved price
+    if (!priceEstimate || !priceEstimate.total || priceEstimate.total <= 0) {
+      toast.error('⚠️ Price not calculated! Please wait for price calculation / मूल्य गणना नहीं हुई, कृपया प्रतीक्षा करें');
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const pickup = formData.pickup_landing_point;
