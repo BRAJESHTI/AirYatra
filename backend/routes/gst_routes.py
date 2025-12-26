@@ -269,7 +269,7 @@ async def file_gst_return(
     )
     
     return {
-        "message": f"GST return filed successfully / GST रिटर्न फाइल हो गया",
+        "message": "GST return filed successfully / GST रिटर्न फाइल हो गया",
         "arn": arn
     }
 
@@ -794,7 +794,7 @@ async def reconcile_gstr2a(
             unmatched += 1
     
     return {
-        "message": f"Reconciliation complete / मिलान पूर्ण",
+        "message": "Reconciliation complete / मिलान पूर्ण",
         "matched": matched,
         "unmatched": unmatched,
         "total": matched + unmatched
@@ -1048,7 +1048,7 @@ AirYatra Finance Team
         
         await send_email(
             to_email=email,
-            subject=f"GST Compliance Reminder - Pending GSTR-1 Filing",
+            subject="GST Compliance Reminder - Pending GSTR-1 Filing",
             body=body
         )
         
