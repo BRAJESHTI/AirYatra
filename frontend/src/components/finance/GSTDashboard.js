@@ -34,21 +34,28 @@ const GSTDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const fetchDashboard = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/gst/dashboard');
-      setDashboard(response.data);
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to load GST dashboard');
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
+    let isMounted = true;
+    const fetchDashboard = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get('/gst/dashboard');
+        if (isMounted) {
+          setDashboard(response.data);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        if (isMounted) {
+          toast.error('Failed to load GST dashboard');
+        }
+      }
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
     fetchDashboard();
-  }, [fetchDashboard]);
+    return () => { isMounted = false; };
+  }, []);
 
   if (loading) {
     return (
