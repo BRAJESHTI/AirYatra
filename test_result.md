@@ -156,7 +156,7 @@ Date: 2025-12-26
 
 ### Scenario 2: Webhook Lead Capture (for integration)
 ```bash
-curl -X POST "https://payroll-hub-23.preview.emergentagent.com/api/crm/leads/webhook/facebook" \
+curl -X POST "https://payflow-hub-10.preview.emergentagent.com/api/crm/leads/webhook/facebook" \
   -H "Content-Type: application/json" \
   -d '{"name": "Customer Name", "phone": "+91XXXXXXXXXX", "requirements": "Need helicopter"}'
 ```
