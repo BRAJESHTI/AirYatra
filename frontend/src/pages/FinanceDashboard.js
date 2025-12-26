@@ -17,6 +17,10 @@ const VendorBillPayment = React.lazy(() => import('@/components/finance/VendorBi
 const TDSConfiguration = React.lazy(() => import('@/components/finance/TDSConfiguration'));
 const ApprovalWorkflow = React.lazy(() => import('@/components/finance/ApprovalWorkflow'));
 const GSTDashboard = React.lazy(() => import('@/components/finance/GSTDashboard'));
+const GSTReturns = React.lazy(() => import('@/components/finance/GSTReturns'));
+const GSTPayments = React.lazy(() => import('@/components/finance/GSTPayments'));
+const ITCManagement = React.lazy(() => import('@/components/finance/ITCManagement'));
+const VendorCompliance = React.lazy(() => import('@/components/finance/VendorCompliance'));
 
 // Organized Navigation Structure - 7 Main Categories
 const navGroups = [
