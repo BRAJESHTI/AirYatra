@@ -62,7 +62,7 @@ export { crmAPI, referralAPI } from './crmService';
 export { landingAPI, landingPermissionAPI, pincodeAPI } from './landingService';
 
 // Settings Services
-export { settingsAPI } from './settingsService';
+export { settingsAPI, pricingEngineAPI } from './settingsService';
 
 // Support & Communication Services
 export { chatAPI, feedbackAPI, notificationAPI } from './supportService';
