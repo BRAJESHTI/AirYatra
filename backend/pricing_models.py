@@ -99,8 +99,8 @@ class OperatorBasePricing(BaseModel):
 class DeadLegPricing(BaseModel):
     """Dead-leg/Positioning cost configuration"""
     id: Optional[str] = None
-    operator_id: str
-    helicopter_id: str
+    operator_id: Optional[str] = None  # Auto-populated from authenticated user
+    helicopter_id: str = "default"
     
     enabled: bool = True
     rate_type: DeadLegRateType = DeadLegRateType.PER_KM
@@ -121,7 +121,7 @@ class DeadLegPricing(BaseModel):
 class AdditionalCharges(BaseModel):
     """Additional charges configuration per helicopter/operator"""
     id: Optional[str] = None
-    operator_id: str
+    operator_id: Optional[str] = None  # Auto-populated from authenticated user
     helicopter_id: Optional[str] = None  # If null, applies to all
     
     # Night Halt Charges
