@@ -116,7 +116,7 @@ class HelicopterPricingEngine:
     
     async def get_dead_leg_config(self, operator_id: str, helicopter_id: str = None) -> Dict:
         """Get dead-leg/positioning configuration"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         query = {"operator_id": operator_id}
@@ -138,7 +138,7 @@ class HelicopterPricingEngine:
     
     async def get_additional_charges(self, operator_id: str, helicopter_id: str = None) -> Dict:
         """Get additional charges configuration"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         query = {"operator_id": operator_id}
@@ -165,7 +165,7 @@ class HelicopterPricingEngine:
     
     async def get_route_pricing(self, from_city: str, to_city: str, operator_id: str = None) -> Optional[Dict]:
         """Check if route-based pricing exists"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         route = await self.db.route_pricing.find_one({
@@ -178,7 +178,7 @@ class HelicopterPricingEngine:
     
     async def get_landing_rent(self, landing_point_id: str) -> Dict:
         """Get landing point rent"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         if not landing_point_id:
@@ -226,7 +226,7 @@ class HelicopterPricingEngine:
     
     async def get_contract_pricing(self, customer_id: str = None, customer_email: str = None, contract_id: str = None) -> Optional[Dict]:
         """Check for corporate/government contract pricing"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         if contract_id:
@@ -279,7 +279,7 @@ class HelicopterPricingEngine:
         = FINAL CUSTOMER PRICE
         """
         
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         breakdown = PriceBreakdown()
