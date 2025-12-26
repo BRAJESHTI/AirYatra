@@ -80,6 +80,8 @@ from routes import hr_advanced_routes
 from routes import payment_gateway_routes
 # GST Compliance
 from routes import gst_routes
+# Aviation-Grade Pricing Engine
+from routes import pricing_engine_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -213,6 +215,8 @@ api_router.include_router(hr_advanced_routes.router)
 api_router.include_router(payment_gateway_routes.router)
 # GST Compliance
 api_router.include_router(gst_routes.router)
+# Aviation-Grade Pricing Engine
+api_router.include_router(pricing_engine_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
