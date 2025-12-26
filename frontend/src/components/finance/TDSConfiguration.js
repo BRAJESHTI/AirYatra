@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,14 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Percent,
-  Settings,
   Calculator,
   Plus,
   Save,
   RefreshCw,
   FileText,
-  IndianRupee,
-  Edit,
   Info
 } from 'lucide-react';
 import api from '@/services/apiClient';
@@ -47,11 +44,7 @@ const TDSConfiguration = () => {
   });
   const [calcResult, setCalcResult] = useState(null);
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
-
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
       const [configRes, sectionsRes] = await Promise.all([
@@ -64,7 +57,11 @@ const TDSConfiguration = () => {
       console.error('Error:', error);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
 
   const saveConfig = async () => {
     setSaving(true);
