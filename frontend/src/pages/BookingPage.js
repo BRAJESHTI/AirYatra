@@ -635,6 +635,7 @@ function BookingPage({ user }) {
         distance_km: distanceKm,
         estimated_price: priceEstimate?.total || 0,
         price_breakdown: priceEstimate,
+        pricing_calculation_id: priceEstimate?.calculation_id, // Audit trail
         landing_rent_breakdown: landingRent,
         
         // Permission workflow
