@@ -86,6 +86,10 @@ async def find_operators_in_radius(
     
     logger.info(f"Found {len(operators)} active operators to check")
     
+    # Log first few operators for debugging
+    for op in operators[:3]:
+        logger.info(f"  Operator: {op.get('company_name')} @ ({op.get('base_latitude')}, {op.get('base_longitude')})")
+    
     eligible_operators = []
     
     for operator in operators:
@@ -93,12 +97,10 @@ async def find_operators_in_radius(
         base_lat = operator.get("base_latitude")
         base_lon = operator.get("base_longitude")
         
-        logger.debug(f"Checking operator: {operator.get('company_name')} - lat: {base_lat}, lon: {base_lon}")
-        
-        if base_lat and base_lon:
+        if base_lat is not None and base_lon is not None:
             try:
                 distance = haversine_distance(pickup_lat, pickup_lon, float(base_lat), float(base_lon))
-                logger.debug(f"  Distance: {distance} km (max: {radius_km})")
+                logger.info(f"  {operator.get('company_name')}: {distance:.1f} km from pickup")
                 if distance <= radius_km:
                     eligible_operators.append({
                         **operator,
