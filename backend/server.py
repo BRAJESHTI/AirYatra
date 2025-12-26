@@ -203,6 +203,8 @@ api_router.include_router(accounting_routes.router)
 api_router.include_router(twilio_routes.router)
 api_router.include_router(tally_routes.router)
 api_router.include_router(zoho_routes.router)
+# HR Advanced Features
+api_router.include_router(hr_advanced_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
