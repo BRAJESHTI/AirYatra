@@ -209,9 +209,9 @@ function BookingPage({ user }) {
   useEffect(() => {
     // Calculate price when we have all required data
     if (currentStep === 3 && formData.udan_prakar && distanceKm > 0) {
-      calculatePrice();
+      calculatePrice(); // async function - handles its own promise
     }
-  }, [currentStep, formData.udan_prakar, distanceKm, pricingSettings]);
+  }, [currentStep, formData.udan_prakar, distanceKm, pricingSettings, formData.booking_purpose, formData.night_halts, formData.waiting_time]);
 
   const loadPricingSettings = async () => {
     try {
