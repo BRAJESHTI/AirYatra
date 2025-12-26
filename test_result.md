@@ -3,6 +3,73 @@
 ## Current Testing Session
 Date: 2025-12-26
 
+## FULL E2E TESTING REQUEST
+
+### Test Credentials:
+- **Admin:** admin@airyatra.com / Admin123!
+- **Finance:** finance@airyatra.com / Finance@123456
+- **HR:** hr@airyatra.com / HR@123456
+- **Sales:** sales@airyatra.com / Sales@123456
+
+---
+
+## TEST SCENARIO 1: Finance Dashboard & GST Module (Priority: HIGH)
+**Login:** finance@airyatra.com / Finance@123456
+
+### Steps:
+1. Login and verify Finance Dashboard loads with stats (Total Revenue, Pending Settlements, etc.)
+2. Click "GST Compliance / GST" sidebar - verify it expands
+3. Click "GST Dashboard" - verify shows Output GST, Input GST, Net Payable cards
+4. Click "File GST Returns" - verify shows returns table with GSTR-3B entry
+5. Click "Input/Output ITC" - verify shows ITC Flow diagram with CGST/SGST/IGST
+6. Click "Vendor Compliance" - verify shows vendor compliance list
+
+### Expected:
+- Each navigation click renders correct component (not same component for all)
+- No console errors
+- Data loads from API
+
+---
+
+## TEST SCENARIO 2: Payroll & Vendor Module
+**Login:** finance@airyatra.com / Finance@123456
+
+### Steps:
+1. Click "Payroll / वेतन" - verify expands
+2. Click "Bulk Salary Payment" - verify shows employee list, gateway selection
+3. Click "Approval Workflow" - verify shows approval queue
+4. Click "Vendors / वेंडर" - verify expands
+5. Click "Vendor Bill Payment" - verify shows vendor payment form with TDS
+6. Click "TDS Configuration" - verify shows TDS rates table
+
+### Expected:
+- All finance components render correctly
+- Forms are interactive
+
+---
+
+## TEST SCENARIO 3: Admin Dashboard Overview
+**Login:** admin@airyatra.com / Admin123!
+
+### Steps:
+1. Login and verify Admin Dashboard loads
+2. Check sidebar has all sections (Bookings, Fleet, Users, CRM, etc.)
+3. Click through major sections to verify they load
+
+---
+
+## API ENDPOINTS TO VALIDATE:
+```
+GET /api/gst/dashboard
+GET /api/gst/returns  
+GET /api/gst/itc-summary
+GET /api/payments/finance/dashboard
+GET /api/payments/tds/sections
+POST /api/payments/tds/calculate (body: {"amount": 100000, "tds_section": "194C", "pan_available": true})
+```
+
+---
+
 ## Latest Bug Fix - GST Navigation
 ### Issue: GST Module Navigation Broken (FIXED ✅)
 - **Problem:** Clicking GST section items in FinanceDashboard was rendering wrong component
