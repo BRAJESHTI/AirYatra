@@ -1,0 +1,18 @@
+{
+  "name": "AirYatra - PAN India Aviation",
+  "short_name": "AirYatra",
+  "description": "Book helicopter and air taxi services across India",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["travel", "transportation", "booking"]
+}
