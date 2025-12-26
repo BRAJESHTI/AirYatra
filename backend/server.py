@@ -9,11 +9,15 @@ import logging
 import asyncio
 from database import connect_to_mongo, close_mongo_connection
 from scheduler import start_scheduler, stop_scheduler
-from performance_middleware import (
-    CacheMiddleware, 
-    RateLimitMiddleware, 
-    PerformanceHeadersMiddleware,
-    cleanup_expired_cache
+
+# High-Performance Modules (50K+ users)
+from high_performance_cache import cache, initialize_cache, get_cache_stats
+from ultra_performance_middleware import (
+    FastCacheMiddleware,
+    FastRateLimitMiddleware,
+    FastHeadersMiddleware,
+    KeepaliveMiddleware,
+    get_performance_stats
 )
 from db_optimization import optimize_database
 
