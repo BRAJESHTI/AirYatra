@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw } from 'lucide-react';
+import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
 
@@ -10,7 +10,12 @@ import DynamicPricing from '@/components/admin/DynamicPricing';
 import AccountingIntegration from '@/components/admin/AccountingIntegration';
 import CurrencyConverter from '@/components/admin/CurrencyConverter';
 
-// Organized Navigation Structure - 5 Main Categories
+// Lazy load new components
+const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSalaryPayment'));
+const VendorBillPayment = React.lazy(() => import('@/components/finance/VendorBillPayment'));
+const TDSReports = React.lazy(() => import('@/components/finance/TDSReports'));
+
+// Organized Navigation Structure - 6 Main Categories
 const navGroups = [
   {
     id: 'main',
@@ -19,6 +24,25 @@ const navGroups = [
     items: [
       { id: 'overview', label: 'Overview / ओवरव्यू', icon: BarChart3 },
       { id: 'pending_settlements', label: 'Pending Settlements', icon: DollarSign, highlight: true },
+    ]
+  },
+  {
+    id: 'payroll',
+    label: 'Payroll / वेतन',
+    icon: BanknoteIcon,
+    items: [
+      { id: 'bulk_salary', label: 'Bulk Salary Payment', icon: Users, highlight: true },
+      { id: 'salary_reconciliation', label: 'Salary Reconciliation', icon: RefreshCw },
+    ]
+  },
+  {
+    id: 'vendors',
+    label: 'Vendors / वेंडर',
+    icon: Building2,
+    items: [
+      { id: 'vendor_bills', label: 'Vendor Bill Payment', icon: Receipt, highlight: true },
+      { id: 'tds_reports', label: 'TDS Reports / टीडीएस', icon: Percent },
+      { id: 'vendor_master', label: 'Vendor Master', icon: Building2 },
     ]
   },
   {
@@ -39,16 +63,6 @@ const navGroups = [
       { id: 'all_settlements', label: 'All Settlements / सभी', icon: DollarSign },
       { id: 'operator_payouts', label: 'Operator Payouts', icon: Building2 },
       { id: 'helipad_payouts', label: 'Helipad Payouts', icon: Building2 },
-    ]
-  },
-  {
-    id: 'pricing',
-    label: 'Pricing / मूल्य निर्धारण',
-    icon: Calculator,
-    items: [
-      { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator },
-      { id: 'currency', label: 'Currency Converter', icon: DollarSign },
-      { id: 'commissions', label: 'Commissions / कमीशन', icon: PieChart },
     ]
   },
   {
