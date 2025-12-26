@@ -182,6 +182,17 @@ function FinanceDashboard({ user, onLogout }) {
             <TDSConfiguration />
           </React.Suspense>
         );
+      // GST Compliance Routes
+      case 'gst_dashboard':
+      case 'gst_returns':
+      case 'gst_payments':
+      case 'itc_management':
+      case 'vendor_compliance':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <GSTDashboard />
+          </React.Suspense>
+        );
       default:
         return (
           <div className="space-y-6">
