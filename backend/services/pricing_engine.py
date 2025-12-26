@@ -44,14 +44,17 @@ class HelicopterPricingEngine:
     
     def __init__(self):
         self.db = None
+        self._initialized = False
         
     async def initialize(self):
         """Initialize database connection"""
-        self.db = get_database()
+        if not self._initialized:
+            self.db = get_database()
+            self._initialized = True
         
     async def get_admin_controls(self) -> Dict:
         """Get admin pricing controls"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         controls = await self.db.admin_pricing_controls.find_one(
@@ -88,7 +91,7 @@ class HelicopterPricingEngine:
     
     async def get_operator_pricing(self, operator_id: str, helicopter_id: str = None) -> Dict:
         """Get operator's base pricing configuration"""
-        if not self.db:
+        if self.db is None:
             await self.initialize()
             
         query = {"operator_id": operator_id, "is_active": True}
