@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
-// Import pages
+// Critical pages - loaded immediately
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import CustomerDashboard from './pages/CustomerDashboard';
-import OperatorDashboard from './pages/OperatorDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import RegionalManagerDashboard from './pages/RegionalManagerDashboard';
-import HelipadOwnerDashboard from './pages/HelipadOwnerDashboard';
-import BookingPage from './pages/BookingPage';
-import PaymentPage from './pages/PaymentPage';
-// New Role-based Dashboards
-import HRDashboard from './pages/HRDashboard';
-import SalesDashboard from './pages/SalesDashboard';
-import SupportDashboard from './pages/SupportDashboard';
-import FinanceDashboard from './pages/FinanceDashboard';
+
+// Lazy loaded pages - loaded on demand for faster initial load
+const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
+const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const RegionalManagerDashboard = lazy(() => import('./pages/RegionalManagerDashboard'));
+const HelipadOwnerDashboard = lazy(() => import('./pages/HelipadOwnerDashboard'));
+const BookingPage = lazy(() => import('./pages/BookingPage'));
+const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+// New Role-based Dashboards - lazy loaded
+const HRDashboard = lazy(() => import('./pages/HRDashboard'));
+const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
+const SupportDashboard = lazy(() => import('./pages/SupportDashboard'));
+const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -24,8 +26,18 @@ import AIChatbot from './components/shared/AIChatbot';
 // Import Google Auth components
 import { GoogleAuthSuccess, GoogleAuthError, EmergentAuthCallback } from './components/auth/GoogleLogin';
 
-// Import Customer components
-import InquiryStatus from './components/customer/InquiryStatus';
+// Lazy load customer components
+const InquiryStatus = lazy(() => import('./components/customer/InquiryStatus'));
+
+// Loading spinner component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-900">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+      <p className="text-white">Loading...</p>
+    </div>
+  </div>
+);
 
 function App() {
   const [user, setUser] = useState(null);
