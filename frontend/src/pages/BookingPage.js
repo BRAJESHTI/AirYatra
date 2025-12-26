@@ -969,55 +969,113 @@ function BookingPage({ user }) {
         <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-xl p-6 border border-orange-500/30">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <Calculator className="h-5 w-5 text-orange-400" />
-            Approximate Price / अनुमानित मूल्य
+            Price Breakdown / मूल्य विवरण
           </h3>
           
-          <div className="space-y-3">
-            <div className="flex justify-between text-slate-300">
-              <span>Base Price / आधार मूल्य:</span>
-              <span>₹{priceEstimate.base_price?.toLocaleString()}</span>
+          <div className="space-y-2 text-sm">
+            {/* Base Charges Section */}
+            <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+              <p className="text-orange-400 font-semibold mb-2 text-xs uppercase tracking-wide">Base Charges / आधार शुल्क</p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300">
+                  <span>Base Price / आधार मूल्य:</span>
+                  <span>₹{priceEstimate.base_price?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>Distance ({distanceKm} KM × ₹{pricingSettings?.rate_per_km || 500}/km):</span>
+                  <span>₹{priceEstimate.km_price?.toLocaleString()}</span>
+                </div>
+                {priceEstimate.aircraft_multiplier !== 1 && (
+                  <div className="flex justify-between text-slate-400 text-xs">
+                    <span>Aircraft Multiplier:</span>
+                    <span>×{priceEstimate.aircraft_multiplier}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
+                  <span>Subtotal:</span>
+                  <span>₹{priceEstimate.base_subtotal?.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between text-slate-300">
-              <span>Distance Charge ({distanceKm} KM):</span>
-              <span>₹{priceEstimate.km_price?.toLocaleString()}</span>
+
+            {/* Fees & Charges Section */}
+            <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+              <p className="text-blue-400 font-semibold mb-2 text-xs uppercase tracking-wide">Fees & Charges / शुल्क</p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300">
+                  <span>Convenience Fee ({priceEstimate.convenience_fee_percent}%):</span>
+                  <span>₹{priceEstimate.convenience_fee?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>Insurance ({priceEstimate.insurance_percent}%):</span>
+                  <span>₹{priceEstimate.insurance?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-400 text-xs">
+                  <span>Platform Commission ({priceEstimate.commission_percent}%):</span>
+                  <span className="text-slate-500">Included</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between text-slate-300">
-              <span>Subtotal:</span>
-              <span>₹{priceEstimate.subtotal?.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-slate-300">
-              <span>GST (18%):</span>
-              <span>₹{priceEstimate.gst?.toLocaleString()}</span>
-            </div>
-            
-            {/* Landing Charges */}
-            {priceEstimate.landing_charges > 0 && (
-              <>
-                <div className="border-t border-orange-500/30 pt-3 mt-3">
-                  <p className="text-slate-400 text-sm mb-2 flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Landing Charges / लैंडिंग शुल्क:
-                  </p>
+
+            {/* Helipad Landing Charges */}
+            {priceEstimate.total_landing_charges > 0 && (
+              <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                <p className="text-green-400 font-semibold mb-2 text-xs uppercase tracking-wide flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  Helipad Landing Charges / हेलीपैड शुल्क
+                </p>
+                <div className="space-y-1">
                   {priceEstimate.pickup_landing_rent && (
-                    <div className="flex justify-between text-slate-300 text-sm pl-4">
-                      <span>Pickup ({priceEstimate.pickup_landing_rent.landing_point}):</span>
-                      <span>₹{priceEstimate.pickup_landing_rent.total_rent?.toLocaleString()}</span>
+                    <div className="flex justify-between text-slate-300">
+                      <span>Pickup - {priceEstimate.pickup_landing_rent.landing_point}:</span>
+                      <span>₹{priceEstimate.pickup_landing_charge?.toLocaleString()}</span>
                     </div>
                   )}
                   {priceEstimate.drop_landing_rent && (
-                    <div className="flex justify-between text-slate-300 text-sm pl-4">
-                      <span>Drop ({priceEstimate.drop_landing_rent.landing_point}):</span>
-                      <span>₹{priceEstimate.drop_landing_rent.total_rent?.toLocaleString()}</span>
+                    <div className="flex justify-between text-slate-300">
+                      <span>Drop - {priceEstimate.drop_landing_rent.landing_point}:</span>
+                      <span>₹{priceEstimate.drop_landing_charge?.toLocaleString()}</span>
                     </div>
                   )}
+                  <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
+                    <span>Total Landing Charges:</span>
+                    <span>₹{priceEstimate.total_landing_charges?.toLocaleString()}</span>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
-            
-            <div className="border-t border-orange-500/30 pt-3 mt-3">
-              <div className="flex justify-between text-lg font-bold">
-                <span className="text-white">Estimated Total:</span>
-                <span className="text-orange-400">₹{priceEstimate.total?.toLocaleString()}</span>
+
+            {/* GST Breakdown */}
+            <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+              <p className="text-purple-400 font-semibold mb-2 text-xs uppercase tracking-wide">GST / जीएसटी ({priceEstimate.gst_rate}%)</p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-400 text-xs">
+                  <span>Taxable Amount:</span>
+                  <span>₹{priceEstimate.subtotal_before_gst?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>CGST ({priceEstimate.gst_rate/2}%):</span>
+                  <span>₹{priceEstimate.cgst?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>SGST ({priceEstimate.gst_rate/2}%):</span>
+                  <span>₹{priceEstimate.sgst?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
+                  <span>Total GST:</span>
+                  <span>₹{priceEstimate.gst?.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grand Total */}
+            <div className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-lg p-4 border border-orange-500/40">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="text-white font-bold text-lg">Grand Total</span>
+                  <span className="text-slate-400 text-xs block">कुल राशि (Inclusive of all taxes)</span>
+                </div>
+                <span className="text-orange-400 font-bold text-2xl">₹{priceEstimate.total?.toLocaleString()}</span>
               </div>
             </div>
           </div>
