@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,6 @@ import {
   XCircle,
   RefreshCw,
   Percent,
-  IndianRupee,
   Search,
   Filter
 } from 'lucide-react';
@@ -60,11 +59,7 @@ const VendorBillPayment = () => {
   });
   const [tdsResult, setTdsResult] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [vendorsRes, billsRes, sectionsRes, gatewaysRes] = await Promise.all([
@@ -81,7 +76,11 @@ const VendorBillPayment = () => {
       console.error('Error fetching data:', error);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const createVendor = async () => {
     setProcessing(true);
