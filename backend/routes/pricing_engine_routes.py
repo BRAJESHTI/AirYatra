@@ -385,11 +385,14 @@ async def get_pricing_audit_logs(
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
 ):
     """Get pricing audit logs"""
-    db = get_database()
-    logs = await db.pricing_audit_logs.find(
-        {}, {"_id": 0}
-    ).sort("timestamp", -1).limit(limit).to_list(limit)
-    return {"logs": logs}
+    try:
+        db = get_database()
+        logs = await db.pricing_audit_logs.find(
+            {}, {"_id": 0}
+        ).sort("timestamp", -1).limit(limit).to_list(limit)
+        return {"logs": logs or []}
+    except Exception as e:
+        return {"logs": [], "error": str(e)}
 
 
 @router.get("/admin/calculations")
