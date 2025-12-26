@@ -74,6 +74,8 @@ from routes import accounting_routes
 from routes import twilio_routes
 from routes import tally_routes
 from routes import zoho_routes
+# HR Advanced Features
+from routes import hr_advanced_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
