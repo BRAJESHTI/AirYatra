@@ -42,7 +42,7 @@ async def mark_notification_read(notification_id: str, user: dict = Depends(get_
     
     result = await db.notifications.update_one(
         {"id": notification_id, "user_id": user["id"]},
-        {"$set": {"read": True, "read_at": datetime.utcnow().isoformat()}}
+        {"$set": {"read": True, "read_at": datetime.now(timezone.utc).isoformat()}}
     )
     
     if result.modified_count == 0:
