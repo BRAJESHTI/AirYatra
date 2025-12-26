@@ -199,6 +199,85 @@ async def verify_operator(operator_id: str, data: dict, user: dict = Depends(req
     
     return {"message": f"Operator {status}", "operator_id": operator_id}
 
+@router.post("/seed-operators")
+async def seed_demo_operators(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    """Seed demo operators for testing - Admin only"""
+    db = get_database()
+    
+    # Get operator users
+    operator_user = await db.users.find_one({"email": "operator@airyatra.com"}, {"_id": 0})
+    pilot_user = await db.users.find_one({"email": "pilot@airyatra.com"}, {"_id": 0})
+    
+    demo_operators = [
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": operator_user["id"] if operator_user else str(uuid.uuid4()),
+            "company_name": "Mumbai Heli Services",
+            "contact_name": "Rajesh Sharma",
+            "contact_phone": "+919876543210",
+            "contact_email": "operator@airyatra.com",
+            "base_city": "Mumbai",
+            "base_state": "Maharashtra",
+            "base_latitude": 19.0760,
+            "base_longitude": 72.8777,
+            "status": "active",
+            "verification_status": "verified",
+            "verified_at": datetime.utcnow().isoformat(),
+            "total_aircraft": 3,
+            "rating": 4.8,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": pilot_user["id"] if pilot_user else str(uuid.uuid4()),
+            "company_name": "Pune Air Charter",
+            "contact_name": "Captain Pilot",
+            "contact_phone": "+919876543211",
+            "contact_email": "pilot@airyatra.com",
+            "base_city": "Pune",
+            "base_state": "Maharashtra",
+            "base_latitude": 18.5204,
+            "base_longitude": 73.8567,
+            "status": "active",
+            "verification_status": "verified",
+            "verified_at": datetime.utcnow().isoformat(),
+            "total_aircraft": 2,
+            "rating": 4.5,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": str(uuid.uuid4()),
+            "company_name": "Delhi Sky Aviation",
+            "contact_name": "Vikram Singh",
+            "contact_phone": "+919876543212",
+            "contact_email": "delhi.sky@airyatra.com",
+            "base_city": "Delhi",
+            "base_state": "Delhi",
+            "base_latitude": 28.7041,
+            "base_longitude": 77.1025,
+            "status": "active",
+            "verification_status": "verified",
+            "verified_at": datetime.utcnow().isoformat(),
+            "total_aircraft": 5,
+            "rating": 4.9,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+    ]
+    
+    created = 0
+    for op in demo_operators:
+        existing = await db.operators.find_one({"company_name": op["company_name"]})
+        if not existing:
+            await db.operators.insert_one(op.copy())
+            created += 1
+            logger.info(f"Created operator: {op['company_name']} in {op['base_city']}")
+    
+    return {"message": f"Seeded {created} demo operators", "total_operators": len(demo_operators)}
+
 @router.get("/bookings")
 async def get_all_bookings(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])), status: str = None, limit: int = 100):
     """Get all bookings with optional status filter"""
