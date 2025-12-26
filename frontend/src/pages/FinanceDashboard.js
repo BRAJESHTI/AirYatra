@@ -105,24 +105,25 @@ function FinanceDashboard({ user, onLogout }) {
     pending_approvals: 0
   });
 
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      const response = await api.get('/payments/finance/dashboard');
-      if (response.data) {
-        setStats(prev => ({
-          ...prev,
-          pending_approvals: response.data.pending_approvals || 0,
-          pending_settlements: response.data.today_transactions?.total_amount || prev.pending_settlements
-        }));
-      }
-    } catch (error) {
-      console.error('Dashboard fetch error:', error);
-    }
-  }, []);
-
   useEffect(() => {
+    let isMounted = true;
+    const fetchDashboardData = async () => {
+      try {
+        const response = await api.get('/payments/finance/dashboard');
+        if (response.data && isMounted) {
+          setStats(prev => ({
+            ...prev,
+            pending_approvals: response.data.pending_approvals || 0,
+            pending_settlements: response.data.today_transactions?.total_amount || prev.pending_settlements
+          }));
+        }
+      } catch (error) {
+        console.error('Dashboard fetch error:', error);
+      }
+    };
     fetchDashboardData();
-  }, [fetchDashboardData]);
+    return () => { isMounted = false; };
+  }, []);
 
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => 
