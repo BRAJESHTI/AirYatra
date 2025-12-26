@@ -3,11 +3,99 @@ from database import get_database
 from middleware import get_current_user, require_roles
 from models import UserRole, OperatorStatus, ApprovalStatus
 import uuid
-from datetime import datetime, timedelta
+from uuid import uuid4
+from datetime import datetime, timezone, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+# Major Indian Helipads/Airports with default landing charges
+MAJOR_LANDING_POINTS = [
+    {"name": "Juhu Aerodrome", "city": "Mumbai", "state": "Maharashtra", "type": "airport", "lat": 19.0988, "lng": 72.8347, "rent": 15000, "icao": "VAJJ"},
+    {"name": "Pawan Hans Helipad", "city": "Mumbai", "state": "Maharashtra", "type": "govt_helipad", "lat": 19.0759, "lng": 72.8776, "rent": 12000},
+    {"name": "NSCI Dome Helipad", "city": "Mumbai", "state": "Maharashtra", "type": "private_helipad", "lat": 19.0178, "lng": 72.8308, "rent": 18000},
+    {"name": "IGI Airport T3", "city": "Delhi", "state": "Delhi", "type": "airport", "lat": 28.5562, "lng": 77.1000, "rent": 25000, "icao": "VIDP"},
+    {"name": "Safdarjung Airport", "city": "Delhi", "state": "Delhi", "type": "airport", "lat": 28.5844, "lng": 77.2060, "rent": 10000, "icao": "VIDD"},
+    {"name": "HAL Airport", "city": "Bangalore", "state": "Karnataka", "type": "airport", "lat": 12.9500, "lng": 77.6682, "rent": 12000, "icao": "VOBG"},
+    {"name": "Kempegowda Intl", "city": "Bangalore", "state": "Karnataka", "type": "airport", "lat": 13.1986, "lng": 77.7066, "rent": 20000, "icao": "VOBL"},
+    {"name": "Chhatrapati Shivaji Intl", "city": "Mumbai", "state": "Maharashtra", "type": "airport", "lat": 19.0896, "lng": 72.8656, "rent": 30000, "icao": "VABB"},
+    {"name": "Pune Airport", "city": "Pune", "state": "Maharashtra", "type": "airport", "lat": 18.5821, "lng": 73.9197, "rent": 15000, "icao": "VAPO"},
+    {"name": "Jaipur Airport", "city": "Jaipur", "state": "Rajasthan", "type": "airport", "lat": 26.8242, "lng": 75.8122, "rent": 12000, "icao": "VIJP"},
+    {"name": "Lucknow Airport", "city": "Lucknow", "state": "Uttar Pradesh", "type": "airport", "lat": 26.7606, "lng": 80.8893, "rent": 10000, "icao": "VILK"},
+    {"name": "Varanasi Airport", "city": "Varanasi", "state": "Uttar Pradesh", "type": "airport", "lat": 25.4524, "lng": 82.8593, "rent": 8000, "icao": "VIBN"},
+    {"name": "Kedarnath Helipad", "city": "Kedarnath", "state": "Uttarakhand", "type": "govt_helipad", "lat": 30.7352, "lng": 79.0669, "rent": 5000},
+    {"name": "Badrinath Helipad", "city": "Badrinath", "state": "Uttarakhand", "type": "govt_helipad", "lat": 30.7433, "lng": 79.4938, "rent": 5000},
+    {"name": "Shirdi Airport", "city": "Shirdi", "state": "Maharashtra", "type": "airport", "lat": 19.6889, "lng": 74.3789, "rent": 8000, "icao": "VASD"},
+    {"name": "Ahmedabad Airport", "city": "Ahmedabad", "state": "Gujarat", "type": "airport", "lat": 23.0772, "lng": 72.6347, "rent": 15000, "icao": "VAAH"},
+    {"name": "Hyderabad Intl", "city": "Hyderabad", "state": "Telangana", "type": "airport", "lat": 17.2403, "lng": 78.4294, "rent": 18000, "icao": "VOHS"},
+    {"name": "Chennai Intl", "city": "Chennai", "state": "Tamil Nadu", "type": "airport", "lat": 12.9941, "lng": 80.1709, "rent": 18000, "icao": "VOMM"},
+    {"name": "Kolkata Airport", "city": "Kolkata", "state": "West Bengal", "type": "airport", "lat": 22.6547, "lng": 88.4467, "rent": 15000, "icao": "VECC"},
+    {"name": "Goa Dabolim", "city": "Goa", "state": "Goa", "type": "airport", "lat": 15.3808, "lng": 73.8314, "rent": 12000, "icao": "VAGO"},
+]
+
+@router.post("/seed-landing-points")
+async def seed_landing_points(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Seed major landing points with default landing charges"""
+    db = get_database()
+    
+    created = 0
+    updated = 0
+    
+    for lp in MAJOR_LANDING_POINTS:
+        point_id = str(uuid4())
+        
+        # Check if already exists
+        existing = await db.landing_points.find_one({
+            "name": lp["name"],
+            "city": lp["city"]
+        })
+        
+        if existing:
+            # Update rent if exists
+            await db.landing_points.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"rent_per_landing": lp["rent"], "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            updated += 1
+            continue
+        
+        landing_point = {
+            "id": point_id,
+            "landing_point_id": point_id,
+            "landing_point_name": lp["name"],
+            "name": lp["name"],
+            "type": lp["type"],
+            "landing_point_type": lp["type"],
+            "city": lp["city"],
+            "state": lp["state"],
+            "latitude": lp["lat"],
+            "longitude": lp["lng"],
+            "rent_per_landing": lp["rent"],
+            "rent": lp["rent"],
+            "rent_applicable": True,
+            "permission_required": False,
+            "icao_code": lp.get("icao"),
+            "is_active": True,
+            "status": "active",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": user["id"]
+        }
+        
+        await db.landing_points.insert_one(landing_point)
+        created += 1
+    
+    logger.info(f"Landing points seeded: {created} created, {updated} updated by {user['email']}")
+    
+    return {
+        "message": f"Landing points seeded successfully",
+        "created": created,
+        "updated": updated,
+        "total": len(MAJOR_LANDING_POINTS)
+    }
 
 @router.get("/dashboard")
 async def get_admin_dashboard(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
