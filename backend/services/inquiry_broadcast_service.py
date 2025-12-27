@@ -10,6 +10,11 @@ from database import get_database
 
 logger = logging.getLogger(__name__)
 
+# Import email service (lazy loading to avoid circular imports)
+def get_email_service():
+    from services.email_service import email_service
+    return email_service
+
 # Default settings
 DEFAULT_BROADCAST_RADIUS_KM = 500
 DEFAULT_EXPIRE_MINUTES = 30
