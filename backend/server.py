@@ -82,6 +82,8 @@ from routes import payment_gateway_routes
 from routes import gst_routes
 # Aviation-Grade Pricing Engine
 from routes import pricing_engine_routes
+# Email Service
+from routes import email_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
