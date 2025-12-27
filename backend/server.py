@@ -219,6 +219,8 @@ api_router.include_router(payment_gateway_routes.router)
 api_router.include_router(gst_routes.router)
 # Aviation-Grade Pricing Engine
 api_router.include_router(pricing_engine_routes.router)
+# Email Service
+api_router.include_router(email_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
