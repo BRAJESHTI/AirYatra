@@ -254,6 +254,40 @@ async def create_inquiry_broadcast(
     
     logger.info(f"Broadcast {broadcast_id}: {notifications_sent} operators notified for inquiry {inquiry_id}")
     
+    # Send Email Notifications (async, non-blocking)
+    try:
+        email_service = get_email_service()
+        
+        # Prepare inquiry data for email
+        inquiry_email_data = {
+            "id": inquiry_id,
+            "customer_name": booking_data.get("customer_name", "Customer"),
+            "customer_email": booking_data.get("customer_email"),
+            "customer_phone": booking_data.get("customer_phone"),
+            "pickup_location": booking_data.get("from_location"),
+            "drop_location": booking_data.get("to_location"),
+            "departure_date": booking_data.get("departure_date"),
+            "pickup_time": booking_data.get("pickup_time"),
+            "total_passengers": booking_data.get("total_passengers", 1),
+            "udan_prakar": booking_data.get("udan_prakar"),
+            "booking_purpose": booking_data.get("booking_purpose"),
+            "distance_km": booking_data.get("distance_km", 0),
+            "estimated_price": booking_data.get("estimated_price", 0),
+            "status": "pending_acceptance"
+        }
+        
+        # Get operator emails
+        operators_with_email = [op for op in eligible_operators if op.get("email")]
+        
+        # Send emails (fire and forget pattern for performance)
+        email_results = await email_service.send_inquiry_emails(inquiry_email_data, operators_with_email)
+        
+        logger.info(f"Email notifications sent for inquiry {inquiry_id}: Customer={email_results.get('customer', {}).get('success')}, Operators={len(email_results.get('operators', []))}")
+        
+    except Exception as email_error:
+        logger.error(f"Failed to send email notifications for inquiry {inquiry_id}: {email_error}")
+        # Don't fail the broadcast if email fails
+    
     return {
         "status": "success",
         "broadcast_id": broadcast_id,
