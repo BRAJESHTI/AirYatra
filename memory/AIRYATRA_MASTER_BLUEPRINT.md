@@ -517,7 +517,741 @@
 ### D9: Complete HRMS - Human Resource Management System 👥
 **Priority**: P0 | **Status**: 🔵 PLANNED
 
+*(Detailed HRMS module with 8 sub-modules: Employee Management, Attendance, Payroll, Salary Slip, Expense, Reimbursement, Reports, Additional HR Features - Already documented above)*
+
+---
+
+## SECTION D-EXT: CRITICAL MISSING MODULES (15 New Modules)
+
+### D10: Customer Support & Ticketing System 🎫
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
 ```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CUSTOMER SUPPORT & TICKETING                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   TICKET MANAGEMENT                                                             │
+│   ═════════════════                                                             │
+│   • Create Ticket (Web, App, Email, WhatsApp, Call)                            │
+│   • Ticket Categories (Booking, Payment, Refund, Complaint, Query)             │
+│   • Priority Levels (Critical, High, Medium, Low)                              │
+│   • Auto-assignment to Support Agents                                          │
+│   • SLA Management (Response Time, Resolution Time)                            │
+│   • Escalation Rules                                                           │
+│   • Ticket History & Audit Trail                                               │
+│                                                                                 │
+│   SUPPORT CHANNELS                                                              │
+│   ════════════════                                                              │
+│   • 📞 Call Center Integration (IVR, Call Recording)                           │
+│   • 💬 Live Chat (Website & App)                                               │
+│   • 📧 Email Support                                                           │
+│   • 📱 WhatsApp Support                                                        │
+│   • 🤖 AI Chatbot (First Level)                                                │
+│                                                                                 │
+│   KNOWLEDGE BASE                                                                │
+│   ══════════════                                                                │
+│   • FAQs                                                                        │
+│   • How-to Guides                                                               │
+│   • Video Tutorials                                                             │
+│   • Troubleshooting Articles                                                    │
+│   • Search Functionality                                                        │
+│                                                                                 │
+│   REPORTS                                                                       │
+│   ═══════                                                                       │
+│   • Ticket Volume Report                                                        │
+│   • Resolution Time Report                                                      │
+│   • Agent Performance                                                           │
+│   • Customer Satisfaction (CSAT)                                                │
+│   • NPS Score Tracking                                                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D11: Vendor & Supplier Management 🏭
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    VENDOR & SUPPLIER MANAGEMENT                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   VENDOR CATEGORIES                                                             │
+│   ═════════════════                                                             │
+│   • Fuel Suppliers                                                              │
+│   • Spare Parts Vendors                                                         │
+│   • Maintenance Service Providers (MRO)                                         │
+│   • Ground Handling Agencies                                                    │
+│   • Catering Services                                                           │
+│   • Insurance Providers                                                         │
+│   • IT/Software Vendors                                                         │
+│   • Office Supplies                                                             │
+│   • Uniform Suppliers                                                           │
+│   • Training Providers                                                          │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Vendor Registration & Onboarding                                            │
+│   • Vendor KYC & Verification                                                   │
+│   • Vendor Rating & Performance                                                 │
+│   • Purchase Orders (PO)                                                        │
+│   • Goods Receipt Note (GRN)                                                    │
+│   • Vendor Invoices                                                             │
+│   • Payment Processing                                                          │
+│   • Vendor Ledger                                                               │
+│   • Contract Management                                                         │
+│   • AMC Tracking                                                                │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D12: Contract & Agreement Management 📝
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CONTRACT & AGREEMENT MANAGEMENT                              │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CONTRACT TYPES                                                                │
+│   ══════════════                                                                │
+│   • Operator Agreements                                                         │
+│   • Aircraft Management Contracts                                               │
+│   • Corporate Client Agreements                                                 │
+│   • Vendor Contracts                                                            │
+│   • Employment Contracts                                                        │
+│   • NDA (Non-Disclosure)                                                        │
+│   • SLA Agreements                                                              │
+│   • Partnership Agreements                                                      │
+│   • Franchise Agreements                                                        │
+│   • Insurance Contracts                                                         │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Contract Templates                                                          │
+│   • Digital Signature (eSign)                                                   │
+│   • Version Control                                                             │
+│   • Expiry Alerts                                                               │
+│   • Renewal Reminders                                                           │
+│   • Clause Library                                                              │
+│   • Approval Workflow                                                           │
+│   • Contract Repository                                                         │
+│   • Compliance Tracking                                                         │
+│   • Audit Trail                                                                 │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D13: Insurance Management (Comprehensive) 🛡️
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    COMPREHENSIVE INSURANCE MANAGEMENT                           │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   INSURANCE TYPES                                                               │
+│   ═══════════════                                                               │
+│   • Aircraft Hull Insurance                                                     │
+│   • Passenger Liability Insurance                                               │
+│   • Third Party Liability                                                       │
+│   • Crew Insurance                                                              │
+│   • War Risk Insurance                                                          │
+│   • Ground Risk Insurance                                                       │
+│   • Trip Insurance (Per Booking)                                                │
+│   • Cargo Insurance                                                             │
+│   • Hangar Insurance                                                            │
+│   • Medical Evacuation Insurance                                                │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Policy Management                                                           │
+│   • Premium Tracking                                                            │
+│   • Claim Filing                                                                │
+│   • Claim Status Tracking                                                       │
+│   • Policy Renewal Alerts                                                       │
+│   • Coverage Verification                                                       │
+│   • Insurance Partner Integration                                               │
+│   • Document Storage                                                            │
+│   • Instant Trip Insurance (Add-on at Booking)                                  │
+│   • Insurance Analytics                                                         │
+│                                                                                 │
+│   INSURANCE PARTNERS                                                            │
+│   ══════════════════                                                            │
+│   • ICICI Lombard                                                               │
+│   • HDFC Ergo                                                                   │
+│   • Bajaj Allianz                                                               │
+│   • New India Assurance                                                         │
+│   • Tata AIG                                                                    │
+│   • International Partners (for global ops)                                     │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D14: Flight Planning & Dispatch System ✈️
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    FLIGHT PLANNING & DISPATCH                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   PRE-FLIGHT PLANNING                                                           │
+│   ═══════════════════                                                           │
+│   • Route Planning (Primary + Alternate)                                        │
+│   • Weather Briefing (METAR, TAF, SIGMET)                                       │
+│   • NOTAM Check                                                                 │
+│   • Airspace Restrictions (TFR)                                                 │
+│   • Fuel Calculation                                                            │
+│   • Weight & Balance                                                            │
+│   • Performance Calculation                                                     │
+│   • Flight Plan Filing (ICAO Format)                                            │
+│   • ATC Slot Booking                                                            │
+│                                                                                 │
+│   DISPATCH FEATURES                                                             │
+│   ═════════════════                                                             │
+│   • Aircraft Assignment                                                         │
+│   • Crew Assignment                                                             │
+│   • Go/No-Go Decision Support                                                   │
+│   • Dispatch Release                                                            │
+│   • Flight Watch                                                                │
+│   • Position Monitoring                                                         │
+│   • ETA Updates                                                                 │
+│   • Diversion Management                                                        │
+│                                                                                 │
+│   DOCUMENTATION                                                                 │
+│   ═════════════                                                                 │
+│   • Flight Plan                                                                 │
+│   • Load Sheet                                                                  │
+│   • Weather Pack                                                                │
+│   • NOTAM Brief                                                                 │
+│   • Crew Brief Sheet                                                            │
+│   • Passenger Manifest                                                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D15: Passenger Management & Check-in 🎫
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    PASSENGER MANAGEMENT & CHECK-IN                              │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   PASSENGER DATA                                                                │
+│   ══════════════                                                                │
+│   • Passenger Profile                                                           │
+│   • ID Verification (Aadhaar, Passport, etc.)                                   │
+│   • Emergency Contact                                                           │
+│   • Medical Conditions / Special Needs                                          │
+│   • Frequent Flyer Status                                                       │
+│   • Travel History                                                              │
+│                                                                                 │
+│   CHECK-IN PROCESS                                                              │
+│   ════════════════                                                              │
+│   • Online Check-in (Web/App)                                                   │
+│   • Counter Check-in                                                            │
+│   • Self-service Kiosk                                                          │
+│   • Baggage Check-in                                                            │
+│   • Seat Selection                                                              │
+│   • Boarding Pass Generation                                                    │
+│   • QR Code Boarding Pass                                                       │
+│                                                                                 │
+│   PASSENGER MANIFEST                                                            │
+│   ══════════════════                                                            │
+│   • Auto-generated Manifest                                                     │
+│   • DGCA Compliant Format                                                       │
+│   • Weight Calculation                                                          │
+│   • Export to Authorities                                                       │
+│                                                                                 │
+│   VIP PROTOCOL                                                                  │
+│   ════════════                                                                  │
+│   • VVIP Handling                                                               │
+│   • Security Coordination                                                       │
+│   • Special Requests                                                            │
+│   • Privacy Mode                                                                │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D16: Pilot Scheduling & Duty Management 👨‍✈️
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    PILOT SCHEDULING & DUTY MANAGEMENT                           │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   DUTY MANAGEMENT                                                               │
+│   ═══════════════                                                               │
+│   • Duty Roster Creation                                                        │
+│   • Flight Duty Period (FDP) Tracking                                           │
+│   • Rest Period Compliance                                                      │
+│   • Fatigue Risk Management (FRMS)                                              │
+│   • DGCA CAR Compliance                                                         │
+│   • Cumulative Duty Hours (Daily/Weekly/Monthly/Yearly)                         │
+│                                                                                 │
+│   SCHEDULING                                                                    │
+│   ══════════                                                                    │
+│   • Auto Pilot Assignment                                                       │
+│   • Type Rating Check                                                           │
+│   • Medical Validity Check                                                      │
+│   • License Validity Check                                                      │
+│   • Recency Requirements                                                        │
+│   • Leave Management                                                            │
+│   • Swap Requests                                                               │
+│   • Standby Duty                                                                │
+│                                                                                 │
+│   COMPLIANCE ALERTS                                                             │
+│   ═════════════════                                                             │
+│   • License Expiry                                                              │
+│   • Medical Expiry                                                              │
+│   • Type Rating Expiry                                                          │
+│   • Duty Hour Limits                                                            │
+│   • Training Due                                                                │
+│                                                                                 │
+│   REPORTS                                                                       │
+│   ═══════                                                                       │
+│   • Pilot Utilization Report                                                    │
+│   • Duty Hours Report                                                           │
+│   • Flight Time Report                                                          │
+│   • Compliance Report                                                           │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D17: Safety Management System (SMS) 🛡️
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    AVIATION SAFETY MANAGEMENT SYSTEM                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   DGCA/ICAO COMPLIANT SMS                                                       │
+│   ═══════════════════════                                                       │
+│                                                                                 │
+│   1. SAFETY POLICY                                                              │
+│   ├── Management Commitment                                                    │
+│   ├── Safety Accountability                                                    │
+│   ├── Safety Officer Appointment                                               │
+│   └── Emergency Response Plan                                                  │
+│                                                                                 │
+│   2. SAFETY RISK MANAGEMENT                                                     │
+│   ├── Hazard Identification                                                    │
+│   ├── Risk Assessment (Probability × Severity)                                 │
+│   ├── Risk Mitigation                                                          │
+│   └── Risk Register                                                            │
+│                                                                                 │
+│   3. SAFETY ASSURANCE                                                           │
+│   ├── Safety Audits                                                            │
+│   ├── Safety Surveys                                                           │
+│   ├── Incident Investigation                                                   │
+│   └── Change Management                                                        │
+│                                                                                 │
+│   4. SAFETY PROMOTION                                                           │
+│   ├── Safety Training                                                          │
+│   ├── Safety Communication                                                     │
+│   └── Safety Culture Development                                               │
+│                                                                                 │
+│   REPORTING                                                                     │
+│   ═════════                                                                     │
+│   • Voluntary Safety Reports (VSR)                                              │
+│   • Mandatory Occurrence Reports (MOR)                                          │
+│   • Confidential Reporting                                                      │
+│   • Near-Miss Reports                                                           │
+│   • Bird Strike Reports                                                         │
+│   • Ground Incident Reports                                                     │
+│                                                                                 │
+│   INVESTIGATION                                                                 │
+│   ═════════════                                                                 │
+│   • Incident Classification                                                     │
+│   • Root Cause Analysis                                                         │
+│   • Corrective Actions                                                          │
+│   • Follow-up Tracking                                                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D18: Referral & Affiliate Program 🤝
+**Priority**: P1 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    REFERRAL & AFFILIATE PROGRAM                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CUSTOMER REFERRAL                                                             │
+│   ═════════════════                                                             │
+│   • Unique Referral Code per Customer                                           │
+│   • Referral Link Sharing (WhatsApp, Email, Social)                            │
+│   • Referral Bonus (Referrer + Referee)                                        │
+│   • Referral Tracking                                                           │
+│   • Referral Leaderboard                                                        │
+│   • Milestone Rewards                                                           │
+│                                                                                 │
+│   AFFILIATE PROGRAM                                                             │
+│   ═════════════════                                                             │
+│   • Travel Agent Affiliates                                                     │
+│   • Influencer Program                                                          │
+│   • Corporate Affiliates                                                        │
+│   • Commission Structure                                                        │
+│   • Affiliate Dashboard                                                         │
+│   • Payout Management                                                           │
+│                                                                                 │
+│   B2B PARTNER REFERRAL                                                          │
+│   ════════════════════                                                          │
+│   • Operator Referral                                                           │
+│   • Helipad Owner Referral                                                      │
+│   • Corporate Client Referral                                                   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D19: Charter Packages & Tour Packages 📦
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CHARTER & TOUR PACKAGES                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   PILGRIMAGE PACKAGES 🙏                                                        │
+│   ═════════════════════                                                         │
+│   • Char Dham Yatra (Kedarnath, Badrinath, Gangotri, Yamunotri)               │
+│   • Vaishno Devi                                                                │
+│   • Shirdi                                                                      │
+│   • Tirupati                                                                    │
+│   • Amarnath                                                                    │
+│   • Golden Temple                                                               │
+│   • Kailash Mansarovar                                                          │
+│                                                                                 │
+│   WEDDING & EVENT PACKAGES 💒                                                   │
+│   ═══════════════════════════                                                   │
+│   • Wedding Entry (Bride/Groom Arrival)                                         │
+│   • Destination Wedding Transport                                               │
+│   • VIP Guest Transport                                                         │
+│   • Aerial Photography                                                          │
+│                                                                                 │
+│   CORPORATE PACKAGES 🏢                                                         │
+│   ═════════════════════                                                         │
+│   • Executive Shuttle (Regular Routes)                                          │
+│   • Site Visits (Factory, Project)                                              │
+│   • Board Meeting Transport                                                     │
+│   • Employee Rewards Travel                                                     │
+│                                                                                 │
+│   TOURISM PACKAGES 🏔️                                                           │
+│   ═════════════════════                                                         │
+│   • Kashmir Valley Tour                                                         │
+│   • Ladakh Aerial Tour                                                          │
+│   • Kerala Backwaters                                                           │
+│   • Statue of Unity                                                             │
+│   • Goa Beach Hopping                                                           │
+│   • North-East Explorer                                                         │
+│                                                                                 │
+│   ADVENTURE PACKAGES 🎯                                                         │
+│   ═════════════════════                                                         │
+│   • Heli-Skiing                                                                 │
+│   • Mountain Peak Landing                                                       │
+│   • Aerial Safari                                                               │
+│   • Scenic Flights                                                              │
+│                                                                                 │
+│   MEDICAL PACKAGES 🏥                                                           │
+│   ═══════════════════                                                           │
+│   • Hospital Transfer                                                           │
+│   • Organ Transport                                                             │
+│   • Medical Tourism                                                             │
+│                                                                                 │
+│   PACKAGE FEATURES                                                              │
+│   ════════════════                                                              │
+│   • Fixed Price Packages                                                        │
+│   • All-inclusive Options                                                       │
+│   • Hotel + Flight Combo                                                        │
+│   • Ground Transport Included                                                   │
+│   • Meal Options                                                                │
+│   • Guide Services                                                              │
+│   • Customizable Packages                                                       │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D20: B2B Travel Agent Portal 🏪
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    B2B TRAVEL AGENT PORTAL                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   AGENT REGISTRATION                                                            │
+│   ══════════════════                                                            │
+│   • Agency Profile                                                              │
+│   • IATA/TAFI Verification                                                      │
+│   • GST Registration                                                            │
+│   • Bank Details                                                                │
+│   • Credit Limit Assignment                                                     │
+│                                                                                 │
+│   BOOKING FEATURES                                                              │
+│   ════════════════                                                              │
+│   • Search & Book for Clients                                                   │
+│   • Markup Management                                                           │
+│   • Group Bookings                                                              │
+│   • Hold Bookings                                                               │
+│   • Modify/Cancel                                                               │
+│   • Instant Confirmation                                                        │
+│                                                                                 │
+│   FINANCIAL                                                                     │
+│   ══════════                                                                    │
+│   • Credit Balance                                                              │
+│   • Prepaid Wallet                                                              │
+│   • Commission Structure                                                        │
+│   • Invoice Generation                                                          │
+│   • Statement of Account                                                        │
+│   • Payment Gateway                                                             │
+│                                                                                 │
+│   REPORTS                                                                       │
+│   ═══════                                                                       │
+│   • Booking Reports                                                             │
+│   • Commission Reports                                                          │
+│   • Client Reports                                                              │
+│   • Revenue Reports                                                             │
+│                                                                                 │
+│   AGENT TIERS                                                                   │
+│   ═══════════                                                                   │
+│   • Bronze (New Agents)                                                         │
+│   • Silver (Regular)                                                            │
+│   • Gold (High Volume)                                                          │
+│   • Platinum (Premium Partners)                                                 │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D21: Government & VVIP Booking Module 🏛️
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    GOVERNMENT & VVIP BOOKING MODULE                             │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   GOVERNMENT BOOKINGS                                                           │
+│   ═══════════════════                                                           │
+│   • State Government Officials                                                  │
+│   • Central Government Officials                                                │
+│   • Defense Personnel                                                           │
+│   • Police/Paramilitary                                                         │
+│   • Election Commission                                                         │
+│   • Disaster Management                                                         │
+│                                                                                 │
+│   VVIP PROTOCOL                                                                 │
+│   ═════════════                                                                 │
+│   • Z+ Security Coordination                                                    │
+│   • SPG Protocol                                                                │
+│   • Advance Security Recce                                                      │
+│   • Route Security                                                              │
+│   • Decoy Arrangements                                                          │
+│   • Communication Security                                                      │
+│                                                                                 │
+│   SPECIAL FEATURES                                                              │
+│   ════════════════                                                              │
+│   • Confidential Bookings                                                       │
+│   • Last-minute Changes                                                         │
+│   • Multi-aircraft Coordination                                                 │
+│   • Ground Arrangements                                                         │
+│   • Helipad Security Clearance                                                  │
+│   • Documentation (No public record)                                            │
+│                                                                                 │
+│   BILLING                                                                       │
+│   ═══════                                                                       │
+│   • Government Rate Cards                                                       │
+│   • Credit Terms (Govt Departments)                                             │
+│   • GST Exemption Handling                                                      │
+│   • Tender/Contract Billing                                                     │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D22: Quotation Management System 📋
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    QUOTATION MANAGEMENT SYSTEM                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   QUOTATION CREATION                                                            │
+│   ══════════════════                                                            │
+│   • Quick Quote (Instant)                                                       │
+│   • Detailed Quote (Custom)                                                     │
+│   • Multi-option Quote                                                          │
+│   • Package Quote                                                               │
+│   • Corporate Quote                                                             │
+│                                                                                 │
+│   QUOTE COMPONENTS                                                              │
+│   ════════════════                                                              │
+│   • Base Charter Cost                                                           │
+│   • Landing Charges                                                             │
+│   • Parking Charges                                                             │
+│   • Night Halt                                                                  │
+│   • Crew Allowances                                                             │
+│   • Fuel Surcharge                                                              │
+│   • Taxes (GST)                                                                 │
+│   • Insurance                                                                   │
+│   • Ground Transport                                                            │
+│   • Add-ons                                                                     │
+│                                                                                 │
+│   WORKFLOW                                                                      │
+│   ════════                                                                      │
+│   Request → Create → Approve → Send → Follow-up → Convert/Expire               │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Quote Templates                                                             │
+│   • Auto Price Calculation                                                      │
+│   • Validity Period                                                             │
+│   • PDF Generation                                                              │
+│   • Email/WhatsApp Send                                                         │
+│   • Quote Comparison                                                            │
+│   • Negotiation History                                                         │
+│   • Convert to Booking                                                          │
+│   • Quote Analytics                                                             │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D23: Notification & Alert Center 🔔
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    NOTIFICATION & ALERT CENTER                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   NOTIFICATION CHANNELS                                                         │
+│   ═════════════════════                                                         │
+│   • 📱 Push Notifications (Mobile App)                                         │
+│   • 🔔 In-App Notifications                                                    │
+│   • 📧 Email Notifications                                                     │
+│   • 📲 SMS Gateway                                                             │
+│   • 💬 WhatsApp Notifications                                                  │
+│   • 📞 Voice Calls (Critical Alerts)                                           │
+│                                                                                 │
+│   NOTIFICATION TYPES                                                            │
+│   ══════════════════                                                            │
+│   • Booking Confirmations                                                       │
+│   • Payment Alerts                                                              │
+│   • Flight Status Updates                                                       │
+│   • Departure Reminders                                                         │
+│   • Weather Alerts                                                              │
+│   • Document Expiry Alerts                                                      │
+│   • Promotional Notifications                                                   │
+│   • System Alerts                                                               │
+│                                                                                 │
+│   USER PREFERENCES                                                              │
+│   ════════════════                                                              │
+│   • Channel Preferences                                                         │
+│   • Frequency Settings                                                          │
+│   • DND Hours                                                                   │
+│   • Language Preference                                                         │
+│                                                                                 │
+│   ADMIN FEATURES                                                                │
+│   ══════════════                                                                │
+│   • Broadcast Messages                                                          │
+│   • Scheduled Notifications                                                     │
+│   • Template Management                                                         │
+│   • Delivery Reports                                                            │
+│   • Analytics                                                                   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D24: Mobile App Features Module 📱
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    MOBILE APP FEATURES                                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CUSTOMER APP                                                                  │
+│   ════════════                                                                  │
+│   • Search & Book                                                               │
+│   • Live Flight Tracking                                                        │
+│   • Digital Boarding Pass                                                       │
+│   • In-app Chat Support                                                         │
+│   • Push Notifications                                                          │
+│   • Saved Places                                                                │
+│   • Favorite Routes                                                             │
+│   • Payment Wallet                                                              │
+│   • Loyalty Points                                                              │
+│   • Offline Mode (Boarding Pass, Itinerary)                                     │
+│                                                                                 │
+│   OPERATOR APP                                                                  │
+│   ════════════                                                                  │
+│   • Booking Alerts                                                              │
+│   • Accept/Reject Bookings                                                      │
+│   • Fleet Status                                                                │
+│   • Pilot Assignment                                                            │
+│   • Document Upload                                                             │
+│   • Earnings Dashboard                                                          │
+│                                                                                 │
+│   PILOT APP                                                                     │
+│   ═════════                                                                     │
+│   • Flight Schedule                                                             │
+│   • Weather Briefing                                                            │
+│   • Route Information                                                           │
+│   • Digital Logbook                                                             │
+│   • Duty Hours Tracking                                                         │
+│   • Document Submission                                                         │
+│                                                                                 │
+│   CREW APP                                                                      │
+│   ════════                                                                      │
+│   • Roster View                                                                 │
+│   • Leave Requests                                                              │
+│   • Training Schedule                                                           │
+│   • Expense Submission                                                          │
+│                                                                                 │
+│   COMMON FEATURES                                                               │
+│   ═══════════════                                                               │
+│   • Biometric Login                                                             │
+│   • Dark Mode                                                                   │
+│   • Multi-language                                                              │
+│   • Offline Sync                                                                │
+│   • App Tour / Onboarding                                                       │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                         AIRYATRA HRMS                                           │
 │            Complete Human Resource Management System                            │
@@ -1638,21 +2372,24 @@
 | A: Foundation | 15 | ✅ DONE |
 | B: Premium Services | 5 | 🔵 PLANNED |
 | C: Aviation Marketplace | 6 | ⚪ BACKLOG |
-| D: AirYatra OS ERP | **9** | ⚪ BACKLOG |
+| D: AirYatra OS ERP | 9 | ⚪ BACKLOG |
+| **D-EXT: Critical Missing** | **15** | 🔵 **NEW** |
 | E: AI Intelligence | 6 | ⚪ BACKLOG |
 | F: Specialized Services | 5 | ⚪ BACKLOG |
 | G: Operations & Command | 3 | ⚪ BACKLOG |
 | H: Platform & Ecosystem | 5 | ⚪ BACKLOG |
 | I: Marketplace+ | 3 | ⚪ BACKLOG |
 | J: Future Mobility | 2 | ⚪ BACKLOG |
-| **K: Internationalization** | **3** | 🔵 **PLANNED** |
+| K: Internationalization | 3 | 🔵 PLANNED |
 | L: Integrations (Final) | 2 | 🔴 DEFERRED |
-| **TOTAL** | **64 Modules** | |
+| **TOTAL** | **79 Modules** | |
 
-*Plus 15 AI sub-modules in Master AI Layer = 79+ total components*
-*Plus 25+ Languages in Multi-Language Engine*
-*Plus 50+ Countries in Global Expansion*
-*Plus 8 HRMS Sub-modules (Payroll, Attendance, Expense, Reimbursement, Reports, etc.)*
+*Plus 15 AI sub-modules = 94+ components*
+*Plus 8 HRMS sub-modules*
+*Plus 25+ Languages*
+*Plus 50+ Countries*
+
+**GRAND TOTAL: 100+ Components**
 
 ---
 
