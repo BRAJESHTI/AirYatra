@@ -1252,6 +1252,429 @@
 ```
 
 ---
+
+### D25: Audit & Compliance Module 📋
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    AUDIT & COMPLIANCE MODULE                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   INTERNAL AUDIT                                                                │
+│   ══════════════                                                                │
+│   • Audit Planning & Scheduling                                                 │
+│   • Audit Checklist Templates                                                   │
+│   • Audit Execution & Documentation                                             │
+│   • Finding Classification (Critical/Major/Minor/Observation)                   │
+│   • Corrective Action Plans (CAP)                                               │
+│   • CAP Follow-up & Closure                                                     │
+│   • Audit Reports                                                               │
+│                                                                                 │
+│   EXTERNAL AUDIT                                                                │
+│   ══════════════                                                                │
+│   • DGCA Audit Preparation                                                      │
+│   • ISO Audit Management                                                        │
+│   • Insurance Audit                                                             │
+│   • Financial Audit Support                                                     │
+│   • Third-party Audit Tracking                                                  │
+│                                                                                 │
+│   COMPLIANCE MANAGEMENT                                                         │
+│   ═════════════════════                                                         │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  REGULATORY COMPLIANCE                                      │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • DGCA (India)           • GCAA (UAE)                     │              │
+│   │  • CAAS (Singapore)       • GACA (Saudi)                   │              │
+│   │  • ICAO Standards         • Country-specific Regulations   │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  FINANCIAL COMPLIANCE                                       │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • GST Compliance         • TDS Compliance                 │              │
+│   │  • FEMA Compliance        • RBI Guidelines                 │              │
+│   │  • Anti-Money Laundering  • FATF Compliance                │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  DATA & PRIVACY COMPLIANCE                                  │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • DPDP Act (India)       • GDPR (Europe)                  │              │
+│   │  • PDPA (Singapore)       • Data Localization              │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  OPERATIONAL COMPLIANCE                                     │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • AOC Requirements       • Operations Manual              │              │
+│   │  • MEL Compliance         • Weight & Balance               │              │
+│   │  • Crew Licensing         • Training Requirements          │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   COMPLIANCE DASHBOARD                                                          │
+│   ════════════════════                                                          │
+│   • Compliance Score (Overall & Category-wise)                                  │
+│   • Upcoming Deadlines                                                          │
+│   • Overdue Items                                                               │
+│   • Trend Analysis                                                              │
+│   • Risk Heat Map                                                               │
+│                                                                                 │
+│   AUDIT TRAIL                                                                   │
+│   ═══════════                                                                   │
+│   • All System Activities Logged                                                │
+│   • User Actions Tracking                                                       │
+│   • Data Change History                                                         │
+│   • Access Logs                                                                 │
+│   • Report Generation                                                           │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D26: Cargo & Freight Module 📦
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CARGO & FREIGHT MODULE                                       │
+│                  "Helicopter Cargo Services"                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CARGO TYPES                                                                   │
+│   ═══════════                                                                   │
+│   • 📦 General Cargo                                                           │
+│   • 🏥 Medical Supplies & Organs                                               │
+│   • 💎 High-Value Cargo (Jewelry, Cash, Documents)                             │
+│   • ⚠️ Dangerous Goods (DG) - IATA Compliant                                   │
+│   • 🥶 Temperature-Controlled (Perishables, Pharma)                            │
+│   • 🔧 Industrial Equipment                                                    │
+│   • 🛢️ Oil & Gas Supplies (Offshore)                                           │
+│   • 🆘 Emergency Relief Materials                                              │
+│   • 📰 Time-Critical Documents                                                 │
+│                                                                                 │
+│   CARGO BOOKING                                                                 │
+│   ═════════════                                                                 │
+│   • Weight & Dimensions Input                                                   │
+│   • Cargo Type Selection                                                        │
+│   • Special Handling Requirements                                               │
+│   • Pickup & Delivery Points                                                    │
+│   • Instant Quote                                                               │
+│   • Booking Confirmation                                                        │
+│                                                                                 │
+│   CARGO OPERATIONS                                                              │
+│   ════════════════                                                              │
+│   • Air Waybill (AWB) Generation                                                │
+│   • Cargo Manifest                                                              │
+│   • Weight & Balance Calculation                                                │
+│   • Loading Instructions                                                        │
+│   • Cargo Tracking (Real-time)                                                  │
+│   • Proof of Delivery (POD)                                                     │
+│   • Chain of Custody                                                            │
+│                                                                                 │
+│   SPECIAL SERVICES                                                              │
+│   ════════════════                                                              │
+│   • Door-to-Door Delivery                                                       │
+│   • Same-Day Delivery                                                           │
+│   • Express/Priority Cargo                                                      │
+│   • Sling Load Operations                                                       │
+│   • Underslung Cargo                                                            │
+│   • Long Line Operations                                                        │
+│                                                                                 │
+│   COMPLIANCE                                                                    │
+│   ══════════                                                                    │
+│   • DGCA Cargo Regulations                                                      │
+│   • IATA Dangerous Goods (DGR)                                                  │
+│   • Security Screening                                                          │
+│   • Customs Documentation                                                       │
+│   • Insurance Requirements                                                      │
+│                                                                                 │
+│   PRICING                                                                       │
+│   ═══════                                                                       │
+│   • Per Kg Rate                                                                 │
+│   • Minimum Charge                                                              │
+│   • Special Handling Surcharge                                                  │
+│   • DG Surcharge                                                                │
+│   • Temperature-Control Premium                                                 │
+│   • Express Premium                                                             │
+│                                                                                 │
+│   REPORTS                                                                       │
+│   ═══════                                                                       │
+│   • Cargo Volume Report                                                         │
+│   • Revenue per Route                                                           │
+│   • Cargo Type Analysis                                                         │
+│   • Customer Cargo History                                                      │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D27: Ground Handling Services 🛬
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    GROUND HANDLING SERVICES                                     │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   GROUND HANDLING SERVICES                                                      │
+│   ════════════════════════                                                      │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  PASSENGER SERVICES                                         │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • Meet & Greet                                            │              │
+│   │  • VIP/CIP Lounge Coordination                             │              │
+│   │  • Wheelchair Assistance                                   │              │
+│   │  • Unaccompanied Minor (UM) Handling                       │              │
+│   │  • Special Assistance (Elderly, Medical)                   │              │
+│   │  • Baggage Handling                                        │              │
+│   │  • Lost Baggage Assistance                                 │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  RAMP SERVICES                                              │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • Aircraft Marshalling                                    │              │
+│   │  • Chocking & Unchocking                                   │              │
+│   │  • GPU (Ground Power Unit)                                 │              │
+│   │  • Air Start Unit                                          │              │
+│   │  • Towing (if applicable)                                  │              │
+│   │  • Pushback                                                │              │
+│   │  • Helipad Preparation                                     │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  FUELING SERVICES                                           │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • Fuel Ordering                                           │              │
+│   │  • Fuel Delivery Coordination                              │              │
+│   │  • Fuel Quality Check                                      │              │
+│   │  • Defueling (if required)                                 │              │
+│   │  • Fuel Documentation                                      │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  AIRCRAFT SERVICES                                          │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • Aircraft Cleaning (Interior/Exterior)                   │              │
+│   │  • Toilet Service                                          │              │
+│   │  • Water Service                                           │              │
+│   │  • De-icing (if applicable)                                │              │
+│   │  • Aircraft Security                                       │              │
+│   │  • Overnight Parking                                       │              │
+│   │  • Hangar Arrangement                                      │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  CARGO GROUND HANDLING                                      │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  • Cargo Loading/Unloading                                 │              │
+│   │  • ULD Handling                                            │              │
+│   │  • Dangerous Goods Handling                                │              │
+│   │  • Cold Chain Handling                                     │              │
+│   │  • Cargo Security Screening                                │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   GROUND HANDLING PARTNERS                                                      │
+│   ════════════════════════                                                      │
+│   • Airport Ground Handlers                                                     │
+│   • Private Helipad Handlers                                                    │
+│   • Third-party Service Providers                                               │
+│   • In-house Ground Crew                                                        │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Service Request via App/Web                                                 │
+│   • Real-time Service Status                                                    │
+│   • Service Completion Confirmation                                             │
+│   • Quality Feedback                                                            │
+│   • Billing Integration                                                         │
+│   • SLA Monitoring                                                              │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D28: Catering Management 🍽️
+**Priority**: P1 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CATERING MANAGEMENT                                          │
+│                  "In-Flight Catering Services"                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CATERING OPTIONS                                                              │
+│   ════════════════                                                              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  MEAL TYPES                                                 │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  🍽️ Standard Meals                                          │              │
+│   │  🥗 Vegetarian / Vegan                                      │              │
+│   │  🍖 Non-Vegetarian                                          │              │
+│   │  🕌 Halal                                                   │              │
+│   │  ✡️ Kosher                                                   │              │
+│   │  🍎 Diabetic / Low Sugar                                    │              │
+│   │  🥜 Allergy-specific (Nut-free, Gluten-free)               │              │
+│   │  👶 Child Meals                                             │              │
+│   │  🍼 Baby Food                                               │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────┐              │
+│   │  SERVICE LEVELS                                             │              │
+│   ├─────────────────────────────────────────────────────────────┤              │
+│   │  ☕ Basic: Snacks & Beverages                               │              │
+│   │  🥪 Standard: Light Meals                                   │              │
+│   │  🍱 Premium: Full Course Meals                              │              │
+│   │  🥂 Luxury: Gourmet with Champagne                         │              │
+│   │  👨‍🍳 Custom: Chef-prepared Special Requests                 │              │
+│   └─────────────────────────────────────────────────────────────┘              │
+│                                                                                 │
+│   BEVERAGES                                                                     │
+│   ══════════                                                                    │
+│   • Soft Drinks                                                                 │
+│   • Juices                                                                      │
+│   • Tea / Coffee                                                                │
+│   • Mineral Water                                                               │
+│   • Alcoholic Beverages (where permitted)                                       │
+│   • Premium Champagne / Wine                                                    │
+│                                                                                 │
+│   CATERING WORKFLOW                                                             │
+│   ═════════════════                                                             │
+│   Order → Confirm Menu → Prepare → Quality Check → Deliver → Load → Serve      │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Pre-flight Catering Order                                                   │
+│   • Menu Selection (at Booking)                                                 │
+│   • Dietary Preferences Storage                                                 │
+│   • Catering Partner Integration                                                │
+│   • Quality Standards (FSSAI Compliant)                                         │
+│   • Temperature Monitoring                                                      │
+│   • Packaging Standards                                                         │
+│   • Delivery Time SLA                                                           │
+│                                                                                 │
+│   CATERING PARTNERS                                                             │
+│   ══════════════════                                                            │
+│   • Taj SATS                                                                    │
+│   • Oberoi Flight Services                                                      │
+│   • Sky Gourmet                                                                 │
+│   • Local Premium Caterers                                                      │
+│   • Hotel Partners                                                              │
+│                                                                                 │
+│   PRICING                                                                       │
+│   ═══════                                                                       │
+│   • Per Person Rate                                                             │
+│   • Package Pricing                                                             │
+│   • À la carte Options                                                          │
+│   • Premium Surcharge                                                           │
+│                                                                                 │
+│   VIP CATERING                                                                  │
+│   ════════════                                                                  │
+│   • Personal Chef Services                                                      │
+│   • Custom Menu Design                                                          │
+│   • Luxury Tableware                                                            │
+│   • Special Occasion Setups (Birthday, Anniversary)                             │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### D29: Lost & Found Management 🔍
+**Priority**: P1 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    LOST & FOUND MANAGEMENT                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   LOST ITEM CATEGORIES                                                          │
+│   ════════════════════                                                          │
+│   • 👜 Baggage / Luggage                                                       │
+│   • 📱 Electronics (Phone, Laptop, Tablet)                                     │
+│   • 💼 Documents (Passport, ID, Wallet)                                        │
+│   • 💍 Jewelry & Valuables                                                     │
+│   • 👓 Personal Items (Glasses, Watch)                                         │
+│   • 🧥 Clothing & Accessories                                                  │
+│   • 🎒 Bags & Backpacks                                                        │
+│   • 📦 Cargo Items                                                             │
+│                                                                                 │
+│   LOST ITEM REPORTING                                                           │
+│   ═══════════════════                                                           │
+│   • Report via App/Web/Call                                                     │
+│   • Flight Details                                                              │
+│   • Item Description                                                            │
+│   • Photo Upload (if available)                                                 │
+│   • Last Seen Location                                                          │
+│   • Estimated Value                                                             │
+│   • Contact Preference                                                          │
+│                                                                                 │
+│   FOUND ITEM REGISTRATION                                                       │
+│   ═══════════════════════                                                       │
+│   • Location Found (Aircraft, Helipad, Office)                                  │
+│   • Item Description & Photo                                                    │
+│   • Finder Details                                                              │
+│   • Storage Location                                                            │
+│   • Item Condition                                                              │
+│                                                                                 │
+│   MATCHING & RECOVERY                                                           │
+│   ═══════════════════                                                           │
+│   • Auto-matching Algorithm                                                     │
+│   • Verification Process (ID Proof)                                             │
+│   • Ownership Confirmation                                                      │
+│   • Delivery Options:                                                           │
+│     - Self Pickup                                                               │
+│     - Courier Delivery                                                          │
+│     - Next Flight Delivery                                                      │
+│                                                                                 │
+│   WORKFLOW                                                                      │
+│   ════════                                                                      │
+│   Report Lost → Search Database → Match Found → Verify Owner → Return Item     │
+│                                                                                 │
+│   FEATURES                                                                      │
+│   ════════                                                                      │
+│   • Unique Tracking ID                                                          │
+│   • Status Updates (SMS/Email/App)                                              │
+│   • Search History                                                              │
+│   • Claim Deadline (90 days)                                                    │
+│   • Unclaimed Item Disposal Policy                                              │
+│   • Insurance Claim Support                                                     │
+│                                                                                 │
+│   BAGGAGE TRACKING                                                              │
+│   ════════════════                                                              │
+│   • Baggage Tag Generation                                                      │
+│   • Baggage Weight Recording                                                    │
+│   • Loading Confirmation                                                        │
+│   • Unloading Confirmation                                                      │
+│   • Delivery to Passenger                                                       │
+│   • Delayed Baggage Handling                                                    │
+│   • Damaged Baggage Claims                                                      │
+│                                                                                 │
+│   REPORTS                                                                       │
+│   ═══════                                                                       │
+│   • Lost Item Statistics                                                        │
+│   • Recovery Rate                                                               │
+│   • Average Recovery Time                                                       │
+│   • Item Category Analysis                                                      │
+│   • Location-wise Analysis                                                      │
+│                                                                                 │
+│   COMPENSATION                                                                  │
+│   ════════════                                                                  │
+│   • Baggage Delay Compensation                                                  │
+│   • Lost Baggage Compensation                                                   │
+│   • Damaged Item Compensation                                                   │
+│   • Insurance Claim Processing                                                  │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                         AIRYATRA HRMS                                           │
 │            Complete Human Resource Management System                            │
@@ -2373,7 +2796,7 @@
 | B: Premium Services | 5 | 🔵 PLANNED |
 | C: Aviation Marketplace | 6 | ⚪ BACKLOG |
 | D: AirYatra OS ERP | 9 | ⚪ BACKLOG |
-| **D-EXT: Critical Missing** | **15** | 🔵 **NEW** |
+| **D-EXT: Critical Modules** | **20** | 🔵 **PLANNED** |
 | E: AI Intelligence | 6 | ⚪ BACKLOG |
 | F: Specialized Services | 5 | ⚪ BACKLOG |
 | G: Operations & Command | 3 | ⚪ BACKLOG |
@@ -2382,14 +2805,14 @@
 | J: Future Mobility | 2 | ⚪ BACKLOG |
 | K: Internationalization | 3 | 🔵 PLANNED |
 | L: Integrations (Final) | 2 | 🔴 DEFERRED |
-| **TOTAL** | **79 Modules** | |
+| **TOTAL** | **84 Modules** | |
 
-*Plus 15 AI sub-modules = 94+ components*
-*Plus 8 HRMS sub-modules*
+*Plus 15 AI sub-modules = 99 components*
+*Plus 8 HRMS sub-modules = 107 components*
 *Plus 25+ Languages*
 *Plus 50+ Countries*
 
-**GRAND TOTAL: 100+ Components**
+**GRAND TOTAL: 107+ Components**
 
 ---
 
