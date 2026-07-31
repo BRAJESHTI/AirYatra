@@ -403,7 +403,7 @@ POST /api/payments/tds/calculate (body: {"amount": 100000, "tds_section": "194C"
 
 ### Scenario 2: Webhook Lead Capture (for integration)
 ```bash
-curl -X POST "https://heli-notifications.preview.emergentagent.com/api/crm/leads/webhook/facebook" \
+curl -X POST "https://corporate-console.preview.emergentagent.com/api/crm/leads/webhook/facebook" \
   -H "Content-Type: application/json" \
   -d '{"name": "Customer Name", "phone": "+91XXXXXXXXXX", "requirements": "Need helicopter"}'
 ```

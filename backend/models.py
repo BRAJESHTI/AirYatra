@@ -389,3 +389,357 @@ class VillageLandingPermission(BaseModel):
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+
+
+
+# ============================================================
+# PHASE 1: PREMIUM SERVICES MODELS
+# ============================================================
+
+# ============ MEMBERSHIP MODELS ============
+
+class MembershipTier(str, Enum):
+    SILVER = "silver"
+    GOLD = "gold"
+    PLATINUM = "platinum"
+    BLACK = "black"
+
+class MembershipStatus(str, Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    SUSPENDED = "suspended"
+    PENDING = "pending"
+
+# Tier Benefits Configuration
+TIER_BENEFITS = {
+    "silver": {
+        "name": "Silver",
+        "annual_fee": 25000,
+        "discount_percent": 5,
+        "priority_booking": False,
+        "dedicated_pilot": False,
+        "lounge_access": False,
+        "concierge_24x7": False,
+        "free_cancellation": False,
+        "loyalty_multiplier": 1.25,
+        "upgrade_available": True,
+        "max_guests": 2,
+        "benefits": [
+            "5% discount on all bookings",
+            "Priority customer support",
+            "Exclusive member newsletter",
+            "Birthday special offers",
+            "1.25x loyalty points"
+        ]
+    },
+    "gold": {
+        "name": "Gold",
+        "annual_fee": 75000,
+        "discount_percent": 10,
+        "priority_booking": True,
+        "dedicated_pilot": False,
+        "lounge_access": True,
+        "concierge_24x7": False,
+        "free_cancellation": False,
+        "loyalty_multiplier": 1.5,
+        "upgrade_available": True,
+        "max_guests": 4,
+        "benefits": [
+            "10% discount on all bookings",
+            "Priority booking queue",
+            "VIP lounge access at partner helipads",
+            "Complimentary refreshments",
+            "1.5x loyalty points",
+            "Free date changes (48hrs notice)",
+            "Dedicated relationship manager"
+        ]
+    },
+    "platinum": {
+        "name": "Platinum",
+        "annual_fee": 200000,
+        "discount_percent": 15,
+        "priority_booking": True,
+        "dedicated_pilot": True,
+        "lounge_access": True,
+        "concierge_24x7": True,
+        "free_cancellation": True,
+        "loyalty_multiplier": 2.0,
+        "upgrade_available": True,
+        "max_guests": 6,
+        "benefits": [
+            "15% discount on all bookings",
+            "Zero-wait priority booking",
+            "Dedicated pilot on request",
+            "Premium VIP lounge access",
+            "24x7 concierge service",
+            "Free cancellation anytime",
+            "2x loyalty points",
+            "Complimentary airport transfers",
+            "Partner hotel upgrades"
+        ]
+    },
+    "black": {
+        "name": "BLACK",
+        "annual_fee": 500000,
+        "discount_percent": 20,
+        "priority_booking": True,
+        "dedicated_pilot": True,
+        "lounge_access": True,
+        "concierge_24x7": True,
+        "free_cancellation": True,
+        "loyalty_multiplier": 3.0,
+        "upgrade_available": False,
+        "max_guests": 10,
+        "benefits": [
+            "20% discount on all bookings",
+            "Guaranteed aircraft availability",
+            "Personal dedicated pilot",
+            "Exclusive BLACK lounge access",
+            "24x7 personal travel planner",
+            "Zero cancellation fees",
+            "3x loyalty points",
+            "Luxury car service included",
+            "5-star hotel suite upgrades",
+            "Priority medical evacuation",
+            "Family membership (up to 10 guests)",
+            "Invitation to exclusive events",
+            "Annual complimentary charter"
+        ]
+    }
+}
+
+class MembershipCreate(BaseModel):
+    user_id: str
+    tier: MembershipTier
+    payment_method: str = "online"
+    auto_renew: bool = True
+
+class MembershipUpdate(BaseModel):
+    tier: Optional[MembershipTier] = None
+    auto_renew: Optional[bool] = None
+    status: Optional[MembershipStatus] = None
+
+class MembershipUpgrade(BaseModel):
+    new_tier: MembershipTier
+    payment_method: str = "online"
+
+class MemberBenefitUsage(BaseModel):
+    membership_id: str
+    benefit_type: str
+    booking_id: Optional[str] = None
+    used_at: datetime = Field(default_factory=datetime.utcnow)
+    value: float = 0
+
+# ============ CORPORATE MODELS ============
+
+class CorporateStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    SUSPENDED = "suspended"
+    REJECTED = "rejected"
+
+class EmployeeRole(str, Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    APPROVER = "approver"
+    BOOKER = "booker"
+    TRAVELER = "traveler"
+
+class CorporateApprovalStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    AUTO_APPROVED = "auto_approved"
+
+class BudgetPeriod(str, Enum):
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
+
+class CorporateCreate(BaseModel):
+    company_name: str
+    registration_number: str
+    gst_number: str
+    industry: str
+    company_size: str
+    address: str
+    city: str
+    state: str
+    pincode: str
+    primary_contact_name: str
+    primary_contact_email: EmailStr
+    primary_contact_phone: str
+    admin_email: EmailStr
+    admin_name: str
+    billing_address: Optional[str] = None
+    credit_limit_requested: float = 0
+
+class CorporateUpdate(BaseModel):
+    company_name: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    primary_contact_name: Optional[str] = None
+    primary_contact_email: Optional[EmailStr] = None
+    primary_contact_phone: Optional[str] = None
+    billing_address: Optional[str] = None
+    status: Optional[CorporateStatus] = None
+
+class EmployeeCreate(BaseModel):
+    corporate_id: str
+    name: str
+    email: EmailStr
+    phone: str
+    department: str
+    designation: str
+    role: EmployeeRole
+    travel_budget: float = 0
+    can_book_for_others: bool = False
+    requires_approval: bool = True
+    approval_limit: float = 50000
+
+class EmployeeUpdate(BaseModel):
+    name: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    role: Optional[EmployeeRole] = None
+    travel_budget: Optional[float] = None
+    can_book_for_others: Optional[bool] = None
+    requires_approval: Optional[bool] = None
+    approval_limit: Optional[float] = None
+    is_active: Optional[bool] = None
+
+class DepartmentBudget(BaseModel):
+    corporate_id: str
+    department: str
+    budget_amount: float
+    period: BudgetPeriod
+    start_date: datetime
+    alert_threshold: float = 80
+
+class BookingApprovalCreate(BaseModel):
+    corporate_id: str
+    booking_id: str
+    employee_id: str
+    amount: float
+    purpose: str
+    urgency: str = "normal"
+
+class ApprovalAction(BaseModel):
+    approval_id: str
+    action: str
+    comments: Optional[str] = None
+
+class TravelPolicy(BaseModel):
+    corporate_id: str
+    max_booking_amount: float = 500000
+    advance_booking_days: int = 7
+    requires_purpose: bool = True
+    allowed_aircraft_types: List[str] = []
+    blackout_dates: List[str] = []
+    auto_approve_below: float = 25000
+    weekend_booking_allowed: bool = True
+    international_allowed: bool = False
+
+# ============ DOCUMENT VAULT MODELS ============
+
+class DocumentCategory(str, Enum):
+    DGCA = "dgca"
+    INSURANCE = "insurance"
+    AIRCRAFT = "aircraft"
+    PILOT = "pilot"
+    OPERATOR = "operator"
+    CORPORATE = "corporate"
+    PERSONAL = "personal"
+    CONTRACT = "contract"
+    INVOICE = "invoice"
+    OTHER = "other"
+
+class DocumentVaultStatus(str, Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    EXPIRING_SOON = "expiring_soon"
+    ARCHIVED = "archived"
+    PENDING_VERIFICATION = "pending_verification"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+
+class SharePermission(str, Enum):
+    VIEW = "view"
+    DOWNLOAD = "download"
+    EDIT = "edit"
+
+class VaultDocumentType(str, Enum):
+    AOC = "aoc"
+    PPC = "ppc"
+    MEDICAL = "medical"
+    LICENSE = "license"
+    TYPE_RATING = "type_rating"
+    HULL_INSURANCE = "hull_insurance"
+    LIABILITY_INSURANCE = "liability_insurance"
+    PASSENGER_INSURANCE = "passenger_insurance"
+    REGISTRATION = "registration"
+    AIRWORTHINESS = "airworthiness"
+    MAINTENANCE_RECORD = "maintenance_record"
+    GST_CERTIFICATE = "gst_certificate"
+    PAN_CARD = "pan_card"
+    COMPANY_REGISTRATION = "company_registration"
+    AADHAAR = "aadhaar"
+    PASSPORT = "passport"
+    VOTER_ID = "voter_id"
+    DRIVING_LICENSE = "driving_license"
+    SERVICE_AGREEMENT = "service_agreement"
+    NDA = "nda"
+    BOOKING_CONTRACT = "booking_contract"
+    OTHER = "other"
+
+class DocumentUploadModel(BaseModel):
+    name: str
+    category: DocumentCategory
+    document_type: VaultDocumentType
+    description: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    reference_number: Optional[str] = None
+    issued_by: Optional[str] = None
+    issued_date: Optional[datetime] = None
+    tags: List[str] = []
+    is_sensitive: bool = False
+    reminder_days: int = 30
+
+class DocumentUpdateModel(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    reference_number: Optional[str] = None
+    tags: Optional[List[str]] = None
+    reminder_days: Optional[int] = None
+    status: Optional[DocumentVaultStatus] = None
+
+class DocumentShareCreate(BaseModel):
+    document_id: str
+    shared_with_email: str
+    permission: SharePermission
+    expiry_date: Optional[datetime] = None
+    message: Optional[str] = None
+    requires_otp: bool = False
+
+class FolderCreate(BaseModel):
+    name: str
+    parent_id: Optional[str] = None
+    description: Optional[str] = None
+    color: str = "#3B82F6"
+    icon: str = "folder"
+
+class DocumentVerification(BaseModel):
+    document_id: str
+    verification_status: str
+    verified_by: str
+    verification_notes: Optional[str] = None
+    verification_date: datetime = Field(default_factory=datetime.utcnow)
+
+class BulkDocumentAction(BaseModel):
+    document_ids: List[str]
+    action: str
+    destination_folder_id: Optional[str] = None
+    tags: Optional[List[str]] = None

@@ -84,6 +84,10 @@ from routes import gst_routes
 from routes import pricing_engine_routes
 # Email Service
 from routes import email_routes
+# Phase 1: Premium Services
+from routes import membership_routes
+from routes import corporate_routes
+from routes import document_vault_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -221,6 +225,10 @@ api_router.include_router(gst_routes.router)
 api_router.include_router(pricing_engine_routes.router)
 # Email Service
 api_router.include_router(email_routes.router)
+# Phase 1: Premium Services
+api_router.include_router(membership_routes.router)
+api_router.include_router(corporate_routes.router)
+api_router.include_router(document_vault_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

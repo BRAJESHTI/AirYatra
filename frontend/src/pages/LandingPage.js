@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plane, Shield, Users, TrendingUp, Star, CheckCircle } from 'lucide-react';
+import { Plane, Shield, Users, TrendingUp, Star, CheckCircle, Crown, Building2, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function LandingPage({ user }) {
@@ -124,6 +124,108 @@ function LandingPage({ user }) {
           <div>
             <div className="text-5xl font-black text-orange-500 mb-2">4.9/5</div>
             <div className="text-slate-400 uppercase tracking-wider text-sm">Customer Rating</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Premium Services Section - Phase 1 */}
+      <section className="py-20 px-6 bg-gradient-to-b from-slate-900 to-slate-950" data-testid="premium-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 mb-4">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              <span className="text-orange-500 font-semibold uppercase tracking-wider text-sm">Premium Services</span>
+              <Sparkles className="h-5 w-5 text-orange-500" />
+            </div>
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Elevate Your Experience
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Unlock exclusive benefits with our premium membership and corporate travel solutions
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* BLACK Membership Card */}
+            <div className="glass p-8 rounded-2xl border border-slate-700 hover:border-orange-500/50 transition-all group">
+              <div className="bg-gradient-to-br from-slate-900 to-black p-4 rounded-xl w-fit mb-6">
+                <Crown className="h-10 w-10 text-amber-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">AirYatra BLACK</h3>
+              <p className="text-slate-400 mb-6">
+                Premium membership with up to 20% discount, priority booking, dedicated pilot, and exclusive lounge access.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Priority Booking Queue
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Dedicated Relationship Manager
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Free Cancellation
+                </li>
+              </ul>
+              <Link to="/membership">
+                <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90" data-testid="explore-membership-btn">
+                  Explore Membership
+                </Button>
+              </Link>
+            </div>
+
+            {/* Corporate Console Card */}
+            <div className="glass p-8 rounded-2xl border border-slate-700 hover:border-orange-500/50 transition-all group">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-4 rounded-xl w-fit mb-6">
+                <Building2 className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">Corporate Console</h3>
+              <p className="text-slate-400 mb-6">
+                Centralized travel management for enterprises with approval workflows, budgets, and consolidated billing.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Employee Management
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Budget Controls
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Travel Analytics
+                </li>
+              </ul>
+              <Link to="/corporate">
+                <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90" data-testid="explore-corporate-btn">
+                  Corporate Registration
+                </Button>
+              </Link>
+            </div>
+
+            {/* Document Vault Card */}
+            <div className="glass p-8 rounded-2xl border border-slate-700 hover:border-orange-500/50 transition-all group">
+              <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-4 rounded-xl w-fit mb-6">
+                <Lock className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">Document Vault</h3>
+              <p className="text-slate-400 mb-6">
+                Secure encrypted storage for DGCA documents, insurance, licenses with expiry alerts and version control.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> AES-256 Encryption
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Expiry Reminders
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-400" /> Secure Sharing
+                </li>
+              </ul>
+              <Link to={user ? "/vault" : "/login"}>
+                <Button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:opacity-90" data-testid="explore-vault-btn">
+                  {user ? "Open Vault" : "Login to Access"}
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

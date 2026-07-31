@@ -22,6 +22,10 @@ const HRDashboard = lazy(() => import('./pages/HRDashboard'));
 const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
 const SupportDashboard = lazy(() => import('./pages/SupportDashboard'));
 const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
+// Phase 1: Premium Services - lazy loaded
+const MembershipPage = lazy(() => import('./pages/MembershipPage'));
+const CorporateDashboard = lazy(() => import('./pages/CorporateDashboard'));
+const DocumentVault = lazy(() => import('./pages/DocumentVault'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -141,6 +145,16 @@ function App() {
           element={user && (user.roles.includes('finance') || user.roles.includes('admin')) ? <FinanceDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route path="/booking" element={<BookingPage user={user} />} />
+        {/* Phase 1: Premium Services Routes */}
+        <Route path="/membership" element={<MembershipPage user={user} />} />
+        <Route 
+          path="/corporate/*" 
+          element={user ? <CorporateDashboard user={user} /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/vault" 
+          element={user ? <DocumentVault user={user} /> : <Navigate to="/login" />} 
+        />
         </Routes>
       </Suspense>
       
