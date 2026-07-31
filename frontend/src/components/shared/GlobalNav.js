@@ -1,7 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import LanguageSwitcher from './LanguageSwitcher';
 
 /**
  * Global Navigation Component - Shows on all internal pages
@@ -10,6 +12,7 @@ import { Button } from '@/components/ui/button';
 function GlobalNav({ user, showBack = true }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   
   // Don't show on landing page or login page
   const hiddenPaths = ['/', '/login', '/auth/google/success', '/auth/google/error', '/auth/google/callback'];
@@ -66,7 +69,7 @@ function GlobalNav({ user, showBack = true }) {
           className="bg-slate-800/80 backdrop-blur-sm border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white shadow-lg"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
+          {t('nav.back')}
         </Button>
       )}
       <Button
@@ -75,8 +78,9 @@ function GlobalNav({ user, showBack = true }) {
         className="bg-orange-500/90 backdrop-blur-sm hover:bg-orange-600 text-white shadow-lg"
       >
         <Home className="h-4 w-4 mr-1" />
-        Home
+        {t('nav.home')}
       </Button>
+      <LanguageSwitcher />
     </div>
   );
 }

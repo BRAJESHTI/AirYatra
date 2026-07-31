@@ -200,3 +200,13 @@
 ---
 
 *Last Updated: July 31, 2026*
+
+## July 31, 2026 - Multi-Language Engine (Phase 1, P1)
+- Added i18n scaffolding: `react-i18next` + `i18next-browser-languagedetector`
+- 9 languages: English (default), Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati, Kannada, Punjabi
+- Files: `/app/frontend/src/i18n/index.js` (LANGUAGES export + init), `/app/frontend/src/i18n/locales/{en,hi,mr,ta,te,bn,gu,kn,pa}.js`
+- New component: `/app/frontend/src/components/shared/LanguageSwitcher.js` (Globe dropdown, data-testid="language-switcher-btn", lang-option-{code})
+- Applied to: LandingPage (fully translated), GlobalNav (Back/Home + switcher), BookingPage chrome (title, subtitle, step titles, Prev/Next, login prompt)
+- Language persists in localStorage key `airyatra_lang`, auto-detects browser language
+- NOTE: Deep booking form field labels still bilingual EN/HI inline (pending migration to i18n keys)
+- Verified via screenshots: EN→HI→TA switch on landing, persistence to /booking, PA on booking page

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "@/index.css";
 import "@/performance.css";  // Performance optimizations
 import App from "@/App";
+import "@/i18n";
 import { Toaster } from 'sonner';
 
 // Performance: Preconnect to API

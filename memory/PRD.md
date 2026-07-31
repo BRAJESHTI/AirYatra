@@ -93,6 +93,7 @@
 | 1.3 | Smart Document Vault | P0 | 🟢 DONE | Secure encrypted storage for DGCA docs, insurance, licenses with expiry alerts, version control, secure sharing |
 | 1.4 | Loyalty & Rewards Enhancement | P1 | 🔵 PLANNED | Advanced points system, tier benefits |
 | 1.5 | Partner API Platform | P1 | 🔵 PLANNED | APIs for hotels, travel agencies, concierge |
+| 1.6 | Multi-Language Engine | P1 | 🟢 DONE | 9 languages (EN + Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati, Kannada, Punjabi) via react-i18next. Applied to Landing Page, Booking Page chrome, Global Navigation. Language persists in localStorage (`airyatra_lang`) |
 
 ### Phase 1 Implementation Details:
 
@@ -110,8 +111,7 @@
 - Travel policy configuration
 - Corporate analytics and spend tracking
 
-**1.3 Smart Document Vault:**
-- 10 document categories (DGCA, Insurance, Aircraft, Pilot, Corporate, Personal, Contract, Invoice, Other)
+**1.3 Smart Document Vault:**- 10 document categories (DGCA, Insurance, Aircraft, Pilot, Corporate, Personal, Contract, Invoice, Other)
 - 22+ document types with category-specific classification
 - Expiry tracking with 30-day alerts
 - Version control with full history

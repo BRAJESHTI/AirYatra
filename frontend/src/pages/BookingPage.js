@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { bookingAPI, settingsAPI, landingAPI, pricingEngineAPI } from '../services/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import PinCodeInput from '../components/shared/PinCodeInput';
 import LandingPointSelector from '../components/shared/LandingPointSelector';
 // Import modular booking components and config
@@ -66,6 +67,7 @@ const CustomerProfileCard = ({ user }) => {
 
 function BookingPage({ user }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -146,8 +148,8 @@ function BookingPage({ user }) {
   const [landingRent, setLandingRent] = useState({ pickup: null, drop: null, total: 0 });
   const [permissionRequired, setPermissionRequired] = useState(false);
 
-  // Use imported steps from config
-  const steps = bookingSteps;
+  // Use imported steps from config (titles localized)
+  const steps = bookingSteps.map(s => ({ ...s, title: t(`booking.steps.${s.id}`) }));
 
   // Restore saved step after login
   useEffect(() => {
@@ -1399,10 +1401,10 @@ function BookingPage({ user }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-            ✈️ Book Your Flight / उड़ान बुक करें
+            ✈️ {t('booking.title')}
           </h1>
           <p className="text-slate-400">
-            AirYatra - Premium Air Mobility Services
+            {t('booking.subtitle')}
           </p>
         </div>
 
@@ -1426,14 +1428,14 @@ function BookingPage({ user }) {
                 className="border-slate-600 text-slate-300"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous / पिछला
+                {t('booking.previous')}
               </Button>
               
               <Button
                 onClick={nextStep}
                 className="bg-orange-500 hover:bg-orange-600"
               >
-                Next / अगला
+                {t('booking.next')}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -1447,7 +1449,7 @@ function BookingPage({ user }) {
                 className="border-slate-600 text-slate-300"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous / पिछला
+                {t('booking.previous')}
               </Button>
             </div>
           )}
@@ -1457,13 +1459,13 @@ function BookingPage({ user }) {
         {!user && (
           <div className="mt-6 p-4 bg-amber-500/10 rounded-xl border border-amber-500/30 text-center">
             <p className="text-amber-400">
-              ⚠️ Please login to submit booking inquiry / बुकिंग के लिए लॉगिन करें
+              ⚠️ {t('booking.loginPrompt')}
             </p>
             <Button
               onClick={() => navigate('/login')}
               className="mt-3 bg-amber-500 hover:bg-amber-600"
             >
-              Login / लॉगिन करें
+              {t('booking.loginBtn')}
             </Button>
           </div>
         )}
