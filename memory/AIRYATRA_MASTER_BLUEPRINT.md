@@ -514,6 +514,338 @@
 
 ---
 
+### D9: Complete HRMS - Human Resource Management System 👥
+**Priority**: P0 | **Status**: 🔵 PLANNED
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         AIRYATRA HRMS                                           │
+│            Complete Human Resource Management System                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │                    HRMS DASHBOARD                               │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  👥 Total Employees: XXX    📍 Locations: XX Countries          │          │
+│   │  ✅ Present Today: XXX      🏖️ On Leave: XX                     │          │
+│   │  💰 Pending Payroll: ₹XX L  📝 Pending Reimbursements: XX       │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 1: EMPLOYEE MANAGEMENT                                                 │
+│   ════════════════════════════                                                  │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │  EMPLOYEE LIFECYCLE                                             │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  Onboarding → Active → Promotion → Transfer → Exit              │          │
+│   │                                                                 │          │
+│   │  FEATURES:                                                      │          │
+│   │  • Employee Profile (Personal, Professional, Documents)         │          │
+│   │  • Department & Designation Management                          │          │
+│   │  • Reporting Structure (Org Chart)                              │          │
+│   │  • Employee Self-Service Portal                                 │          │
+│   │  • Document Management (Offer Letter, ID Proof, etc.)           │          │
+│   │  • Emergency Contact Information                                │          │
+│   │  • Bank Account Details                                         │          │
+│   │  • Employment History                                           │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 2: ATTENDANCE MANAGEMENT                                               │
+│   ════════════════════════════════                                              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │  ATTENDANCE TRACKING                                            │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  CHECK-IN METHODS:                                              │          │
+│   │  ├── 📱 Mobile App (GPS-based)                                 │          │
+│   │  ├── 🖥️ Web Portal                                             │          │
+│   │  ├── 👆 Biometric Integration                                  │          │
+│   │  ├── 📷 Face Recognition                                       │          │
+│   │  └── 🏢 Office Wi-Fi based                                     │          │
+│   │                                                                 │          │
+│   │  FEATURES:                                                      │          │
+│   │  • Daily Check-in / Check-out                                   │          │
+│   │  • Work from Home Tracking                                      │          │
+│   │  • Field Visit Tracking (with GPS)                              │          │
+│   │  • Overtime Tracking                                            │          │
+│   │  • Late Coming / Early Going Alerts                             │          │
+│   │  • Shift Management                                             │          │
+│   │  • Holiday Calendar (Country-wise)                              │          │
+│   │  • Attendance Regularization Request                            │          │
+│   │  • Monthly Attendance Summary                                   │          │
+│   │                                                                 │          │
+│   │  LEAVE MANAGEMENT:                                              │          │
+│   │  ├── Casual Leave (CL)                                         │          │
+│   │  ├── Sick Leave (SL)                                           │          │
+│   │  ├── Earned Leave (EL)                                         │          │
+│   │  ├── Maternity / Paternity Leave                               │          │
+│   │  ├── Compensatory Off                                          │          │
+│   │  ├── Loss of Pay (LOP)                                         │          │
+│   │  └── Custom Leave Types                                        │          │
+│   │                                                                 │          │
+│   │  LEAVE WORKFLOW:                                                │          │
+│   │  Apply → Manager Approval → HR Review → Approved/Rejected       │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 3: PAYROLL MANAGEMENT                                                  │
+│   ════════════════════════════                                                  │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │  PAYROLL PROCESSING                                             │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  SALARY STRUCTURE:                                              │          │
+│   │  ┌─────────────────────────────────────────────────────┐       │          │
+│   │  │  EARNINGS              │  DEDUCTIONS                │       │          │
+│   │  ├────────────────────────┼────────────────────────────┤       │          │
+│   │  │  Basic Salary          │  Provident Fund (PF)       │       │          │
+│   │  │  House Rent Allowance  │  Professional Tax          │       │          │
+│   │  │  Dearness Allowance    │  Income Tax (TDS)          │       │          │
+│   │  │  Conveyance Allowance  │  ESI                       │       │          │
+│   │  │  Medical Allowance     │  Loan EMI                  │       │          │
+│   │  │  Special Allowance     │  Other Deductions          │       │          │
+│   │  │  Performance Bonus     │                            │       │          │
+│   │  │  Overtime Pay          │                            │       │          │
+│   │  └────────────────────────┴────────────────────────────┘       │          │
+│   │                                                                 │          │
+│   │  PAYROLL FEATURES:                                              │          │
+│   │  • Salary Structure Configuration                               │          │
+│   │  • Auto Payroll Calculation                                     │          │
+│   │  • Attendance-based Salary (LOP Deduction)                      │          │
+│   │  • Tax Calculation (Country-wise)                               │          │
+│   │  • Statutory Compliance (PF, ESI, PT)                           │          │
+│   │  • Arrears Calculation                                          │          │
+│   │  • Salary Revision History                                      │          │
+│   │  • Bulk Payroll Processing                                      │          │
+│   │  • Payroll Lock & Unlock                                        │          │
+│   │  • Multi-Currency Support (for global employees)                │          │
+│   │                                                                 │          │
+│   │  COUNTRY-WISE TAX COMPLIANCE:                                   │          │
+│   │  ├── India: PF, ESI, PT, TDS, Form 16                          │          │
+│   │  ├── UAE: No Income Tax, WPS Compliance                        │          │
+│   │  ├── Singapore: CPF, SDL                                       │          │
+│   │  ├── Saudi: GOSI                                               │          │
+│   │  └── Others: Country-specific compliance                       │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 4: SALARY SLIP / PAY SLIP                                              │
+│   ════════════════════════════════                                              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │                      SALARY SLIP                                │          │
+│   │                    AirYatra Pvt Ltd                             │          │
+│   │              Pay Slip for December 2025                         │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  Employee: Rahul Sharma          Employee ID: AY-IND-001       │          │
+│   │  Department: Operations          Designation: Regional Manager │          │
+│   │  Location: Mumbai, India         Bank: HDFC ****1234           │          │
+│   │                                                                 │          │
+│   │  ┌─────────────────────────┬─────────────────────────┐         │          │
+│   │  │  EARNINGS               │  DEDUCTIONS             │         │          │
+│   │  ├─────────────────────────┼─────────────────────────┤         │          │
+│   │  │  Basic:      ₹50,000    │  PF:           ₹6,000   │         │          │
+│   │  │  HRA:        ₹25,000    │  ESI:          ₹1,750   │         │          │
+│   │  │  DA:         ₹10,000    │  Prof Tax:       ₹200   │         │          │
+│   │  │  Conveyance:  ₹5,000    │  TDS:         ₹12,000   │         │          │
+│   │  │  Medical:     ₹3,000    │  LOP (2 days): ₹3,333   │         │          │
+│   │  │  Special:     ₹7,000    │                         │         │          │
+│   │  ├─────────────────────────┼─────────────────────────┤         │          │
+│   │  │  Gross: ₹1,00,000       │  Total Ded: ₹23,283     │         │          │
+│   │  └─────────────────────────┴─────────────────────────┘         │          │
+│   │                                                                 │          │
+│   │  NET SALARY: ₹76,717                                           │          │
+│   │                                                                 │          │
+│   │  Working Days: 22  |  Present: 20  |  Leave: 2 (LOP)           │          │
+│   │                                                                 │          │
+│   │  [Download PDF]  [Email Slip]  [Print]                         │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   PAY SLIP FEATURES:                                                            │
+│   • Auto-generated Monthly Pay Slips                                            │
+│   • PDF Download                                                                │
+│   • Email to Employee                                                           │
+│   • Digital Signature                                                           │
+│   • Year-wise Archive                                                           │
+│   • Bulk Pay Slip Generation                                                    │
+│   • Custom Pay Slip Template                                                    │
+│   • QR Code for Verification                                                    │
+│                                                                                 │
+│   MODULE 5: EXPENSE MANAGEMENT                                                  │
+│   ════════════════════════════                                                  │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │  EXPENSE TRACKING                                               │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  EXPENSE CATEGORIES:                                            │          │
+│   │  ├── 🚗 Travel (Local, Outstation, International)              │          │
+│   │  ├── 🍽️ Food & Meals                                           │          │
+│   │  ├── 🏨 Accommodation                                          │          │
+│   │  ├── 📞 Communication (Phone, Internet)                        │          │
+│   │  ├── 🚕 Conveyance (Cab, Fuel)                                 │          │
+│   │  ├── 🎓 Training & Certification                               │          │
+│   │  ├── 💼 Client Entertainment                                   │          │
+│   │  ├── 🏥 Medical                                                │          │
+│   │  ├── 📦 Office Supplies                                        │          │
+│   │  └── 📋 Miscellaneous                                          │          │
+│   │                                                                 │          │
+│   │  EXPENSE WORKFLOW:                                              │          │
+│   │  ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    │          │
+│   │  │Submit│ → │Manager│ → │Finance│ → │Approve│ → │Reimburse│   │          │
+│   │  │Claim │    │Review │    │Review │    │/Reject│    │Payment │   │          │
+│   │  └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    │          │
+│   │                                                                 │          │
+│   │  FEATURES:                                                      │          │
+│   │  • Mobile App Expense Submission                                │          │
+│   │  • Receipt Photo Upload (OCR Auto-fill)                         │          │
+│   │  • Expense Policy Validation                                    │          │
+│   │  • Budget Limit Checks                                          │          │
+│   │  • Multi-level Approval                                         │          │
+│   │  • Duplicate Detection                                          │          │
+│   │  • Mileage Calculator                                           │          │
+│   │  • Per Diem Rates (Country-wise)                                │          │
+│   │  • Corporate Card Integration                                   │          │
+│   │  • GST/VAT Input Credit Tracking                                │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 6: REIMBURSEMENT MANAGEMENT                                            │
+│   ══════════════════════════════════                                            │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │  REIMBURSEMENT PROCESSING                                       │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  REIMBURSEMENT TYPES:                                           │          │
+│   │  ├── 💼 Travel Reimbursement                                   │          │
+│   │  ├── 🏥 Medical Reimbursement                                  │          │
+│   │  ├── 📱 Mobile/Internet Reimbursement                          │          │
+│   │  ├── 🎓 Education/Certification                                │          │
+│   │  ├── 👔 Uniform/Dress Allowance                                │          │
+│   │  ├── 🚗 Fuel Reimbursement                                     │          │
+│   │  ├── 🏠 Work from Home Allowance                               │          │
+│   │  └── 📋 Other Allowances                                       │          │
+│   │                                                                 │          │
+│   │  REIMBURSEMENT WORKFLOW:                                        │          │
+│   │  Employee → Manager → HR → Finance → Bank Transfer              │          │
+│   │                                                                 │          │
+│   │  FEATURES:                                                      │          │
+│   │  • Claim Submission with Documents                              │          │
+│   │  • Policy-based Auto Validation                                 │          │
+│   │  • Approval Workflow                                            │          │
+│   │  • Payment Processing                                           │          │
+│   │  • Direct Bank Transfer                                         │          │
+│   │  • Reimbursement History                                        │          │
+│   │  • Tax Implications Display                                     │          │
+│   │  • Annual Limit Tracking                                        │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 7: HR REPORTS & ANALYTICS                                              │
+│   ════════════════════════════════                                              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────┐          │
+│   │  HR REPORTS                                                     │          │
+│   ├─────────────────────────────────────────────────────────────────┤          │
+│   │                                                                 │          │
+│   │  EMPLOYEE REPORTS:                                              │          │
+│   │  ├── Employee Directory                                        │          │
+│   │  ├── Department-wise Headcount                                 │          │
+│   │  ├── Location-wise Distribution                                │          │
+│   │  ├── Joining & Exit Reports                                    │          │
+│   │  ├── Attrition Report                                          │          │
+│   │  └── Employee Birthday Report                                  │          │
+│   │                                                                 │          │
+│   │  ATTENDANCE REPORTS:                                            │          │
+│   │  ├── Daily Attendance Report                                   │          │
+│   │  ├── Monthly Attendance Summary                                │          │
+│   │  ├── Late Coming Report                                        │          │
+│   │  ├── Absenteeism Report                                        │          │
+│   │  ├── Leave Balance Report                                      │          │
+│   │  ├── Overtime Report                                           │          │
+│   │  └── Shift-wise Report                                         │          │
+│   │                                                                 │          │
+│   │  PAYROLL REPORTS:                                               │          │
+│   │  ├── Monthly Payroll Summary                                   │          │
+│   │  ├── Department-wise Salary Report                             │          │
+│   │  ├── Bank Transfer Report                                      │          │
+│   │  ├── PF Report (ECR)                                           │          │
+│   │  ├── ESI Report                                                │          │
+│   │  ├── TDS Report (Form 16)                                      │          │
+│   │  ├── Professional Tax Report                                   │          │
+│   │  ├── Salary Register                                           │          │
+│   │  └── CTC Report                                                │          │
+│   │                                                                 │          │
+│   │  EXPENSE REPORTS:                                               │          │
+│   │  ├── Expense Summary (Employee-wise)                           │          │
+│   │  ├── Category-wise Expense                                     │          │
+│   │  ├── Department-wise Expense                                   │          │
+│   │  ├── Pending Approvals                                         │          │
+│   │  ├── Reimbursement Status                                      │          │
+│   │  └── Budget vs Actual                                          │          │
+│   │                                                                 │          │
+│   │  COMPLIANCE REPORTS:                                            │          │
+│   │  ├── Statutory Compliance Status                               │          │
+│   │  ├── PF/ESI Challans                                           │          │
+│   │  ├── Professional Tax Challans                                 │          │
+│   │  ├── TDS Challans (24Q)                                        │          │
+│   │  └── Labour Law Compliance                                     │          │
+│   │                                                                 │          │
+│   │  EXPORT FORMATS:                                                │          │
+│   │  [PDF] [Excel] [CSV] [Print] [Email] [Schedule]                │          │
+│   │                                                                 │          │
+│   └─────────────────────────────────────────────────────────────────┘          │
+│                                                                                 │
+│   MODULE 8: ADDITIONAL HR FEATURES                                              │
+│   ════════════════════════════════                                              │
+│                                                                                 │
+│   • 📋 Offer Letter Generation                                                  │
+│   • 📝 Appointment Letter                                                       │
+│   • 📄 Experience Letter                                                        │
+│   • 🎖️ Appraisal Management                                                     │
+│   • 📈 Performance Reviews                                                      │
+│   • 🎯 Goal Setting (OKR/KPI)                                                   │
+│   • 📚 Training Management                                                      │
+│   • 🏆 Employee Recognition                                                     │
+│   • 📣 Company Announcements                                                    │
+│   • 🗳️ Employee Surveys                                                         │
+│   • 💬 Grievance Management                                                     │
+│   • 🚪 Exit Management & Full-Final Settlement                                  │
+│   • 📊 HR Analytics Dashboard                                                   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**HRMS ROLE-BASED ACCESS:**
+| Role | Access Level |
+|------|--------------|
+| Employee | Self-service (own data, leave, expense, pay slip) |
+| Manager | Team attendance, leave approval, expense approval |
+| HR Admin | All employee data, payroll processing, compliance |
+| Finance | Payroll verification, reimbursement processing |
+| Country CEO | Country-wide HR reports, budget approval |
+| Global CEO | Global HR analytics, policy decisions |
+
+**INTEGRATION POINTS:**
+| System | Integration |
+|--------|-------------|
+| Attendance | Biometric, Face Recognition, GPS |
+| Payroll | Bank APIs for salary transfer |
+| Expense | Corporate card, Receipt OCR |
+| Compliance | PF Portal, ESI Portal, Income Tax |
+| Accounting | Tally, Zoho Books, QuickBooks |
+
+---
+
 ## SECTION E: AI INTELLIGENCE LAYER (6 Modules)
 
 ### E1: AI Flight Dispatcher 🧠
@@ -1306,7 +1638,7 @@
 | A: Foundation | 15 | ✅ DONE |
 | B: Premium Services | 5 | 🔵 PLANNED |
 | C: Aviation Marketplace | 6 | ⚪ BACKLOG |
-| D: AirYatra OS ERP | 8 | ⚪ BACKLOG |
+| D: AirYatra OS ERP | **9** | ⚪ BACKLOG |
 | E: AI Intelligence | 6 | ⚪ BACKLOG |
 | F: Specialized Services | 5 | ⚪ BACKLOG |
 | G: Operations & Command | 3 | ⚪ BACKLOG |
@@ -1315,11 +1647,12 @@
 | J: Future Mobility | 2 | ⚪ BACKLOG |
 | **K: Internationalization** | **3** | 🔵 **PLANNED** |
 | L: Integrations (Final) | 2 | 🔴 DEFERRED |
-| **TOTAL** | **63 Modules** | |
+| **TOTAL** | **64 Modules** | |
 
-*Plus 15 AI sub-modules in Master AI Layer = 78+ total components*
+*Plus 15 AI sub-modules in Master AI Layer = 79+ total components*
 *Plus 25+ Languages in Multi-Language Engine*
 *Plus 50+ Countries in Global Expansion*
+*Plus 8 HRMS Sub-modules (Payroll, Attendance, Expense, Reimbursement, Reports, etc.)*
 
 ---
 
