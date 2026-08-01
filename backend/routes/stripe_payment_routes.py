@@ -161,6 +161,27 @@ async def _apply_payment_success(db, txn: dict):
             {"$set": {"status": "used", "used_at": now, "used_for_booking": txn["booking_id"]}}
         )
 
+    # Send PDF receipt email for ALL payment types (advance and balance)
+    try:
+        customer = await db.users.find_one({"id": txn["customer_id"]}, {"_id": 0, "email": 1, "full_name": 1, "phone": 1})
+        if customer and customer.get("email") and booking:
+            # Generate PDF receipt
+            pdf_bytes = _generate_receipt_pdf(txn, booking, customer)
+            
+            # Send email with PDF attachment
+            from services.email_service import email_service
+            await email_service.send_payment_receipt_with_pdf(
+                to_email=customer["email"],
+                customer_name=customer.get("full_name", "Customer"),
+                txn=txn,
+                booking=booking,
+                pdf_bytes=pdf_bytes
+            )
+            print(f"Payment receipt email sent to {customer['email']} for txn {txn.get('id', '')[:8]}")
+    except Exception as e:
+        print(f"Payment receipt email failed: {e}")
+
+    # Send booking confirmation for advance payments only (existing behavior)
     if booking and txn.get("payment_type") != "balance":
         try:
             customer = await db.users.find_one({"id": txn["customer_id"]}, {"_id": 0, "email": 1, "phone": 1})

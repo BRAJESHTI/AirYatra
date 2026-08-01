@@ -79,6 +79,7 @@ import ZohoIntegration from '@/components/admin/ZohoIntegration';
 import ExchangeManagement from '@/components/admin/ExchangeManagement';
 import CEODashboard from '@/components/admin/CEODashboard';
 import PartnerManagement from '@/components/admin/PartnerManagement';
+import AdminPaymentsDashboard from '@/components/admin/AdminPaymentsDashboard';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -139,6 +140,7 @@ const navGroups = [
     label: 'Finance & Billing',
     icon: DollarSign,
     items: [
+      { id: 'payments_dashboard', label: 'Payments Dashboard', icon: Wallet, highlight: true },
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
       { id: 'pricing_engine', label: 'Pricing Engine / मूल्य इंजन', icon: Calculator, highlight: true },
@@ -283,6 +285,8 @@ function AdminDashboard({ user, onLogout }) {
       case 'weather':
         return <WeatherDashboard />;
       // Priority 2 Features
+      case 'payments_dashboard':
+        return <AdminPaymentsDashboard />;
       case 'invoices':
         return <InvoiceManagement />;
       case 'loyalty':

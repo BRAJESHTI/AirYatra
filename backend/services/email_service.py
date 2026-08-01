@@ -1231,5 +1231,117 @@ class EmailService:
         return results
 
 
+    async def send_payment_receipt_with_pdf(
+        self,
+        to_email: str,
+        customer_name: str,
+        txn: Dict[str, Any],
+        booking: Dict[str, Any],
+        pdf_bytes: bytes
+    ) -> Dict[str, Any]:
+        """Send payment receipt email with PDF attachment"""
+        
+        payment_type_label = "Remaining Balance" if txn.get("payment_type") == "balance" else "Advance Payment"
+        receipt_no = f"AYR-{txn.get('id', '')[:8].upper()}"
+        amount = txn.get("amount", 0)
+        paid_at = (txn.get("updated_at") or "")[:19].replace("T", " ")
+        route = f"{booking.get('from_location', '')} → {booking.get('to_location', '')}"
+        booking_ref = booking.get('inquiry_number') or booking.get('booking_number') or txn.get('booking_id', '')[:12]
+        
+        subject = f"💳 Payment Receipt {receipt_no} - ₹{amount:,.0f} | AirYatra"
+        
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #22c55e, #16a34a); padding: 30px; text-align: center; }}
+        .content {{ padding: 30px; }}
+        .receipt-box {{ background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 15px 0; border: 2px dashed #22c55e; }}
+        .info-row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a4e; }}
+        .info-row:last-child {{ border-bottom: none; }}
+        .highlight {{ color: #22c55e; font-weight: 600; }}
+        .amount {{ font-size: 28px; font-weight: bold; color: #22c55e; }}
+        .footer {{ background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }}
+        .btn {{ display: inline-block; background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size:50px;">✅</div>
+            <h1 style="margin:10px 0 0;">Payment Successful!</h1>
+            <p style="margin:5px 0 0; opacity:0.9;">{payment_type_label}</p>
+        </div>
+        <div class="content">
+            <p>Namaste <strong>{customer_name}</strong>,</p>
+            <p>Aapka payment successfully receive ho gaya hai. PDF Receipt attached hai, download karke apne records mein rakhein.</p>
+            
+            <div class="receipt-box">
+                <h3 style="margin-top:0; color:#22c55e; text-align:center;">🧾 Payment Summary</h3>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Receipt No:</span>
+                    <span class="highlight">{receipt_no}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Booking Ref:</span>
+                    <span style="font-weight:600;">{booking_ref}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Route:</span>
+                    <span style="font-weight:600;">{route}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Payment Type:</span>
+                    <span style="font-weight:600;">{payment_type_label}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Amount Paid:</span>
+                    <span class="amount">₹{amount:,.0f}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Date & Time:</span>
+                    <span style="font-weight:600;">{paid_at} UTC</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Gateway:</span>
+                    <span style="font-weight:600;">Stripe (Secure)</span>
+                </div>
+            </div>
+            
+            <p style="color:#fbbf24; font-size:14px; background:#422006; padding:15px; border-radius:8px; margin-top:20px;">
+                📎 <strong>PDF Receipt attached</strong> - Please save it for your records and tax purposes.
+            </p>
+            
+            <p style="text-align:center;">
+                <a href="https://airyatra.co.in/customer/inquiries" class="btn">View My Bookings</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra - India's Premium Helicopter Booking Platform</p>
+            <p>📞 Support: info@airyatra.co.in</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        # Prepare attachment
+        attachments = [{
+            "filename": f"AirYatra_Receipt_{receipt_no}.pdf",
+            "content": pdf_bytes,
+        }]
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            attachments=attachments
+        )
+
+
 # Singleton instance
 email_service = EmailService()
