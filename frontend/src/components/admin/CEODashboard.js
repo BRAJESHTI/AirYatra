@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake } from 'lucide-react';
+import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ const KPI = ({ icon: Icon, label, value, sub, accent = 'text-orange-400', testid
 const CEODashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -36,9 +37,29 @@ const CEODashboard = () => {
 
   useEffect(() => { load(); }, []);
 
+  const downloadReport = async () => {
+    setDownloading(true);
+    try {
+      const res = await api.get('/ceo/report.pdf', { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AirYatra_Board_Report_${(data?.period || '').replace(' ', '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Board report downloaded! / बोर्ड रिपोर्ट डाउनलोड हो गई');
+    } catch (e) {
+      toast.error('Failed to download report');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (loading || !data) return <div className="text-center text-slate-500 py-20"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>;
 
-  const { revenue, bookings, customers, fleet, marketplace: mp, memberships, partners } = data;
+  const { revenue, bookings, customers, fleet, marketplace: mp, hr, memberships, partners } = data;
 
   return (
     <div className="space-y-6" data-testid="ceo-dashboard">
@@ -47,11 +68,17 @@ const CEODashboard = () => {
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Crown className="h-6 w-6 text-amber-400" /> Country CEO Dashboard
           </h1>
-          <p className="text-slate-400 text-sm">Executive view — revenue, fleet & marketplace at a glance / एक नज़र में पूरा कारोबार</p>
+          <p className="text-slate-400 text-sm">Executive view — revenue, fleet, marketplace & HR at a glance / एक नज़र में पूरा कारोबार</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} className="border-slate-700 text-slate-300" data-testid="ceo-refresh-btn">
-          <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={downloadReport} disabled={downloading} className="bg-orange-500 hover:bg-orange-600" data-testid="download-board-report-btn">
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+            Board Report (PDF)
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} className="border-slate-700 text-slate-300 self-center" data-testid="ceo-refresh-btn">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Revenue & Growth */}
@@ -67,9 +94,21 @@ const CEODashboard = () => {
         <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><Plane className="h-4 w-4 text-orange-400" /> Aviation Exchange Marketplace</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KPI icon={Tag} label="Active Listings" value={mp.listings_active} sub={`${mp.listings_sold} sold • ${mp.listings_pending} pending review`} testid="kpi-listings" />
-          <KPI icon={Gavel} label="Live Auctions" value={mp.auctions_live} sub={`${mp.total_bids} total bids • ${fmtInr(mp.live_auction_bid_value_inr)} bid value`} accent="text-red-400" testid="kpi-auctions" />
+          <KPI icon={Gavel} label="Live Auctions" value={mp.auctions_live} sub={`${mp.total_bids} bids • ${mp.auction_watchers} watchers • ${fmtInr(mp.live_auction_bid_value_inr)}`} accent="text-red-400" testid="kpi-auctions" />
           <KPI icon={PieIcon} label="Fractional Shares Sold" value={`${mp.fractional_shares_sold}/${mp.fractional_shares_total}`} sub={`${fmtInr(mp.fractional_allocated_value_inr)} allocated • ${mp.fractional_new_eois} new EOIs`} accent="text-amber-400" testid="kpi-fractional" />
           <KPI icon={ClipboardCheck} label="Buyer Activity" value={mp.buyer_inquiries} sub={`inquiries • ${mp.inspections_pending} inspections pending`} accent="text-cyan-400" testid="kpi-buyer-activity" />
+        </div>
+      </div>
+
+      {/* People & HR */}
+      <div>
+        <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><Users2 className="h-4 w-4 text-orange-400" /> People & HR (HRMS)</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <KPI icon={Users2} label="Internal Employees" value={hr.employees_total} accent="text-blue-400" testid="kpi-employees" />
+          <KPI icon={CalendarCheck} label="Attendance Today" value={hr.attendance_today} sub="check-ins marked" accent="text-green-400" testid="kpi-attendance" />
+          <KPI icon={CalendarCheck} label="Pending Leaves" value={hr.leaves_pending} sub="awaiting approval" accent="text-yellow-400" testid="kpi-leaves" />
+          <KPI icon={Receipt} label="Pending Expenses" value={hr.expenses_pending_count} sub={fmtInr(hr.expenses_pending_amount_inr)} accent="text-red-400" testid="kpi-expenses" />
+          <KPI icon={Wallet} label="Payroll This Month" value={fmtInr(hr.payroll_month_net_inr)} sub={`${hr.payroll_month_count} salary slips`} accent="text-purple-400" testid="kpi-payroll" />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gavel, Clock, MapPin, Loader2, TrendingUp, History, BadgeCheck } from 'lucide-react';
+import { Gavel, Clock, MapPin, Loader2, TrendingUp, History, BadgeCheck, Bell, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,8 @@ export const AuctionSection = ({ user }) => {
   const [bidCr, setBidCr] = useState('');
   const [bids, setBids] = useState([]);
   const [placing, setPlacing] = useState(false);
+  const [watching, setWatching] = useState([]);
+  const [togglingWatch, setTogglingWatch] = useState(null);
 
   const load = useCallback(() => {
     api.get('/exchange/auctions')
@@ -49,6 +51,32 @@ export const AuctionSection = ({ user }) => {
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearInterval(poll); clearInterval(tick); };
   }, [load]);
+
+  useEffect(() => {
+    if (user) {
+      api.get('/exchange/auctions/watchlist/my')
+        .then(res => setWatching(res.data.auction_ids || []))
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const toggleWatch = async (auction) => {
+    if (!user) {
+      toast.error('Please login to watch this auction / लॉगिन करें');
+      return;
+    }
+    setTogglingWatch(auction.id);
+    try {
+      const res = await api.post(`/exchange/auctions/${auction.id}/watch`);
+      setWatching(prev => res.data.watching ? [...prev, auction.id] : prev.filter(id => id !== auction.id));
+      toast.success(res.data.message);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to update watchlist');
+    } finally {
+      setTogglingWatch(null);
+    }
+  };
 
   const openBid = async (auction) => {
     if (!user) {
@@ -92,7 +120,7 @@ export const AuctionSection = ({ user }) => {
         <div>
           <h2 className="text-white font-bold">Live Aircraft Auctions / लाइव नीलामी</h2>
           <p className="text-slate-400 text-sm mt-1">
-            Bid on high-demand aircraft with transparent countdowns. Highest bid above reserve wins — our team completes the paperwork with the winner. No payment today.
+            Bid on high-demand aircraft with transparent countdowns. Watch an auction to get an email reminder before it ends. Highest bid above reserve wins — no payment today.
           </p>
         </div>
       </div>
@@ -106,11 +134,21 @@ export const AuctionSection = ({ user }) => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="live-auctions-grid">
           {data.live.map(a => {
             const tl = timeLeft(a.ends_at, now);
+            const isWatching = watching.includes(a.id);
             return (
               <div key={a.id} className="bg-slate-900/70 rounded-2xl border border-slate-800 overflow-hidden hover:border-orange-500/50 transition-all" data-testid={`auction-card-${a.id}`}>
                 <div className="relative h-44 overflow-hidden">
                   <img src={a.image} alt={a.title} className="w-full h-full object-cover" />
                   <Badge className="absolute top-3 left-3 bg-red-500 text-white animate-pulse">● LIVE</Badge>
+                  <button
+                    onClick={() => toggleWatch(a)}
+                    disabled={togglingWatch === a.id}
+                    className={`absolute top-3 right-3 rounded-full p-2 backdrop-blur transition-all ${isWatching ? 'bg-orange-500 text-white' : 'bg-slate-950/80 text-slate-300 hover:text-orange-400'}`}
+                    title={isWatching ? 'Watching — reminder on' : 'Watch this auction'}
+                    data-testid={`watch-auction-btn-${a.id}`}
+                  >
+                    {togglingWatch === a.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className={`h-4 w-4 ${isWatching ? 'fill-white' : ''}`} />}
+                  </button>
                   <div className="absolute bottom-3 right-3 bg-slate-950/85 backdrop-blur px-3 py-1 rounded-full text-white text-xs font-mono flex items-center gap-1" data-testid={`auction-timer-${a.id}`}>
                     <Clock className="h-3 w-3 text-orange-400" /> {tl || 'Ending...'}
                   </div>
@@ -127,15 +165,31 @@ export const AuctionSection = ({ user }) => {
                     </div>
                     <div className="text-right">
                       <p className="text-slate-400 text-xs">{a.bid_count} bid{a.bid_count !== 1 ? 's' : ''}</p>
+                      {(a.watchers || 0) > 0 && (
+                        <p className="text-slate-500 text-[10px] flex items-center gap-0.5 justify-end" data-testid={`auction-watchers-${a.id}`}>
+                          <Eye className="h-3 w-3" /> {a.watchers} watching
+                        </p>
+                      )}
                       {a.reserve_met && <p className="text-green-400 text-[10px] flex items-center gap-0.5 justify-end"><BadgeCheck className="h-3 w-3" /> Reserve met</p>}
                     </div>
                   </div>
                   {a.bid_count > 0 && a.highest_bidder_name && (
                     <p className="text-slate-500 text-xs mb-3">Leading: {a.highest_bidder_name}</p>
                   )}
-                  <Button onClick={() => openBid(a)} className="w-full bg-orange-500 hover:bg-orange-600 mt-2" data-testid={`place-bid-btn-${a.id}`}>
-                    <Gavel className="h-4 w-4 mr-2" /> Place Bid / बोली लगाएं
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button onClick={() => openBid(a)} className="flex-1 bg-orange-500 hover:bg-orange-600" data-testid={`place-bid-btn-${a.id}`}>
+                      <Gavel className="h-4 w-4 mr-2" /> Place Bid
+                    </Button>
+                    <Button
+                      onClick={() => toggleWatch(a)}
+                      disabled={togglingWatch === a.id}
+                      variant="outline"
+                      className={isWatching ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-slate-700 text-slate-300 hover:border-orange-500/50'}
+                      data-testid={`watch-auction-cta-${a.id}`}
+                    >
+                      <Bell className={`h-4 w-4 ${isWatching ? 'fill-orange-400' : ''}`} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             );

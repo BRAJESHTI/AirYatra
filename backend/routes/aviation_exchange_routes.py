@@ -488,6 +488,11 @@ async def get_auctions():
         out.append(_public_auction(a))
     live = [a for a in out if a["status"] == "live"]
     ended = sorted([a for a in out if a["status"] == "ended"], key=lambda x: x["ends_at"], reverse=True)[:10]
+    counts = {}
+    async for c in db.exchange_watchlist.aggregate([{"$group": {"_id": "$auction_id", "count": {"$sum": 1}}}]):
+        counts[c["_id"]] = c["count"]
+    for a in live:
+        a["watchers"] = counts.get(a["id"], 0)
     return {"live": live, "ended": ended, "server_time": datetime.now(timezone.utc).isoformat()}
 
 
@@ -790,3 +795,38 @@ async def download_certificate(reservation_id: str, current_user: dict = Depends
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="AirYatra_Share_Certificate_{res["id"][:8].upper()}.pdf"'},
     )
+
+
+# ============ Auction Watchlist ============
+
+@router.post("/auctions/{auction_id}/watch")
+async def toggle_watch_auction(auction_id: str, current_user: dict = Depends(get_current_user)):
+    """Toggle watchlist on an auction — watchers get ending-soon reminder emails"""
+    db = get_database()
+    auction = await db.exchange_auctions.find_one({"id": auction_id}, {"_id": 0, "id": 1, "title": 1, "status": 1})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    existing = await db.exchange_watchlist.find_one({"auction_id": auction_id, "user_id": current_user["id"]}, {"_id": 0})
+    if existing:
+        await db.exchange_watchlist.delete_one({"id": existing["id"]})
+        return {"watching": False, "message": "Removed from watchlist"}
+    if auction["status"] != "live":
+        raise HTTPException(status_code=400, detail="Auction has ended")
+    await db.exchange_watchlist.insert_one({
+        "id": str(uuid4()),
+        "auction_id": auction_id,
+        "auction_title": auction["title"],
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name"),
+        "user_email": current_user.get("email"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"watching": True, "message": "Watching! We'll email you before this auction ends / नीलामी खत्म होने से पहले याद दिलाएंगे"}
+
+
+@router.get("/auctions/watchlist/my")
+async def get_my_watchlist(current_user: dict = Depends(get_current_user)):
+    """Auction ids the current user is watching"""
+    db = get_database()
+    items = await db.exchange_watchlist.find({"user_id": current_user["id"]}, {"_id": 0, "auction_id": 1}).to_list(200)
+    return {"auction_ids": [i["auction_id"] for i in items]}

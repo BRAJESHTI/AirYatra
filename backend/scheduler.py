@@ -306,6 +306,63 @@ async def send_voucher_expiry_alerts():
         return 0
 
 
+async def send_auction_ending_reminders():
+    """Email watchers when a live auction closes within 60 minutes. Runs every 10 minutes."""
+    from database import get_database_sync
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        now = datetime.now(timezone.utc)
+        soon = (now + timedelta(minutes=60)).isoformat()
+        auctions = await db.exchange_auctions.find({
+            "status": "live",
+            "ending_reminder_sent": {"$ne": True},
+            "ends_at": {"$gt": now.isoformat(), "$lt": soon}
+        }, {"_id": 0}).to_list(50)
+        sent = 0
+        for a in auctions:
+            watchers = await db.exchange_watchlist.find({"auction_id": a["id"]}, {"_id": 0}).to_list(500)
+            ends = datetime.fromisoformat(a["ends_at"])
+            mins = max(1, int((ends - now).total_seconds() // 60))
+            current = a.get("current_bid_inr") or a.get("starting_bid_inr", 0)
+            for w in watchers:
+                if not w.get("user_email"):
+                    continue
+                html = f"""
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#0f172a;color:#e2e8f0;padding:30px;border-radius:12px;">
+                    <h2 style="color:#f97316;">⏳ Auction Ending Soon!</h2>
+                    <p>Hi {w.get('user_name', 'Aviator')},</p>
+                    <p>The auction you're watching — <b>{a['title']}</b> — closes in <b style="color:#dc2626;">{mins} minute(s)</b>!</p>
+                    <div style="background:#1e293b;border:1px dashed #f97316;padding:15px;border-radius:8px;text-align:center;margin:20px 0;">
+                        <p style="margin:0;color:#94a3b8;font-size:12px;">CURRENT HIGHEST BID</p>
+                        <p style="margin:5px 0;font-size:22px;color:#f97316;"><b>Rs. {current:,.0f}</b></p>
+                        <p style="margin:0;color:#94a3b8;font-size:12px;">{a.get('bid_count', 0)} bid(s) so far</p>
+                    </div>
+                    <p><b>This is your last chance</b> — place your bid before the hammer falls! / आखिरी मौका, अभी बोली लगाएं!</p>
+                    <p style="margin-top:25px;">Good luck! ✈️<br/><b>Team AirYatra Aviation Exchange</b></p>
+                </div>
+                """
+                try:
+                    from services.email_service import email_service
+                    result = await email_service.send_email(
+                        to_email=w["user_email"],
+                        subject=f"⏳ Ending Soon — {a['title']} auction closes in {mins} min!",
+                        html_body=html
+                    )
+                    if result.get("success"):
+                        sent += 1
+                except Exception as e:
+                    logger.error(f"Auction reminder email failed for {w.get('user_email')}: {e}")
+            await db.exchange_auctions.update_one({"id": a["id"]}, {"$set": {"ending_reminder_sent": True}})
+        if sent:
+            logger.info(f"Auction ending reminders sent: {sent}")
+        return sent
+    except Exception as e:
+        logger.error(f"send_auction_ending_reminders failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -354,8 +411,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Auction ending reminders every 10 minutes
+    scheduler.add_job(
+        send_auction_ending_reminders,
+        trigger=IntervalTrigger(minutes=10),
+        id="auction_ending_reminders",
+        name="Auction Ending Watchlist Reminders",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders")
 
 
 def stop_scheduler():
