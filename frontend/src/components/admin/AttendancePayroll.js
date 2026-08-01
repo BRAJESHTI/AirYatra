@@ -287,6 +287,23 @@ function AttendancePayroll() {
       {/* Attendance Tab */}
       {activeTab === 'attendance' && attendanceReport && (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:text-white" data-testid="export-attendance-btn"
+              onClick={async () => {
+                try {
+                  const res = await api.get('/hr/attendance/export', { params: { month: selectedMonth, year: selectedYear }, responseType: 'blob' });
+                  const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `AirYatra_Attendance_${selectedMonth}_${selectedYear}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success('Attendance CSV exported / CSV डाउनलोड हो गई');
+                } catch (e) { toast.error('Export failed'); }
+              }}>
+              <Download className="h-4 w-4 mr-2" />Export CSV (Excel)
+            </Button>
+          </div>
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">

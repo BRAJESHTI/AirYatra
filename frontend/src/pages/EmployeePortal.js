@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Clock, CalendarDays, FileText, Receipt, BadgeIndianRupee } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Clock, CalendarDays, FileText, Receipt, BadgeIndianRupee, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '../services/api';
 import EmpAttendance from '../components/employee/EmpAttendance';
 import EmpLeave from '../components/employee/EmpLeave';
 import EmpPayslips from '../components/employee/EmpPayslips';
 import EmpExpenses from '../components/employee/EmpExpenses';
+import EmpDirectory from '../components/employee/EmpDirectory';
 
 const TABS = [
   { id: 'overview', label: 'Overview / ओवरव्यू', icon: LayoutDashboard },
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'leave', label: 'Leave / छुट्टी', icon: CalendarDays },
   { id: 'payslips', label: 'Payslips / वेतन पर्ची', icon: FileText },
   { id: 'expenses', label: 'Expenses / खर्च', icon: Receipt },
+  { id: 'directory', label: 'Directory / डायरेक्टरी', icon: Users },
 ];
 
 function Overview({ overview, goTo }) {
@@ -83,6 +85,7 @@ export default function EmployeePortal({ user, onLogout }) {
       case 'leave': return <EmpLeave onChanged={loadOverview} />;
       case 'payslips': return <EmpPayslips />;
       case 'expenses': return <EmpExpenses onChanged={loadOverview} />;
+      case 'directory': return <EmpDirectory user={user} />;
       default: return <Overview overview={overview} goTo={setActiveTab} />;
     }
   };

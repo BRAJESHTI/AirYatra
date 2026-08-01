@@ -305,6 +305,125 @@ async def delete_holiday(
     return {"message": "Holiday removed / छुट्टी हटाई गई"}
 
 
+# ==================== ATTENDANCE MONTHLY EXPORT (CSV) ====================
+
+@router.get("/attendance/export")
+async def export_attendance_csv(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    current_user: dict = Depends(require_roles(HR_ADMIN)),
+    db=Depends(get_database)
+):
+    """One-click CSV export of the month's attendance for audits"""
+    import csv
+    now = datetime.now(timezone.utc)
+    month = month or now.month
+    year = year or now.year
+    start = f"{year}-{month:02d}-01"
+    end = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
+
+    staff = await db.users.find(
+        {"roles": {"$in": STAFF_ROLES}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "employee_code": 1, "department": 1, "designation": 1}
+    ).to_list(500)
+    staff_map = {s["id"]: s for s in staff}
+    records = await db.attendance.find(
+        {"employee_id": {"$in": list(staff_map.keys())}, "date": {"$gte": start, "$lt": end}}, {"_id": 0}
+    ).sort("date", 1).to_list(20000)
+    holidays = await db.company_holidays.find({"date": {"$gte": start, "$lt": end}}, {"_id": 0}).to_list(40)
+
+    def fmt_time(iso):
+        if not iso:
+            return ""
+        try:
+            return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%H:%M:%S")
+        except Exception:
+            return iso
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    period = datetime(year, month, 1).strftime("%B %Y")
+    w.writerow([f"AirYatra HRMS - Attendance Report - {period}"])
+    w.writerow([f"Generated: {now.strftime('%d %b %Y %H:%M UTC')}", f"Holidays this month: {len(holidays)}"])
+    w.writerow([])
+    w.writerow(["Employee Code", "Name", "Email", "Department", "Designation", "Date", "Check In (UTC)", "Check Out (UTC)", "Hours", "Status", "Selfie", "Leave Type"])
+    for r in records:
+        s = staff_map.get(r["employee_id"], {})
+        w.writerow([
+            s.get("employee_code", ""), s.get("full_name", r.get("employee_name", "")), s.get("email", ""),
+            s.get("department", ""), s.get("designation", ""), r.get("date", ""),
+            fmt_time(r.get("check_in_time")), fmt_time(r.get("check_out_time")),
+            r.get("total_hours", 0), r.get("status", ""), "Yes" if r.get("selfie_url") else "No", r.get("leave_type", ""),
+        ])
+
+    w.writerow([])
+    w.writerow(["SUMMARY"])
+    w.writerow(["Employee Code", "Name", "Present Days", "Half Days", "On Leave", "Total Hours"])
+    for s in staff:
+        emp_recs = [r for r in records if r["employee_id"] == s["id"]]
+        w.writerow([
+            s.get("employee_code", ""), s.get("full_name", ""),
+            len([r for r in emp_recs if r.get("status") == "present"]),
+            len([r for r in emp_recs if r.get("status") == "half_day"]),
+            len([r for r in emp_recs if r.get("status") == "on_leave"]),
+            round(sum(r.get("total_hours", 0) for r in emp_recs), 2),
+        ])
+    if holidays:
+        w.writerow([])
+        w.writerow(["HOLIDAYS"])
+        for h in holidays:
+            w.writerow([h["date"], h["name"]])
+
+    fname = f"AirYatra_Attendance_{period.replace(' ', '_')}.csv"
+    return Response(
+        content="\ufeff" + buf.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
+# ==================== EMPLOYEE DIRECTORY + PROFILE PHOTO ====================
+
+@router.post("/employee/photo")
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Upload own profile photo (shown in staff directory)"""
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Photo too large (max 5MB)")
+    upload_dir = "/app/uploads/profile_photos"
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = file.filename.split(".")[-1].lower() if "." in (file.filename or "") else "jpg"
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        ext = "jpg"
+    fname = f"{current_user['id']}_{uuid4().hex[:8]}.{ext}"
+    with open(f"{upload_dir}/{fname}", "wb") as f:
+        f.write(content)
+    photo_url = f"/api/uploads/profile_photos/{fname}"
+    await db.users.update_one({"id": current_user["id"]}, {"$set": {"photo_url": photo_url}})
+    return {"message": "Photo updated / फोटो अपडेट हो गई", "photo_url": photo_url}
+
+
+@router.get("/directory")
+async def staff_directory(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Searchable staff directory (staff + admins only)"""
+    roles = current_user.get("roles", [])
+    if not any(r in STAFF_ROLES + ["admin", "super_admin"] for r in roles):
+        raise HTTPException(status_code=403, detail="Access denied")
+    staff = await db.users.find(
+        {"roles": {"$in": STAFF_ROLES}, "is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "phone": 1, "roles": 1,
+         "department": 1, "designation": 1, "employee_code": 1, "photo_url": 1, "joining_date": 1}
+    ).sort("full_name", 1).to_list(500)
+    return {"staff": staff, "count": len(staff)}
+
+
 # ==================== EMPLOYEE SELF-SERVICE OVERVIEW ====================
 
 @router.get("/employee/overview")

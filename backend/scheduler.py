@@ -480,6 +480,72 @@ async def run_monthly_payroll():
         return 0
 
 
+async def send_attendance_nudges():
+    """Email staff who haven't checked in by 11 AM IST (skips Sundays, holidays, on-leave). Runs every 15 min."""
+    from database import get_database_sync
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        now = datetime.now(timezone.utc)
+        ist = now + timedelta(hours=5, minutes=30)
+        if ist.hour < 11 or ist.hour >= 14:
+            return 0
+        if ist.weekday() == 6:
+            return 0
+        today = ist.date().isoformat()
+        guard = await db.hr_settings.find_one({"type": "attendance_nudge"}, {"_id": 0}) or {}
+        if guard.get("last_nudge_date") == today:
+            return 0
+        if await db.company_holidays.find_one({"date": today}):
+            return 0
+
+        staff_roles = ["employee", "hr", "sales", "finance", "support", "marketing", "operations"]
+        staff = await db.users.find(
+            {"roles": {"$in": staff_roles}, "is_active": {"$ne": False}},
+            {"_id": 0, "id": 1, "email": 1, "full_name": 1}
+        ).to_list(500)
+        checked_in = {a["employee_id"] for a in await db.attendance.find({"date": today}, {"_id": 0, "employee_id": 1}).to_list(500)}
+        on_leave = {l["employee_id"] for l in await db.leaves.find(
+            {"status": "approved", "start_date": {"$lte": today}, "end_date": {"$gte": today}},
+            {"_id": 0, "employee_id": 1}).to_list(500)}
+        missing = [s for s in staff if s["id"] not in checked_in and s["id"] not in on_leave and s.get("email")]
+
+        from services.email_service import email_service
+        sent = 0
+        for s in missing:
+            try:
+                html = f"""
+                <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                  <div style="background:#0f172a;padding:20px 24px;"><span style="color:#fff;font-size:20px;font-weight:bold;">AirYatra</span><span style="color:#f97316;font-size:13px;margin-left:8px;">HRMS</span></div>
+                  <div style="padding:24px;">
+                    <h2 style="color:#f97316;margin:0 0 12px;font-size:18px;">⏰ Check-in Reminder / चेक-इन रिमाइंडर</h2>
+                    <p style="color:#0f172a;font-size:14px;">Hi {s.get('full_name', '')}, aapne aaj ({today}) abhi tak check-in nahi kiya hai.</p>
+                    <p style="color:#64748b;font-size:13px;">Employee Portal → Attendance → Check In (selfie ke saath). Agar aap chhutti par hain to please leave apply karein.</p>
+                  </div>
+                </div>"""
+                r = await email_service.send_email(
+                    to_email=s["email"],
+                    subject=f"⏰ Reminder: You haven't checked in today ({today}) — AirYatra HRMS",
+                    html_body=html,
+                )
+                if r.get("success"):
+                    sent += 1
+            except Exception as e:
+                logger.error(f"Nudge email failed for {s.get('email')}: {e}")
+
+        await db.hr_settings.update_one(
+            {"type": "attendance_nudge"},
+            {"$set": {"last_nudge_date": today, "last_nudge_at": now.isoformat(), "last_nudge_count": sent}},
+            upsert=True,
+        )
+        logger.info(f"Attendance nudge: {sent}/{len(missing)} reminder emails sent for {today}")
+        return sent
+    except Exception as e:
+        logger.error(f"send_attendance_nudges failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -555,8 +621,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Attendance nudge for missing staff (checks every 15 min, sends after 11 AM IST once/day)
+    scheduler.add_job(
+        send_attendance_nudges,
+        trigger=IntervalTrigger(minutes=15),
+        id="attendance_nudge",
+        name="Missing Staff Check-in Nudge",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge")
 
 
 def stop_scheduler():

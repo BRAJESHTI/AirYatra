@@ -41,6 +41,7 @@ from routes import crm_routes
 from routes import scheduler_routes
 from routes import hr_routes
 from routes import hr_employee_routes
+from routes import operator_erp_routes
 from routes import field_tracking_routes
 from routes import support_routes
 from routes import reviews_routes
@@ -186,6 +187,7 @@ api_router.include_router(crm_routes.router)
 api_router.include_router(scheduler_routes.router)
 api_router.include_router(hr_routes.router)
 api_router.include_router(hr_employee_routes.router)
+api_router.include_router(operator_erp_routes.router)
 api_router.include_router(field_tracking_routes.router)
 api_router.include_router(support_routes.router)
 api_router.include_router(reviews_routes.router)
