@@ -17,6 +17,7 @@ const RegionalManagerDashboard = lazy(() => import('./pages/RegionalManagerDashb
 const HelipadOwnerDashboard = lazy(() => import('./pages/HelipadOwnerDashboard'));
 const BookingPage = lazy(() => import('./pages/BookingPage'));
 const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 // New Role-based Dashboards - lazy loaded
 const HRDashboard = lazy(() => import('./pages/HRDashboard'));
 const EmployeePortal = lazy(() => import('./pages/EmployeePortal'));
@@ -172,6 +173,7 @@ function App() {
         <Route path="/membership" element={<MembershipPage user={user} />} />
         <Route path="/exchange" element={<AviationExchangePage user={user} />} />
         <Route path="/exchange/listing/:listingId" element={<ListingDetailPage user={user} />} />
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
         <Route 
           path="/corporate/*" 
           element={user ? <CorporateDashboard user={user} /> : <Navigate to="/login" />} 

@@ -112,80 +112,20 @@ function PaymentPage({ user }) {
   const handlePayment = async () => {
     setProcessing(true);
     try {
-      const amount = paymentInfo?.advance_amount || inquiry?.estimated_price;
-      
-      // Create payment order
-      const orderResponse = await paymentsAPI.createOrder({
+      const res = await api.post('/payments/stripe/checkout', {
         booking_id: inquiryId,
-        amount: amount,
-        voucher_code: appliedVoucher?.code || null
+        voucher_code: appliedVoucher?.code || null,
+        origin_url: window.location.origin,
       });
-
-      if (!orderResponse.data.success) {
-        throw new Error(orderResponse.data.message || 'Failed to create order');
-      }
-
-      // If Razorpay is configured, open Razorpay checkout
-      if (!orderResponse.data.mock && window.Razorpay) {
-        const options = {
-          key: orderResponse.data.key_id,
-          amount: orderResponse.data.amount,
-          currency: orderResponse.data.currency,
-          order_id: orderResponse.data.order_id,
-          name: 'AirYatra',
-          description: `Flight Booking - ${inquiry?.inquiry_number || inquiryId.slice(0, 8)}`,
-          handler: async function (response) {
-            await verifyPayment(response);
-          },
-          prefill: {
-            name: user?.full_name || '',
-            email: user?.email || '',
-            contact: user?.phone || ''
-          },
-          theme: {
-            color: '#f97316'
-          }
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
+      if (res.data.checkout_url) {
+        toast.info('Redirecting to secure Stripe checkout... / सुरक्षित भुगतान पेज पर जा रहे हैं');
+        window.location.href = res.data.checkout_url;
       } else {
-        // Mock payment flow for demo
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        await verifyPayment({
-          razorpay_order_id: orderResponse.data.order_id,
-          razorpay_payment_id: `pay_mock_${Date.now()}`,
-          razorpay_signature: 'mock_signature'
-        });
+        throw new Error('Failed to create checkout session');
       }
     } catch (error) {
-      toast.error(error.message || 'Payment failed / भुगतान विफल');
-    } finally {
+      toast.error(error.response?.data?.detail || error.message || 'Payment failed / भुगतान विफल');
       setProcessing(false);
-    }
-  };
-
-  const verifyPayment = async (paymentResponse) => {
-    try {
-      const verifyResponse = await paymentsAPI.verify({
-        razorpay_order_id: paymentResponse.razorpay_order_id,
-        razorpay_payment_id: paymentResponse.razorpay_payment_id,
-        razorpay_signature: paymentResponse.razorpay_signature,
-        booking_id: inquiryId
-      });
-
-      if (verifyResponse.data.verified || verifyResponse.data.success) {
-        toast.success('🎉 Payment successful! Booking confirmed! / भुगतान सफल! बुकिंग पुष्ट!');
-        // Redirect to inquiry status page to show confirmed booking
-        navigate(`/customer/inquiry/${inquiryId}`, { 
-          state: { paymentSuccess: true } 
-        });
-      } else {
-        toast.error('Payment verification failed / भुगतान सत्यापन विफल');
-      }
-    } catch (error) {
-      toast.error('Payment verification error / भुगतान सत्यापन त्रुटि');
     }
   };
 
@@ -426,7 +366,7 @@ function PaymentPage({ user }) {
         <div className="mt-6 text-center">
           <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
             <Shield className="h-4 w-4" />
-            Secured by Razorpay • 256-bit SSL encryption
+            Secured by Stripe (Test Mode) • 256-bit SSL encryption
           </p>
         </div>
 
