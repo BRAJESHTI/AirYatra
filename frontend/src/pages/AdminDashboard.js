@@ -8,6 +8,7 @@ import NotificationBell from '@/components/shared/NotificationBell';
 import AdminOverview from '@/components/admin/AdminOverview';
 import OperatorManagement from '@/components/admin/OperatorManagement';
 import BookingManagement from '@/components/admin/BookingManagement';
+import BookingCalendarView from '@/components/admin/BookingCalendarView';
 import LandingPermissionApproval from '@/components/admin/LandingPermissionApproval';
 import SettlementManagement from '@/components/admin/SettlementManagement';
 import AuditLogs from '@/components/admin/AuditLogs';
@@ -101,6 +102,7 @@ const navGroups = [
     icon: Calendar,
     items: [
       { id: 'bookings', label: 'All Bookings', icon: Calendar },
+      { id: 'flight_calendar', label: 'Flight Calendar', icon: Calendar, highlight: true },
       { id: 'multileg', label: 'Multi-Leg Booking', icon: Route },
       { id: 'live_tracking', label: 'Live Flight Tracking', icon: Radio, highlight: true },
       { id: 'boarding_pass', label: 'Digital Boarding Pass', icon: FileCheck },
@@ -287,6 +289,8 @@ function AdminDashboard({ user, onLogout }) {
       // Priority 2 Features
       case 'payments_dashboard':
         return <AdminPaymentsDashboard />;
+      case 'flight_calendar':
+        return <BookingCalendarView />;
       case 'invoices':
         return <InvoiceManagement />;
       case 'loyalty':

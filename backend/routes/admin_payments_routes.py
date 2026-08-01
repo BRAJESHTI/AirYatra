@@ -215,6 +215,109 @@ async def get_all_transactions(
     }
 
 
+# ==================== CALENDAR BOOKINGS ====================
+
+@router.get("/calendar-bookings")
+async def get_calendar_bookings(
+    start_date: str = None,  # YYYY-MM-DD
+    end_date: str = None,    # YYYY-MM-DD
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get bookings for calendar view with payment status"""
+    _require_admin(current_user)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Default: current month +/- 1 month
+    if not start_date:
+        start_date = (now.replace(day=1) - timedelta(days=30)).strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = (now.replace(day=1) + timedelta(days=60)).strftime("%Y-%m-%d")
+    
+    # Get inquiries with departure dates in range
+    inquiries = await db.inquiries.find(
+        {
+            "departure_date": {"$gte": start_date, "$lte": end_date}
+        },
+        {"_id": 0, "id": 1, "inquiry_number": 1, "customer_name": 1, "customer_id": 1,
+         "from_location": 1, "to_location": 1, "departure_date": 1, "departure_time": 1,
+         "payment_status": 1, "status": 1, "estimated_price": 1, "accepted_quote": 1}
+    ).sort("departure_date", 1).to_list(500)
+    
+    # Get bookings with departure dates in range
+    bookings = await db.bookings.find(
+        {
+            "departure_date": {"$gte": start_date, "$lte": end_date}
+        },
+        {"_id": 0, "id": 1, "booking_number": 1, "customer_name": 1, "customer_id": 1,
+         "from_location": 1, "to_location": 1, "departure_date": 1, "pickup_time": 1,
+         "payment_status": 1, "status": 1, "estimated_price": 1, "accepted_quote": 1}
+    ).sort("departure_date", 1).to_list(500)
+    
+    # Combine and format
+    all_flights = []
+    
+    for inq in inquiries:
+        all_flights.append({
+            "id": inq.get("id"),
+            "inquiry_number": inq.get("inquiry_number"),
+            "booking_number": None,
+            "customer_name": inq.get("customer_name", ""),
+            "from_location": inq.get("from_location", ""),
+            "to_location": inq.get("to_location", ""),
+            "departure_date": inq.get("departure_date"),
+            "departure_time": inq.get("departure_time"),
+            "payment_status": inq.get("payment_status"),
+            "status": inq.get("status"),
+            "estimated_price": inq.get("estimated_price"),
+            "accepted_quote": inq.get("accepted_quote"),
+            "type": "inquiry"
+        })
+    
+    for bkg in bookings:
+        all_flights.append({
+            "id": bkg.get("id"),
+            "inquiry_number": None,
+            "booking_number": bkg.get("booking_number"),
+            "customer_name": bkg.get("customer_name", ""),
+            "from_location": bkg.get("from_location", ""),
+            "to_location": bkg.get("to_location", ""),
+            "departure_date": bkg.get("departure_date"),
+            "departure_time": bkg.get("pickup_time"),
+            "payment_status": bkg.get("payment_status"),
+            "status": bkg.get("status"),
+            "estimated_price": bkg.get("estimated_price"),
+            "accepted_quote": bkg.get("accepted_quote"),
+            "type": "booking"
+        })
+    
+    # Sort by date
+    all_flights.sort(key=lambda x: x.get("departure_date", ""))
+    
+    # Group by date for summary
+    date_summary = {}
+    for flight in all_flights:
+        date = flight.get("departure_date")
+        if date not in date_summary:
+            date_summary[date] = {"total": 0, "paid": 0, "pending": 0, "fully_paid": 0}
+        date_summary[date]["total"] += 1
+        status = flight.get("payment_status")
+        if status == "fully_paid":
+            date_summary[date]["fully_paid"] += 1
+        elif status == "paid":
+            date_summary[date]["paid"] += 1
+        else:
+            date_summary[date]["pending"] += 1
+    
+    return {
+        "flights": all_flights,
+        "date_summary": date_summary,
+        "total_count": len(all_flights),
+        "date_range": {"start": start_date, "end": end_date}
+    }
+
+
 # ==================== QUICK PAYMENT LINK ====================
 
 @router.post("/generate-payment-link/{booking_id}")
