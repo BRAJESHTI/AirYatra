@@ -327,3 +327,170 @@ async def get_pricing_analysis(current_user: dict = Depends(get_current_user)):
         "monthly_revenue": monthly_revenue,
         "pricing_config": await get_pricing_config(db)
     }
+
+
+# ==================== PRICE HISTORY FOR CUSTOMERS ====================
+
+@router.get("/history")
+async def get_price_history(
+    from_city: str = Query(..., alias="from"),
+    to_city: str = Query(..., alias="to"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get price history for a route - helps customers find best time to book"""
+    db = get_database()
+    
+    now = datetime.now(timezone.utc)
+    six_months_ago = (now - timedelta(days=180)).isoformat()
+    
+    # Get bookings/inquiries for this route
+    from_pattern = {"$regex": from_city, "$options": "i"}
+    to_pattern = {"$regex": to_city, "$options": "i"}
+    
+    route_bookings = await db.inquiries.find(
+        {
+            "$or": [
+                {"from_location": from_pattern, "to_location": to_pattern},
+                {"origin": from_pattern, "destination": to_pattern},
+            ],
+            "created_at": {"$gte": six_months_ago},
+            "estimated_price": {"$exists": True, "$ne": None}
+        },
+        {"_id": 0, "estimated_price": 1, "accepted_quote": 1, "created_at": 1}
+    ).to_list(500)
+    
+    # Also check bookings collection
+    route_bookings_alt = await db.bookings.find(
+        {
+            "$and": [
+                {
+                    "$or": [
+                        {"from_location": from_pattern, "to_location": to_pattern},
+                        {"origin": from_pattern, "destination": to_pattern},
+                    ]
+                },
+                {"created_at": {"$gte": six_months_ago}},
+                {
+                    "$or": [
+                        {"total_amount": {"$exists": True, "$gt": 0}},
+                        {"estimated_price": {"$exists": True, "$gt": 0}}
+                    ]
+                }
+            ]
+        },
+        {"_id": 0, "total_amount": 1, "estimated_price": 1, "created_at": 1}
+    ).to_list(500)
+    
+    # Merge data
+    all_prices = []
+    for b in route_bookings:
+        price = float(b.get("accepted_quote", {}).get("amount") or b.get("estimated_price") or 0)
+        if price > 0:
+            all_prices.append({
+                "price": price,
+                "date": b.get("created_at", "")
+            })
+    
+    for b in route_bookings_alt:
+        price = float(b.get("total_amount") or b.get("estimated_price") or 0)
+        if price > 0:
+            all_prices.append({
+                "price": price,
+                "date": b.get("created_at", "")
+            })
+    
+    # If no historical data, generate sample data based on route
+    if not all_prices:
+        # Generate realistic sample data
+        base_prices = {
+            ("mumbai", "shirdi"): 85000,
+            ("mumbai", "pune"): 65000,
+            ("delhi", "agra"): 95000,
+            ("bangalore", "coorg"): 75000,
+            ("chennai", "tirupati"): 70000,
+        }
+        
+        route_key = (from_city.lower(), to_city.lower())
+        base = base_prices.get(route_key, 80000)
+        
+        # Generate 6 months of sample data
+        monthly_avg = []
+        for i in range(6):
+            month_date = datetime(now.year, now.month, 1) - timedelta(days=30*i)
+            month_label = month_date.strftime("%b %Y")
+            
+            # Add some variation
+            variation = 1.0 + (0.1 * (i % 3 - 1))  # -10% to +10%
+            if month_date.month in [10, 11, 12, 1, 2]:  # Peak season
+                variation *= 1.15
+            
+            monthly_avg.append({
+                "month": month_label,
+                "avg_price": round(base * variation)
+            })
+        
+        monthly_avg.reverse()
+        
+        current_price = monthly_avg[-1]["avg_price"] if monthly_avg else base
+        prices = [m["avg_price"] for m in monthly_avg]
+        
+        return {
+            "current_price": current_price,
+            "lowest_price": min(prices) if prices else base,
+            "highest_price": max(prices) if prices else base,
+            "avg_price": round(sum(prices) / len(prices)) if prices else base,
+            "lowest_month": monthly_avg[prices.index(min(prices))]["month"] if prices else "N/A",
+            "highest_month": monthly_avg[prices.index(max(prices))]["month"] if prices else "N/A",
+            "trend_percent": 0,
+            "monthly_avg": monthly_avg,
+            "route": f"{from_city} → {to_city}",
+            "data_source": "estimated"
+        }
+    
+    # Calculate monthly averages from real data
+    monthly_data = {}
+    for p in all_prices:
+        date_str = p.get("date", "")[:7]  # YYYY-MM
+        if date_str:
+            if date_str not in monthly_data:
+                monthly_data[date_str] = []
+            monthly_data[date_str].append(p["price"])
+    
+    # Build monthly average list
+    monthly_avg = []
+    for month_key in sorted(monthly_data.keys()):
+        prices = monthly_data[month_key]
+        month_date = datetime.strptime(month_key, "%Y-%m")
+        monthly_avg.append({
+            "month": month_date.strftime("%b %Y"),
+            "avg_price": round(sum(prices) / len(prices))
+        })
+    
+    # Calculate stats
+    all_values = [p["price"] for p in all_prices]
+    current_price = monthly_avg[-1]["avg_price"] if monthly_avg else (sum(all_values) / len(all_values) if all_values else 0)
+    
+    # Trend calculation (compare last month to previous)
+    trend_percent = 0
+    if len(monthly_avg) >= 2:
+        prev_price = monthly_avg[-2]["avg_price"]
+        if prev_price > 0:
+            trend_percent = round(((current_price - prev_price) / prev_price) * 100, 1)
+    
+    # Find lowest/highest months
+    prices_list = [m["avg_price"] for m in monthly_avg]
+    lowest_idx = prices_list.index(min(prices_list)) if prices_list else 0
+    highest_idx = prices_list.index(max(prices_list)) if prices_list else 0
+    
+    return {
+        "current_price": round(current_price),
+        "lowest_price": min(all_values) if all_values else 0,
+        "highest_price": max(all_values) if all_values else 0,
+        "avg_price": round(sum(all_values) / len(all_values)) if all_values else 0,
+        "lowest_month": monthly_avg[lowest_idx]["month"] if monthly_avg else "N/A",
+        "highest_month": monthly_avg[highest_idx]["month"] if monthly_avg else "N/A",
+        "trend_percent": trend_percent,
+        "monthly_avg": monthly_avg[-6:],  # Last 6 months
+        "route": f"{from_city} → {to_city}",
+        "data_source": "historical"
+    }

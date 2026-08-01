@@ -601,3 +601,126 @@ async def get_inquiry_details(
         "operator_mappings": mappings,
         "quotes": quotes
     }
+
+
+# ==================== COMMISSION SETTINGS ====================
+
+@router.get("/commission-settings")
+async def get_commission_settings(
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Get global commission settings"""
+    db = get_database()
+    
+    settings = await db.settings.find_one({"type": "commission_settings"}, {"_id": 0})
+    
+    if not settings:
+        # Return defaults
+        return {
+            "default_operator_rate": 85,
+            "platform_fee": 15,
+            "gst_rate": 18
+        }
+    
+    return {
+        "default_operator_rate": settings.get("default_operator_rate", 85),
+        "platform_fee": settings.get("platform_fee", 15),
+        "gst_rate": settings.get("gst_rate", 18)
+    }
+
+
+@router.put("/commission-settings")
+async def update_commission_settings(
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Update global commission settings"""
+    db = get_database()
+    
+    # Validate rates
+    operator_rate = float(data.get("default_operator_rate", 85))
+    platform_fee = float(data.get("platform_fee", 15))
+    gst_rate = float(data.get("gst_rate", 18))
+    
+    if operator_rate < 50 or operator_rate > 95:
+        raise HTTPException(status_code=400, detail="Operator rate must be between 50% and 95%")
+    
+    if platform_fee < 5 or platform_fee > 50:
+        raise HTTPException(status_code=400, detail="Platform fee must be between 5% and 50%")
+    
+    # Ensure operator_rate + platform_fee = 100
+    if abs((operator_rate + platform_fee) - 100) > 0.01:
+        raise HTTPException(status_code=400, detail="Operator rate + Platform fee must equal 100%")
+    
+    settings_data = {
+        "type": "commission_settings",
+        "default_operator_rate": operator_rate,
+        "platform_fee": platform_fee,
+        "gst_rate": gst_rate,
+        "updated_at": datetime.utcnow().isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    await db.settings.update_one(
+        {"type": "commission_settings"},
+        {"$set": settings_data},
+        upsert=True
+    )
+    
+    # Log audit
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name", "Admin"),
+        "action": "update_commission_settings",
+        "entity_type": "settings",
+        "entity_id": "commission_settings",
+        "changes": settings_data,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.audit_logs.insert_one(audit_log.copy())
+    
+    return {"message": "Commission settings updated successfully"}
+
+
+@router.put("/operators/{operator_id}/commission")
+async def update_operator_commission(
+    operator_id: str,
+    data: dict,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))
+):
+    """Update custom commission rate for specific operator"""
+    db = get_database()
+    
+    operator = await db.operators.find_one({"id": operator_id}, {"_id": 0})
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    
+    rate = float(data.get("commission_rate", 85))
+    
+    if rate < 50 or rate > 95:
+        raise HTTPException(status_code=400, detail="Commission rate must be between 50% and 95%")
+    
+    await db.operators.update_one(
+        {"id": operator_id},
+        {"$set": {
+            "commission_rate": rate,
+            "commission_updated_at": datetime.utcnow().isoformat(),
+            "commission_updated_by": current_user["id"]
+        }}
+    )
+    
+    # Log audit
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name", "Admin"),
+        "action": "update_operator_commission",
+        "entity_type": "operator",
+        "entity_id": operator_id,
+        "changes": {"commission_rate": rate, "operator_name": operator.get("company_name")},
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.audit_logs.insert_one(audit_log.copy())
+    
+    return {"message": f"Commission rate updated to {rate}% for {operator.get('company_name')}"}

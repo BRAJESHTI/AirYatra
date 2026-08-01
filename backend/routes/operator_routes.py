@@ -467,3 +467,135 @@ async def get_operator_revenue_dashboard(user: dict = Depends(get_current_user))
             "operator_share": round(operator_share, 2),
         }
     }
+
+
+# ==================== FLEET ANALYTICS ====================
+
+@router.get("/fleet/analytics")
+async def get_fleet_analytics(user: dict = Depends(get_current_user)):
+    """Get operator's fleet analytics - utilization, maintenance, performance metrics"""
+    from datetime import timedelta
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    
+    # Get operator profile
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        return {
+            "summary": {"total_aircraft": 0, "active_aircraft": 0, "avg_utilization": 0, "total_flight_hours": 0, "maintenance_due": 0},
+            "fleet": [],
+            "utilization_trend": []
+        }
+    
+    operator_id = operator["id"]
+    now = datetime.utcnow()
+    current_month = now.strftime("%Y-%m")
+    
+    # Get all aircraft for this operator
+    aircraft_list = await db.aircraft.find(
+        {"operator_id": operator_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get flight records for analytics
+    flight_records = await db.flight_records.find(
+        {"operator_id": operator_id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Calculate metrics per aircraft
+    fleet_data = []
+    total_hours = 0
+    total_month_hours = 0
+    maintenance_due_count = 0
+    
+    for aircraft in aircraft_list:
+        aircraft_id = aircraft.get("id")
+        registration = aircraft.get("registration") or aircraft.get("name", "Unknown")
+        model = aircraft.get("model") or aircraft.get("type", "Helicopter")
+        
+        # Get flight hours for this aircraft
+        aircraft_flights = [f for f in flight_records if f.get("aircraft_id") == aircraft_id]
+        aircraft_total_hours = sum(float(f.get("flight_hours", 0) or f.get("duration", 0) or 0) for f in aircraft_flights)
+        
+        # This month hours
+        month_flights = [f for f in aircraft_flights if (f.get("flight_date") or f.get("created_at") or "").startswith(current_month)]
+        month_hours = sum(float(f.get("flight_hours", 0) or f.get("duration", 0) or 0) for f in month_flights)
+        
+        total_hours += aircraft_total_hours
+        total_month_hours += month_hours
+        
+        # Calculate utilization rate (target: 100h/month = 100%)
+        utilization_rate = min(100, round((month_hours / 100) * 100))
+        
+        # Maintenance status
+        last_maintenance_hours = float(aircraft.get("last_maintenance_hours", 0) or 0)
+        hours_since_maintenance = aircraft_total_hours - last_maintenance_hours
+        
+        if hours_since_maintenance >= 100:
+            maintenance_status = "overdue"
+            maintenance_due_count += 1
+        elif hours_since_maintenance >= 80:
+            maintenance_status = "due_soon"
+            maintenance_due_count += 1
+        else:
+            maintenance_status = "good"
+        
+        # Get maintenance dates
+        last_maintenance = aircraft.get("last_maintenance_date")
+        next_maintenance = aircraft.get("next_maintenance_date")
+        
+        fleet_data.append({
+            "id": aircraft_id,
+            "registration": registration,
+            "name": registration,
+            "model": model,
+            "total_hours": round(aircraft_total_hours, 1),
+            "month_hours": round(month_hours, 1),
+            "utilization_rate": utilization_rate,
+            "hours_since_maintenance": round(hours_since_maintenance, 1),
+            "maintenance_status": maintenance_status,
+            "last_maintenance": last_maintenance,
+            "next_maintenance": next_maintenance,
+            "fuel_efficiency": aircraft.get("fuel_consumption", 150),
+            "is_active": aircraft.get("is_active", True)
+        })
+    
+    # Calculate average utilization
+    avg_utilization = round(sum(a["utilization_rate"] for a in fleet_data) / len(fleet_data)) if fleet_data else 0
+    
+    # Monthly utilization trend (last 6 months)
+    utilization_trend = []
+    for i in range(6):
+        month_date = datetime(now.year, now.month, 1) - timedelta(days=30*i)
+        month_key = month_date.strftime("%Y-%m")
+        month_label = month_date.strftime("%b %Y")
+        
+        month_flights = [f for f in flight_records if (f.get("flight_date") or f.get("created_at") or "").startswith(month_key)]
+        month_total_hours = sum(float(f.get("flight_hours", 0) or f.get("duration", 0) or 0) for f in month_flights)
+        
+        # Target hours = aircraft count * 100
+        target_hours = len(aircraft_list) * 100 if aircraft_list else 100
+        rate = min(100, round((month_total_hours / target_hours) * 100)) if target_hours > 0 else 0
+        
+        utilization_trend.append({
+            "month": month_label,
+            "rate": rate,
+            "hours": round(month_total_hours, 1)
+        })
+    
+    utilization_trend.reverse()  # Oldest first
+    
+    return {
+        "summary": {
+            "total_aircraft": len(aircraft_list),
+            "active_aircraft": sum(1 for a in fleet_data if a.get("is_active", True)),
+            "avg_utilization": avg_utilization,
+            "total_flight_hours": round(total_hours, 1),
+            "maintenance_due": maintenance_due_count
+        },
+        "fleet": fleet_data,
+        "utilization_trend": utilization_trend
+    }

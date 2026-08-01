@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Bot, HardDrive, Database } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Bot, HardDrive, Database, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -81,6 +81,7 @@ import ExchangeManagement from '@/components/admin/ExchangeManagement';
 import CEODashboard from '@/components/admin/CEODashboard';
 import PartnerManagement from '@/components/admin/PartnerManagement';
 import AdminPaymentsDashboard from '@/components/admin/AdminPaymentsDashboard';
+import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -143,6 +144,7 @@ const navGroups = [
     icon: DollarSign,
     items: [
       { id: 'payments_dashboard', label: 'Payments Dashboard', icon: Wallet, highlight: true },
+      { id: 'commission_settings', label: 'Commission Settings / कमीशन', icon: Percent, highlight: true },
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
       { id: 'pricing_engine', label: 'Pricing Engine / मूल्य इंजन', icon: Calculator, highlight: true },
@@ -289,6 +291,8 @@ function AdminDashboard({ user, onLogout }) {
       // Priority 2 Features
       case 'payments_dashboard':
         return <AdminPaymentsDashboard />;
+      case 'commission_settings':
+        return <AdminCommissionSettings />;
       case 'flight_calendar':
         return <BookingCalendarView />;
       case 'invoices':
