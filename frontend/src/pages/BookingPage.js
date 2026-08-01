@@ -155,7 +155,7 @@ function BookingPage({ user }) {
   useEffect(() => {
     if (user && savedStep > 0) {
       setCurrentStep(savedStep);
-      toast.success('📋 Form data restored! / फॉर्म डाटा बहाल किया गया!');
+      toast.success(`📋 ${t('bookingForm.formRestored')}`);
     }
   }, [user, savedStep]);
 
@@ -366,8 +366,8 @@ function BookingPage({ user }) {
           base_price: breakdown.base_flight_cost,
           permission_required: permissionRequired,
           note: permissionRequired 
-            ? 'Village landing requires admin approval / गांव लैंडिंग के लिए एडमिन अनुमति जरूरी' 
-            : 'Price calculated by Aviation-Grade Pricing Engine / एविएशन-ग्रेड प्राइसिंग इंजन द्वारा गणना'
+            ? t('bookingForm.noteVillageApproval') 
+            : t('bookingForm.notePriceEngine')
         });
         
       } else {
@@ -465,8 +465,8 @@ function BookingPage({ user }) {
       is_approximate: true,
       permission_required: permissionRequired,
       note: permissionRequired 
-        ? 'Village landing requires admin approval / गांव लैंडिंग के लिए एडमिन अनुमति जरूरी' 
-        : 'Final price will be confirmed by operator / अंतिम मूल्य ऑपरेटर द्वारा पुष्टि होगी',
+        ? t('bookingForm.noteVillageApproval') 
+        : t('bookingForm.noteFinalPrice'),
       calculated_at: new Date().toISOString()
     });
   };
@@ -527,49 +527,49 @@ function BookingPage({ user }) {
     switch (step) {
       case 0: // Passengers
         if (!formData.aircraft_type) {
-          toast.error('Please select aircraft type / विमान प्रकार चुनें');
+          toast.error(t('bookingForm.selectAircraftError'));
           return false;
         }
         if (formData.total_passengers < 1) {
-          toast.error('At least 1 adult passenger required / कम से कम 1 वयस्क यात्री आवश्यक');
+          toast.error(t('bookingForm.minAdultError'));
           return false;
         }
         if (formData.children_count > 2) {
-          toast.error('Maximum 2 children allowed / अधिकतम 2 बच्चे');
+          toast.error(t('bookingForm.maxChildrenError'));
           return false;
         }
         return true;
         
       case 1: // Booking Type
         if (!formData.udan_prakar) {
-          toast.error('Please select flight type / उड़ान प्रकार चुनें');
+          toast.error(t('bookingForm.selectFlightTypeError'));
           return false;
         }
         if (!formData.booking_for) {
-          toast.error('Please select booking for / बुकिंग किसके लिए चुनें');
+          toast.error(t('bookingForm.selectBookingForError'));
           return false;
         }
         if (!formData.booking_purpose) {
-          toast.error('Please select booking purpose / बुकिंग उद्देश्य चुनें');
+          toast.error(t('bookingForm.selectPurposeError'));
           return false;
         }
         return true;
         
       case 2: // Route
         if (!formData.pickup_landing_point) {
-          toast.error('Please select pickup location / पिकअप स्थान चुनें');
+          toast.error(t('bookingForm.selectPickupError'));
           return false;
         }
         if (!formData.drop_landing_point) {
-          toast.error('Please select drop location / ड्रॉप स्थान चुनें');
+          toast.error(t('bookingForm.selectDropError'));
           return false;
         }
         if (!formData.departure_date) {
-          toast.error('Please select departure date / प्रस्थान तारीख चुनें');
+          toast.error(t('bookingForm.selectDateError'));
           return false;
         }
         if (!formData.pickup_time) {
-          toast.error('Please select pickup time / पिकअप समय चुनें');
+          toast.error(t('bookingForm.selectTimeError'));
           return false;
         }
         return true;
@@ -604,7 +604,7 @@ function BookingPage({ user }) {
     
     // STRICT RULE: No booking without resolved price
     if (!priceEstimate || !priceEstimate.total || priceEstimate.total <= 0) {
-      toast.error('⚠️ Price not calculated! Please wait for price calculation / मूल्य गणना नहीं हुई, कृपया प्रतीक्षा करें');
+      toast.error(`⚠️ ${t('bookingForm.priceWaitError')}`);
       return;
     }
     
@@ -684,7 +684,7 @@ function BookingPage({ user }) {
           console.error('Permission request failed:', permError);
         }
       } else {
-        toast.success('🎉 Inquiry submitted! Operators will respond soon / इंक्वायरी जमा! ऑपरेटर जल्द जवाब देंगे');
+        toast.success(`🎉 ${t('bookingForm.inquirySubmitted')}`);
       }
       
       // Navigate to inquiry status page
@@ -705,7 +705,7 @@ function BookingPage({ user }) {
       {/* Aircraft Type Selection */}
       <div>
         <Label className="text-white text-lg mb-4 block">
-          Select Aircraft Type / विमान प्रकार चुनें <span className="text-red-500">*</span>
+          {t('bookingForm.selectAircraftType')} <span className="text-red-500">*</span>
         </Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {aircraftTypes.map(type => (
@@ -719,8 +719,8 @@ function BookingPage({ user }) {
               }`}
             >
               <span className="text-4xl mb-3 block">{type.icon}</span>
-              <span className="text-white font-semibold block">{type.label}</span>
-              <span className="text-slate-400 text-sm">Max {type.maxPassengers} passengers</span>
+              <span className="text-white font-semibold block">{t(`options.${type.value}`)}</span>
+              <span className="text-slate-400 text-sm">{t('bookingForm.maxPassengers', { count: type.maxPassengers })}</span>
             </button>
           ))}
         </div>
@@ -730,13 +730,13 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Users className="h-5 w-5 text-orange-400" />
-          Adult Passengers / वयस्क यात्री
+          {t('bookingForm.adultPassengers')}
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Male Adults */}
           <div>
-            <Label className="text-slate-300 mb-2 block">Male / पुरुष</Label>
+            <Label className="text-slate-300 mb-2 block">{t('bookingForm.male')}</Label>
             <div className="flex items-center gap-4">
               <Button
                 type="button"
@@ -762,7 +762,7 @@ function BookingPage({ user }) {
           
           {/* Female Adults */}
           <div>
-            <Label className="text-slate-300 mb-2 block">Female / महिला</Label>
+            <Label className="text-slate-300 mb-2 block">{t('bookingForm.female')}</Label>
             <div className="flex items-center gap-4">
               <Button
                 type="button"
@@ -790,7 +790,7 @@ function BookingPage({ user }) {
         {/* Total Adults */}
         <div className="mt-4 pt-4 border-t border-slate-700">
           <p className="text-slate-400">
-            Total Adults / कुल वयस्क: <span className="text-orange-400 font-bold text-xl">{formData.total_passengers}</span>
+            {t('bookingForm.totalAdults')}: <span className="text-orange-400 font-bold text-xl">{formData.total_passengers}</span>
           </p>
         </div>
       </div>
@@ -799,9 +799,9 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
           <Baby className="h-5 w-5 text-blue-400" />
-          Children (Up to 4 years) / बच्चे (4 साल तक)
+          {t('bookingForm.children')}
         </h3>
-        <p className="text-green-400 text-sm mb-4">✨ FREE - Max 2 children / मुफ्त - अधिकतम 2 बच्चे</p>
+        <p className="text-green-400 text-sm mb-4">✨ {t('bookingForm.childrenFree')}</p>
         
         <div className="flex items-center gap-4">
           <Button
@@ -836,24 +836,24 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <Label className="text-white text-lg mb-3 block flex items-center gap-2">
           <Plane className="h-5 w-5 text-orange-400" />
-          उड़ान का प्रकार / Flight Type <span className="text-red-500">*</span>
+          {t('bookingForm.flightType')} <span className="text-red-500">*</span>
         </Label>
         <select
           value={formData.udan_prakar}
           onChange={(e) => handleInputChange('udan_prakar', e.target.value)}
           className="w-full p-4 bg-slate-900 border border-slate-600 rounded-xl text-white text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
         >
-          <option value="" className="bg-slate-900">-- Select Flight Type / उड़ान प्रकार चुनें --</option>
+          <option value="" className="bg-slate-900">{t('bookingForm.selectOption')}</option>
           {udanPrakarOptions.map(option => (
             <option key={option.value} value={option.value} className="bg-slate-900">
-              {option.icon} {option.label}
+              {option.icon} {t(`options.${option.value}`)}
             </option>
           ))}
         </select>
         {formData.udan_prakar && (
           <p className="mt-2 text-orange-400 text-sm flex items-center gap-2">
             <Check className="h-4 w-4" />
-            Selected: {udanPrakarOptions.find(o => o.value === formData.udan_prakar)?.label}
+            {t('bookingForm.selected')}: {t(`options.${formData.udan_prakar}`)}
           </p>
         )}
       </div>
@@ -862,24 +862,24 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <Label className="text-white text-lg mb-3 block flex items-center gap-2">
           <User className="h-5 w-5 text-blue-400" />
-          बुकिंग किसके लिए / Booking For <span className="text-red-500">*</span>
+          {t('bookingForm.bookingFor')} <span className="text-red-500">*</span>
         </Label>
         <select
           value={formData.booking_for}
           onChange={(e) => handleInputChange('booking_for', e.target.value)}
           className="w-full p-4 bg-slate-900 border border-slate-600 rounded-xl text-white text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
         >
-          <option value="" className="bg-slate-900">-- Select Booking For / किसके लिए चुनें --</option>
+          <option value="" className="bg-slate-900">{t('bookingForm.selectOption')}</option>
           {bookingForOptions.map(option => (
             <option key={option.value} value={option.value} className="bg-slate-900">
-              {option.icon} {option.label}
+              {option.icon} {t(`options.${option.value}`)}
             </option>
           ))}
         </select>
         {formData.booking_for && (
           <p className="mt-2 text-blue-400 text-sm flex items-center gap-2">
             <Check className="h-4 w-4" />
-            Selected: {bookingForOptions.find(o => o.value === formData.booking_for)?.label}
+            {t('bookingForm.selected')}: {t(`options.${formData.booking_for}`)}
           </p>
         )}
       </div>
@@ -888,30 +888,30 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <Label className="text-white text-lg mb-3 block flex items-center gap-2">
           <Target className="h-5 w-5 text-green-400" />
-          बुकिंग का उद्देश्य / Booking Purpose <span className="text-red-500">*</span>
+          {t('bookingForm.bookingPurpose')} <span className="text-red-500">*</span>
         </Label>
         <select
           value={formData.booking_purpose}
           onChange={(e) => handleInputChange('booking_purpose', e.target.value)}
           className="w-full p-4 bg-slate-900 border border-slate-600 rounded-xl text-white text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
         >
-          <option value="" className="bg-slate-900">-- Select Purpose / उद्देश्य चुनें --</option>
+          <option value="" className="bg-slate-900">{t('bookingForm.selectOption')}</option>
           {bookingPurposeOptions.map(option => (
             <option key={option.value} value={option.value} className="bg-slate-900">
-              {option.icon} {option.label}
+              {option.icon} {t(`options.${option.value}`)}
             </option>
           ))}
         </select>
         {formData.booking_purpose && (
           <p className="mt-2 text-green-400 text-sm flex items-center gap-2">
             <Check className="h-4 w-4" />
-            Selected: {bookingPurposeOptions.find(o => o.value === formData.booking_purpose)?.label}
+            {t('bookingForm.selected')}: {t(`options.${formData.booking_purpose}`)}
           </p>
         )}
         
         {formData.booking_purpose === 'other' && (
           <Input
-            placeholder="Specify purpose / उद्देश्य बताएं"
+            placeholder={t('bookingForm.specifyPurpose')}
             value={formData.booking_purpose_other}
             onChange={(e) => handleInputChange('booking_purpose_other', e.target.value)}
             className="mt-4 bg-slate-800 border-slate-600 text-white"
@@ -928,10 +928,10 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Navigation className="h-5 w-5 text-green-400" />
-          Pickup Location / पिकअप स्थान
+          {t('bookingForm.pickupLocation')}
         </h3>
         <LandingPointSelector
-          label="Select Pickup Point / पिकअप पॉइंट चुनें"
+          label={t('bookingForm.selectPickupPoint')}
           type="pickup"
           selectedDate={formData.departure_date}
           aircraftType={formData.aircraft_type}
@@ -944,10 +944,10 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <MapPin className="h-5 w-5 text-red-400" />
-          Drop Location / ड्रॉप स्थान
+          {t('bookingForm.dropLocation')}
         </h3>
         <LandingPointSelector
-          label="Select Drop Point / ड्रॉप पॉइंट चुनें"
+          label={t('bookingForm.selectDropPoint')}
           type="drop"
           selectedDate={formData.departure_date}
           aircraftType={formData.aircraft_type}
@@ -959,7 +959,7 @@ function BookingPage({ user }) {
       {/* Distance Display */}
       {distanceKm > 0 && (
         <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/30 text-center">
-          <p className="text-blue-400 text-sm">Estimated Distance / अनुमानित दूरी</p>
+          <p className="text-blue-400 text-sm">{t('bookingForm.estimatedDistance')}</p>
           <p className="text-white text-3xl font-bold">{distanceKm} KM</p>
         </div>
       )}
@@ -970,19 +970,18 @@ function BookingPage({ user }) {
           <div className="flex items-start gap-3">
             <AlertCircle className="h-6 w-6 text-yellow-400 shrink-0" />
             <div>
-              <h4 className="text-yellow-400 font-semibold">Village Landing - Documents Required</h4>
+              <h4 className="text-yellow-400 font-semibold">{t('bookingForm.villageDocsTitle')}</h4>
               <p className="text-yellow-400/70 text-sm mt-1">
-                गांव/निजी जमीन पर लैंडिंग के लिए आपको Authority से निम्न Documents लेने होंगे:
+                {t('bookingForm.villageDocsDesc')}
               </p>
               <ul className="text-yellow-400/70 text-sm mt-2 list-disc list-inside space-y-1">
-                <li>Collector NOC / कलेक्टर NOC</li>
-                <li>Fire Department Acknowledgment / फायर विभाग की पावती</li>
-                <li>Local Police Station Acknowledgment / स्थानीय थाना की पावती</li>
-                <li>SP/DCP Acknowledgment / SP/DCP की पावती</li>
+                <li>{t('bookingForm.docCollectorNoc')}</li>
+                <li>{t('bookingForm.docFireDept')}</li>
+                <li>{t('bookingForm.docPoliceStation')}</li>
+                <li>{t('bookingForm.docSpDcp')}</li>
               </ul>
               <p className="text-yellow-400/80 text-xs mt-3 font-medium">
-                ⚠️ Booking confirm hone ke baad, aapko ye documents upload karne honge. 
-                Admin/Operator verify karenge, tab hi Pilot udan bharega.
+                ⚠️ {t('bookingForm.villageDocsNote')}
               </p>
             </div>
           </div>
@@ -994,7 +993,7 @@ function BookingPage({ user }) {
         <div>
           <Label className="text-white mb-2 block">
             <Calendar className="h-4 w-4 inline mr-2" />
-            Departure Date / प्रस्थान तारीख <span className="text-red-500">*</span>
+            {t('bookingForm.departureDate')} <span className="text-red-500">*</span>
           </Label>
           <Input
             type="date"
@@ -1008,7 +1007,7 @@ function BookingPage({ user }) {
         <div>
           <Label className="text-white mb-2 block">
             <Clock className="h-4 w-4 inline mr-2" />
-            Pickup Time / पिकअप समय <span className="text-red-500">*</span>
+            {t('bookingForm.pickupTime')} <span className="text-red-500">*</span>
           </Label>
           <Input
             type="time"
@@ -1023,12 +1022,12 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
         <p className="text-slate-400 text-sm mb-3 flex items-center gap-2">
           <Clock className="h-4 w-4 text-yellow-400" />
-          Additional Options / अतिरिक्त विकल्प (Optional)
+          {t('bookingForm.additionalOptions')}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-slate-300 mb-2 block text-sm">
-              Waiting Time / प्रतीक्षा समय (minutes)
+              {t('bookingForm.waitingTime')}
             </Label>
             <Input
               type="number"
@@ -1039,12 +1038,12 @@ function BookingPage({ user }) {
               placeholder="0"
               className="bg-slate-800 border-slate-600 text-white"
             />
-            <p className="text-xs text-slate-500 mt-1">First 30 min free, then charges apply</p>
+            <p className="text-xs text-slate-500 mt-1">{t('bookingForm.waitingTimeNote')}</p>
           </div>
           
           <div>
             <Label className="text-slate-300 mb-2 block text-sm">
-              Night Halts / रात्रि ठहराव
+              {t('bookingForm.nightHalts')}
             </Label>
             <Input
               type="number"
@@ -1055,7 +1054,7 @@ function BookingPage({ user }) {
               placeholder="0"
               className="bg-slate-800 border-slate-600 text-white"
             />
-            <p className="text-xs text-slate-500 mt-1">Includes crew accommodation charges</p>
+            <p className="text-xs text-slate-500 mt-1">{t('bookingForm.nightHaltsNote')}</p>
           </div>
         </div>
       </div>
@@ -1069,20 +1068,20 @@ function BookingPage({ user }) {
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Briefcase className="h-5 w-5 text-orange-400" />
-          Booking Summary / बुकिंग सारांश
+          {t('bookingForm.bookingSummary')}
         </h3>
         
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="text-slate-400">Aircraft Type:</div>
-          <div className="text-white">{formData.aircraft_type === 'helicopter' ? '🚁 Helicopter' : '✈️ Chartered Plane'}</div>
+          <div className="text-slate-400">{t('bookingForm.aircraftTypeLabel')}</div>
+          <div className="text-white">{formData.aircraft_type === 'helicopter' ? '🚁' : '✈️'} {t(`options.${formData.aircraft_type || 'helicopter'}`)}</div>
           
-          <div className="text-slate-400">Total Passengers:</div>
-          <div className="text-white">{formData.total_passengers} Adults + {formData.children_count} Children</div>
+          <div className="text-slate-400">{t('bookingForm.totalPassengersLabel')}</div>
+          <div className="text-white">{formData.total_passengers} {t('bookingForm.adults')} + {formData.children_count} {t('bookingForm.childrenLabel')}</div>
           
-          <div className="text-slate-400">Flight Type:</div>
-          <div className="text-white">{udanPrakarOptions.find(o => o.value === formData.udan_prakar)?.label || '-'}</div>
+          <div className="text-slate-400">{t('bookingForm.flightTypeLabel')}</div>
+          <div className="text-white">{formData.udan_prakar ? t(`options.${formData.udan_prakar}`) : '-'}</div>
           
-          <div className="text-slate-400">Pickup:</div>
+          <div className="text-slate-400">{t('bookingForm.pickupLabel')}</div>
           <div className="text-white">
             {formData.pickup_landing_point?.landing_point_name || formData.pickup_location}
             {formData.pickup_landing_point?.landing_point_type && (
@@ -1092,7 +1091,7 @@ function BookingPage({ user }) {
             )}
           </div>
           
-          <div className="text-slate-400">Drop:</div>
+          <div className="text-slate-400">{t('bookingForm.dropLabel')}</div>
           <div className="text-white">
             {formData.drop_landing_point?.landing_point_name || formData.drop_location}
             {formData.drop_landing_point?.landing_point_type && (
@@ -1102,11 +1101,11 @@ function BookingPage({ user }) {
             )}
           </div>
           
-          <div className="text-slate-400">Distance:</div>
+          <div className="text-slate-400">{t('bookingForm.distanceLabel')}</div>
           <div className="text-orange-400 font-bold">{distanceKm} KM</div>
           
-          <div className="text-slate-400">Date & Time:</div>
-          <div className="text-white">{formData.departure_date} at {formData.pickup_time}</div>
+          <div className="text-slate-400">{t('bookingForm.dateTimeLabel')}</div>
+          <div className="text-white">{formData.departure_date} {t('bookingForm.at')} {formData.pickup_time}</div>
         </div>
       </div>
 
@@ -1116,12 +1115,9 @@ function BookingPage({ user }) {
           <div className="flex items-start gap-3">
             <AlertCircle className="h-6 w-6 text-yellow-400 shrink-0" />
             <div>
-              <h4 className="text-yellow-400 font-semibold">⚠️ Village Landing - Admin Approval Required</h4>
+              <h4 className="text-yellow-400 font-semibold">⚠️ {t('bookingForm.villageApprovalTitle')}</h4>
               <p className="text-yellow-400/70 text-sm mt-1">
-                Your inquiry will be submitted for admin approval. Payment will be enabled after approval.
-              </p>
-              <p className="text-yellow-400/70 text-sm">
-                आपकी इंक्वायरी एडमिन अप्रूवल के लिए भेजी जाएगी। अप्रूवल के बाद पेमेंट enabled होगी।
+                {t('bookingForm.villageApprovalDesc')}
               </p>
             </div>
           </div>
@@ -1133,7 +1129,7 @@ function BookingPage({ user }) {
         <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-xl p-6 border border-orange-500/30">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <Calculator className="h-5 w-5 text-orange-400" />
-            Price Breakdown / मूल्य विवरण
+            {t('bookingForm.priceBreakdown')}
             {priceEstimate.calculation_id && (
               <span className="text-xs text-slate-500 ml-auto">ID: {priceEstimate.calculation_id}</span>
             )}
@@ -1142,15 +1138,15 @@ function BookingPage({ user }) {
           <div className="space-y-2 text-sm">
             {/* Base Charges Section */}
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-              <p className="text-orange-400 font-semibold mb-2 text-xs uppercase tracking-wide">Base Flight Cost / उड़ान लागत</p>
+              <p className="text-orange-400 font-semibold mb-2 text-xs uppercase tracking-wide">{t('bookingForm.baseFlightCost')}</p>
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-300">
-                  <span>Flight Cost ({distanceKm} km):</span>
+                  <span>{t('bookingForm.flightCost')} ({distanceKm} km):</span>
                   <span>₹{(priceEstimate.base_flight_cost || priceEstimate.base_price || 0).toLocaleString()}</span>
                 </div>
                 {priceEstimate.dead_leg_cost > 0 && (
                   <div className="flex justify-between text-slate-300">
-                    <span>Positioning Cost / डेड-लेग:</span>
+                    <span>{t('bookingForm.positioningCost')}:</span>
                     <span>₹{priceEstimate.dead_leg_cost?.toLocaleString()}</span>
                   </div>
                 )}
@@ -1168,12 +1164,12 @@ function BookingPage({ user }) {
                 )}
                 {priceEstimate.round_trip_discount > 0 && (
                   <div className="flex justify-between text-green-400">
-                    <span>Round Trip Discount:</span>
+                    <span>{t('bookingForm.roundTripDiscount')}:</span>
                     <span>-₹{priceEstimate.round_trip_discount?.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
-                  <span>Operator Gross Cost:</span>
+                  <span>{t('bookingForm.operatorGrossCost')}:</span>
                   <span>₹{(priceEstimate.operator_gross_cost || priceEstimate.base_subtotal || 0).toLocaleString()}</span>
                 </div>
               </div>
@@ -1182,11 +1178,11 @@ function BookingPage({ user }) {
             {/* Additional Aviation Charges */}
             {(priceEstimate.waiting_charges > 0 || priceEstimate.night_halt_cost > 0 || priceEstimate.crew_charges > 0) && (
               <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-                <p className="text-yellow-400 font-semibold mb-2 text-xs uppercase tracking-wide">Additional Charges / अतिरिक्त शुल्क</p>
+                <p className="text-yellow-400 font-semibold mb-2 text-xs uppercase tracking-wide">{t('bookingForm.additionalCharges')}</p>
                 <div className="space-y-1">
                   {priceEstimate.waiting_charges > 0 && (
                     <div className="flex justify-between text-slate-300">
-                      <span>Waiting / Ground Holding:</span>
+                      <span>{t('bookingForm.waitingGroundHolding')}:</span>
                       <span>₹{priceEstimate.waiting_charges?.toLocaleString()}</span>
                     </div>
                   )}
@@ -1198,13 +1194,13 @@ function BookingPage({ user }) {
                   )}
                   {priceEstimate.crew_charges > 0 && (
                     <div className="flex justify-between text-slate-300">
-                      <span>Crew Accommodation & Food:</span>
+                      <span>{t('bookingForm.crewAccommodation')}:</span>
                       <span>₹{priceEstimate.crew_charges?.toLocaleString()}</span>
                     </div>
                   )}
                   {priceEstimate.fuel_surcharge > 0 && (
                     <div className="flex justify-between text-slate-300">
-                      <span>Fuel Surcharge:</span>
+                      <span>{t('bookingForm.fuelSurcharge')}:</span>
                       <span>₹{priceEstimate.fuel_surcharge?.toLocaleString()}</span>
                     </div>
                   )}
@@ -1214,19 +1210,19 @@ function BookingPage({ user }) {
 
             {/* Platform Fees & Charges */}
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-              <p className="text-blue-400 font-semibold mb-2 text-xs uppercase tracking-wide">Platform Fees / प्लेटफॉर्म शुल्क</p>
+              <p className="text-blue-400 font-semibold mb-2 text-xs uppercase tracking-wide">{t('bookingForm.platformFees')}</p>
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-300">
-                  <span>Convenience Fee ({priceEstimate.convenience_fee_percent || 5}%):</span>
+                  <span>{t('bookingForm.convenienceFee')} ({priceEstimate.convenience_fee_percent || 5}%):</span>
                   <span>₹{(priceEstimate.convenience_fee || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Insurance ({priceEstimate.insurance_percent || 2}%):</span>
+                  <span>{t('bookingForm.insurance')} ({priceEstimate.insurance_percent || 2}%):</span>
                   <span>₹{(priceEstimate.insurance || 0).toLocaleString()}</span>
                 </div>
                 {priceEstimate.peak_surge_applied && (
                   <div className="flex justify-between text-red-400">
-                    <span>Peak Season Surge ({priceEstimate.peak_surge_multiplier}x):</span>
+                    <span>{t('bookingForm.peakSurge')} ({priceEstimate.peak_surge_multiplier}x):</span>
                     <span>+₹{priceEstimate.peak_surge_amount?.toLocaleString()}</span>
                   </div>
                 )}
@@ -1242,7 +1238,7 @@ function BookingPage({ user }) {
               <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
                 <p className="text-green-400 font-semibold mb-2 text-xs uppercase tracking-wide flex items-center gap-1">
                   <Building2 className="h-3 w-3" />
-                  Helipad Landing Charges / हेलीपैड शुल्क
+                  {t('bookingForm.helipadCharges')}
                 </p>
                 <div className="space-y-1">
                   {priceEstimate.pickup_landing_charge > 0 && (
@@ -1258,7 +1254,7 @@ function BookingPage({ user }) {
                     </div>
                   )}
                   <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
-                    <span>Total Landing Charges:</span>
+                    <span>{t('bookingForm.totalLandingCharges')}:</span>
                     <span>₹{priceEstimate.total_landing_charges?.toLocaleString()}</span>
                   </div>
                 </div>
@@ -1268,11 +1264,11 @@ function BookingPage({ user }) {
             {/* GST Breakdown */}
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
               <p className="text-purple-400 font-semibold mb-2 text-xs uppercase tracking-wide">
-                GST / जीएसटी ({priceEstimate.gst_type === 'inter_state' ? 'IGST' : 'CGST+SGST'})
+                GST ({priceEstimate.gst_type === 'inter_state' ? 'IGST' : 'CGST+SGST'})
               </p>
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-400 text-xs">
-                  <span>Taxable Amount:</span>
+                  <span>{t('bookingForm.taxableAmount')}:</span>
                   <span>₹{(priceEstimate.taxable_amount || priceEstimate.subtotal_before_gst || 0).toLocaleString()}</span>
                 </div>
                 {priceEstimate.gst_type === 'inter_state' ? (
@@ -1293,7 +1289,7 @@ function BookingPage({ user }) {
                   </>
                 )}
                 <div className="flex justify-between text-slate-200 font-medium pt-1 border-t border-slate-700">
-                  <span>Total GST:</span>
+                  <span>{t('bookingForm.totalGst')}:</span>
                   <span>₹{(priceEstimate.total_gst || priceEstimate.gst || 0).toLocaleString()}</span>
                 </div>
               </div>
@@ -1303,14 +1299,14 @@ function BookingPage({ user }) {
             <div className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-lg p-4 border border-orange-500/40">
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-white font-bold text-lg">Grand Total</span>
-                  <span className="text-slate-400 text-xs block">कुल राशि (Inclusive of all taxes)</span>
+                  <span className="text-white font-bold text-lg">{t('bookingForm.grandTotal')}</span>
+                  <span className="text-slate-400 text-xs block">({t('bookingForm.inclusiveTaxes')})</span>
                 </div>
                 <span className="text-orange-400 font-bold text-2xl">₹{(priceEstimate.total || 0).toLocaleString()}</span>
               </div>
               {priceEstimate.operator_payout > 0 && (
                 <div className="mt-2 pt-2 border-t border-orange-500/30 flex justify-between text-xs text-slate-400">
-                  <span>Operator will receive:</span>
+                  <span>{t('bookingForm.operatorReceives')}:</span>
                   <span>₹{priceEstimate.operator_payout?.toLocaleString()}</span>
                 </div>
               )}
@@ -1338,12 +1334,12 @@ function BookingPage({ user }) {
       {/* Special Requirements */}
       <div>
         <Label className="text-white mb-2 block">
-          Special Requirements / विशेष आवश्यकताएं (Optional)
+          {t('bookingForm.specialRequirements')}
         </Label>
         <textarea
           value={formData.special_requirements}
           onChange={(e) => handleInputChange('special_requirements', e.target.value)}
-          placeholder="Any special requests or requirements..."
+          placeholder={t('bookingForm.specialRequirementsPlaceholder')}
           className="w-full h-24 bg-slate-800 border border-slate-600 rounded-lg p-3 text-white placeholder-slate-500"
         />
       </div>
@@ -1357,30 +1353,18 @@ function BookingPage({ user }) {
         {submitting ? (
           <>
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            Submitting...
+            {t('bookingForm.submitting')}
           </>
         ) : (
           <>
             <Send className="h-5 w-5 mr-2" />
-            {permissionRequired ? 'Submit for Approval / अनुमति के लिए भेजें' : 'Generate Inquiry / इंक्वायरी भेजें'}
+            {permissionRequired ? t('bookingForm.submitApproval') : t('bookingForm.generateInquiry')}
           </>
         )}
       </Button>
 
       <p className="text-center text-slate-400 text-sm">
-        {permissionRequired ? (
-          <>
-            Your inquiry requires admin approval for village landing.
-            <br />
-            गांव लैंडिंग के लिए एडमिन अप्रूवल जरूरी है।
-          </>
-        ) : (
-          <>
-            After inquiry, operators will review and send you their quotes.
-            <br />
-            इंक्वायरी के बाद, ऑपरेटर्स आपको कोट भेजेंगे।
-          </>
-        )}
+        {permissionRequired ? t('bookingForm.approvalNote') : t('bookingForm.inquiryNote')}
       </p>
     </div>
   );
