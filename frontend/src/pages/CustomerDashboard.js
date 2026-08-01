@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import CustomerProfile from '../components/customer/CustomerProfile';
 import ReferAndEarn from '../components/customer/ReferAndEarn';
 import LoyaltyRewards from '../components/customer/LoyaltyRewards';
 import MyAircraftListings from '../components/customer/MyAircraftListings';
+import MyInvestments from '../components/customer/MyInvestments';
 import NotificationBell from '../components/shared/NotificationBell';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -31,6 +32,7 @@ const navGroups = [
     icon: Gift,
     items: [
       { id: 'refer', label: 'Refer & Earn / रेफर करें', icon: Gift, path: '/customer/refer' },
+      { id: 'investments', label: 'My Investments / मेरा निवेश', icon: PieChart, path: '/customer/investments' },
       { id: 'wallet', label: 'My Wallet / वॉलेट', icon: Wallet, path: '/customer/wallet' },
       { id: 'loyalty', label: 'VIP Points / वीआईपी', icon: Star, path: '/customer/loyalty' },
     ]
@@ -73,6 +75,7 @@ function CustomerDashboard({ user, onLogout }) {
     const path = location.pathname;
     if (path.includes('/trips')) setActiveTab('trips');
     else if (path.includes('/listings')) setActiveTab('mylistings');
+    else if (path.includes('/investments')) setActiveTab('investments');
     else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
     else if (path.includes('/refer')) setActiveTab('refer');
@@ -126,6 +129,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <MyTrips user={user} />;
       case 'mylistings':
         return <MyAircraftListings user={user} />;
+      case 'investments':
+        return <MyInvestments user={user} />;
       case 'profile':
         return <CustomerProfile user={user} />;
       case 'messages':

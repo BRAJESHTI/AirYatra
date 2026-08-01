@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plane, MessageSquare, CheckCircle2, XCircle, BadgeCheck, Clock, MapPin, Phone, Mail, Loader2, Tag, Star, PieChart } from 'lucide-react';
+import { Plane, MessageSquare, CheckCircle2, XCircle, BadgeCheck, Clock, MapPin, Phone, Mail, Loader2, Tag, Star, PieChart, Gavel, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '../../services/api';
+import AdminAuctions from './AdminAuctions';
+import AdminInspections from './AdminInspections';
 
 const formatCr = (p) => `₹${(p / 10000000).toFixed(p % 10000000 === 0 ? 0 : 1)} Cr`;
 
@@ -12,31 +18,41 @@ const STATUS_STYLES = {
   active: 'bg-green-500/15 text-green-400 border-green-500/30',
   rejected: 'bg-red-500/15 text-red-400 border-red-500/30',
   sold: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  in_auction: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
   new: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
   contacted: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   approved: 'bg-green-500/15 text-green-400 border-green-500/30',
   closed: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
+const AUCTION_DEFAULTS = { start_cr: '', reserve_cr: '', increment_lakh: '5', duration_hours: '72' };
+
 const ExchangeManagement = () => {
   const [tab, setTab] = useState('listings');
   const [listings, setListings] = useState([]);
   const [inquiries, setInquiries] = useState([]);
   const [fractional, setFractional] = useState({ reservations: [], offerings: [] });
+  const [counts, setCounts] = useState({ auctions: 0, inspections: 0 });
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [auctionFor, setAuctionFor] = useState(null);
+  const [auctionCfg, setAuctionCfg] = useState(AUCTION_DEFAULTS);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [l, i, f] = await Promise.all([
+      const [l, i, f, a, insp] = await Promise.all([
         api.get('/exchange/admin/listings'),
         api.get('/exchange/admin/inquiries'),
         api.get('/exchange/admin/fractional-reservations'),
+        api.get('/exchange/admin/auctions'),
+        api.get('/exchange/admin/inspections'),
       ]);
       setListings(l.data.listings || []);
       setInquiries(i.data.inquiries || []);
       setFractional(f.data);
+      setCounts({ auctions: a.data.live_count || 0, inspections: insp.data.requested_count || 0 });
     } catch (e) {
       toast.error('Failed to load exchange data');
     } finally {
@@ -44,14 +60,14 @@ const ExchangeManagement = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   const act = async (key, fn) => {
     setActing(key);
     try {
       const res = await fn();
       toast.success(res.data.message);
-      load();
+      setReloadKey(k => k + 1);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Action failed');
     } finally {
@@ -64,18 +80,43 @@ const ExchangeManagement = () => {
   const setInquiryStatus = (id, status) => act(id + status, () => api.patch(`/exchange/admin/inquiries/${id}/status?status=${status}`));
   const setReservationStatus = (id, status) => act(id + status, () => api.patch(`/exchange/admin/fractional-reservations/${id}/status?status=${status}`));
 
+  const startAuction = async () => {
+    if (!auctionCfg.start_cr || !auctionCfg.reserve_cr) {
+      toast.error('Enter starting bid and reserve price');
+      return;
+    }
+    setActing('auction');
+    try {
+      const res = await api.post(`/exchange/admin/listings/${auctionFor.id}/start-auction`, {
+        starting_bid_inr: parseFloat(auctionCfg.start_cr) * 10000000,
+        reserve_price_inr: parseFloat(auctionCfg.reserve_cr) * 10000000,
+        min_increment_inr: parseFloat(auctionCfg.increment_lakh || '5') * 100000,
+        duration_hours: parseInt(auctionCfg.duration_hours || '72', 10),
+      });
+      toast.success(res.data.message);
+      setAuctionFor(null);
+      setAuctionCfg(AUCTION_DEFAULTS);
+      setReloadKey(k => k + 1);
+      setTab('auctions');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to start auction');
+    } finally {
+      setActing(null);
+    }
+  };
+
   const pendingCount = listings.filter(l => l.status === 'pending_review').length;
   const newInquiries = inquiries.filter(i => i.status === 'new').length;
   const newReservations = (fractional.reservations || []).filter(r => r.status === 'new').length;
 
-  const tabBtn = (id, label, Icon, count) => (
+  const tabBtn = (id, label, Icon, count, badgeLabel = 'new') => (
     <button
       onClick={() => setTab(id)}
       className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 border transition-all ${tab === id ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 text-slate-300 hover:border-orange-500/50'}`}
       data-testid={`exchange-tab-${id}`}
     >
       <Icon className="h-4 w-4" /> {label}
-      {count > 0 && <Badge className="bg-yellow-500 text-slate-900 ml-1">{count} new</Badge>}
+      {count > 0 && <Badge className="bg-yellow-500 text-slate-900 ml-1">{count} {badgeLabel}</Badge>}
     </button>
   );
 
@@ -85,16 +126,18 @@ const ExchangeManagement = () => {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Plane className="h-6 w-6 text-orange-500" /> Aviation Exchange
         </h1>
-        <p className="text-slate-400 text-sm">Listings, buyer inquiries & fractional ownership / लिस्टिंग, पूछताछ और फ्रैक्शनल स्वामित्व</p>
+        <p className="text-slate-400 text-sm">Listings, auctions, inquiries, inspections & fractional ownership</p>
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {tabBtn('listings', 'Listings', Tag, pendingCount)}
-        {tabBtn('inquiries', 'Buyer Inquiries', MessageSquare, newInquiries)}
+        {tabBtn('listings', 'Listings', Tag, pendingCount, 'pending')}
+        {tabBtn('auctions', 'Auctions', Gavel, counts.auctions, 'live')}
+        {tabBtn('inquiries', 'Inquiries', MessageSquare, newInquiries)}
+        {tabBtn('inspections', 'Inspections', ClipboardCheck, counts.inspections, 'new')}
         {tabBtn('fractional', 'Fractional EOIs', PieChart, newReservations)}
       </div>
 
-      {loading ? (
+      {loading && tab === 'listings' ? (
         <div className="text-center text-slate-500 py-16"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
       ) : tab === 'listings' ? (
         <div className="space-y-3" data-testid="exchange-listings-list">
@@ -107,6 +150,7 @@ const ExchangeManagement = () => {
                   <h3 className="text-white font-semibold">{l.title}</h3>
                   <Badge className={`border ${STATUS_STYLES[l.status] || ''}`} data-testid={`listing-status-${l.id}`}>{l.status.replace('_', ' ')}</Badge>
                   {l.featured && <Badge className="bg-amber-500/15 text-amber-400 border border-amber-500/30"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
+                  {l.enable_auction && l.status === 'pending_review' && <Badge className="bg-orange-500/15 text-orange-400 border border-orange-500/30"><Gavel className="h-3 w-3 mr-1" /> Auction on approve</Badge>}
                   {l.verified && <BadgeCheck className="h-4 w-4 text-green-400" />}
                 </div>
                 <p className="text-orange-400 font-bold text-sm mt-1">{formatCr(l.price_inr)}</p>
@@ -130,6 +174,9 @@ const ExchangeManagement = () => {
                 )}
                 {l.status === 'active' && (
                   <>
+                    <Button size="sm" onClick={() => { setAuctionFor(l); setAuctionCfg({ ...AUCTION_DEFAULTS, start_cr: String((l.price_inr * 0.8) / 10000000), reserve_cr: String(l.price_inr / 10000000) }); }} disabled={!!acting} className="bg-orange-600 hover:bg-orange-700" data-testid={`start-auction-${l.id}`}>
+                      <Gavel className="h-4 w-4 mr-1" /> Start Auction
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -154,6 +201,10 @@ const ExchangeManagement = () => {
             </div>
           ))}
         </div>
+      ) : tab === 'auctions' ? (
+        <AdminAuctions key={`auc-${reloadKey}`} />
+      ) : tab === 'inspections' ? (
+        <AdminInspections key={`insp-${reloadKey}`} />
       ) : tab === 'inquiries' ? (
         <div className="space-y-3" data-testid="exchange-inquiries-list">
           {inquiries.length === 0 && <p className="text-slate-500 text-center py-10">No buyer inquiries yet.</p>}
@@ -242,6 +293,42 @@ const ExchangeManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Start Auction Dialog */}
+      <Dialog open={!!auctionFor} onOpenChange={(o) => !o && setAuctionFor(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md" data-testid="start-auction-dialog">
+          {auctionFor && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Gavel className="h-5 w-5 text-orange-400" /> Start Auction — {auctionFor.title}</DialogTitle>
+                <DialogDescription className="text-slate-400">Listing price: {formatCr(auctionFor.price_inr)}. Listing moves to auction mode until it ends.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400">Starting Bid (₹ Cr) *</label>
+                  <Input type="number" value={auctionCfg.start_cr} onChange={(e) => setAuctionCfg({ ...auctionCfg, start_cr: e.target.value })} className="bg-slate-800 border-slate-600 text-white" data-testid="auction-start-input" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Reserve Price (₹ Cr) *</label>
+                  <Input type="number" value={auctionCfg.reserve_cr} onChange={(e) => setAuctionCfg({ ...auctionCfg, reserve_cr: e.target.value })} className="bg-slate-800 border-slate-600 text-white" data-testid="auction-reserve-input" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Min Increment (₹ Lakh)</label>
+                  <Input type="number" value={auctionCfg.increment_lakh} onChange={(e) => setAuctionCfg({ ...auctionCfg, increment_lakh: e.target.value })} className="bg-slate-800 border-slate-600 text-white" data-testid="auction-increment-input" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Duration (hours)</label>
+                  <Input type="number" value={auctionCfg.duration_hours} onChange={(e) => setAuctionCfg({ ...auctionCfg, duration_hours: e.target.value })} className="bg-slate-800 border-slate-600 text-white" data-testid="auction-duration-input" />
+                </div>
+              </div>
+              <Button onClick={startAuction} disabled={acting === 'auction'} className="w-full bg-orange-500 hover:bg-orange-600" data-testid="auction-submit-btn">
+                {acting === 'auction' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Gavel className="h-4 w-4 mr-2" />}
+                Go Live
+              </Button>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

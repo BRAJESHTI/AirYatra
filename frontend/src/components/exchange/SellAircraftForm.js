@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Upload, CheckCircle2, IndianRupee } from 'lucide-react';
+import { Loader2, Upload, CheckCircle2, IndianRupee, Gavel } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,11 +11,12 @@ import api from '../../services/api';
 const EMPTY = {
   title: '', manufacturer: '', model: '', category: 'helicopter',
   year: '', price_cr: '', flight_hours: '', seats: '', location: '',
-  description: '', features: '',
+  description: '', features: '', auction_start_cr: '', auction_reserve_cr: '',
 };
 
 export const SellAircraftForm = ({ open, onClose, user }) => {
   const [form, setForm] = useState(EMPTY);
+  const [enableAuction, setEnableAuction] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -45,6 +46,10 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
     const required = ['title', 'manufacturer', 'model', 'year', 'price_cr', 'flight_hours', 'seats', 'location'];
     const missing = required.filter(k => !String(form[k]).trim());
     if (missing.length) { toast.error('Please fill all required fields / सभी फ़ील्ड भरें'); return; }
+    if (enableAuction && !String(form.auction_start_cr).trim()) {
+      toast.error('Please enter an auction starting bid');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -55,6 +60,9 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
         location: form.location, description: form.description,
         features: form.features.split(',').map(f => f.trim()).filter(Boolean),
         image: imageUrl,
+        enable_auction: enableAuction,
+        auction_starting_bid_inr: enableAuction ? parseFloat(form.auction_start_cr) * 10000000 : null,
+        auction_reserve_price_inr: enableAuction && form.auction_reserve_cr ? parseFloat(form.auction_reserve_cr) * 10000000 : null,
       };
       await api.post('/exchange/listings', payload);
       setDone(true);
@@ -65,7 +73,7 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
     }
   };
 
-  const close = () => { setForm(EMPTY); setImageUrl(null); setDone(false); onClose(); };
+  const close = () => { setForm(EMPTY); setEnableAuction(false); setImageUrl(null); setDone(false); onClose(); };
 
   const inputCls = 'bg-slate-800 border-slate-600 text-white';
 
@@ -77,7 +85,8 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
             <CheckCircle2 className="h-16 w-16 text-green-400 mx-auto mb-4" />
             <h3 className="text-2xl font-bold">Listing Submitted! / लिस्टिंग जमा हो गई</h3>
             <p className="text-slate-400 mt-2 max-w-md mx-auto">
-              Our team will verify your aircraft details and publish it within 48 hours. You'll receive an email once it's live.
+              Our team will verify your aircraft details and publish it within 48 hours.
+              {enableAuction ? ' Your auction will go live automatically once approved.' : " You'll receive an email once it's live."}
             </p>
             <Button onClick={close} className="mt-6 bg-orange-500 hover:bg-orange-600" data-testid="sell-done-btn">Done</Button>
           </div>
@@ -139,6 +148,28 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
                 <label className="text-xs text-slate-400">Key Features (comma separated)</label>
                 <Input value={form.features} onChange={set('features')} placeholder="Garmin G1000, Air Conditioning, Leather Interior" className={inputCls} data-testid="sell-features-input" />
               </div>
+
+              <div className="sm:col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                <label className="flex items-center gap-2 cursor-pointer" data-testid="sell-auction-toggle">
+                  <input type="checkbox" checked={enableAuction} onChange={(e) => setEnableAuction(e.target.checked)} className="accent-orange-500 h-4 w-4" />
+                  <Gavel className="h-4 w-4 text-orange-400" />
+                  <span className="text-sm text-white font-medium">Sell via Live Auction / नीलामी से बेचें</span>
+                </label>
+                <p className="text-slate-500 text-xs mt-1 ml-6">Auction goes live for 72 hours once approved. Get competitive bids from serious buyers.</p>
+                {enableAuction && (
+                  <div className="grid sm:grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="text-xs text-slate-400">Starting Bid (₹ Crores) *</label>
+                      <Input type="number" value={form.auction_start_cr} onChange={set('auction_start_cr')} placeholder="20" className={inputCls} data-testid="sell-auction-start-input" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400">Reserve Price (₹ Cr, optional)</label>
+                      <Input type="number" value={form.auction_reserve_cr} onChange={set('auction_reserve_cr')} placeholder="25" className={inputCls} data-testid="sell-auction-reserve-input" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="text-xs text-slate-400">Aircraft Photo (max 8MB)</label>
                 <div className="flex items-center gap-3 mt-1">

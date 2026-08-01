@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend E2E testing of Phase 2 Aviation Exchange: 3-mode toggle, live auction bidding, inspection booking, My Investments PDF certificate, admin Auctions/Inspections/Listings tabs with start-auction dialog, and Sell form auction opt-in. All flows PASS.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Cleanup test data created during QA: (a) one extra bid ₹31.20 Cr on auction auc-9a4f47d2 by loyaltytest (current bid moved from 31 -> 31.20 Cr, bid count now 2); (b) one new inspection request for Bell 407GXi by loyaltytest (2026-08-06, Morning slot, phone 9999999999, notes 'TEST inspection booking from automated QA') — status = requested; safe to cancel via admin Inspections tab."
+  ],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "seed_data_creation": "1 extra bid on King Air 250 auction (31.20 Cr) + 1 inspection request on Bell 407GXi (both by loyaltytest@airyatra.com)",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@airyatra.com/Admin123!, loyaltytest@airyatra.com/Loyalty@123",
+  "context_for_next_testing_agent": "All Phase 2 Aviation Exchange frontend flows verified: mode-buy/auctions/fractional toggles render; auction card shows LIVE badge, countdown timer, current bid & bid count; bid dialog validates min next bid (rejected ₹31 with toast 'Minimum bid is ₹311,000,000'; accepted ₹31.2 with success toast 'Bid placed! You are the highest bidder.'); bid history masks name as 'Loyalty T.'; inspection dialog form (date/slot select/phone/notes) submits and shows 'Inspection request received!' toast; /customer/investments route renders MyInvestments with stats (1 Reservation, 2 Approved Shares, ₹18 Cr Portfolio) and downloads AirYatra_Share_Certificate_*.pdf on Certificate button click; admin Aviation Exchange has all 5 tabs (Listings/Auctions/Inquiries/Inspections/Fractional EOIs); Auctions tab shows admin-auction card with Start/Reserve/Current/bids/end time/highest bidder full name 'Loyalty Tester' + End Now button; Inspections tab shows both the pre-existing confirmed H125 (Mark Completed btn) and my new requested Bell 407GXi (Confirm & Email / Cancel btns); Listings tab Start Auction dialog opens with prefilled starting=22.8 reserve=28.5 increment=5 duration=72; Sell form 'Sell via Live Auction' checkbox reveals sell-auction-start-input + sell-auction-reserve-input as expected. No console errors or page errors observed.",
+  "rca_of_the_issue": "n/a"
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plane, Search, MapPin, Clock, Users, BadgeCheck, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle, Star, PieChart, ShoppingBag
+  Plane, Search, MapPin, Clock, Users, BadgeCheck, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle, Star, PieChart, ShoppingBag, Gavel, ClipboardCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import api from '../services/api';
 import SellAircraftForm from '../components/exchange/SellAircraftForm';
 import FractionalSection from '../components/exchange/FractionalSection';
+import AuctionSection from '../components/exchange/AuctionSection';
+import InspectionDialog from '../components/exchange/InspectionDialog';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Aircraft' },
@@ -102,6 +104,7 @@ export default function AviationExchangePage({ user }) {
   const [inquiryMsg, setInquiryMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [sellOpen, setSellOpen] = useState(false);
+  const [inspectionFor, setInspectionFor] = useState(null);
 
   const openSell = () => {
     if (!user) {
@@ -109,6 +112,15 @@ export default function AviationExchangePage({ user }) {
       return;
     }
     setSellOpen(true);
+  };
+
+  const openInspection = () => {
+    if (!user) {
+      toast.error('Please login to book an inspection / निरीक्षण बुक करने के लिए लॉगिन करें');
+      return;
+    }
+    setInspectionFor(selected);
+    setSelected(null);
   };
 
   const load = useCallback(async () => {
@@ -150,6 +162,16 @@ export default function AviationExchangePage({ user }) {
     }
   };
 
+  const modeBtn = (id, label, Icon, testid) => (
+    <button
+      onClick={() => setMode(id)}
+      className={`px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all ${mode === id ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+      data-testid={testid}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-slate-950" data-testid="aviation-exchange-page">
       {/* Header */}
@@ -190,27 +212,20 @@ export default function AviationExchangePage({ user }) {
 
       {/* Mode Toggle */}
       <div className="max-w-7xl mx-auto px-6 pb-8">
-        <div className="inline-flex bg-slate-900 border border-slate-800 rounded-full p-1" data-testid="mode-toggle">
-          <button
-            onClick={() => setMode('buy')}
-            className={`px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all ${mode === 'buy' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
-            data-testid="mode-buy-btn"
-          >
-            <ShoppingBag className="h-4 w-4" /> Buy Aircraft
-          </button>
-          <button
-            onClick={() => setMode('fractional')}
-            className={`px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all ${mode === 'fractional' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
-            data-testid="mode-fractional-btn"
-          >
-            <PieChart className="h-4 w-4" /> Fractional Ownership
-          </button>
+        <div className="inline-flex bg-slate-900 border border-slate-800 rounded-full p-1 flex-wrap" data-testid="mode-toggle">
+          {modeBtn('buy', 'Buy Aircraft', ShoppingBag, 'mode-buy-btn')}
+          {modeBtn('auctions', 'Live Auctions', Gavel, 'mode-auctions-btn')}
+          {modeBtn('fractional', 'Fractional Ownership', PieChart, 'mode-fractional-btn')}
         </div>
       </div>
 
       {mode === 'fractional' ? (
         <div className="max-w-7xl mx-auto px-6 pb-16">
           <FractionalSection user={user} />
+        </div>
+      ) : mode === 'auctions' ? (
+        <div className="max-w-7xl mx-auto px-6 pb-16">
+          <AuctionSection user={user} />
         </div>
       ) : (
         <>
@@ -304,6 +319,14 @@ export default function AviationExchangePage({ user }) {
               <p className="text-slate-500 text-xs flex items-center gap-1">
                 <MapPin className="h-3 w-3" /> {selected.location} • Seller: {selected.seller_name}
               </p>
+              <Button
+                onClick={openInspection}
+                variant="outline"
+                className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                data-testid="book-inspection-btn"
+              >
+                <ClipboardCheck className="h-4 w-4 mr-2" /> Book Pre-Purchase Inspection / निरीक्षण बुक करें
+              </Button>
               <div className="border-t border-slate-700 pt-4">
                 <p className="text-white font-medium mb-2">Interested? Send an inquiry / पूछताछ भेजें</p>
                 <textarea
@@ -329,6 +352,7 @@ export default function AviationExchangePage({ user }) {
       </Dialog>
 
       <SellAircraftForm open={sellOpen} onClose={() => setSellOpen(false)} user={user} />
+      <InspectionDialog listing={inspectionFor} open={!!inspectionFor} onClose={() => setInspectionFor(null)} />
     </div>
   );
 }

@@ -37,6 +37,9 @@ class ListingCreate(BaseModel):
     description: str = ""
     features: List[str] = []
     image: Optional[str] = None
+    enable_auction: bool = False
+    auction_starting_bid_inr: Optional[float] = None
+    auction_reserve_price_inr: Optional[float] = None
 
 
 class InquiryCreate(BaseModel):
@@ -255,6 +258,16 @@ async def update_listing_status(listing_id: str, background_tasks: BackgroundTas
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     await db.exchange_listings.update_one({"id": listing_id}, {"$set": {"status": status, "verified": status == "active"}})
+    if status == "active" and listing.get("enable_auction") and listing.get("auction_starting_bid_inr"):
+        if not await db.exchange_auctions.find_one({"listing_id": listing_id, "status": "live"}):
+            starting = listing["auction_starting_bid_inr"]
+            reserve = listing.get("auction_reserve_price_inr") or starting
+            await _create_auction(db, listing, {
+                "starting_bid_inr": starting,
+                "reserve_price_inr": reserve,
+                "min_increment_inr": max(100000.0, starting * 0.01),
+                "duration_hours": 72,
+            })
     if status in ("active", "rejected") and listing.get("seller_id"):
         seller = await db.users.find_one({"id": listing["seller_id"]}, {"_id": 0, "email": 1, "full_name": 1})
         if seller and seller.get("email"):
@@ -392,3 +405,360 @@ async def update_fractional_reservation(reservation_id: str, status: str = Query
             raise HTTPException(status_code=400, detail="Not enough shares available to allocate")
     await db.exchange_fractional_reservations.update_one({"id": reservation_id}, {"$set": {"status": status}})
     return {"message": f"Reservation marked {status}"}
+
+
+# ============ Aircraft Auctions ============
+
+class AuctionCreate(BaseModel):
+    starting_bid_inr: float
+    reserve_price_inr: float
+    min_increment_inr: float = 500000
+    duration_hours: int = 72
+
+
+class BidCreate(BaseModel):
+    amount_inr: float
+
+
+def _mask_name(name):
+    if not name:
+        return "Anonymous"
+    parts = name.split()
+    return f"{parts[0]} {parts[-1][0]}." if len(parts) > 1 else parts[0]
+
+
+async def _create_auction(db, listing, cfg: dict):
+    now = datetime.now(timezone.utc)
+    ends = datetime.fromtimestamp(now.timestamp() + cfg["duration_hours"] * 3600, tz=timezone.utc)
+    auction = {
+        "id": f"auc-{uuid4().hex[:8]}",
+        "listing_id": listing["id"],
+        "title": listing["title"], "image": listing.get("image"), "category": listing.get("category"),
+        "location": listing.get("location"), "year": listing.get("year"),
+        "flight_hours": listing.get("flight_hours"), "seats": listing.get("seats"),
+        "seller_name": listing.get("seller_name"),
+        "starting_bid_inr": cfg["starting_bid_inr"],
+        "reserve_price_inr": cfg["reserve_price_inr"],
+        "min_increment_inr": cfg["min_increment_inr"],
+        "current_bid_inr": 0, "bid_count": 0,
+        "highest_bidder_id": None, "highest_bidder_name": None,
+        "starts_at": now.isoformat(), "ends_at": ends.isoformat(),
+        "status": "live", "result": None,
+        "created_at": now.isoformat(),
+    }
+    await db.exchange_auctions.insert_one(dict(auction))
+    await db.exchange_listings.update_one({"id": listing["id"]}, {"$set": {"status": "in_auction"}})
+    return auction
+
+
+async def _finalize_if_due(db, auction):
+    if auction.get("status") != "live":
+        return auction
+    if datetime.fromisoformat(auction["ends_at"]) > datetime.now(timezone.utc):
+        return auction
+    if auction.get("highest_bidder_id"):
+        result = "sold" if auction["current_bid_inr"] >= auction["reserve_price_inr"] else "reserve_not_met"
+    else:
+        result = "no_bids"
+    await db.exchange_auctions.update_one({"id": auction["id"], "status": "live"}, {"$set": {"status": "ended", "result": result}})
+    await db.exchange_listings.update_one({"id": auction["listing_id"]}, {"$set": {"status": "sold" if result == "sold" else "active"}})
+    auction["status"] = "ended"
+    auction["result"] = result
+    return auction
+
+
+def _public_auction(a):
+    a = dict(a)
+    reserve = a.pop("reserve_price_inr", 0)
+    a["reserve_met"] = bool(a.get("bid_count", 0) > 0 and a.get("current_bid_inr", 0) >= reserve)
+    a.pop("highest_bidder_id", None)
+    if a.get("highest_bidder_name"):
+        a["highest_bidder_name"] = _mask_name(a["highest_bidder_name"])
+    return a
+
+
+@router.get("/auctions")
+async def get_auctions():
+    """Public: live & recently ended auctions"""
+    db = get_database()
+    auctions = await db.exchange_auctions.find({}, {"_id": 0}).sort("ends_at", 1).to_list(100)
+    out = []
+    for a in auctions:
+        a = await _finalize_if_due(db, a)
+        out.append(_public_auction(a))
+    live = [a for a in out if a["status"] == "live"]
+    ended = sorted([a for a in out if a["status"] == "ended"], key=lambda x: x["ends_at"], reverse=True)[:10]
+    return {"live": live, "ended": ended, "server_time": datetime.now(timezone.utc).isoformat()}
+
+
+@router.post("/auctions/{auction_id}/bid")
+async def place_bid(auction_id: str, bid: BidCreate, current_user: dict = Depends(get_current_user)):
+    """Place a bid on a live auction"""
+    db = get_database()
+    auction = await db.exchange_auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    auction = await _finalize_if_due(db, auction)
+    if auction["status"] != "live":
+        raise HTTPException(status_code=400, detail="Auction has ended")
+    min_next = (auction["current_bid_inr"] + auction["min_increment_inr"]) if auction["bid_count"] > 0 else auction["starting_bid_inr"]
+    if bid.amount_inr < min_next:
+        raise HTTPException(status_code=400, detail=f"Minimum bid is ₹{min_next:,.0f}")
+    r = await db.exchange_auctions.update_one(
+        {"id": auction_id, "status": "live", "current_bid_inr": {"$lt": bid.amount_inr}},
+        {"$set": {"current_bid_inr": bid.amount_inr, "highest_bidder_id": current_user["id"], "highest_bidder_name": current_user.get("full_name")}, "$inc": {"bid_count": 1}},
+    )
+    if r.modified_count == 0:
+        raise HTTPException(status_code=409, detail="You were outbid — refresh and place a higher bid")
+    await db.exchange_bids.insert_one({
+        "id": str(uuid4()), "auction_id": auction_id,
+        "bidder_id": current_user["id"], "bidder_name": current_user.get("full_name"),
+        "amount_inr": bid.amount_inr, "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"message": "Bid placed! You are the highest bidder.", "current_bid_inr": bid.amount_inr}
+
+
+@router.get("/auctions/{auction_id}/bids")
+async def get_bid_history(auction_id: str):
+    """Public: bid history (masked names)"""
+    db = get_database()
+    bids = await db.exchange_bids.find({"auction_id": auction_id}, {"_id": 0, "bidder_id": 0}).sort("created_at", -1).to_list(50)
+    for b in bids:
+        b["bidder_name"] = _mask_name(b.get("bidder_name"))
+    return {"bids": bids}
+
+
+@router.post("/admin/listings/{listing_id}/start-auction")
+async def start_auction(listing_id: str, cfg: AuctionCreate, current_user: dict = Depends(get_current_user)):
+    """Admin: start a timed auction on an active listing"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    listing = await db.exchange_listings.find_one({"id": listing_id}, {"_id": 0})
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing["status"] != "active":
+        raise HTTPException(status_code=400, detail="Only active listings can be auctioned")
+    if await db.exchange_auctions.find_one({"listing_id": listing_id, "status": "live"}):
+        raise HTTPException(status_code=400, detail="An auction is already live for this listing")
+    auction = await _create_auction(db, listing, cfg.dict())
+    return {"message": f"Auction started — ends in {cfg.duration_hours} hours", "auction_id": auction["id"]}
+
+
+@router.get("/admin/auctions")
+async def admin_get_auctions(current_user: dict = Depends(get_current_user)):
+    """Admin: all auctions with full details"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    auctions = await db.exchange_auctions.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    auctions = [await _finalize_if_due(db, a) for a in auctions]
+    return {"auctions": auctions, "live_count": sum(1 for a in auctions if a["status"] == "live")}
+
+
+@router.post("/admin/auctions/{auction_id}/end")
+async def end_auction_now(auction_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin: end a live auction immediately"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    auction = await db.exchange_auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    if auction["status"] != "live":
+        raise HTTPException(status_code=400, detail="Auction is not live")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.exchange_auctions.update_one({"id": auction_id}, {"$set": {"ends_at": now_iso}})
+    auction["ends_at"] = now_iso
+    auction = await _finalize_if_due(db, auction)
+    return {"message": f"Auction ended — result: {auction['result'].replace('_', ' ')}"}
+
+
+# ============ Inspection Booking ============
+
+class InspectionCreate(BaseModel):
+    preferred_date: str
+    time_slot: str
+    phone: str
+    notes: str = ""
+
+
+@router.post("/listings/{listing_id}/book-inspection")
+async def book_inspection(listing_id: str, req: InspectionCreate, current_user: dict = Depends(get_current_user)):
+    """Buyer: request a pre-purchase inspection slot"""
+    db = get_database()
+    listing = await db.exchange_listings.find_one({"id": listing_id}, {"_id": 0, "title": 1, "location": 1})
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    await db.exchange_inspections.insert_one({
+        "id": str(uuid4()),
+        "listing_id": listing_id,
+        "listing_title": listing["title"],
+        "location": listing.get("location"),
+        "buyer_id": current_user["id"],
+        "buyer_name": current_user.get("full_name"),
+        "buyer_email": current_user.get("email"),
+        "buyer_phone": req.phone,
+        "preferred_date": req.preferred_date,
+        "time_slot": req.time_slot,
+        "notes": req.notes,
+        "status": "requested",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"message": "Inspection request received! Our team will confirm your slot within 24 hours."}
+
+
+async def _notify_inspection(email: str, name: str, title: str, date: str, slot: str, location: str, status: str):
+    from services.email_service import email_service
+    if status == "confirmed":
+        subject = f"✅ Inspection Confirmed — {title}"
+        body_line = f"Your pre-purchase inspection is <b style='color:#16a34a;'>confirmed</b> for <b>{date} ({slot})</b> at {location}. Our aviation expert will accompany you. Please carry a government photo ID."
+    else:
+        subject = f"Inspection Update — {title}"
+        body_line = f"Unfortunately your inspection request for {date} ({slot}) has been cancelled. Please book another slot from the listing page or contact our team."
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+      <div style="background:#f97316;padding:20px 28px;"><h2 style="margin:0;color:#fff;">AirYatra Aviation Exchange</h2></div>
+      <div style="padding:28px;">
+        <p>Dear {name},</p>
+        <p>{body_line}</p>
+        <p style="color:#94a3b8;font-size:13px;">Team AirYatra • India's First Aircraft Resale Marketplace</p>
+      </div>
+    </div>"""
+    await email_service.send_email(to_email=email, subject=subject, html_body=html)
+
+
+@router.get("/admin/inspections")
+async def admin_get_inspections(current_user: dict = Depends(get_current_user)):
+    """Admin: all inspection requests"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    inspections = await db.exchange_inspections.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return {"inspections": inspections, "requested_count": sum(1 for i in inspections if i.get("status") == "requested")}
+
+
+@router.patch("/admin/inspections/{inspection_id}/status")
+async def update_inspection_status(inspection_id: str, background_tasks: BackgroundTasks, status: str = Query(...), current_user: dict = Depends(get_current_user)):
+    """Admin: confirm/complete/cancel inspection (emails buyer on confirm/cancel)"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if status not in ["requested", "confirmed", "completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    db = get_database()
+    insp = await db.exchange_inspections.find_one({"id": inspection_id}, {"_id": 0})
+    if not insp:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    await db.exchange_inspections.update_one({"id": inspection_id}, {"$set": {"status": status}})
+    if status in ("confirmed", "cancelled") and insp.get("buyer_email"):
+        background_tasks.add_task(_notify_inspection, insp["buyer_email"], insp.get("buyer_name", "Buyer"), insp["listing_title"], insp["preferred_date"], insp["time_slot"], insp.get("location", "the aircraft location"), status)
+    return {"message": f"Inspection marked {status}"}
+
+
+# ============ Ownership Certificates ============
+
+@router.get("/fractional/my-reservations")
+async def get_my_reservations(current_user: dict = Depends(get_current_user)):
+    """Investor: own share reservations"""
+    db = get_database()
+    reservations = await db.exchange_fractional_reservations.find({"investor_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    offerings = {o["id"]: o for o in await db.exchange_fractional.find({}, {"_id": 0}).to_list(50)}
+    for r in reservations:
+        o = offerings.get(r["fractional_id"], {})
+        r["total_shares"] = o.get("total_shares")
+        r["aircraft_image"] = o.get("image")
+        r["hours_per_share"] = o.get("hours_per_share")
+    return {"reservations": reservations}
+
+
+def _generate_certificate(res: dict, offering: dict) -> bytes:
+    from io import BytesIO
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.lib.units import mm
+    from reportlab.lib.colors import HexColor
+    from reportlab.pdfgen import canvas
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=landscape(A4))
+    w, h = landscape(A4)
+    cert_no = f"AY-FRX-{res['id'][:8].upper()}"
+    issue_date = datetime.now(timezone.utc).strftime("%d %B %Y")
+    total_shares = offering.get("total_shares", 8)
+    amount = res["share_price_inr"] * res["shares"]
+
+    c.setFillColor(HexColor("#0f172a"))
+    c.rect(0, 0, w, h, fill=1, stroke=0)
+    c.setStrokeColor(HexColor("#f97316"))
+    c.setLineWidth(3)
+    c.rect(10 * mm, 10 * mm, w - 20 * mm, h - 20 * mm)
+    c.setLineWidth(0.8)
+    c.rect(13 * mm, 13 * mm, w - 26 * mm, h - 26 * mm)
+
+    c.setFillColor(HexColor("#f97316"))
+    c.setFont("Helvetica-Bold", 28)
+    c.drawCentredString(w / 2, h - 35 * mm, "AIRYATRA AVIATION EXCHANGE")
+    c.setFillColor(HexColor("#e2e8f0"))
+    c.setFont("Helvetica", 15)
+    c.drawCentredString(w / 2, h - 45 * mm, "CERTIFICATE OF FRACTIONAL AIRCRAFT OWNERSHIP")
+    c.setStrokeColor(HexColor("#f97316"))
+    c.setLineWidth(1)
+    c.line(w / 2 - 60 * mm, h - 49 * mm, w / 2 + 60 * mm, h - 49 * mm)
+
+    c.setFillColor(HexColor("#94a3b8"))
+    c.setFont("Helvetica", 12)
+    c.drawCentredString(w / 2, h - 62 * mm, "This is to certify that")
+    c.setFillColor(HexColor("#ffffff"))
+    c.setFont("Helvetica-Bold", 24)
+    c.drawCentredString(w / 2, h - 73 * mm, res.get("investor_name") or "Investor")
+    c.setFillColor(HexColor("#94a3b8"))
+    c.setFont("Helvetica", 12)
+    c.drawCentredString(w / 2, h - 83 * mm, "is the registered owner of")
+    c.setFillColor(HexColor("#f97316"))
+    c.setFont("Helvetica-Bold", 18)
+    c.drawCentredString(w / 2, h - 94 * mm, f"{res['shares']} Share(s) of 1/{total_shares} each  •  {res['title']}")
+
+    c.setFillColor(HexColor("#e2e8f0"))
+    c.setFont("Helvetica", 12)
+    details = [
+        f"Investment Value: Rs. {amount:,.0f}",
+        f"Flying Entitlement: {offering.get('hours_per_share', 0) * res['shares']} hours/year",
+        f"Aircraft Base: {offering.get('location', 'India')}",
+    ]
+    y = h - 108 * mm
+    for d in details:
+        c.drawCentredString(w / 2, y, d)
+        y -= 8 * mm
+
+    c.setFont("Helvetica", 10)
+    c.setFillColor(HexColor("#94a3b8"))
+    c.drawString(22 * mm, 25 * mm, f"Certificate No: {cert_no}")
+    c.drawString(22 * mm, 19 * mm, f"Date of Issue: {issue_date}")
+    c.setStrokeColor(HexColor("#94a3b8"))
+    c.setLineWidth(0.5)
+    c.line(w - 90 * mm, 27 * mm, w - 22 * mm, 27 * mm)
+    c.drawString(w - 90 * mm, 21 * mm, "Authorised Signatory, AirYatra")
+    c.setFont("Helvetica-Oblique", 8)
+    c.drawCentredString(w / 2, 15 * mm, "Subject to the Fractional Ownership Agreement. Managed by AirYatra Aviation Pvt Ltd.")
+
+    c.save()
+    return buf.getvalue()
+
+
+@router.get("/fractional/certificate/{reservation_id}")
+async def download_certificate(reservation_id: str, current_user: dict = Depends(get_current_user)):
+    """Investor: download share certificate PDF (approved reservations only)"""
+    db = get_database()
+    res = await db.exchange_fractional_reservations.find_one({"id": reservation_id}, {"_id": 0})
+    if not res:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    if res["investor_id"] != current_user["id"] and "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if res.get("status") != "approved":
+        raise HTTPException(status_code=400, detail="Certificate is available only after your allocation is approved")
+    offering = await db.exchange_fractional.find_one({"id": res["fractional_id"]}, {"_id": 0}) or {}
+    pdf = _generate_certificate(res, offering)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="AirYatra_Share_Certificate_{res["id"][:8].upper()}.pdf"'},
+    )
