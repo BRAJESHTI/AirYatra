@@ -260,3 +260,135 @@ async def update_listing_status(listing_id: str, background_tasks: BackgroundTas
         if seller and seller.get("email"):
             background_tasks.add_task(_notify_seller, seller["email"], seller.get("full_name", "Seller"), listing["title"], status)
     return {"message": f"Listing marked {status}"}
+
+
+@router.patch("/admin/listings/{listing_id}/feature")
+async def toggle_listing_feature(listing_id: str, featured: bool = Query(...), current_user: dict = Depends(get_current_user)):
+    """Admin: mark/unmark listing as featured spotlight"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    result = await db.exchange_listings.update_one({"id": listing_id}, {"$set": {"featured": featured}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return {"message": "Listing featured" if featured else "Listing unfeatured"}
+
+
+@router.get("/featured")
+async def get_featured_listings():
+    """Public: featured spotlight listings"""
+    db = get_database()
+    await _ensure_seed(db)
+    listings = await db.exchange_listings.find({"status": "active", "featured": True}, {"_id": 0}).sort("created_at", -1).to_list(6)
+    return {"listings": listings}
+
+
+@router.get("/my-listings")
+async def get_my_listings(current_user: dict = Depends(get_current_user)):
+    """Seller: own listings with views & inquiries"""
+    db = get_database()
+    listings = await db.exchange_listings.find({"seller_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    ids = [l["id"] for l in listings]
+    inquiries = await db.exchange_inquiries.find({"listing_id": {"$in": ids}}, {"_id": 0}).sort("created_at", -1).to_list(500) if ids else []
+    inq_map = {}
+    for i in inquiries:
+        inq_map.setdefault(i["listing_id"], []).append(i)
+    for l in listings:
+        l["inquiries"] = inq_map.get(l["id"], [])
+    return {
+        "listings": listings,
+        "total_views": sum(l.get("views", 0) for l in listings),
+        "total_inquiries": len(inquiries),
+    }
+
+
+# ============ Fractional Ownership ============
+
+FRACTIONAL_SEED = [
+    {"id": "frx-h145", "title": "Airbus H145 VIP", "manufacturer": "Airbus", "model": "H145", "category": "helicopter", "year": 2022, "image": IMG_H125, "location": "Mumbai, Maharashtra", "total_value_inr": 720000000, "total_shares": 8, "share_price_inr": 90000000, "shares_available": 5, "hours_per_share": 100, "description": "Twin-engine VIP helicopter fully managed by AirYatra. Each 1/8 share includes 100 flying hours/year with crew, hangarage and maintenance handled end-to-end.", "highlights": ["Fully Managed", "100 hrs/year per share", "Crew Included", "Zero Maintenance Hassle"]},
+    {"id": "frx-pc12", "title": "Pilatus PC-12 NGX", "manufacturer": "Pilatus", "model": "PC-12 NGX", "category": "turboprop", "year": 2023, "image": IMG_KINGAIR, "location": "Delhi NCR", "total_value_inr": 420000000, "total_shares": 4, "share_price_inr": 105000000, "shares_available": 2, "hours_per_share": 200, "description": "Versatile single-engine turboprop with executive interior. 1/4 share gives 200 flying hours/year — ideal for corporate travel across India with short-strip capability.", "highlights": ["1/4 Ownership", "200 hrs/year per share", "Executive Interior", "Pan-India Range"]},
+    {"id": "frx-phenom", "title": "Embraer Phenom 300E", "manufacturer": "Embraer", "model": "Phenom 300E", "category": "jet", "year": 2022, "image": IMG_JET, "location": "Bengaluru, Karnataka", "total_value_inr": 880000000, "total_shares": 8, "share_price_inr": 110000000, "shares_available": 6, "hours_per_share": 90, "description": "World's best-selling light jet. 1/8 share includes 90 jet hours/year, dedicated crew, and guaranteed availability with 48-hour booking notice.", "highlights": ["Light Jet", "90 hrs/year per share", "48hr Booking Guarantee", "Dedicated Crew"]},
+]
+
+
+async def _ensure_fractional_seed(db):
+    if await db.exchange_fractional.count_documents({}) == 0:
+        now = datetime.now(timezone.utc).isoformat()
+        await db.exchange_fractional.insert_many([{**f, "status": "active", "created_at": now} for f in FRACTIONAL_SEED])
+
+
+class FractionalReserve(BaseModel):
+    shares: int = Field(ge=1, le=8)
+    phone: Optional[str] = None
+    message: str = ""
+
+
+@router.get("/fractional")
+async def get_fractional_offerings():
+    """Public: fractional ownership offerings"""
+    db = get_database()
+    await _ensure_fractional_seed(db)
+    offerings = await db.exchange_fractional.find({"status": "active"}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return {"offerings": offerings}
+
+
+@router.post("/fractional/{fractional_id}/reserve")
+async def reserve_fractional_share(fractional_id: str, req: FractionalReserve, current_user: dict = Depends(get_current_user)):
+    """Investor: expression of interest to reserve shares (no payment yet)"""
+    db = get_database()
+    offering = await db.exchange_fractional.find_one({"id": fractional_id}, {"_id": 0})
+    if not offering:
+        raise HTTPException(status_code=404, detail="Offering not found")
+    if req.shares > offering.get("shares_available", 0):
+        raise HTTPException(status_code=400, detail=f"Only {offering.get('shares_available', 0)} share(s) available")
+    await db.exchange_fractional_reservations.insert_one({
+        "id": str(uuid4()),
+        "fractional_id": fractional_id,
+        "title": offering["title"],
+        "shares": req.shares,
+        "share_price_inr": offering["share_price_inr"],
+        "investor_id": current_user["id"],
+        "investor_name": current_user.get("full_name"),
+        "investor_email": current_user.get("email"),
+        "investor_phone": req.phone,
+        "message": req.message,
+        "status": "new",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"message": "Share reservation received! Our investment desk will contact you within 24 hours to complete the allocation."}
+
+
+@router.get("/admin/fractional-reservations")
+async def admin_get_fractional_reservations(current_user: dict = Depends(get_current_user)):
+    """Admin: all fractional share reservations + offerings summary"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    await _ensure_fractional_seed(db)
+    reservations = await db.exchange_fractional_reservations.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    offerings = await db.exchange_fractional.find({}, {"_id": 0}).to_list(50)
+    return {"reservations": reservations, "offerings": offerings, "new_count": sum(1 for r in reservations if r.get("status") == "new")}
+
+
+@router.patch("/admin/fractional-reservations/{reservation_id}/status")
+async def update_fractional_reservation(reservation_id: str, status: str = Query(...), current_user: dict = Depends(get_current_user)):
+    """Admin: approve (allocates shares) / reject / mark contacted"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if status not in ["new", "contacted", "approved", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    db = get_database()
+    res = await db.exchange_fractional_reservations.find_one({"id": reservation_id}, {"_id": 0})
+    if not res:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    if res.get("status") == "approved" and status == "approved":
+        raise HTTPException(status_code=400, detail="Already approved")
+    if status == "approved":
+        r = await db.exchange_fractional.update_one(
+            {"id": res["fractional_id"], "shares_available": {"$gte": res["shares"]}},
+            {"$inc": {"shares_available": -res["shares"]}},
+        )
+        if r.matched_count == 0:
+            raise HTTPException(status_code=400, detail="Not enough shares available to allocate")
+    await db.exchange_fractional_reservations.update_one({"id": reservation_id}, {"$set": {"status": status}})
+    return {"message": f"Reservation marked {status}"}

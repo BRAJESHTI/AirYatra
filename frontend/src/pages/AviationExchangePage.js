@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plane, Search, MapPin, Clock, Users, BadgeCheck, Eye, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle
+  Plane, Search, MapPin, Clock, Users, BadgeCheck, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle, Star, PieChart, ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import api from '../services/api';
 import SellAircraftForm from '../components/exchange/SellAircraftForm';
+import FractionalSection from '../components/exchange/FractionalSection';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Aircraft' },
@@ -51,9 +52,49 @@ const ListingCard = ({ listing, onView }) => (
   </div>
 );
 
+const FeaturedStrip = ({ featured, onView }) => (
+  <div className="max-w-7xl mx-auto px-6 pb-8" data-testid="featured-strip">
+    <div className="flex items-center gap-2 mb-3">
+      <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+      <h2 className="text-lg font-bold text-white">Featured Aircraft / विशेष विमान</h2>
+    </div>
+    <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
+      {featured.map(l => (
+        <div
+          key={l.id}
+          onClick={() => onView(l)}
+          className="min-w-[300px] snap-start cursor-pointer rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/70 via-orange-500/40 to-amber-400/70 hover:-translate-y-1 transition-transform"
+          data-testid={`featured-card-${l.id}`}
+        >
+          <div className="bg-slate-900 rounded-2xl overflow-hidden h-full">
+            <div className="relative h-36 overflow-hidden">
+              <img src={l.image} alt={l.title} className="w-full h-full object-cover" />
+              <Badge className="absolute top-2 left-2 bg-amber-400 text-slate-900 font-bold">
+                <Star className="h-3 w-3 mr-1 fill-slate-900" /> FEATURED
+              </Badge>
+              <div className="absolute bottom-2 right-2 bg-slate-950/80 backdrop-blur px-2.5 py-0.5 rounded-full text-amber-400 font-bold text-sm">
+                {formatCr(l.price_inr)}
+              </div>
+            </div>
+            <div className="p-4">
+              <h3 className="text-white font-bold">{l.title}</h3>
+              <p className="text-slate-500 text-xs mt-1 flex items-center gap-3">
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-amber-400" /> {l.flight_hours?.toLocaleString()} hrs</span>
+                <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-amber-400" /> {l.location?.split(',')[0]}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function AviationExchangePage({ user }) {
   const [listings, setListings] = useState([]);
+  const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState('buy');
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
@@ -85,6 +126,10 @@ export default function AviationExchangePage({ user }) {
   }, [category, sort, search]);
 
   useEffect(() => { load(); }, [category, sort]); // eslint-disable-line
+
+  useEffect(() => {
+    api.get('/exchange/featured').then(res => setFeatured(res.data.listings || [])).catch(() => {});
+  }, []);
 
   const sendInquiry = async () => {
     if (!user) {
@@ -143,58 +188,89 @@ export default function AviationExchangePage({ user }) {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="max-w-7xl mx-auto px-6 pb-6 flex flex-wrap items-center gap-3">
-        <div className="flex gap-2 flex-wrap" data-testid="category-filters">
-          {CATEGORIES.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setCategory(c.id)}
-              className={`px-4 py-2 rounded-full text-sm border transition-all ${category === c.id ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 text-slate-300 hover:border-orange-500/50'}`}
-              data-testid={`category-${c.id}`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2 ml-auto">
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && load()}
-              placeholder="Search model, city..."
-              className="pl-9 w-52 bg-slate-900 border-slate-700 text-white"
-              data-testid="search-input"
-            />
-          </div>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-slate-300 rounded-md px-3 text-sm"
-            data-testid="sort-select"
+      {/* Mode Toggle */}
+      <div className="max-w-7xl mx-auto px-6 pb-8">
+        <div className="inline-flex bg-slate-900 border border-slate-800 rounded-full p-1" data-testid="mode-toggle">
+          <button
+            onClick={() => setMode('buy')}
+            className={`px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all ${mode === 'buy' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            data-testid="mode-buy-btn"
           >
-            <option value="newest">Newest</option>
-            <option value="price_low">Price: Low → High</option>
-            <option value="price_high">Price: High → Low</option>
-            <option value="hours_low">Lowest Hours</option>
-          </select>
+            <ShoppingBag className="h-4 w-4" /> Buy Aircraft
+          </button>
+          <button
+            onClick={() => setMode('fractional')}
+            className={`px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all ${mode === 'fractional' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            data-testid="mode-fractional-btn"
+          >
+            <PieChart className="h-4 w-4" /> Fractional Ownership
+          </button>
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="max-w-7xl mx-auto px-6 pb-16">
-        {loading ? (
-          <div className="text-center text-slate-500 py-20">Loading listings...</div>
-        ) : listings.length === 0 ? (
-          <div className="text-center text-slate-500 py-20" data-testid="no-listings">No aircraft found for these filters.</div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="listings-grid">
-            {listings.map(l => <ListingCard key={l.id} listing={l} onView={setSelected} />)}
+      {mode === 'fractional' ? (
+        <div className="max-w-7xl mx-auto px-6 pb-16">
+          <FractionalSection user={user} />
+        </div>
+      ) : (
+        <>
+          {/* Featured Spotlight */}
+          {featured.length > 0 && <FeaturedStrip featured={featured} onView={setSelected} />}
+
+          {/* Filters */}
+          <div className="max-w-7xl mx-auto px-6 pb-6 flex flex-wrap items-center gap-3">
+            <div className="flex gap-2 flex-wrap" data-testid="category-filters">
+              {CATEGORIES.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setCategory(c.id)}
+                  className={`px-4 py-2 rounded-full text-sm border transition-all ${category === c.id ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 text-slate-300 hover:border-orange-500/50'}`}
+                  data-testid={`category-${c.id}`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && load()}
+                  placeholder="Search model, city..."
+                  className="pl-9 w-52 bg-slate-900 border-slate-700 text-white"
+                  data-testid="search-input"
+                />
+              </div>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="bg-slate-900 border border-slate-700 text-slate-300 rounded-md px-3 text-sm"
+                data-testid="sort-select"
+              >
+                <option value="newest">Newest</option>
+                <option value="price_low">Price: Low → High</option>
+                <option value="price_high">Price: High → Low</option>
+                <option value="hours_low">Lowest Hours</option>
+              </select>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Grid */}
+          <div className="max-w-7xl mx-auto px-6 pb-16">
+            {loading ? (
+              <div className="text-center text-slate-500 py-20">Loading listings...</div>
+            ) : listings.length === 0 ? (
+              <div className="text-center text-slate-500 py-20" data-testid="no-listings">No aircraft found for these filters.</div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="listings-grid">
+                {listings.map(l => <ListingCard key={l.id} listing={l} onView={setSelected} />)}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>

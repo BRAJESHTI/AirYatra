@@ -9,6 +9,7 @@ import ChatWidget from '../components/customer/ChatWidget';
 import CustomerProfile from '../components/customer/CustomerProfile';
 import ReferAndEarn from '../components/customer/ReferAndEarn';
 import LoyaltyRewards from '../components/customer/LoyaltyRewards';
+import MyAircraftListings from '../components/customer/MyAircraftListings';
 import NotificationBell from '../components/shared/NotificationBell';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -21,6 +22,7 @@ const navGroups = [
       { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
       { id: 'trips', label: 'My Trips / मेरी यात्राएं', icon: MapPin, path: '/customer/trips', highlight: true },
       { id: 'booking', label: 'New Booking / नई बुकिंग', icon: Calendar, path: '/booking', external: true, highlight: true },
+      { id: 'mylistings', label: 'My Aircraft / मेरे विमान', icon: Plane, path: '/customer/listings' },
     ]
   },
   {
@@ -70,6 +72,7 @@ function CustomerDashboard({ user, onLogout }) {
   useEffect(() => {
     const path = location.pathname;
     if (path.includes('/trips')) setActiveTab('trips');
+    else if (path.includes('/listings')) setActiveTab('mylistings');
     else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
     else if (path.includes('/refer')) setActiveTab('refer');
@@ -121,6 +124,8 @@ function CustomerDashboard({ user, onLogout }) {
     switch (activeTab) {
       case 'trips':
         return <MyTrips user={user} />;
+      case 'mylistings':
+        return <MyAircraftListings user={user} />;
       case 'profile':
         return <CustomerProfile user={user} />;
       case 'messages':
