@@ -125,9 +125,9 @@
 
 | # | Feature | Priority | Status | Description |
 |---|---------|----------|--------|-------------|
-| 2.1 | AirYatra Aviation Exchange | P0 | 🟢 MVP DONE | Aircraft resale marketplace LIVE at /exchange — listings (6 seeded), category/search/price filters, detail dialog, buyer inquiries, seller submission (pending_review), admin approve/sold. (Aug 1, 2026) Sell Aircraft Form (photo upload via object storage) + Admin Exchange Panel (approve/reject/sold, inquiry management, seller email notifications on approve/reject via Hostinger SMTP). Future: seller dashboard, escrow, inspection booking |
+| 2.1 | AirYatra Aviation Exchange | P0 | 🟢 MVP DONE | Aircraft resale marketplace LIVE at /exchange — listings (6 seeded), category/search/price filters, detail dialog, buyer inquiries, seller submission (pending_review), admin approve/sold. (Aug 1, 2026) Sell Aircraft Form (photo upload via object storage) + Admin Exchange Panel (approve/reject/sold, inquiry management, seller email notifications on approve/reject via Hostinger SMTP). (Aug 1, 2026) Seller Dashboard "My Aircraft" tab in customer dashboard (own listings, views, inquiries) + Featured Listings (admin Feature/Unfeature toggle, premium spotlight strip on /exchange). Future: escrow, inspection booking |
 | 2.2 | Aircraft Auction Platform | P0 | ⚪ BACKLOG | Live/timed auctions for aircraft |
-| 2.3 | Fractional Aircraft Ownership | P0 | ⚪ BACKLOG | Multiple investors in single aircraft |
+| 2.3 | Fractional Aircraft Ownership | P0 | 🟢 MVP DONE | (Aug 1, 2026) Fractional mode on /exchange — 3 seeded offerings (1/8 & 1/4 shares), share price, shares-left progress, Reserve Share = Expression of Interest (NO payment — deferred). Admin "Fractional EOIs" tab: approve (atomic share allocation), reject, mark contacted. Future: payment integration, ownership certificates, usage scheduling |
 | 2.4 | Aviation Finance Marketplace | P1 | ⚪ BACKLOG | Aircraft loans, leasing, EMI options |
 | 2.5 | Investor Dashboard | P1 | ⚪ BACKLOG | ROI tracking, ownership management |
 
