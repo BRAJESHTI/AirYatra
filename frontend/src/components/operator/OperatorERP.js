@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plane, BookOpen, Wrench, AlertTriangle, Plus, Loader2, CheckCircle2, Gauge, Fuel, TrendingUp, Download, UserCheck, BadgeIndianRupee } from 'lucide-react';
+import { Plane, BookOpen, Wrench, AlertTriangle, Plus, Loader2, CheckCircle2, Gauge, Fuel, TrendingUp, Download, UserCheck, BadgeIndianRupee, FileCheck, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,15 +8,28 @@ import api, { operatorAPI } from '../../services/api';
 import { toast } from 'sonner';
 
 const SEV = {
+  doc_expired: { chip: 'bg-red-500/20 text-red-400 border-red-500/40', label: 'DOC EXPIRED' },
   overdue: { chip: 'bg-red-500/20 text-red-400 border-red-500/40', label: 'OVERDUE' },
   hours_due: { chip: 'bg-orange-500/20 text-orange-400 border-orange-500/40', label: 'HOURS DUE' },
+  doc_expiring: { chip: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', label: 'DOC EXPIRING' },
   due_soon: { chip: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', label: 'DUE SOON' },
   hours_soon: { chip: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30', label: 'APPROACHING' },
   in_progress: { chip: 'bg-sky-500/20 text-sky-400 border-sky-500/40', label: 'IN PROGRESS' },
 };
 
+const DOC_TYPES = [
+  { value: 'insurance', label: 'Insurance / बीमा' },
+  { value: 'c_of_a', label: 'C of A (Airworthiness)' },
+  { value: 'permit', label: 'Permit / परमिट' },
+  { value: 'arc', label: 'ARC' },
+  { value: 'radio_license', label: 'Radio License' },
+  { value: 'other', label: 'Other' },
+];
+
 const EMPTY_LOG = { aircraft_id: '', pilot_id: '', departure_location: '', arrival_location: '', departure_time: '', flight_duration_minutes: '', distance_km: '', fuel_used_liters: '', remarks: '' };
 const EMPTY_MAINT = { aircraft_id: '', type: 'routine', description: '', scheduled_date: '', priority: 'medium', estimated_cost: '' };
+const EMPTY_DOC = { aircraft_id: '', document_type: 'insurance', reference_number: '', issuer: '', expiry_date: '' };
+const EMPTY_FUEL = { aircraft_id: '', location: '', fuel_amount_liters: '', cost_per_liter: '', refill_date: '', remarks: '' };
 
 function OperatorERP() {
   const [overview, setOverview] = useState(null);
@@ -30,6 +43,23 @@ function OperatorERP() {
   const [maintOpen, setMaintOpen] = useState(false);
   const [logForm, setLogForm] = useState(EMPTY_LOG);
   const [maintForm, setMaintForm] = useState(EMPTY_MAINT);
+  const [docs, setDocs] = useState([]);
+  const [fuel, setFuel] = useState(null);
+  const [docOpen, setDocOpen] = useState(false);
+  const [fuelOpen, setFuelOpen] = useState(false);
+  const [docForm, setDocForm] = useState(EMPTY_DOC);
+  const [fuelForm, setFuelForm] = useState(EMPTY_FUEL);
+
+  const loadDocsAndFuel = useCallback(async () => {
+    try {
+      const [dr, fr] = await Promise.all([
+        api.get('/erp/operator/documents').catch(() => ({ data: { documents: [] } })),
+        api.get('/erp/operator/fuel').catch(() => ({ data: null })),
+      ]);
+      setDocs(dr.data.documents || []);
+      setFuel(fr.data);
+    } catch (e) { /* silent */ }
+  }, []);
 
   const loadAll = useCallback(async () => {
     try {
@@ -52,8 +82,51 @@ function OperatorERP() {
     } catch (e) { toast.error('Failed to load logbook'); }
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { loadAll(); loadDocsAndFuel(); }, [loadAll, loadDocsAndFuel]);
   useEffect(() => { loadLogbook(aircraftFilter); }, [aircraftFilter, loadLogbook]);
+
+  const addDoc = async () => {
+    if (!docForm.aircraft_id || !docForm.expiry_date) return toast.error('Aircraft aur expiry date required hai');
+    setSaving(true);
+    try {
+      await api.post('/erp/operator/documents', docForm);
+      toast.success('Document registered / दस्तावेज़ दर्ज हो गया');
+      setDocOpen(false);
+      setDocForm(EMPTY_DOC);
+      await Promise.all([loadDocsAndFuel(), loadAll()]);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to register document');
+    } finally { setSaving(false); }
+  };
+
+  const removeDoc = async (d) => {
+    try {
+      await api.delete(`/erp/operator/documents/${d.id}`);
+      toast.success('Document removed');
+      await Promise.all([loadDocsAndFuel(), loadAll()]);
+    } catch (e) { toast.error('Failed to remove'); }
+  };
+
+  const addFuel = async () => {
+    if (!fuelForm.aircraft_id || !fuelForm.location || !fuelForm.fuel_amount_liters || !fuelForm.cost_per_liter) {
+      return toast.error('Aircraft, location, liters aur rate required hai');
+    }
+    setSaving(true);
+    try {
+      await api.post('/fuel-records/', {
+        ...fuelForm,
+        fuel_amount_liters: Number(fuelForm.fuel_amount_liters),
+        cost_per_liter: Number(fuelForm.cost_per_liter),
+        refill_date: fuelForm.refill_date || undefined,
+      });
+      toast.success('Fuel purchase logged / ईंधन खरीद दर्ज');
+      setFuelOpen(false);
+      setFuelForm(EMPTY_FUEL);
+      await loadDocsAndFuel();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to log fuel');
+    } finally { setSaving(false); }
+  };
 
   const addLog = async () => {
     if (!logForm.aircraft_id || !logForm.pilot_id || !logForm.departure_location || !logForm.arrival_location || !logForm.departure_time || !logForm.distance_km) {
@@ -246,6 +319,8 @@ function OperatorERP() {
                     <Button size="sm" onClick={() => completeMaint(a)} className="bg-green-500 hover:bg-green-600 h-7 text-xs" data-testid={`complete-maint-${a.maintenance_id}`}>
                       <CheckCircle2 className="h-3 w-3 mr-1" />Mark Complete
                     </Button>
+                  ) : a.severity.startsWith('doc') ? (
+                    <span className="text-slate-500 text-xs">Compliance Docs section mein renew karein ↓</span>
                   ) : (
                     <Button size="sm" variant="outline" onClick={() => { setMaintForm({ ...EMPTY_MAINT, aircraft_id: a.aircraft_id, description: a.title, priority: 'high' }); setMaintOpen(true); }}
                       className="border-slate-600 text-yellow-400 h-7 text-xs" data-testid={`schedule-from-alert-${i}`}>
@@ -274,6 +349,82 @@ function OperatorERP() {
             <p className="text-slate-500 text-[11px] mt-1">Maintenance health: {a.health_pct}% {a.next_maintenance ? `• Next: ${a.next_maintenance.type} on ${(a.next_maintenance.date || '').slice(0, 10)}` : ''}</p>
           </div>
         ))}
+      </div>
+
+      {/* Compliance Documents + Fuel Tracking */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="compliance-docs-panel">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-white font-semibold flex items-center gap-2"><FileCheck className="h-4 w-4 text-purple-400" />Compliance Docs / अनुपालन दस्तावेज़</h2>
+            <Button size="sm" onClick={() => setDocOpen(true)} className="bg-purple-500 hover:bg-purple-600 h-8" data-testid="add-doc-btn">
+              <Plus className="h-3.5 w-3.5 mr-1" />Add
+            </Button>
+          </div>
+          {docs.length === 0 ? (
+            <p className="text-slate-400 text-sm">Insurance, C of A, permits register karein — expiry se pehle alert milega</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {docs.map((d) => (
+                <div key={d.id} className="flex items-center justify-between bg-slate-900/40 rounded-lg p-2.5 border border-slate-700/60" data-testid={`doc-row-${d.id}`}>
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium capitalize">{(d.document_type || '').replace(/_/g, ' ')} — {d.aircraft_label}</p>
+                    <p className="text-slate-500 text-xs truncate">{d.reference_number || d.name || ''} {d.issuer ? `• ${d.issuer}` : ''} • Expiry: {(d.expiry_date || '').slice(0, 10) || '—'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {d.days_left !== null && d.days_left !== undefined && (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${d.days_left < 0 ? 'bg-red-500/20 text-red-400' : d.days_left <= 45 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                        {d.days_left < 0 ? `EXPIRED ${Math.abs(d.days_left)}d ago` : `${d.days_left}d left`}
+                      </span>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => removeDoc(d)} className="text-red-400 hover:text-red-300 h-7 w-7 p-0" data-testid={`delete-doc-${d.id}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="fuel-tracking-panel">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-white font-semibold flex items-center gap-2"><Fuel className="h-4 w-4 text-orange-400" />Fuel Purchases / ईंधन खरीद</h2>
+            <Button size="sm" onClick={() => setFuelOpen(true)} className="bg-orange-500 hover:bg-orange-600 h-8" data-testid="log-fuel-btn">
+              <Plus className="h-3.5 w-3.5 mr-1" />Log Purchase
+            </Button>
+          </div>
+          {fuel?.this_month && (
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/60 text-center">
+                <p className="text-orange-400 font-bold text-lg" data-testid="fuel-month-spend">₹{(fuel.this_month.spend || 0).toLocaleString()}</p>
+                <p className="text-slate-500 text-[10px]">Spend this month</p>
+              </div>
+              <div className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/60 text-center">
+                <p className="text-white font-bold text-lg">{fuel.this_month.liters}L</p>
+                <p className="text-slate-500 text-[10px]">Fuel purchased</p>
+              </div>
+              <div className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/60 text-center">
+                <p className="text-white font-bold text-lg">₹{fuel.this_month.avg_rate}</p>
+                <p className="text-slate-500 text-[10px]">Avg rate / litre</p>
+              </div>
+            </div>
+          )}
+          {!fuel?.recent?.length ? (
+            <p className="text-slate-400 text-sm">Koi fuel purchase logged nahi — "Log Purchase" se rate track karein</p>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {fuel.recent.slice(0, 8).map((r) => (
+                <div key={r.id} className="flex items-center justify-between bg-slate-900/40 rounded-lg p-2.5 border border-slate-700/60">
+                  <div className="min-w-0">
+                    <p className="text-white text-sm">{r.aircraft_label} • {r.location}</p>
+                    <p className="text-slate-500 text-xs">{(r.refill_date || '').slice(0, 10)} • {r.fuel_amount_liters}L @ ₹{r.cost_per_liter}/L</p>
+                  </div>
+                  <p className="text-orange-400 font-semibold text-sm shrink-0">₹{(r.total_cost || 0).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Digital Logbook */}
@@ -403,6 +554,63 @@ function OperatorERP() {
             <div><Label className="text-slate-300">Estimated Cost (₹)</Label><Input type="number" value={maintForm.estimated_cost} onChange={(e) => setMaintForm({ ...maintForm, estimated_cost: e.target.value })} className="bg-slate-800 border-slate-700 mt-1" /></div>
             <Button onClick={scheduleMaint} disabled={saving} className="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-900" data-testid="save-maintenance-btn">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Schedule
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Add Compliance Document Dialog */}
+      <Dialog open={docOpen} onOpenChange={setDocOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+          <DialogHeader><DialogTitle>Register Compliance Document</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-slate-300">Aircraft *</Label>
+              <select value={docForm.aircraft_id} onChange={(e) => setDocForm({ ...docForm, aircraft_id: e.target.value })} className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 border border-slate-700 mt-1" data-testid="doc-aircraft-select">
+                <option value="">Select aircraft</option>
+                {fleet.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-slate-300">Document Type *</Label>
+              <select value={docForm.document_type} onChange={(e) => setDocForm({ ...docForm, document_type: e.target.value })} className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 border border-slate-700 mt-1" data-testid="doc-type-select">
+                {DOC_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-slate-300">Reference No.</Label><Input value={docForm.reference_number} onChange={(e) => setDocForm({ ...docForm, reference_number: e.target.value })} placeholder="POL-2026-1234" className="bg-slate-800 border-slate-700 mt-1" data-testid="doc-ref-input" /></div>
+              <div><Label className="text-slate-300">Issuer</Label><Input value={docForm.issuer} onChange={(e) => setDocForm({ ...docForm, issuer: e.target.value })} placeholder="DGCA / Insurer" className="bg-slate-800 border-slate-700 mt-1" /></div>
+            </div>
+            <div><Label className="text-slate-300">Expiry Date *</Label><Input type="date" value={docForm.expiry_date} onChange={(e) => setDocForm({ ...docForm, expiry_date: e.target.value })} className="bg-slate-800 border-slate-700 mt-1" data-testid="doc-expiry-input" /></div>
+            <Button onClick={addDoc} disabled={saving} className="w-full bg-purple-500 hover:bg-purple-600" data-testid="save-doc-btn">
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Register Document
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Fuel Purchase Dialog */}
+      <Dialog open={fuelOpen} onOpenChange={setFuelOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+          <DialogHeader><DialogTitle>Log Fuel Purchase / ईंधन खरीद दर्ज करें</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-slate-300">Aircraft *</Label>
+              <select value={fuelForm.aircraft_id} onChange={(e) => setFuelForm({ ...fuelForm, aircraft_id: e.target.value })} className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 border border-slate-700 mt-1" data-testid="fuel-aircraft-select">
+                <option value="">Select aircraft</option>
+                {fleet.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+              </select>
+            </div>
+            <div><Label className="text-slate-300">Location / Station *</Label><Input value={fuelForm.location} onChange={(e) => setFuelForm({ ...fuelForm, location: e.target.value })} placeholder="Juhu Aerodrome" className="bg-slate-800 border-slate-700 mt-1" data-testid="fuel-location-input" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-slate-300">Litres *</Label><Input type="number" value={fuelForm.fuel_amount_liters} onChange={(e) => setFuelForm({ ...fuelForm, fuel_amount_liters: e.target.value })} className="bg-slate-800 border-slate-700 mt-1" data-testid="fuel-liters-input" /></div>
+              <div><Label className="text-slate-300">Rate (₹/L) *</Label><Input type="number" value={fuelForm.cost_per_liter} onChange={(e) => setFuelForm({ ...fuelForm, cost_per_liter: e.target.value })} className="bg-slate-800 border-slate-700 mt-1" data-testid="fuel-rate-input" /></div>
+            </div>
+            {fuelForm.fuel_amount_liters && fuelForm.cost_per_liter && (
+              <p className="text-orange-400 text-sm font-semibold">Total: ₹{(Number(fuelForm.fuel_amount_liters) * Number(fuelForm.cost_per_liter)).toLocaleString()}</p>
+            )}
+            <div><Label className="text-slate-300">Date</Label><Input type="date" value={fuelForm.refill_date} onChange={(e) => setFuelForm({ ...fuelForm, refill_date: e.target.value })} className="bg-slate-800 border-slate-700 mt-1" data-testid="fuel-date-input" /></div>
+            <Button onClick={addFuel} disabled={saving} className="w-full bg-orange-500 hover:bg-orange-600" data-testid="save-fuel-btn">
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Log Purchase
             </Button>
           </div>
         </DialogContent>

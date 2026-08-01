@@ -10,6 +10,11 @@ from middleware import get_current_user
 router = APIRouter(prefix="/erp/operator", tags=["Operator ERP"])
 
 MAINTENANCE_INTERVAL_HOURS = 100
+DOC_TYPES = ["insurance", "c_of_a", "permit", "arc", "radio_license", "other"]
+
+
+def _ac_label(a: dict) -> str:
+    return f"{a.get('model_name') or a.get('aircraft_type', '')} ({a.get('registration_number', 'N/A')})"
 
 
 async def _get_operator(db, user):
@@ -94,7 +99,30 @@ async def erp_overview(current_user: dict = Depends(get_current_user), db=Depend
             "next_maintenance": {"date": next_sched.get("scheduled_date"), "type": next_sched.get("type")} if next_sched else None,
         })
 
-    sev_order = {"overdue": 0, "hours_due": 1, "due_soon": 2, "hours_soon": 3, "in_progress": 4}
+    # Document expiry alerts (insurance, C of A, permits etc.)
+    docs = await db.aircraft_documents.find(
+        {"aircraft_id": {"$in": fleet_ids}, "expiry_date": {"$ne": None}, "status": {"$ne": "deleted"}}, {"_id": 0}
+    ).to_list(500)
+    ac_map = {a["id"]: a for a in fleet}
+    doc_window = (now + timedelta(days=45)).date().isoformat()
+    for d in docs:
+        exp = (d.get("expiry_date") or "")[:10]
+        if not exp:
+            continue
+        label = _ac_label(ac_map.get(d["aircraft_id"], {}))
+        dtype = (d.get("document_type") or "document").replace("_", " ").title()
+        ref = d.get("reference_number") or d.get("name") or ""
+        if exp < today:
+            alerts.append({"severity": "doc_expired", "aircraft_id": d["aircraft_id"], "aircraft": label,
+                           "maintenance_id": None, "document_id": d.get("id"),
+                           "title": f"{dtype} EXPIRED on {exp}", "detail": f"Renew immediately {('• ' + ref) if ref else ''}", "priority": "critical"})
+        elif exp <= doc_window:
+            days_left = (datetime.strptime(exp, "%Y-%m-%d").date() - now.date()).days
+            alerts.append({"severity": "doc_expiring", "aircraft_id": d["aircraft_id"], "aircraft": label,
+                           "maintenance_id": None, "document_id": d.get("id"),
+                           "title": f"{dtype} expires in {days_left} day(s) — {exp}", "detail": ref, "priority": "high"})
+
+    sev_order = {"doc_expired": 0, "overdue": 1, "hours_due": 2, "doc_expiring": 3, "due_soon": 4, "hours_soon": 5, "in_progress": 6}
     alerts.sort(key=lambda x: sev_order.get(x["severity"], 9))
 
     return {
@@ -104,7 +132,7 @@ async def erp_overview(current_user: dict = Depends(get_current_user), db=Depend
             "hours_this_month": month_hours,
             "km_this_month": month_km,
             "open_maintenance": len(schedules),
-            "critical_alerts": len([x for x in alerts if x["severity"] in ["overdue", "hours_due"]]),
+            "critical_alerts": len([x for x in alerts if x["severity"] in ["overdue", "hours_due", "doc_expired"]]),
         },
         "alerts": alerts,
         "fleet": fleet_out,
@@ -293,6 +321,125 @@ async def export_logbook_csv(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{fname}"'},
     )
+
+
+# ==================== COMPLIANCE DOCUMENTS (Expiry Registry) ====================
+
+@router.get("/documents")
+async def list_compliance_documents(current_user: dict = Depends(get_current_user), db=Depends(get_database)):
+    """Compliance document registry with days-left until expiry"""
+    operator = await _get_operator(db, current_user)
+    fleet_query = {"operator_id": operator["id"]} if operator else {}
+    fleet = await db.aircraft.find(fleet_query, {"_id": 0, "id": 1, "registration_number": 1, "model_name": 1, "aircraft_type": 1}).to_list(100)
+    ac_map = {a["id"]: a for a in fleet}
+    docs = await db.aircraft_documents.find(
+        {"aircraft_id": {"$in": list(ac_map.keys())}, "status": {"$ne": "deleted"}}, {"_id": 0}
+    ).sort("expiry_date", 1).to_list(500)
+    today = datetime.now(timezone.utc).date()
+    out = []
+    for d in docs:
+        exp = (d.get("expiry_date") or "")[:10]
+        days_left = None
+        if exp:
+            try:
+                days_left = (datetime.strptime(exp, "%Y-%m-%d").date() - today).days
+            except ValueError:
+                pass
+        d["aircraft_label"] = _ac_label(ac_map.get(d["aircraft_id"], {}))
+        d["days_left"] = days_left
+        out.append(d)
+    return {"documents": out}
+
+
+@router.post("/documents")
+async def add_compliance_document(data: dict, current_user: dict = Depends(get_current_user), db=Depends(get_database)):
+    """Register a compliance document (insurance / C of A / permit) with expiry date"""
+    operator = await _get_operator(db, current_user)
+    aircraft_id = data.get("aircraft_id")
+    doc_type = data.get("document_type")
+    expiry = (data.get("expiry_date") or "").strip()
+    if not aircraft_id or doc_type not in DOC_TYPES or not expiry:
+        raise HTTPException(status_code=400, detail=f"aircraft_id, document_type ({', '.join(DOC_TYPES)}) and expiry_date required")
+    aircraft = await db.aircraft.find_one({"id": aircraft_id}, {"_id": 0})
+    if not aircraft or (operator and aircraft.get("operator_id") != operator["id"]):
+        raise HTTPException(status_code=403, detail="Not your aircraft")
+    doc = {
+        "id": str(__import__('uuid').uuid4()),
+        "aircraft_id": aircraft_id,
+        "document_type": doc_type,
+        "reference_number": data.get("reference_number", ""),
+        "issuer": data.get("issuer", ""),
+        "expiry_date": expiry,
+        "status": "active",
+        "source": "erp_registry",
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.aircraft_documents.insert_one(dict(doc))
+    return {"message": "Document registered / दस्तावेज़ दर्ज", "document": doc}
+
+
+@router.delete("/documents/{document_id}")
+async def delete_compliance_document(document_id: str, current_user: dict = Depends(get_current_user), db=Depends(get_database)):
+    operator = await _get_operator(db, current_user)
+    doc = await db.aircraft_documents.find_one({"id": document_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if operator:
+        aircraft = await db.aircraft.find_one({"id": doc["aircraft_id"]}, {"_id": 0, "operator_id": 1})
+        if aircraft and aircraft.get("operator_id") != operator["id"]:
+            raise HTTPException(status_code=403, detail="Not your aircraft")
+    await db.aircraft_documents.update_one({"id": document_id}, {"$set": {"status": "deleted"}})
+    return {"message": "Document removed / दस्तावेज़ हटाया गया"}
+
+
+# ==================== FUEL PRICE TRACKING ====================
+
+@router.get("/fuel")
+async def fuel_summary(current_user: dict = Depends(get_current_user), db=Depends(get_database)):
+    """Fuel purchases: monthly spend in ₹, avg rate, recent purchases + 6-month trend"""
+    operator = await _get_operator(db, current_user)
+    fleet_query = {"operator_id": operator["id"]} if operator else {}
+    fleet = await db.aircraft.find(fleet_query, {"_id": 0, "id": 1, "registration_number": 1, "model_name": 1, "aircraft_type": 1}).to_list(100)
+    ac_map = {a["id"]: a for a in fleet}
+    now = datetime.now(timezone.utc)
+    six_months_ago = (now.replace(day=1) - timedelta(days=155)).strftime("%Y-%m-01")
+    records = await db.fuel_records.find(
+        {"aircraft_id": {"$in": list(ac_map.keys())}, "refill_date": {"$gte": six_months_ago}}, {"_id": 0}
+    ).sort("refill_date", -1).to_list(1000)
+
+    month_key = f"{now.year}-{now.month:02d}"
+    month_recs = [r for r in records if (r.get("refill_date") or "").startswith(month_key)]
+    month_liters = sum(r.get("fuel_amount_liters", 0) for r in month_recs)
+    month_spend = sum(r.get("total_cost", 0) for r in month_recs)
+
+    trend = {}
+    for i in range(5, -1, -1):
+        m, y = now.month - i, now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        trend[f"{y}-{m:02d}"] = {"label": datetime(y, m, 1).strftime("%b"), "spend": 0, "liters": 0}
+    for r in records:
+        key = (r.get("refill_date") or "")[:7]
+        if key in trend:
+            trend[key]["spend"] += r.get("total_cost", 0)
+            trend[key]["liters"] += r.get("fuel_amount_liters", 0)
+    monthly_trend = [{"month": k, "label": v["label"], "spend": round(v["spend"], 2), "liters": round(v["liters"], 1)} for k, v in trend.items()]
+
+    for r in records[:20]:
+        r["aircraft_label"] = _ac_label(ac_map.get(r["aircraft_id"], {}))
+
+    return {
+        "this_month": {
+            "spend": round(month_spend, 2),
+            "liters": round(month_liters, 1),
+            "avg_rate": round(month_spend / month_liters, 2) if month_liters > 0 else 0,
+            "purchases": len(month_recs),
+        },
+        "monthly_trend": monthly_trend,
+        "recent": records[:20],
+    }
 
 
 @router.post("/maintenance/{maintenance_id}/complete")

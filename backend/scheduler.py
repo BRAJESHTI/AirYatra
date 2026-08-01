@@ -546,6 +546,85 @@ async def send_attendance_nudges():
         return 0
 
 
+async def send_erp_weekly_digest():
+    """Monday morning (IST) ERP digest email to operators: flights, alerts, upcoming maintenance. Runs every 6h."""
+    from database import get_database_sync
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        now = datetime.now(timezone.utc)
+        ist = now + timedelta(hours=5, minutes=30)
+        if ist.weekday() != 0 or ist.hour < 8:
+            return 0
+        week_key = f"{ist.isocalendar()[0]}-W{ist.isocalendar()[1]}"
+        guard = await db.hr_settings.find_one({"type": "erp_weekly_digest"}, {"_id": 0}) or {}
+        if guard.get("last_week") == week_key:
+            return 0
+
+        from services.email_service import email_service
+        week_ago = (now - timedelta(days=7)).isoformat()
+        two_weeks = (now + timedelta(days=14)).date().isoformat()
+        today = now.date().isoformat()
+        operators = await db.operators.find({}, {"_id": 0, "id": 1, "user_id": 1, "company_name": 1}).to_list(200)
+        sent = 0
+        for op in operators:
+            try:
+                user = await db.users.find_one({"id": op["user_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+                if not user or not user.get("email"):
+                    continue
+                fleet = await db.aircraft.find({"operator_id": op["id"]}, {"_id": 0, "id": 1, "registration_number": 1, "model_name": 1, "total_flight_hours": 1, "last_maintenance_hours": 1}).to_list(100)
+                if not fleet:
+                    continue
+                fleet_ids = [a["id"] for a in fleet]
+                week_recs = await db.flight_records.find({"aircraft_id": {"$in": fleet_ids}, "departure_time": {"$gte": week_ago[:10]}}, {"_id": 0}).to_list(2000)
+                week_hours = round(sum(r.get("flight_duration_minutes", 0) for r in week_recs) / 60, 1)
+                overdue = await db.maintenance_schedules.count_documents({"aircraft_id": {"$in": fleet_ids}, "status": "scheduled", "scheduled_date": {"$lt": today}})
+                upcoming = await db.maintenance_schedules.find(
+                    {"aircraft_id": {"$in": fleet_ids}, "status": "scheduled", "scheduled_date": {"$gte": today, "$lte": two_weeks}},
+                    {"_id": 0, "type": 1, "scheduled_date": 1, "aircraft_id": 1}).to_list(50)
+                hours_due = len([a for a in fleet if (a.get("total_flight_hours", 0) - a.get("last_maintenance_hours", 0)) >= a.get("maintenance_interval_hours", 100)])
+                doc_alerts = await db.aircraft_documents.count_documents(
+                    {"aircraft_id": {"$in": fleet_ids}, "status": {"$ne": "deleted"}, "expiry_date": {"$ne": None, "$lte": (now + timedelta(days=45)).date().isoformat()}})
+                up_html = "".join(f"<li style='color:#0f172a;font-size:13px;'>{u.get('type','').title()} — {(u.get('scheduled_date') or '')[:10]}</li>" for u in upcoming[:5]) or "<li style='color:#64748b;font-size:13px;'>None in next 14 days</li>"
+                html = f"""
+                <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                  <div style="background:#0f172a;padding:20px 24px;"><span style="color:#fff;font-size:20px;font-weight:bold;">AirYatra</span><span style="color:#f97316;font-size:13px;margin-left:8px;">ERP Weekly Digest</span></div>
+                  <div style="padding:24px;">
+                    <h2 style="color:#f97316;margin:0 0 12px;font-size:18px;">🛩️ {op.get('company_name', 'Your Fleet')} — Weekly Summary</h2>
+                    <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;">
+                      <tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">Flights (last 7 days)</td><td style="padding:6px 12px;color:#0f172a;font-weight:600;">{len(week_recs)} flights • {week_hours}h</td></tr>
+                      <tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">Overdue maintenance</td><td style="padding:6px 12px;color:{'#ef4444' if overdue else '#22c55e'};font-weight:600;">{overdue}</td></tr>
+                      <tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">Aircraft over 100h since maintenance</td><td style="padding:6px 12px;color:{'#ef4444' if hours_due else '#22c55e'};font-weight:600;">{hours_due}</td></tr>
+                      <tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">Documents expiring / expired (45d)</td><td style="padding:6px 12px;color:{'#ef4444' if doc_alerts else '#22c55e'};font-weight:600;">{doc_alerts}</td></tr>
+                    </table>
+                    <p style="color:#0f172a;font-size:14px;margin:16px 0 4px;"><b>Upcoming maintenance (14 days):</b></p>
+                    <ul style="margin:4px 0 16px;">{up_html}</ul>
+                    <p style="color:#64748b;font-size:12px;">Full details: Operator Dashboard → ERP Command Center</p>
+                  </div>
+                </div>"""
+                r = await email_service.send_email(
+                    to_email=user["email"],
+                    subject=f"🛩️ ERP Weekly Digest — {len(week_recs)} flights, {overdue + hours_due} critical alerts",
+                    html_body=html,
+                )
+                if r.get("success"):
+                    sent += 1
+            except Exception as e:
+                logger.error(f"ERP digest failed for operator {op.get('id')}: {e}")
+
+        await db.hr_settings.update_one(
+            {"type": "erp_weekly_digest"},
+            {"$set": {"last_week": week_key, "last_run_at": now.isoformat(), "last_sent_count": sent}},
+            upsert=True,
+        )
+        logger.info(f"ERP weekly digest: {sent} operator emails sent for {week_key}")
+        return sent
+    except Exception as e:
+        logger.error(f"send_erp_weekly_digest failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -630,8 +709,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # ERP weekly digest to operators (checks every 6 hours, sends Monday 8AM+ IST once/week)
+    scheduler.add_job(
+        send_erp_weekly_digest,
+        trigger=IntervalTrigger(hours=6),
+        id="erp_weekly_digest",
+        name="Operator ERP Weekly Digest",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest")
 
 
 def stop_scheduler():
