@@ -446,3 +446,23 @@ All APIs prefixed with `/api/`
 - /app/frontend/src/components/admin/BookingManagement.js (added ContextMenu)
 - /app/frontend/src/components/admin/InvoiceManagement.js (added ContextMenu)
 
+
+### Latest Updates (Aug 1, 2026 - Session 5)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Mobile UI Centering Bug Fix | 🟢 FIXED | Content was offset 64px on mobile due to sidebar 'relative' class overriding 'fixed'. Fix: Changed to 'lg:relative', used translate-x instead of left positioning. Main content now starts at x=0 with max-w-7xl mx-auto wrapper. |
+| Customer Dashboard Sidebar | 🟢 DONE | Integrated responsive sidebar (hamburger menu, collapsed icons, full expanded). Added GlobalSearch to header. Content centered with max-w-6xl mx-auto. |
+| Quick Booking Actions | 🟢 DONE | Added ContextMenu to Recent Bookings on Admin Dashboard home. Actions: View Details, Copy Booking ID, Cancel Booking (conditional). |
+| Keyboard Shortcuts Panel | 🟢 DONE | Press ? to open modal. Shows Navigation (Ctrl+K, Esc, ↑↓, Enter), Quick Actions (G+D, G+B, G+S), Tables & Lists (J, K, X, Delete). Global component in App.js. |
+| Admin Overview Mobile Responsive | 🟢 DONE | Stat cards grid-cols-2 on mobile (was grid-cols-1). Header stacks vertically on mobile with text-center. Smaller text sizes on mobile. |
+
+### Files Modified This Session
+- /app/frontend/src/components/shared/Sidebar.js - Fixed mobile positioning (translate-x vs left)
+- /app/frontend/src/pages/AdminDashboard.js - Added max-w-7xl mx-auto wrapper
+- /app/frontend/src/pages/OperatorDashboard.js - Added max-w-7xl mx-auto wrapper
+- /app/frontend/src/pages/CustomerDashboard.js - Full responsive sidebar integration
+- /app/frontend/src/components/admin/AdminOverview.js - Context menu on Recent Bookings, mobile responsive
+- /app/frontend/src/components/shared/KeyboardShortcutsPanel.js - NEW
+- /app/frontend/src/App.js - Added KeyboardShortcutsPanel globally
+

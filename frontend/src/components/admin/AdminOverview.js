@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw, Target, ChevronRight } from 'lucide-react';
+import { Users, Plane, Calendar, IndianRupee, AlertTriangle, TrendingUp, FileWarning, RefreshCw, Target, ChevronRight, Eye, Copy, MoreVertical, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PilotDutyWidget from './PilotDutyWidget';
 import BookingPurposeChart from './BookingPurposeChart';
+import { ContextMenu } from '@/components/shared/ContextMenu';
+import { toast } from 'sonner';
 
 function AdminOverview({ data, onRefresh, loading, onNavigate }) {
   if (loading) {
@@ -152,29 +154,69 @@ function AdminOverview({ data, onRefresh, loading, onNavigate }) {
           <div className="space-y-3">
             {recentBookings.length > 0 ? (
               recentBookings.slice(0, 5).map((booking, index) => (
-                <button 
+                <div 
                   key={index} 
-                  onClick={() => handleCardClick('bookings')}
-                  className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer text-left"
+                  className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors"
                 >
-                  <div>
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => handleCardClick('bookings')}
+                  >
                     <p className="text-white font-medium">{booking.booking_number || `#${booking.id?.slice(0, 8)}`}</p>
                     <p className="text-sm text-slate-400">
                       {booking.from_location || booking.pickup_location} → {booking.to_location || booking.drop_location}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                      booking.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                      booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                      'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {booking.status}
-                    </span>
-                    <p className="text-sm text-slate-400 mt-1">{booking.customer_name || 'Customer'}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                        booking.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
+                        booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {booking.status}
+                      </span>
+                      <p className="text-sm text-slate-400 mt-1">{booking.customer_name || 'Customer'}</p>
+                    </div>
+                    <ContextMenu
+                      size="small"
+                      position="left"
+                      actions={[
+                        {
+                          id: 'view',
+                          label: 'View Details',
+                          icon: Eye,
+                          onClick: () => handleCardClick('bookings')
+                        },
+                        {
+                          id: 'copy-id',
+                          label: 'Copy Booking ID',
+                          icon: Copy,
+                          onClick: () => {
+                            navigator.clipboard.writeText(booking.id || booking.booking_number);
+                            toast.success('Booking ID copied!');
+                          }
+                        },
+                        { divider: true },
+                        ...(booking.status === 'pending' ? [{
+                          id: 'confirm',
+                          label: 'Mark Confirmed',
+                          icon: CheckCircle,
+                          success: true,
+                          onClick: () => toast.info('Update status from Bookings page')
+                        }] : []),
+                        ...(booking.status !== 'cancelled' && booking.status !== 'completed' ? [{
+                          id: 'cancel',
+                          label: 'Cancel Booking',
+                          icon: XCircle,
+                          danger: true,
+                          onClick: () => toast.info('Cancel from Bookings page')
+                        }] : [])
+                      ]}
+                    />
                   </div>
-                </button>
+                </div>
               ))
             ) : (
               <p className="text-slate-400 text-center py-4">No recent bookings</p>
