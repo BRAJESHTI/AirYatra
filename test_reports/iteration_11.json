@@ -1,0 +1,20 @@
+{
+  "summary": "Frontend-only test of Exchange SEO/Public Pages and Partner Webhook admin UI. All 7 requested flows passed end-to-end. Public listing page renders logged-out with correct title/price/specs/verified badge and functional share buttons (Copy Link toast, WhatsApp wa.me popup, Twitter x.com/intent popup). Login-gated CTAs (Send Inquiry / Book Inspection) show correct 'Please login' toasts when logged out. Invalid listing id renders 'Listing Not Available' state with Browse button. Exchange dialog 'Share This Listing' button copies public link with toast. Admin webhook flow works: opening webhook dialog for Taj Hotels Demo shows URL input + signature explanation + 1 successful delivery (booking.status_updated ✓ 200); saving URL shows 'Webhook URL saved' toast + button becomes 'Webhook ✓'; clearing URL shows 'Webhook removed' toast + button reverts to 'Webhook' (clean state restored). API Docs tab contains doc-webhooks card with booking.status_updated JSON example and X-AirYatra-Signature explanation. Logged-in customer inquiry from public page returns success toast 'Inquiry sent!'. Customer /customer/listings empty state renders correctly.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100%"},
+  "seed_data_creation": "One test inquiry sent from loyaltytest@airyatra.com on listing exl-bell407 (body: 'TEST inquiry from customer - please ignore'). Webhook URL for partner ptr-ef9f63e9 (Taj Hotels Demo) restored to EMPTY as instructed.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@airyatra.com / Admin123!, loyaltytest@airyatra.com / Loyalty@123",
+  "context_for_next_testing_agent": "Integrations is a sidebar item (not a top tab); Partner API Platform is a sub-menu under it. Partner tabs are partner-tab-partners / partner-tab-bookings / partner-tab-docs. webhook-partner-<id>, webhook-dialog, webhook-url-input, save-webhook-btn, webhook-logs-list, doc-webhooks all present and working. Public listing route: /exchange/listing/:id (no auth). Copy Link requires clipboard-read/write permissions via context.grant_permissions in Playwright.",
+  "rca_of_the_issue": "N/A — no defects found."
+}

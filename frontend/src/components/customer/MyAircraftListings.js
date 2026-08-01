@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plane, Eye, MessageSquare, PlusCircle, Loader2, ChevronDown, ChevronUp, Mail, Phone, Star } from 'lucide-react';
+import { Plane, Eye, MessageSquare, PlusCircle, Loader2, ChevronDown, ChevronUp, Mail, Phone, Star, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -103,6 +103,20 @@ export const MyAircraftListings = ({ user }) => {
                   >
                     {expanded === l.id ? <>Hide <ChevronUp className="h-4 w-4" /></> : <>View Inquiries <ChevronDown className="h-4 w-4" /></>}
                   </button>
+                )}
+                {(l.status === 'active' || l.status === 'in_auction') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/exchange/listing/${l.id}`)
+                        .then(() => toast.success('Public link copied — promote it anywhere! / लिंक कॉपी हो गया'));
+                    }}
+                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 shrink-0 self-start"
+                    data-testid={`share-listing-${l.id}`}
+                  >
+                    <Share2 className="h-4 w-4 mr-1" /> Share
+                  </Button>
                 )}
               </div>
               {expanded === l.id && (

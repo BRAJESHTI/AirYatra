@@ -1,5 +1,8 @@
 import secrets
-from fastapi import APIRouter, HTTPException, Depends, Header, Query
+import hmac
+import hashlib
+import json
+from fastapi import APIRouter, HTTPException, Depends, Header, Query, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
@@ -16,6 +19,11 @@ class PartnerCreate(BaseModel):
     company: str
     partner_type: str = "hotel"  # hotel, travel_agency, corporate, other
     contact_email: str
+    webhook_url: Optional[str] = None
+
+
+class WebhookConfig(BaseModel):
+    webhook_url: str
 
 
 class PartnerBookingCreate(BaseModel):
@@ -32,6 +40,45 @@ class PartnerBookingCreate(BaseModel):
 def _require_admin(user):
     if "admin" not in user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
+
+
+async def _dispatch_webhook(partner: dict, event: str, payload: dict):
+    """POST signed event to partner's webhook_url and log the delivery"""
+    import httpx
+    from database import get_database as _gdb
+    db = _gdb()
+    url = partner.get("webhook_url")
+    if not url:
+        return
+    body = json.dumps({
+        "event": event,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": payload,
+    })
+    signature = hmac.new(partner["api_key"].encode(), body.encode(), hashlib.sha256).hexdigest()
+    status_code, success, error = None, False, None
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(url, content=body, headers={
+                "Content-Type": "application/json",
+                "X-AirYatra-Signature": signature,
+                "X-AirYatra-Event": event,
+            })
+            status_code = resp.status_code
+            success = 200 <= resp.status_code < 300
+    except Exception as e:
+        error = str(e)[:200]
+    await db.partner_webhook_logs.insert_one({
+        "id": str(uuid4()),
+        "partner_id": partner["id"],
+        "event": event,
+        "url": url,
+        "booking_id": payload.get("booking_id"),
+        "status_code": status_code,
+        "success": success,
+        "error": error,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
 
 
 # ---------- Admin: Partner Management ----------
@@ -74,6 +121,27 @@ async def update_partner_status(partner_id: str, status: str = Query(...), curre
     return {"message": f"Partner {status}"}
 
 
+@router.patch("/{partner_id}/webhook")
+async def set_partner_webhook(partner_id: str, cfg: WebhookConfig, current_user: dict = Depends(get_current_user)):
+    _require_admin(current_user)
+    url = cfg.webhook_url.strip()
+    if url and not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Webhook URL must start with http:// or https://")
+    db = get_database()
+    r = await db.partners.update_one({"id": partner_id}, {"$set": {"webhook_url": url or None}})
+    if r.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    return {"message": "Webhook URL saved" if url else "Webhook removed"}
+
+
+@router.get("/{partner_id}/webhook-logs")
+async def get_webhook_logs(partner_id: str, current_user: dict = Depends(get_current_user)):
+    _require_admin(current_user)
+    db = get_database()
+    logs = await db.partner_webhook_logs.find({"partner_id": partner_id}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    return {"logs": logs}
+
+
 @router.post("/{partner_id}/regenerate-key")
 async def regenerate_key(partner_id: str, current_user: dict = Depends(get_current_user)):
     _require_admin(current_user)
@@ -94,15 +162,30 @@ async def admin_partner_bookings(current_user: dict = Depends(get_current_user))
 
 
 @router.patch("/bookings/{booking_id}/status")
-async def update_partner_booking_status(booking_id: str, status: str = Query(...), current_user: dict = Depends(get_current_user)):
+async def update_partner_booking_status(booking_id: str, background_tasks: BackgroundTasks, status: str = Query(...), current_user: dict = Depends(get_current_user)):
     _require_admin(current_user)
     if status not in ["received", "processing", "confirmed", "cancelled"]:
         raise HTTPException(status_code=400, detail="Invalid status")
     db = get_database()
-    r = await db.partner_bookings.update_one({"id": booking_id}, {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}})
-    if r.matched_count == 0:
+    booking = await db.partner_bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    return {"message": f"Booking marked {status}"}
+    previous_status = booking.get("status")
+    await db.partner_bookings.update_one({"id": booking_id}, {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    partner = await db.partners.find_one({"id": booking.get("partner_id")}, {"_id": 0})
+    if partner and partner.get("webhook_url"):
+        payload = {
+            "booking_id": booking_id,
+            "status": status,
+            "previous_status": previous_status,
+            "customer_name": booking.get("customer_name"),
+            "from_location": booking.get("from_location"),
+            "to_location": booking.get("to_location"),
+            "departure_date": booking.get("departure_date"),
+            "passengers": booking.get("passengers"),
+        }
+        background_tasks.add_task(_dispatch_webhook, partner, "booking.status_updated", payload)
+    return {"message": f"Booking marked {status}" + (" — partner webhook notified" if partner and partner.get("webhook_url") else "")}
 
 
 # ---------- Partner API v1 (X-API-Key auth) ----------

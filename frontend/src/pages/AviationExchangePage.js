@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plane, Search, MapPin, Clock, Users, BadgeCheck, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle, Star, PieChart, ShoppingBag, Gavel, ClipboardCheck
+  Plane, Search, MapPin, Clock, Users, BadgeCheck, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle, Star, PieChart, ShoppingBag, Gavel, ClipboardCheck, Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -329,6 +329,17 @@ export default function AviationExchangePage({ user }) {
                 data-testid="book-inspection-btn"
               >
                 <ClipboardCheck className="h-4 w-4 mr-2" /> Book Pre-Purchase Inspection / निरीक्षण बुक करें
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/exchange/listing/${selected.id}`)
+                    .then(() => toast.success('Public link copied — share it anywhere! / लिंक कॉपी हो गया'));
+                }}
+                variant="outline"
+                className="w-full border-slate-700 text-slate-300 hover:border-orange-500/50 hover:text-orange-400"
+                data-testid="share-listing-btn"
+              >
+                <Share2 className="h-4 w-4 mr-2" /> Share This Listing / लिस्टिंग शेयर करें
               </Button>
               <div className="border-t border-slate-700 pt-4">
                 <p className="text-white font-medium mb-2">Interested? Send an inquiry / पूछताछ भेजें</p>

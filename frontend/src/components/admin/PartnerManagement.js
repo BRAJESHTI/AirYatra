@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Handshake, Key, Copy, RefreshCw, Ban, CheckCircle2, Loader2, Plus, BookOpen, Calendar, Phone, Mail } from 'lucide-react';
+import { Handshake, Key, Copy, RefreshCw, Ban, CheckCircle2, Loader2, Plus, BookOpen, Calendar, Phone, Mail, Webhook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,34 @@ const PartnerManagement = () => {
   const [form, setForm] = useState(EMPTY);
   const [newKey, setNewKey] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [webhookFor, setWebhookFor] = useState(null);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookLogs, setWebhookLogs] = useState([]);
+  const [savingWebhook, setSavingWebhook] = useState(false);
+
+  const openWebhook = async (p) => {
+    setWebhookFor(p);
+    setWebhookUrl(p.webhook_url || '');
+    setWebhookLogs([]);
+    try {
+      const res = await api.get(`/partners/${p.id}/webhook-logs`);
+      setWebhookLogs(res.data.logs || []);
+    } catch (e) { /* noop */ }
+  };
+
+  const saveWebhook = async () => {
+    setSavingWebhook(true);
+    try {
+      const res = await api.patch(`/partners/${webhookFor.id}/webhook`, { webhook_url: webhookUrl });
+      toast.success(res.data.message);
+      setWebhookFor(null);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to save webhook');
+    } finally {
+      setSavingWebhook(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,6 +173,9 @@ const PartnerManagement = () => {
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => openWebhook(p)} className={p.webhook_url ? 'border-green-500/50 text-green-400 hover:bg-green-500/10' : 'border-slate-600 text-slate-300'} data-testid={`webhook-partner-${p.id}`}>
+                    <Webhook className="h-4 w-4 mr-1" /> {p.webhook_url ? 'Webhook ✓' : 'Webhook'}
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => act(p.id + 'regen', () => api.post(`/partners/${p.id}/regenerate-key`))} disabled={!!acting} className="border-slate-600 text-slate-300" data-testid={`regenerate-key-${p.id}`}>
                     <RefreshCw className="h-4 w-4 mr-1" /> New Key
                   </Button>
@@ -231,6 +262,29 @@ const PartnerManagement = () => {
               <pre className="text-[11px] bg-slate-950 border border-slate-800 rounded-lg p-3 mt-2 text-slate-300 overflow-x-auto whitespace-pre-wrap">{example}</pre>
             </div>
           ))}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5" data-testid="doc-webhooks">
+            <div className="flex items-center gap-2">
+              <Webhook className="h-4 w-4 text-orange-400" />
+              <code className="text-orange-400 font-bold text-sm">Webhooks — booking.status_updated</code>
+            </div>
+            <p className="text-slate-400 text-xs mt-1">
+              Set a webhook URL per partner (Webhook button on the partner card). We POST this JSON when a booking is confirmed/cancelled/updated. Verify authenticity via the <code className="text-orange-300">X-AirYatra-Signature</code> header — HMAC-SHA256 hex of the raw body, keyed with your API key.
+            </p>
+            <pre className="text-[11px] bg-slate-950 border border-slate-800 rounded-lg p-3 mt-2 text-slate-300 overflow-x-auto whitespace-pre-wrap">{`{
+  "event": "booking.status_updated",
+  "timestamp": "2026-08-01T12:00:00+00:00",
+  "data": {
+    "booking_id": "pb-xxxxxxxxxx",
+    "status": "confirmed",
+    "previous_status": "processing",
+    "customer_name": "Rahul Sharma",
+    "from_location": "Mumbai",
+    "to_location": "Shirdi",
+    "departure_date": "2026-08-20",
+    "passengers": 4
+  }
+}`}</pre>
+          </div>
         </div>
       )}
 
@@ -268,6 +322,45 @@ const PartnerManagement = () => {
               Create & Generate API Key
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Webhook Dialog */}
+      <Dialog open={!!webhookFor} onOpenChange={(o) => !o && setWebhookFor(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md" data-testid="webhook-dialog">
+          {webhookFor && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Webhook className="h-5 w-5 text-orange-400" /> Webhook — {webhookFor.company}</DialogTitle>
+                <DialogDescription className="text-slate-400">
+                  We POST a signed JSON event to this URL the moment a booking is confirmed or cancelled. Signature header: <code className="text-orange-300">X-AirYatra-Signature</code> (HMAC-SHA256 of body using the API key).
+                </DialogDescription>
+              </DialogHeader>
+              <div>
+                <label className="text-xs text-slate-400">Webhook URL (leave empty to disable)</label>
+                <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://partner.com/webhooks/airyatra" className="bg-slate-800 border-slate-600 text-white" data-testid="webhook-url-input" />
+              </div>
+              <Button onClick={saveWebhook} disabled={savingWebhook} className="w-full bg-orange-500 hover:bg-orange-600" data-testid="save-webhook-btn">
+                {savingWebhook ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Webhook className="h-4 w-4 mr-2" />}
+                Save Webhook
+              </Button>
+              {webhookLogs.length > 0 && (
+                <div className="border-t border-slate-700 pt-3">
+                  <p className="text-slate-400 text-xs mb-2">Recent Deliveries</p>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto" data-testid="webhook-logs-list">
+                    {webhookLogs.map(l => (
+                      <div key={l.id} className="flex items-center justify-between text-xs bg-slate-800/60 rounded px-2.5 py-1.5">
+                        <span className="text-slate-300">{l.event} • {l.booking_id}</span>
+                        <span className={l.success ? 'text-green-400' : 'text-red-400'}>
+                          {l.success ? `✓ ${l.status_code}` : `✗ ${l.status_code || 'failed'}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

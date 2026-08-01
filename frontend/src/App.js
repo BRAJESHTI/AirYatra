@@ -25,6 +25,7 @@ const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
 // Phase 1: Premium Services - lazy loaded
 const MembershipPage = lazy(() => import('./pages/MembershipPage'));
 const AviationExchangePage = lazy(() => import('./pages/AviationExchangePage'));
+const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage'));
 const CorporateDashboard = lazy(() => import('./pages/CorporateDashboard'));
 const DocumentVault = lazy(() => import('./pages/DocumentVault'));
 
@@ -165,6 +166,7 @@ function App() {
         {/* Phase 1: Premium Services Routes */}
         <Route path="/membership" element={<MembershipPage user={user} />} />
         <Route path="/exchange" element={<AviationExchangePage user={user} />} />
+        <Route path="/exchange/listing/:listingId" element={<ListingDetailPage user={user} />} />
         <Route 
           path="/corporate/*" 
           element={user ? <CorporateDashboard user={user} /> : <Navigate to="/login" />} 
