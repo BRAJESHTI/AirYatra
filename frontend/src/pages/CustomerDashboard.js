@@ -12,6 +12,7 @@ import LoyaltyRewards from '../components/customer/LoyaltyRewards';
 import MyAircraftListings from '../components/customer/MyAircraftListings';
 import MyInvestments from '../components/customer/MyInvestments';
 import MyWatchlist from '../components/customer/MyWatchlist';
+import CustomerPaymentHistory from '../components/customer/CustomerPaymentHistory';
 import NotificationBell from '../components/shared/NotificationBell';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -33,6 +34,7 @@ const navGroups = [
     label: 'Rewards & Offers / पुरस्कार',
     icon: Gift,
     items: [
+      { id: 'payments', label: 'Payment History / भुगतान', icon: CreditCard, path: '/customer/payments', highlight: true },
       { id: 'refer', label: 'Refer & Earn / रेफर करें', icon: Gift, path: '/customer/refer' },
       { id: 'investments', label: 'My Investments / मेरा निवेश', icon: PieChart, path: '/customer/investments' },
       { id: 'wallet', label: 'My Wallet / वॉलेट', icon: Wallet, path: '/customer/wallet' },
@@ -144,6 +146,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <ReferAndEarn user={user} />;
       case 'loyalty':
         return <LoyaltyRewards user={user} />;
+      case 'payments':
+        return <CustomerPaymentHistory user={user} />;
       default:
         return (
           <div className="max-w-6xl mx-auto">

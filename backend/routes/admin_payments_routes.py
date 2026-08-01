@@ -313,6 +313,54 @@ Thank you for choosing AirYatra! ✈️"""
     }
 
 
+@router.get("/payment-link-qr/{token}")
+async def get_payment_link_qr(
+    token: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Generate QR code for payment link (Admin only)"""
+    _require_admin(current_user)
+    
+    # Verify payment link exists
+    payment_link = await db.payment_links.find_one(
+        {"token": token},
+        {"_id": 0}
+    )
+    
+    if not payment_link:
+        raise HTTPException(status_code=404, detail="Payment link not found")
+    
+    # Generate QR code
+    import qrcode
+    from io import BytesIO
+    
+    payment_url = f"https://airyatra.co.in/pay/{token}"
+    
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(payment_url)
+    qr.make(fit=True)
+    
+    # Create image with orange color
+    img = qr.make_image(fill_color="#f97316", back_color="white")
+    
+    # Save to bytes
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    return Response(
+        content=buffer.getvalue(),
+        media_type="image/png",
+        headers={"Content-Disposition": f'inline; filename="AirYatra_Payment_QR_{token}.png"'}
+    )
+
+
 # ==================== BALANCE REMINDER EMAILS ====================
 
 async def _send_balance_reminder_email(db, booking: dict, remaining: float):

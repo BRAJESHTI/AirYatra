@@ -9,7 +9,7 @@ import {
   DollarSign, TrendingUp, Clock, CreditCard, Users, FileText, 
   Download, RefreshCw, AlertTriangle, CheckCircle, ArrowUpRight,
   Calendar, Receipt, Wallet, ChevronRight, Link2, MessageCircle,
-  Mail, Copy, Send, FileSpreadsheet
+  Mail, Copy, Send, FileSpreadsheet, QrCode, Printer
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
@@ -20,6 +20,7 @@ export default function AdminPaymentsDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [paymentLinkDialog, setPaymentLinkDialog] = useState({ open: false, data: null, loading: false });
+  const [qrDialog, setQrDialog] = useState({ open: false, token: null, qrUrl: null });
   const [reminderLoading, setReminderLoading] = useState({});
   const [exportLoading, setExportLoading] = useState(false);
 
@@ -141,6 +142,56 @@ export default function AdminPaymentsDashboard() {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
+  };
+
+  // Show QR Code
+  const showQrCode = async (token) => {
+    const authToken = localStorage.getItem('token');
+    const qrUrl = `${API_URL}/api/admin/payments/payment-link-qr/${token}?auth=${authToken}`;
+    setQrDialog({ open: true, token, qrUrl });
+  };
+
+  // Print QR Code
+  const printQrCode = () => {
+    const printWindow = window.open('', '_blank');
+    const qrUrl = `${API_URL}/api/admin/payments/payment-link-qr/${qrDialog.token}`;
+    const paymentUrl = `https://airyatra.co.in/pay/${qrDialog.token}`;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>AirYatra Payment QR Code</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+          .logo { font-size: 32px; font-weight: bold; color: #f97316; margin-bottom: 20px; }
+          .qr-container { margin: 30px 0; }
+          .qr-container img { width: 250px; height: 250px; }
+          .payment-url { font-size: 14px; color: #666; margin: 20px 0; word-break: break-all; }
+          .instructions { font-size: 16px; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px; }
+          .footer { font-size: 12px; color: #999; margin-top: 30px; }
+        </style>
+      </head>
+      <body>
+        <div class="logo">🚁 AirYatra</div>
+        <h2>Scan to Pay Balance</h2>
+        <div class="qr-container">
+          <img src="${qrUrl}" alt="Payment QR Code" />
+        </div>
+        <div class="payment-url">${paymentUrl}</div>
+        <div class="instructions">
+          📱 Scan this QR code with your phone camera<br/>
+          💳 Complete payment securely via Stripe
+        </div>
+        <div class="footer">
+          AirYatra Aviation Pvt. Ltd. | info@airyatra.co.in
+        </div>
+        <script>
+          setTimeout(() => { window.print(); }, 500);
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   if (loading) {
@@ -604,13 +655,24 @@ export default function AdminPaymentsDashboard() {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700"
                   onClick={() => window.open(paymentLinkDialog.data.whatsapp_url, '_blank')}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Share via WhatsApp
+                  WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-orange-500 text-orange-400 hover:bg-orange-500/20"
+                  onClick={() => {
+                    showQrCode(paymentLinkDialog.data.token);
+                    setPaymentLinkDialog({ ...paymentLinkDialog, open: false });
+                  }}
+                >
+                  <QrCode className="h-4 w-4 mr-2" />
+                  QR Code
                 </Button>
                 <Button
                   variant="outline"
@@ -618,7 +680,7 @@ export default function AdminPaymentsDashboard() {
                   onClick={() => copyToClipboard(paymentLinkDialog.data.whatsapp_message)}
                 >
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Message
+                  Copy
                 </Button>
               </div>
               
@@ -627,6 +689,65 @@ export default function AdminPaymentsDashboard() {
               </p>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialog.open} onOpenChange={(open) => setQrDialog({ ...qrDialog, open })}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <QrCode className="h-5 w-5 text-orange-500" />
+              Payment QR Code
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Print or share this QR code for easy payment
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* QR Code Image */}
+            <div className="bg-white rounded-xl p-4 flex items-center justify-center">
+              <img 
+                src={`${API_URL}/api/admin/payments/payment-link-qr/${qrDialog.token}`}
+                alt="Payment QR Code"
+                className="w-48 h-48"
+                crossOrigin="anonymous"
+              />
+            </div>
+            
+            {/* URL */}
+            <div className="text-center">
+              <p className="text-xs text-slate-500 break-all">
+                https://airyatra.co.in/pay/{qrDialog.token}
+              </p>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+                onClick={printQrCode}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print QR
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-slate-600"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = `${API_URL}/api/admin/payments/payment-link-qr/${qrDialog.token}`;
+                  link.download = `AirYatra_QR_${qrDialog.token}.png`;
+                  link.click();
+                  toast.success('QR Code downloaded!');
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
