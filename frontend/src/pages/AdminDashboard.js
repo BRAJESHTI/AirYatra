@@ -76,6 +76,7 @@ import AccountingIntegration from '@/components/admin/AccountingIntegration';
 import TwilioIntegration from '@/components/admin/TwilioIntegration';
 import TallyIntegration from '@/components/admin/TallyIntegration';
 import ZohoIntegration from '@/components/admin/ZohoIntegration';
+import ExchangeManagement from '@/components/admin/ExchangeManagement';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -87,6 +88,7 @@ const navGroups = [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
       { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
+      { id: 'exchange', label: 'Aviation Exchange', icon: Plane, highlight: true },
       { id: 'multi_approval', label: 'Multi-Level Approvals', icon: Shield },
     ]
   },
@@ -348,6 +350,8 @@ function AdminDashboard({ user, onLogout }) {
         return <InquiryManagement />;
       case 'approvals':
         return <ApprovalQueue />;
+      case 'exchange':
+        return <ExchangeManagement />;
       case 'multi_approval':
         return <MultiLevelApproval />;
       case 'users':

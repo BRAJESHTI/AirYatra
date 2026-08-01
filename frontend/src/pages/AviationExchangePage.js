@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plane, Search, MapPin, Clock, Users, BadgeCheck, Eye, ArrowLeft, Send, Loader2, TrendingUp
+  Plane, Search, MapPin, Clock, Users, BadgeCheck, Eye, ArrowLeft, Send, Loader2, TrendingUp, PlusCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '../services/api';
+import SellAircraftForm from '../components/exchange/SellAircraftForm';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Aircraft' },
@@ -59,6 +60,15 @@ export default function AviationExchangePage({ user }) {
   const [selected, setSelected] = useState(null);
   const [inquiryMsg, setInquiryMsg] = useState('');
   const [sending, setSending] = useState(false);
+  const [sellOpen, setSellOpen] = useState(false);
+
+  const openSell = () => {
+    if (!user) {
+      toast.error('Please login to sell your aircraft / विमान बेचने के लिए लॉगिन करें');
+      return;
+    }
+    setSellOpen(true);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,9 +119,14 @@ export default function AviationExchangePage({ user }) {
               <span className="text-xl font-bold text-white">Aviation <span className="text-orange-500">Exchange</span></span>
             </div>
           </div>
-          <Badge className="bg-orange-500/15 text-orange-400 border border-orange-500/30 hidden sm:flex">
-            <TrendingUp className="h-3 w-3 mr-1" /> India's First Aircraft Resale Marketplace
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge className="bg-orange-500/15 text-orange-400 border border-orange-500/30 hidden sm:flex">
+              <TrendingUp className="h-3 w-3 mr-1" /> India's First Aircraft Resale Marketplace
+            </Badge>
+            <Button onClick={openSell} className="bg-orange-500 hover:bg-orange-600" data-testid="sell-aircraft-btn">
+              <PlusCircle className="h-4 w-4 mr-2" /> Sell Aircraft
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -123,6 +138,9 @@ export default function AviationExchangePage({ user }) {
         <p className="text-slate-400 mt-3 max-w-2xl">
           Pre-owned helicopters, private jets and turboprops — verified sellers, transparent pricing, DGCA documentation support. / सत्यापित विक्रेता, पारदर्शी कीमतें।
         </p>
+        <Button onClick={openSell} variant="outline" className="mt-4 border-orange-500/50 text-orange-400 hover:bg-orange-500/10" data-testid="sell-aircraft-hero-btn">
+          <PlusCircle className="h-4 w-4 mr-2" /> List Your Aircraft for Free / अपना विमान लिस्ट करें
+        </Button>
       </div>
 
       {/* Filters */}
@@ -233,6 +251,8 @@ export default function AviationExchangePage({ user }) {
           )}
         </DialogContent>
       </Dialog>
+
+      <SellAircraftForm open={sellOpen} onClose={() => setSellOpen(false)} user={user} />
     </div>
   );
 }

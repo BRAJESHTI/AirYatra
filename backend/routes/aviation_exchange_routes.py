@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, BackgroundTasks
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -100,9 +101,13 @@ async def get_listing_detail(listing_id: str):
 async def create_listing(listing: ListingCreate, current_user: dict = Depends(get_current_user)):
     """Sell your aircraft: create a listing (goes to admin review)"""
     db = get_database()
+    data = listing.dict()
+    if not data.get("image"):
+        defaults = {"helicopter": IMG_BELL, "jet": IMG_JET, "turboprop": IMG_KINGAIR}
+        data["image"] = defaults.get(data.get("category"), IMG_BELL)
     doc = {
         "id": f"exl-{uuid4().hex[:8]}",
-        **listing.dict(),
+        **data,
         "seller_id": current_user["id"],
         "seller_name": current_user.get("full_name", "Private Seller"),
         "seller_type": "operator" if "operator" in current_user.get("roles", []) else "private",
@@ -138,15 +143,120 @@ async def inquire_listing(listing_id: str, inquiry: InquiryCreate, current_user:
     return {"message": "Inquiry sent! The seller's team will contact you within 24 hours."}
 
 
+@router.post("/upload-image")
+async def upload_listing_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Upload aircraft photo for a listing (object storage)"""
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files allowed")
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image must be under 8MB")
+    
+    db = get_database()
+    image_id = f"exi-{uuid4().hex}"
+    ext = file.filename.split(".")[-1].lower() if "." in (file.filename or "") else "jpg"
+    from services.storage_service import put_object
+    stored = await put_object(f"airyatra/exchange/{image_id}.{ext}", content, file.content_type)
+    
+    await db.exchange_images.insert_one({
+        "id": image_id,
+        "storage_path": stored["path"],
+        "content_type": file.content_type,
+        "uploaded_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"image_url": f"/api/exchange/image/{image_id}"}
+
+
+@router.get("/image/{image_id}")
+async def serve_listing_image(image_id: str):
+    """Public: serve listing image from object storage"""
+    db = get_database()
+    img = await db.exchange_images.find_one({"id": image_id}, {"_id": 0})
+    if not img:
+        raise HTTPException(status_code=404, detail="Image not found")
+    from services.storage_service import get_object
+    content, ct = await get_object(img["storage_path"])
+    return Response(content=content, media_type=img.get("content_type") or ct, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@router.get("/admin/listings")
+async def admin_get_listings(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """Admin: all listings, pending first"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    query = {"status": status} if status else {}
+    listings = await db.exchange_listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    order = {"pending_review": 0, "active": 1, "sold": 2, "rejected": 3}
+    listings.sort(key=lambda l: order.get(l.get("status"), 4))
+    return {"listings": listings, "pending_count": sum(1 for l in listings if l.get("status") == "pending_review")}
+
+
+@router.get("/admin/inquiries")
+async def admin_get_inquiries(current_user: dict = Depends(get_current_user)):
+    """Admin: all buyer inquiries"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    inquiries = await db.exchange_inquiries.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return {"inquiries": inquiries, "new_count": sum(1 for i in inquiries if i.get("status") == "new")}
+
+
+@router.patch("/admin/inquiries/{inquiry_id}/status")
+async def update_inquiry_status(inquiry_id: str, status: str = Query(...), current_user: dict = Depends(get_current_user)):
+    """Admin: mark inquiry contacted/closed"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if status not in ["new", "contacted", "closed"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    db = get_database()
+    result = await db.exchange_inquiries.update_one({"id": inquiry_id}, {"$set": {"status": status}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Inquiry not found")
+    return {"message": f"Inquiry marked {status}"}
+
+
+async def _notify_seller(email: str, name: str, title: str, status: str):
+    from services.email_service import email_service
+    if status == "active":
+        subject = f"🎉 Your listing '{title}' is now LIVE on AirYatra Exchange"
+        body_line = "Great news! Your aircraft listing has been <b style='color:#16a34a;'>approved and published</b> on AirYatra Aviation Exchange. Buyers across India can now view your aircraft and send inquiries."
+    else:
+        subject = f"Update on your AirYatra Exchange listing '{title}'"
+        body_line = "After review, we are unable to publish your listing at this time. Common reasons include incomplete documentation or unverifiable details. You may update the details and submit again, or contact our team for assistance."
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+      <div style="background:#f97316;padding:20px 28px;">
+        <h2 style="margin:0;color:#fff;">AirYatra Aviation Exchange</h2>
+      </div>
+      <div style="padding:28px;">
+        <p>Dear {name},</p>
+        <p>{body_line}</p>
+        <div style="background:#1e293b;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0;"><b>Aircraft:</b> {title}</p>
+          <p style="margin:8px 0 0;"><b>Status:</b> {'LIVE ✅' if status == 'active' else 'Not Approved ❌'}</p>
+        </div>
+        <p style="color:#94a3b8;font-size:13px;">Team AirYatra • India's First Aircraft Resale Marketplace</p>
+      </div>
+    </div>"""
+    await email_service.send_email(to_email=email, subject=subject, html_body=html)
+
+
 @router.patch("/admin/listings/{listing_id}/status")
-async def update_listing_status(listing_id: str, status: str = Query(...), current_user: dict = Depends(get_current_user)):
-    """Admin: approve/reject/mark sold"""
+async def update_listing_status(listing_id: str, background_tasks: BackgroundTasks, status: str = Query(...), current_user: dict = Depends(get_current_user)):
+    """Admin: approve/reject/mark sold (emails seller on approve/reject)"""
     if "admin" not in current_user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin access required")
     if status not in ["active", "rejected", "sold", "pending_review"]:
         raise HTTPException(status_code=400, detail="Invalid status")
     db = get_database()
-    result = await db.exchange_listings.update_one({"id": listing_id}, {"$set": {"status": status, "verified": status == "active"}})
-    if result.matched_count == 0:
+    listing = await db.exchange_listings.find_one({"id": listing_id}, {"_id": 0})
+    if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+    await db.exchange_listings.update_one({"id": listing_id}, {"$set": {"status": status, "verified": status == "active"}})
+    if status in ("active", "rejected") and listing.get("seller_id"):
+        seller = await db.users.find_one({"id": listing["seller_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+        if seller and seller.get("email"):
+            background_tasks.add_task(_notify_seller, seller["email"], seller.get("full_name", "Seller"), listing["title"], status)
     return {"message": f"Listing marked {status}"}
