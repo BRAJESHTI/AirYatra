@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
+import { toast } from 'sonner';
 import { 
   ChevronLeft, ChevronRight, Plane, MapPin, User, Clock, 
   CreditCard, CheckCircle, AlertTriangle, Calendar as CalendarIcon,
-  RefreshCw, Filter
+  RefreshCw, Filter, Download, Mail, Send
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -17,6 +18,8 @@ export default function BookingCalendarView() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [exporting, setExporting] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   useEffect(() => {
     loadBookings();
@@ -44,6 +47,65 @@ export default function BookingCalendarView() {
       console.error('Failed to load bookings:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Export to iCal
+  const exportToCalendar = async () => {
+    setExporting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 3, 0);
+      
+      const res = await fetch(
+        `${API_URL}/api/admin/payments/calendar-export?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AirYatra_Flights_${startDate.toISOString().split('T')[0]}.ics`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success('Calendar exported! Import to Google Calendar or Outlook');
+      } else {
+        toast.error('Export failed');
+      }
+    } catch (err) {
+      toast.error('Failed to export calendar');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Send Bulk Reminders
+  const sendBulkReminders = async () => {
+    if (!confirm('Send payment reminder emails to ALL customers with pending balances?')) {
+      return;
+    }
+    
+    setSendingReminders(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/payments/bulk-reminders`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const json = await res.json();
+      if (res.ok) {
+        toast.success(`${json.message} (₹${json.total_pending_amount?.toLocaleString()} total)`);
+      } else {
+        toast.error(json.detail || 'Failed to send reminders');
+      }
+    } catch (err) {
+      toast.error('Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
     }
   };
 
@@ -136,15 +198,45 @@ export default function BookingCalendarView() {
           </h1>
           <p className="text-slate-400 mt-1">View all upcoming flights with payment status</p>
         </div>
-        <Button 
-          onClick={loadBookings} 
-          variant="outline" 
-          className="border-slate-600 text-slate-300 hover:bg-slate-800"
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            onClick={sendBulkReminders}
+            variant="outline"
+            className="border-orange-500 text-orange-400 hover:bg-orange-500/20"
+            disabled={sendingReminders}
+            data-testid="bulk-reminders-btn"
+          >
+            {sendingReminders ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Mail className="h-4 w-4 mr-2" />
+            )}
+            Bulk Reminders
+          </Button>
+          <Button 
+            onClick={exportToCalendar}
+            variant="outline"
+            className="border-green-500 text-green-400 hover:bg-green-500/20"
+            disabled={exporting}
+            data-testid="export-calendar-btn"
+          >
+            {exporting ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Export iCal
+          </Button>
+          <Button 
+            onClick={loadBookings} 
+            variant="outline" 
+            className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-[400px_1fr] gap-6">

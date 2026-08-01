@@ -318,6 +318,306 @@ async def get_calendar_bookings(
     }
 
 
+# ==================== CALENDAR EXPORT (iCal) ====================
+
+@router.get("/calendar-export")
+async def export_calendar_ical(
+    start_date: str = None,
+    end_date: str = None,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Export flights as iCal/ICS file for Google Calendar, Outlook, etc."""
+    _require_admin(current_user)
+    
+    now = datetime.now(timezone.utc)
+    
+    if not start_date:
+        start_date = now.strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = (now + timedelta(days=90)).strftime("%Y-%m-%d")
+    
+    # Get all flights
+    inquiries = await db.inquiries.find(
+        {"departure_date": {"$gte": start_date, "$lte": end_date}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    bookings = await db.bookings.find(
+        {"departure_date": {"$gte": start_date, "$lte": end_date}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Generate iCal content
+    ical_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//AirYatra//Flight Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:AirYatra Flights",
+        "X-WR-TIMEZONE:Asia/Kolkata",
+    ]
+    
+    def create_event(flight, flight_type):
+        if not flight:
+            return []
+        uid = flight.get("id", str(uuid4()))
+        ref = flight.get("inquiry_number") or flight.get("booking_number") or uid[:8]
+        customer = flight.get("customer_name", "Customer")
+        from_loc = flight.get("from_location", "Origin")
+        to_loc = flight.get("to_location", "Destination")
+        dep_date = flight.get("departure_date", "")
+        dep_time = flight.get("departure_time") or flight.get("pickup_time") or "09:00"
+        payment_status = flight.get("payment_status", "pending") or "pending"
+        amount = flight.get("accepted_quote", {}).get("amount") if flight.get("accepted_quote") else flight.get("estimated_price") or 0
+        
+        if not dep_date:
+            return []
+        
+        # Parse date
+        try:
+            if "T" in str(dep_date):
+                dt = datetime.fromisoformat(str(dep_date).replace("Z", "+00:00"))
+            else:
+                dt = datetime.strptime(f"{dep_date} {dep_time}", "%Y-%m-%d %H:%M")
+        except:
+            try:
+                dt = datetime.strptime(str(dep_date)[:10], "%Y-%m-%d")
+            except:
+                return []
+        
+        dt_str = dt.strftime("%Y%m%dT%H%M%S")
+        end_dt = (dt + timedelta(hours=2)).strftime("%Y%m%dT%H%M%S")
+        created = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        
+        # Payment status emoji
+        payment_emoji = "✅" if payment_status == "fully_paid" else "💳" if payment_status == "paid" else "⏳"
+        
+        summary = f"{payment_emoji} {from_loc} → {to_loc} | {customer}"
+        description = f"Booking Ref: #{ref}\\nCustomer: {customer}\\nRoute: {from_loc} → {to_loc}\\nAmount: ₹{amount:,.0f}\\nPayment: {payment_status.replace('_', ' ').title()}\\n\\nAirYatra - India's Aviation OS"
+        
+        return [
+            "BEGIN:VEVENT",
+            f"UID:{uid}@airyatra.co.in",
+            f"DTSTAMP:{created}",
+            f"DTSTART:{dt_str}",
+            f"DTEND:{end_dt}",
+            f"SUMMARY:{summary}",
+            f"DESCRIPTION:{description}",
+            f"LOCATION:{from_loc}",
+            "STATUS:CONFIRMED",
+            "END:VEVENT",
+        ]
+    
+    for inq in inquiries:
+        ical_lines.extend(create_event(inq, "inquiry"))
+    
+    for bkg in bookings:
+        ical_lines.extend(create_event(bkg, "booking"))
+    
+    ical_lines.append("END:VCALENDAR")
+    
+    ical_content = "\r\n".join(ical_lines)
+    
+    return Response(
+        content=ical_content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f'attachment; filename="AirYatra_Flights_{start_date}_to_{end_date}.ics"'
+        }
+    )
+
+
+# ==================== BULK PAYMENT REMINDERS ====================
+
+@router.post("/bulk-reminders")
+async def send_bulk_payment_reminders(
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Send reminder emails to ALL customers with pending balances (Admin only)"""
+    _require_admin(current_user)
+    
+    # Get all bookings with pending balance (payment_status = 'paid' but not 'fully_paid')
+    pending_bookings = await db.inquiries.find(
+        {"payment_status": "paid"},
+        {"_id": 0}
+    ).to_list(500)
+    
+    if not pending_bookings:
+        return {
+            "success": True,
+            "message": "No pending balances found",
+            "sent": 0,
+            "skipped": 0,
+        }
+    
+    # Filter to only those with actual remaining balance
+    bookings_to_remind = []
+    
+    for booking in pending_bookings:
+        total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+        if total_amount <= 0:
+            continue
+        
+        txns = await db.payment_transactions.find(
+            {"booking_id": booking["id"], "payment_status": "paid"},
+            {"_id": 0, "amount": 1, "voucher_discount": 1}
+        ).to_list(10)
+        credited = sum(float(t.get("amount", 0)) + float(t.get("voucher_discount", 0)) for t in txns)
+        remaining = max(0.0, round(total_amount - credited, 2))
+        
+        if remaining > 0:
+            bookings_to_remind.append({
+                "booking": booking,
+                "total_amount": total_amount,
+                "credited": credited,
+                "remaining": remaining,
+            })
+    
+    if not bookings_to_remind:
+        return {
+            "success": True,
+            "message": "All balances are cleared",
+            "sent": 0,
+            "skipped": 0,
+        }
+    
+    # Send reminders in background
+    async def send_all_reminders():
+        from services.email_service import email_service
+        sent = 0
+        failed = 0
+        
+        for item in bookings_to_remind:
+            booking = item["booking"]
+            remaining = item["remaining"]
+            total_amount = item["total_amount"]
+            credited = item["credited"]
+            
+            try:
+                customer = await db.users.find_one(
+                    {"id": booking.get("customer_id")},
+                    {"_id": 0, "email": 1, "full_name": 1}
+                )
+                
+                if not customer or not customer.get("email"):
+                    failed += 1
+                    continue
+                
+                customer_name = customer.get("full_name", "Customer")
+                inquiry_number = booking.get("inquiry_number", booking.get("id", "")[:8])
+                route = f"{booking.get('from_location', '')} → {booking.get('to_location', '')}"
+                departure_date = booking.get("departure_date", "")
+                
+                subject = f"💳 Payment Reminder - ₹{remaining:,.0f} Balance Due | Booking #{inquiry_number}"
+                
+                html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center; }}
+        .content {{ padding: 30px; }}
+        .amount-box {{ background: #1a1a2e; border-radius: 12px; padding: 25px; text-align: center; margin: 20px 0; border: 2px solid #f97316; }}
+        .amount {{ font-size: 36px; font-weight: bold; color: #f97316; }}
+        .info-row {{ display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2a2a4e; }}
+        .btn {{ display: inline-block; background: #22c55e; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 15px; }}
+        .footer {{ background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size:50px;">💳</div>
+            <h1 style="margin:10px 0 0;">Payment Reminder</h1>
+            <p style="margin:5px 0 0; opacity:0.9;">Complete your balance payment</p>
+        </div>
+        <div class="content">
+            <p>Namaste <strong>{customer_name}</strong>,</p>
+            <p>Aapki helicopter booking ke liye remaining balance due hai. Kripya departure se pehle payment complete karein.</p>
+            
+            <div class="amount-box">
+                <p style="margin:0 0 10px; color:#94a3b8;">Balance Amount Due</p>
+                <div class="amount">₹{remaining:,.0f}</div>
+            </div>
+            
+            <div style="background:#1a1a2e; border-radius:12px; padding:20px; margin:15px 0;">
+                <h3 style="margin-top:0; color:#f97316;">📋 Booking Details</h3>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Booking Ref:</span>
+                    <span style="font-weight:600;">#{inquiry_number}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Route:</span>
+                    <span style="font-weight:600;">{route}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Departure:</span>
+                    <span style="font-weight:600;">{departure_date}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Total Amount:</span>
+                    <span style="font-weight:600;">₹{total_amount:,.0f}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Already Paid:</span>
+                    <span style="font-weight:600; color:#22c55e;">₹{credited:,.0f}</span>
+                </div>
+            </div>
+            
+            <p style="text-align:center;">
+                <a href="https://airyatra.co.in/customer/inquiries" class="btn">💳 Pay Balance Now</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra - India's Premium Helicopter Booking Platform</p>
+            <p>📞 Support: info@airyatra.co.in</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+                
+                result = await email_service.send_email(
+                    to_email=customer["email"],
+                    subject=subject,
+                    html_body=html_body
+                )
+                
+                if result.get("success"):
+                    sent += 1
+                else:
+                    failed += 1
+                    
+            except Exception as e:
+                failed += 1
+        
+        # Log the bulk reminder
+        await db.bulk_reminders.insert_one({
+            "id": str(uuid4()),
+            "sent_by": current_user["id"],
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "total_pending": len(bookings_to_remind),
+            "sent": sent,
+            "failed": failed,
+        })
+    
+    # Run in background
+    background_tasks.add_task(send_all_reminders)
+    
+    return {
+        "success": True,
+        "message": f"Sending reminders to {len(bookings_to_remind)} customers...",
+        "pending_count": len(bookings_to_remind),
+        "total_pending_amount": sum(b["remaining"] for b in bookings_to_remind),
+    }
+
+
 # ==================== QUICK PAYMENT LINK ====================
 
 @router.post("/generate-payment-link/{booking_id}")
