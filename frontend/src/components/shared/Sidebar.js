@@ -112,16 +112,18 @@ export const ResponsiveSidebar = ({
         onMouseLeave={() => setIsHovered(false)}
         className={`
           bg-slate-900/50 border-r border-slate-800 overflow-y-auto overflow-x-hidden
-          transition-all duration-300 ease-in-out relative
+          transition-all duration-300 ease-in-out
           
           /* Width based on collapsed state */
           ${effectiveCollapsed ? 'w-16' : 'w-72'}
           
-          /* Mobile: Fixed position, slides in */
-          fixed lg:sticky z-50 lg:z-auto
+          /* Mobile: Fixed, hidden when closed */
+          fixed lg:sticky lg:relative z-50 lg:z-auto
           top-0 lg:top-[73px]
           h-screen lg:h-[calc(100vh-73px)]
-          ${isMobileOpen ? 'left-0' : '-left-72 lg:left-0'}
+          
+          /* Mobile: Hide completely when closed, show when open */
+          ${isMobileOpen ? 'left-0 translate-x-0' : '-translate-x-full lg:translate-x-0'}
           
           ${className}
         `}
