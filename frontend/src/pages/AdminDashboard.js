@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Bot, HardDrive, Database, Percent } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Bot, HardDrive, Database, Percent, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
 import GlobalSearch from '@/components/shared/GlobalSearch';
+import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup, NavItem } from '@/components/shared/Sidebar';
 
 // Import admin components
 import AdminOverview from '@/components/admin/AdminOverview';
@@ -238,6 +239,9 @@ function AdminDashboard({ user, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState(['main']); // Main dashboard expanded by default
+  
+  // Responsive sidebar hook
+  const sidebar = useResponsiveSidebar();
 
   useEffect(() => {
     loadDashboard();
@@ -268,6 +272,8 @@ function AdminDashboard({ user, onLogout }) {
     if (!expandedGroups.includes(groupId)) {
       setExpandedGroups(prev => [...prev, groupId]);
     }
+    // Close mobile sidebar on item click
+    sidebar.closeMobile();
   };
 
   // Find which group the active tab belongs to
@@ -436,23 +442,28 @@ function AdminDashboard({ user, onLogout }) {
     <div className="min-h-screen bg-slate-950" data-testid="admin-dashboard">
       {/* Top Navigation */}
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
-        <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-full mx-auto px-4 lg:px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
+            {/* Mobile Menu Button */}
+            <MobileMenuButton 
+              onClick={sidebar.toggleMobile} 
+              isOpen={sidebar.isMobileOpen}
+            />
             <Plane className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold text-white">AirYatra Admin</span>
+            <span className="text-xl lg:text-2xl font-bold text-white">AirYatra Admin</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 lg:space-x-4">
             <GlobalSearch user={user} />
             {dashboardData?.statistics?.pending_operator_approvals > 0 && (
-              <div className="flex items-center px-3 py-1 bg-orange-500/20 rounded-full">
+              <div className="hidden md:flex items-center px-3 py-1 bg-orange-500/20 rounded-full">
                 <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />
                 <span className="text-orange-400 text-sm">
-                  {dashboardData.statistics.pending_operator_approvals} Pending Approvals
+                  {dashboardData.statistics.pending_operator_approvals} Pending
                 </span>
               </div>
             )}
             <NotificationBell user={user} />
-            <span className="text-slate-300">Welcome, {user.full_name}</span>
+            <span className="text-slate-300 hidden lg:inline">Welcome, {user.full_name}</span>
             <Button variant="ghost" onClick={onLogout} className="text-white hover:text-orange-400" data-testid="logout-btn">
               <LogOut className="h-5 w-5" />
             </Button>
@@ -461,75 +472,51 @@ function AdminDashboard({ user, onLogout }) {
       </nav>
 
       <div className="flex min-h-[calc(100vh-73px)]">
-        {/* Sidebar Navigation - Collapsible Groups */}
-        <aside className="w-72 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
-          <nav className="p-3 space-y-1">
-            {navGroups.map((group) => {
-              const GroupIcon = group.icon;
-              const isExpanded = expandedGroups.includes(group.id);
-              const isActiveGroup = activeGroup === group.id;
-              const hasHighlight = group.items.some(item => item.highlight);
+        {/* Responsive Sidebar */}
+        <ResponsiveSidebar
+          isCollapsed={sidebar.isCollapsed}
+          isMobileOpen={sidebar.isMobileOpen}
+          isHovered={sidebar.isHovered}
+          setIsHovered={sidebar.setIsHovered}
+          closeMobile={sidebar.closeMobile}
+          toggleCollapse={sidebar.toggleCollapse}
+        >
+          {navGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isExpanded = expandedGroups.includes(group.id);
+            const isActiveGroup = activeGroup === group.id;
+            const hasHighlight = group.items.some(item => item.highlight);
 
-              return (
-                <div key={group.id} className="mb-1">
-                  {/* Group Header - Collapsible */}
-                  <button
-                    onClick={() => toggleGroup(group.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
-                      isActiveGroup
-                        ? 'bg-orange-500/20 text-orange-400'
-                        : hasHighlight
-                          ? 'text-slate-200 hover:bg-slate-800'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <GroupIcon className={`h-5 w-5 ${isActiveGroup ? 'text-orange-400' : ''}`} />
-                      <span className="font-medium text-sm">{group.label}</span>
-                    </div>
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-
-                  {/* Group Items - Expandable */}
-                  {isExpanded && (
-                    <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
-                      {group.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavClick(item.id, group.id)}
-                            data-testid={`nav-${item.id}`}
-                            className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
-                              activeTab === item.id
-                                ? 'bg-orange-500 text-white'
-                                : item.highlight
-                                  ? 'text-yellow-400 hover:bg-yellow-500/20'
-                                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                            }`}
-                          >
-                            <ItemIcon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                            {item.highlight && activeTab !== item.id && (
-                              <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </aside>
+            return (
+              <CollapsibleNavGroup
+                key={group.id}
+                icon={GroupIcon}
+                label={group.label}
+                isExpanded={isExpanded}
+                onToggle={() => toggleGroup(group.id)}
+                isActive={isActiveGroup}
+                hasHighlight={hasHighlight}
+                isCollapsed={sidebar.effectiveCollapsed}
+              >
+                {group.items.map((item) => (
+                  <NavItem
+                    key={item.id}
+                    icon={item.icon}
+                    label={item.label}
+                    isActive={activeTab === item.id}
+                    highlight={item.highlight}
+                    onClick={() => handleNavClick(item.id, group.id)}
+                    isCollapsed={sidebar.effectiveCollapsed}
+                    testId={`nav-${item.id}`}
+                  />
+                ))}
+              </CollapsibleNavGroup>
+            );
+          })}
+        </ResponsiveSidebar>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           {renderContent()}
         </main>
       </div>

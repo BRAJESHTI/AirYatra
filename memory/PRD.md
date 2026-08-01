@@ -431,3 +431,18 @@ All APIs prefixed with `/api/`
 - /app/frontend/src/pages/AdminDashboard.js (added GlobalSearch)
 - /app/frontend/src/pages/OperatorDashboard.js (added GlobalSearch)
 
+
+### Latest Updates (Aug 1, 2026 - Session 4)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Auto-Collapse Sidebar Integration | 🟢 DONE | Applied responsive sidebar to Admin & Operator dashboards. Mobile (<768px): Sidebar hidden, hamburger menu shows. Tablet (768-1024px): Sidebar collapsed (icons only), hover expands. Desktop (>1024px): Full sidebar expanded with toggle button. Components: MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup, NavItem. Dark overlay on mobile open. Smooth transitions. |
+| Three-Dot Context Menus | 🟢 DONE | Added to BookingManagement.js and InvoiceManagement.js tables. Booking actions: View Details, Copy Booking ID, Download Invoice, Reassign Operator (warning), Cancel Booking (danger). Invoice actions: View Invoice, Print, Download PDF, Copy Invoice #, Mark as Sent/Paid, Send via Email, Delete (draft only). Proper dividers, danger/warning colors, keyboard (Esc) close. |
+
+### Files Modified This Session
+- /app/frontend/src/components/shared/Sidebar.js (rewritten for compatibility)
+- /app/frontend/src/pages/AdminDashboard.js (integrated responsive sidebar)
+- /app/frontend/src/pages/OperatorDashboard.js (integrated responsive sidebar)
+- /app/frontend/src/components/admin/BookingManagement.js (added ContextMenu)
+- /app/frontend/src/components/admin/InvoiceManagement.js (added ContextMenu)
+

@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   FileText, Plus, Download, Eye, Send, CheckCircle, AlertTriangle,
   Loader2, RefreshCw, IndianRupee, Calendar, User, Building2,
-  Printer, Filter, Search, CreditCard
+  Printer, Filter, Search, CreditCard, Copy, Trash2, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import api from '../../services/api';
 import { toast } from 'sonner';
+import { ContextMenu } from '@/components/shared/ContextMenu';
 
 function InvoiceManagement() {
   const [loading, setLoading] = useState(true);
@@ -319,21 +320,68 @@ function InvoiceManagement() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {invoice.status === 'draft' && (
-                          <Button size="sm" variant="ghost" onClick={() => updateInvoiceStatus(invoice.id, 'sent')}>
-                            <Send className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {invoice.status === 'sent' && (
-                          <Button size="sm" variant="ghost" onClick={() => updateInvoiceStatus(invoice.id, 'paid')}>
-                            <CheckCircle className="h-4 w-4 text-green-400" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost">
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <ContextMenu
+                        position="left"
+                        actions={[
+                          {
+                            id: 'view',
+                            label: 'View Invoice',
+                            icon: Eye,
+                            onClick: () => toast.info('Invoice preview coming soon')
+                          },
+                          {
+                            id: 'print',
+                            label: 'Print Invoice',
+                            icon: Printer,
+                            onClick: () => toast.info('Print feature coming soon')
+                          },
+                          {
+                            id: 'download',
+                            label: 'Download PDF',
+                            icon: Download,
+                            onClick: () => toast.info('PDF download coming soon')
+                          },
+                          {
+                            id: 'copy-number',
+                            label: 'Copy Invoice #',
+                            icon: Copy,
+                            onClick: () => {
+                              navigator.clipboard.writeText(invoice.invoice_number);
+                              toast.success('Invoice number copied!');
+                            }
+                          },
+                          { divider: true },
+                          ...(invoice.status === 'draft' ? [{
+                            id: 'send',
+                            label: 'Mark as Sent',
+                            icon: Send,
+                            onClick: () => updateInvoiceStatus(invoice.id, 'sent')
+                          }] : []),
+                          ...(invoice.status === 'sent' ? [{
+                            id: 'mark-paid',
+                            label: 'Mark as Paid',
+                            icon: CheckCircle,
+                            success: true,
+                            onClick: () => updateInvoiceStatus(invoice.id, 'paid')
+                          }] : []),
+                          {
+                            id: 'email',
+                            label: 'Send via Email',
+                            icon: Mail,
+                            onClick: () => toast.info('Email sending coming soon')
+                          },
+                          ...(invoice.status === 'draft' ? [
+                            { divider: true },
+                            {
+                              id: 'delete',
+                              label: 'Delete Invoice',
+                              icon: Trash2,
+                              danger: true,
+                              onClick: () => toast.warning('Delete invoice feature coming soon')
+                            }
+                          ] : [])
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

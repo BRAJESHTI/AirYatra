@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Eye, ArrowRightLeft, MapPin, User, Phone, Mail } from 'lucide-react';
+import { Search, RefreshCw, Eye, ArrowRightLeft, MapPin, User, Phone, Mail, Copy, Download, Trash2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { adminAPI } from '@/services/api';
+import { ContextMenu } from '@/components/shared/ContextMenu';
+import { toast } from 'sonner';
 
 function BookingManagement() {
   const [bookings, setBookings] = useState([]);
@@ -184,29 +186,50 @@ function BookingManagement() {
                     <span className="text-white font-medium">₹{(booking.total_amount || 0).toLocaleString()}</span>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-slate-400 hover:text-white"
-                        onClick={() => setSelectedBooking(booking)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {booking.status !== 'completed' && booking.status !== 'cancelled' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-orange-400 hover:text-orange-300"
-                          onClick={() => {
+                    <ContextMenu
+                      position="left"
+                      actions={[
+                        {
+                          id: 'view',
+                          label: 'View Details',
+                          icon: Eye,
+                          onClick: () => setSelectedBooking(booking)
+                        },
+                        {
+                          id: 'copy-id',
+                          label: 'Copy Booking ID',
+                          icon: Copy,
+                          onClick: () => {
+                            navigator.clipboard.writeText(booking.id || booking.booking_number);
+                            toast.success('Booking ID copied!');
+                          }
+                        },
+                        {
+                          id: 'download-invoice',
+                          label: 'Download Invoice',
+                          icon: Download,
+                          onClick: () => toast.info('Invoice download coming soon')
+                        },
+                        { divider: true },
+                        ...(booking.status !== 'completed' && booking.status !== 'cancelled' ? [{
+                          id: 'reassign',
+                          label: 'Reassign Operator',
+                          icon: ArrowRightLeft,
+                          warning: true,
+                          onClick: () => {
                             setSelectedBooking(booking);
                             setShowReassignDialog(true);
-                          }}
-                        >
-                          <ArrowRightLeft className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                          }
+                        }] : []),
+                        ...(booking.status === 'pending' ? [{
+                          id: 'cancel',
+                          label: 'Cancel Booking',
+                          icon: Trash2,
+                          danger: true,
+                          onClick: () => toast.warning('Cancel booking feature coming soon')
+                        }] : [])
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

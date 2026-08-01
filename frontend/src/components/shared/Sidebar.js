@@ -1,29 +1,24 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Menu, X, ChevronDown } from 'lucide-react';
 
-// Sidebar Context for global state
-const SidebarContext = createContext();
-
-export const useSidebar = () => {
-  const context = useContext(SidebarContext);
-  if (!context) {
-    throw new Error('useSidebar must be used within SidebarProvider');
-  }
-  return context;
-};
-
-export const SidebarProvider = ({ children }) => {
+/**
+ * useResponsiveSidebar - Hook for responsive sidebar behavior
+ * Returns state and handlers for mobile/tablet/desktop responsiveness
+ */
+export const useResponsiveSidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  
-  // Check screen size on mount and resize
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
-      // Mobile: < 768px - sidebar hidden by default
-      // Tablet: 768-1024px - sidebar collapsed
-      // Desktop: > 1024px - sidebar expanded
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
+      
+      // Auto-collapse on tablet, hidden on mobile
       if (width < 768) {
         setIsCollapsed(true);
         setIsMobileOpen(false);
@@ -33,149 +28,148 @@ export const SidebarProvider = ({ children }) => {
         setIsCollapsed(false);
       }
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
-  
-  const toggleCollapse = () => setIsCollapsed(!isCollapsed);
+
   const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
   const closeMobile = () => setIsMobileOpen(false);
+  const toggleCollapse = () => setIsCollapsed(!isCollapsed);
   
-  // Effective width based on state
+  // Effective collapsed state (collapsed but not hovered)
   const effectiveCollapsed = isCollapsed && !isHovered;
-  
-  return (
-    <SidebarContext.Provider value={{
-      isCollapsed,
-      isMobileOpen,
-      isHovered,
-      effectiveCollapsed,
-      setIsCollapsed,
-      setIsMobileOpen,
-      setIsHovered,
-      toggleCollapse,
-      toggleMobile,
-      closeMobile
-    }}>
-      {children}
-    </SidebarContext.Provider>
-  );
+
+  return {
+    isCollapsed,
+    isMobileOpen,
+    isHovered,
+    isMobile,
+    isTablet,
+    effectiveCollapsed,
+    setIsHovered,
+    toggleMobile,
+    closeMobile,
+    toggleCollapse
+  };
 };
 
-// Mobile Menu Toggle Button (hamburger)
-export const MobileMenuButton = ({ className = '' }) => {
-  const { isMobileOpen, toggleMobile } = useSidebar();
-  
-  return (
-    <button
-      onClick={toggleMobile}
-      className={`lg:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors ${className}`}
-      aria-label="Toggle menu"
-    >
-      {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-    </button>
-  );
-};
+/**
+ * MobileMenuButton - Hamburger menu for mobile
+ */
+export const MobileMenuButton = ({ onClick, isOpen, className = '' }) => (
+  <button
+    onClick={onClick}
+    className={`lg:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors ${className}`}
+    aria-label="Toggle menu"
+  >
+    {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+  </button>
+);
 
-// Sidebar Collapse Toggle Button
-export const SidebarToggle = ({ className = '' }) => {
-  const { isCollapsed, toggleCollapse } = useSidebar();
-  
-  return (
-    <button
-      onClick={toggleCollapse}
-      className={`hidden md:flex items-center justify-center p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all ${className}`}
-      aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-    >
-      {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-    </button>
-  );
-};
+/**
+ * SidebarToggleButton - Collapse/Expand button for desktop
+ */
+export const SidebarToggleButton = ({ isCollapsed, onClick, className = '' }) => (
+  <button
+    onClick={onClick}
+    className={`hidden lg:flex items-center justify-center w-6 h-6 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-slate-400 hover:text-white transition-all absolute -right-3 top-6 z-10 ${className}`}
+    aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+  >
+    {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+  </button>
+);
 
-// Main Sidebar Container
-export const Sidebar = ({ 
+/**
+ * ResponsiveSidebar - Wrapper component for responsive sidebar
+ */
+export const ResponsiveSidebar = ({ 
   children, 
-  className = '',
-  collapsedWidth = 'w-16',
-  expandedWidth = 'w-72',
-  topOffset = '73px' // For sticky nav height
+  isCollapsed,
+  isMobileOpen,
+  isHovered,
+  setIsHovered,
+  closeMobile,
+  toggleCollapse,
+  className = ''
 }) => {
-  const { effectiveCollapsed, isMobileOpen, setIsHovered, closeMobile } = useSidebar();
-  
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const effectiveCollapsed = isCollapsed && !isHovered;
   
   return (
     <>
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
           onClick={closeMobile}
         />
       )}
       
       {/* Sidebar */}
       <aside
-        onMouseEnter={() => !isMobile && setIsHovered(true)}
-        onMouseLeave={() => !isMobile && setIsHovered(false)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         className={`
           bg-slate-900/50 border-r border-slate-800 overflow-y-auto overflow-x-hidden
-          transition-all duration-300 ease-in-out
-          ${effectiveCollapsed ? collapsedWidth : expandedWidth}
+          transition-all duration-300 ease-in-out relative
           
-          /* Mobile: Fixed, slides in from left */
+          /* Width based on collapsed state */
+          ${effectiveCollapsed ? 'w-16' : 'w-72'}
+          
+          /* Mobile: Fixed position, slides in */
           fixed lg:sticky z-50 lg:z-auto
-          top-0 lg:top-[${topOffset}]
-          h-full lg:h-[calc(100vh-${topOffset})]
-          ${isMobileOpen ? 'left-0' : '-left-full lg:left-0'}
+          top-0 lg:top-[73px]
+          h-screen lg:h-[calc(100vh-73px)]
+          ${isMobileOpen ? 'left-0' : '-left-72 lg:left-0'}
           
           ${className}
         `}
-        style={{
-          top: isMobile ? 0 : topOffset,
-          height: isMobile ? '100vh' : `calc(100vh - ${topOffset})`
-        }}
       >
-        {/* Mobile Header */}
+        {/* Mobile Close Button */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-slate-800">
           <span className="text-white font-semibold">Menu</span>
-          <button onClick={closeMobile} className="text-slate-400 hover:text-white">
+          <button 
+            onClick={closeMobile} 
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
         
-        {/* Sidebar Content */}
-        <div className="p-3 space-y-1">
-          {children}
-        </div>
+        {/* Desktop Toggle Button */}
+        <SidebarToggleButton 
+          isCollapsed={isCollapsed} 
+          onClick={toggleCollapse}
+        />
         
-        {/* Collapse Toggle at Bottom (Desktop only) */}
-        <div className="hidden lg:block absolute bottom-4 left-0 right-0 px-3">
-          <SidebarToggle className="w-full justify-center" />
-        </div>
+        {/* Sidebar Content */}
+        <nav className={`p-3 space-y-1 ${effectiveCollapsed ? 'px-2' : ''}`}>
+          {children}
+        </nav>
       </aside>
     </>
   );
 };
 
-// Sidebar Navigation Group
-export const SidebarGroup = ({ 
-  icon: GroupIcon, 
-  label, 
-  isExpanded, 
-  onToggle, 
+/**
+ * CollapsibleNavGroup - Navigation group that collapses
+ */
+export const CollapsibleNavGroup = ({
+  icon: GroupIcon,
+  label,
+  isExpanded,
+  onToggle,
   isActive,
   hasHighlight,
-  children 
+  isCollapsed,
+  children
 }) => {
-  const { effectiveCollapsed } = useSidebar();
-  
   return (
     <div className="mb-1">
       <button
         onClick={onToggle}
+        title={isCollapsed ? label : undefined}
         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
           isActive
             ? 'bg-orange-500/20 text-orange-400'
@@ -183,68 +177,43 @@ export const SidebarGroup = ({
               ? 'text-slate-200 hover:bg-slate-800'
               : 'text-slate-400 hover:bg-slate-800 hover:text-white'
         }`}
-        title={effectiveCollapsed ? label : undefined}
       >
         <div className="flex items-center space-x-3">
           <GroupIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-orange-400' : ''}`} />
-          {!effectiveCollapsed && (
-            <span className="font-medium text-sm truncate">{label}</span>
-          )}
+          {!isCollapsed && <span className="font-medium text-sm truncate">{label}</span>}
         </div>
-        {!effectiveCollapsed && (
-          isExpanded ? (
-            <ChevronDown className="h-4 w-4 shrink-0" />
-          ) : (
-            <ChevronRight className="h-4 w-4 shrink-0" />
-          )
+        {!isCollapsed && (
+          isExpanded ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />
         )}
       </button>
       
-      {/* Group Items */}
-      {isExpanded && !effectiveCollapsed && (
+      {/* Expanded Items */}
+      {isExpanded && !isCollapsed && (
         <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
           {children}
-        </div>
-      )}
-      
-      {/* Collapsed: Show items in tooltip/popover on hover */}
-      {effectiveCollapsed && isExpanded && (
-        <div className="absolute left-full ml-2 top-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 min-w-[200px] py-2">
-          <div className="px-3 py-2 border-b border-slate-700 text-white font-medium text-sm">
-            {label}
-          </div>
-          <div className="py-1">
-            {children}
-          </div>
         </div>
       )}
     </div>
   );
 };
 
-// Sidebar Navigation Item
-export const SidebarItem = ({ 
-  icon: ItemIcon, 
-  label, 
-  isActive, 
-  highlight, 
+/**
+ * NavItem - Single navigation item
+ */
+export const NavItem = ({
+  icon: ItemIcon,
+  label,
+  isActive,
+  highlight,
   onClick,
+  isCollapsed,
   testId
 }) => {
-  const { effectiveCollapsed, closeMobile } = useSidebar();
-  
-  const handleClick = () => {
-    onClick?.();
-    // Close mobile sidebar on item click
-    if (window.innerWidth < 768) {
-      closeMobile();
-    }
-  };
-  
   return (
     <button
-      onClick={handleClick}
+      onClick={onClick}
       data-testid={testId}
+      title={isCollapsed ? label : undefined}
       className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
         isActive
           ? 'bg-orange-500 text-white'
@@ -252,10 +221,9 @@ export const SidebarItem = ({
             ? 'text-yellow-400 hover:bg-yellow-500/20'
             : 'text-slate-400 hover:bg-slate-800 hover:text-white'
       }`}
-      title={effectiveCollapsed ? label : undefined}
     >
       <ItemIcon className="h-4 w-4 shrink-0" />
-      {!effectiveCollapsed && (
+      {!isCollapsed && (
         <>
           <span className="truncate">{label}</span>
           {highlight && !isActive && (
@@ -267,4 +235,11 @@ export const SidebarItem = ({
   );
 };
 
-export default Sidebar;
+export default {
+  useResponsiveSidebar,
+  MobileMenuButton,
+  SidebarToggleButton,
+  ResponsiveSidebar,
+  CollapsibleNavGroup,
+  NavItem
+};

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload } from 'lucide-react';
+import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
 import NotificationBell from '../components/shared/NotificationBell';
 import GlobalSearch from '../components/shared/GlobalSearch';
+import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup, NavItem } from '../components/shared/Sidebar';
 
 // Import operator sub-pages
 import OperatorHome from '../components/operator/OperatorHome';
@@ -99,6 +100,9 @@ function OperatorDashboard({ user, onLogout }) {
   const [expandedGroups, setExpandedGroups] = useState(['main', 'business']);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Responsive sidebar hook
+  const sidebar = useResponsiveSidebar();
 
   useEffect(() => {
     checkProfile();
@@ -161,17 +165,22 @@ function OperatorDashboard({ user, onLogout }) {
     <div className="min-h-screen bg-slate-950" data-testid="operator-dashboard">
       {/* Top Navigation */}
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
-        <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-full mx-auto px-4 lg:px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
+            {/* Mobile Menu Button */}
+            <MobileMenuButton 
+              onClick={sidebar.toggleMobile} 
+              isOpen={sidebar.isMobileOpen}
+            />
             <Plane className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold text-white">AirYatra Operator</span>
+            <span className="text-xl lg:text-2xl font-bold text-white">AirYatra Operator</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 lg:space-x-4">
             <GlobalSearch user={user} />
             <NotificationBell user={user} />
-            <div className="text-right">
-              <div className="text-white font-medium" data-testid="operator-name">{operator?.company_name}</div>
-              <div className="text-slate-400 text-sm" data-testid="verification-status">
+            <div className="text-right hidden sm:block">
+              <div className="text-white font-medium text-sm lg:text-base" data-testid="operator-name">{operator?.company_name}</div>
+              <div className="text-slate-400 text-xs lg:text-sm" data-testid="verification-status">
                 Status: <span className={operator?.status === 'active' ? 'text-green-400' : 'text-orange-400'}>
                   {operator?.status}
                 </span>
@@ -185,71 +194,68 @@ function OperatorDashboard({ user, onLogout }) {
       </nav>
 
       <div className="flex min-h-[calc(100vh-73px)]">
-        {/* Sidebar - Collapsible Groups */}
-        <aside className="w-72 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
-          <nav className="p-3 space-y-1">
-            {navGroups.map((group) => {
-              const GroupIcon = group.icon;
-              const isExpanded = expandedGroups.includes(group.id);
-              const isActiveGroup = activeGroup === group.id;
-              const hasHighlight = group.items.some(item => item.highlight);
+        {/* Responsive Sidebar */}
+        <ResponsiveSidebar
+          isCollapsed={sidebar.isCollapsed}
+          isMobileOpen={sidebar.isMobileOpen}
+          isHovered={sidebar.isHovered}
+          setIsHovered={sidebar.setIsHovered}
+          closeMobile={sidebar.closeMobile}
+          toggleCollapse={sidebar.toggleCollapse}
+        >
+          {navGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isExpanded = expandedGroups.includes(group.id);
+            const isActiveGroup = activeGroup === group.id;
+            const hasHighlight = group.items.some(item => item.highlight);
 
-              return (
-                <div key={group.id} className="mb-1">
-                  {/* Group Header */}
-                  <button
-                    onClick={() => toggleGroup(group.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
-                      isActiveGroup
-                        ? 'bg-orange-500/20 text-orange-400'
-                        : hasHighlight
-                          ? 'text-slate-200 hover:bg-slate-800'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <GroupIcon className={`h-5 w-5 ${isActiveGroup ? 'text-orange-400' : ''}`} />
-                      <span className="font-medium text-sm">{group.label}</span>
-                    </div>
-                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </button>
-
-                  {/* Group Items */}
-                  {isExpanded && (
-                    <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
-                      {group.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        const isActive = currentTab === item.id;
-                        return (
-                          <Link
-                            key={item.id}
-                            to={item.path}
-                            className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
-                              isActive
-                                ? 'bg-orange-500 text-white'
-                                : item.highlight
-                                  ? 'text-yellow-400 hover:bg-yellow-500/20'
-                                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                            }`}
-                          >
-                            <ItemIcon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                            {item.highlight && !isActive && (
-                              <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                            )}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </aside>
+            return (
+              <CollapsibleNavGroup
+                key={group.id}
+                icon={GroupIcon}
+                label={group.label}
+                isExpanded={isExpanded}
+                onToggle={() => toggleGroup(group.id)}
+                isActive={isActiveGroup}
+                hasHighlight={hasHighlight}
+                isCollapsed={sidebar.effectiveCollapsed}
+              >
+                {group.items.map((item) => {
+                  const ItemIcon = item.icon;
+                  const isActive = currentTab === item.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      onClick={sidebar.closeMobile}
+                      title={sidebar.effectiveCollapsed ? item.label : undefined}
+                      className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
+                        isActive
+                          ? 'bg-orange-500 text-white'
+                          : item.highlight
+                            ? 'text-yellow-400 hover:bg-yellow-500/20'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <ItemIcon className="h-4 w-4 shrink-0" />
+                      {!sidebar.effectiveCollapsed && (
+                        <>
+                          <span className="truncate">{item.label}</span>
+                          {item.highlight && !isActive && (
+                            <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full animate-pulse shrink-0" />
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
+              </CollapsibleNavGroup>
+            );
+          })}
+        </ResponsiveSidebar>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <Routes>
             <Route index element={<OperatorHome operator={operator} />} />
             <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
