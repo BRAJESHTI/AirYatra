@@ -7,6 +7,8 @@ import NotificationBell from '@/components/shared/NotificationBell';
 import IncentiveConfig from '@/components/admin/IncentiveConfig';
 import AttendancePayroll from '@/components/admin/AttendancePayroll';
 import EmployeeManagement from '@/components/admin/EmployeeManagement';
+import TeamAttendanceToday from '@/components/admin/TeamAttendanceToday';
+import HolidayCalendar from '@/components/admin/HolidayCalendar';
 import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
 
 // Lazy load new components
@@ -44,6 +46,7 @@ const navGroups = [
       { id: 'salary', label: 'Salary Processing / वेतन', icon: DollarSign },
       { id: 'auto_salary', label: 'Auto Salary Payment / ऑटो वेतन', icon: BanknoteIcon, highlight: true },
       { id: 'leaves', label: 'Leave Management / छुट्टी', icon: Calendar },
+      { id: 'holidays', label: 'Holiday Calendar / छुट्टी कैलेंडर', icon: Calendar, highlight: true },
     ]
   },
   {
@@ -115,6 +118,10 @@ function HRDashboard({ user, onLogout }) {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'attendance':
+        return <TeamAttendanceToday />;
+      case 'holidays':
+        return <HolidayCalendar />;
       case 'all_employees':
       case 'field_staff':
         return <EmployeeManagement />;

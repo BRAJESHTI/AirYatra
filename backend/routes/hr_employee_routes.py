@@ -197,6 +197,114 @@ async def set_payroll_auto_run(
     return {"message": f"Payroll auto-run {'enabled' if data.get('enabled', True) else 'disabled'}"}
 
 
+# ==================== TEAM ATTENDANCE TODAY (Live view) ====================
+
+@router.get("/attendance/today")
+async def team_attendance_today(
+    current_user: dict = Depends(require_roles(HR_ADMIN)),
+    db=Depends(get_database)
+):
+    """Live team view: who is in, checked out, on leave, or missing today"""
+    today = datetime.now(timezone.utc).date().isoformat()
+    staff = await db.users.find(
+        {"roles": {"$in": STAFF_ROLES}, "is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1, "department": 1, "designation": 1, "employee_code": 1}
+    ).to_list(500)
+
+    att_map = {a["employee_id"]: a for a in await db.attendance.find({"date": today}, {"_id": 0}).to_list(500)}
+    leaves_today = await db.leaves.find(
+        {"status": "approved", "start_date": {"$lte": today}, "end_date": {"$gte": today}},
+        {"_id": 0, "employee_id": 1, "leave_type": 1}
+    ).to_list(500)
+    leave_map = {l["employee_id"]: l for l in leaves_today}
+    holiday = await db.company_holidays.find_one({"date": today}, {"_id": 0})
+
+    team = []
+    counts = {"in_office": 0, "checked_out": 0, "on_leave": 0, "missing": 0}
+    for s in staff:
+        att = att_map.get(s["id"])
+        leave = leave_map.get(s["id"])
+        if att and att.get("check_in_time"):
+            status = "checked_out" if att.get("check_out_time") else "in_office"
+        elif leave or (att and att.get("status") == "on_leave"):
+            status = "on_leave"
+        else:
+            status = "missing"
+        counts[status] += 1
+        team.append({
+            **s,
+            "status": status,
+            "leave_type": (leave or {}).get("leave_type") or (att or {}).get("leave_type"),
+            "check_in_time": (att or {}).get("check_in_time"),
+            "check_out_time": (att or {}).get("check_out_time"),
+            "total_hours": (att or {}).get("total_hours"),
+            "selfie_url": (att or {}).get("selfie_url"),
+        })
+
+    order = {"in_office": 0, "checked_out": 1, "on_leave": 2, "missing": 3}
+    team.sort(key=lambda t: (order[t["status"]], t.get("full_name", "")))
+    return {
+        "date": today,
+        "is_holiday": bool(holiday),
+        "holiday_name": holiday.get("name") if holiday else None,
+        "counts": {**counts, "total": len(team)},
+        "team": team,
+    }
+
+
+# ==================== HOLIDAY CALENDAR ====================
+
+@router.get("/holidays")
+async def list_holidays(
+    year: Optional[int] = None,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Company holiday list (any logged-in user)"""
+    y = year or datetime.now(timezone.utc).year
+    holidays = await db.company_holidays.find(
+        {"date": {"$gte": f"{y}-01-01", "$lte": f"{y}-12-31"}}, {"_id": 0}
+    ).sort("date", 1).to_list(100)
+    return {"year": y, "holidays": holidays}
+
+
+@router.post("/holidays")
+async def add_holiday(
+    data: dict,
+    current_user: dict = Depends(require_roles(HR_ADMIN)),
+    db=Depends(get_database)
+):
+    """Add a company holiday (attendance & payroll count it as a paid day)"""
+    date = (data.get("date") or "").strip()
+    name = (data.get("name") or "").strip()
+    if not date or not name:
+        raise HTTPException(status_code=400, detail="date and name are required")
+    existing = await db.company_holidays.find_one({"date": date})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Holiday already exists on {date} ({existing['name']})")
+    holiday = {
+        "id": str(uuid4()),
+        "date": date,
+        "name": name,
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.company_holidays.insert_one(dict(holiday))
+    return {"message": f"Holiday added / छुट्टी जोड़ी गई ({name})", "holiday": holiday}
+
+
+@router.delete("/holidays/{holiday_id}")
+async def delete_holiday(
+    holiday_id: str,
+    current_user: dict = Depends(require_roles(HR_ADMIN)),
+    db=Depends(get_database)
+):
+    result = await db.company_holidays.delete_one({"id": holiday_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Holiday not found")
+    return {"message": "Holiday removed / छुट्टी हटाई गई"}
+
+
 # ==================== EMPLOYEE SELF-SERVICE OVERVIEW ====================
 
 @router.get("/employee/overview")

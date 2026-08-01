@@ -4,7 +4,7 @@ Advanced HR Routes - Part 2
 - Employee Expense Reimbursement
 - Auto Salary Payment System
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
@@ -16,6 +16,36 @@ from middleware import get_current_user, require_roles
 from models import UserRole
 
 router = APIRouter(prefix="/hr", tags=["HR Advanced"])
+
+
+async def _send_expense_email(employee_id: str, subject: str, title: str, color: str, rows: list, footer: str):
+    """Email employee about expense claim status change"""
+    try:
+        from services.email_service import email_service
+        db = get_database()
+        emp = await db.users.find_one({"id": employee_id}, {"_id": 0, "email": 1})
+        if not emp or not emp.get("email"):
+            return
+        row_html = "".join(
+            f'<tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">{k}</td>'
+            f'<td style="padding:6px 12px;color:#0f172a;font-size:14px;font-weight:600;">{v}</td></tr>'
+            for k, v in rows
+        )
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <div style="background:#0f172a;padding:20px 24px;">
+            <span style="color:#fff;font-size:20px;font-weight:bold;">AirYatra</span>
+            <span style="color:#f97316;font-size:13px;margin-left:8px;">HRMS</span>
+          </div>
+          <div style="padding:24px;">
+            <h2 style="color:{color};margin:0 0 16px;font-size:18px;">{title}</h2>
+            <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;">{row_html}</table>
+            <p style="color:#64748b;font-size:12px;margin-top:20px;">{footer}</p>
+          </div>
+        </div>"""
+        await email_service.send_email(to_email=emp["email"], subject=subject, html_body=html)
+    except Exception as e:
+        print(f"Expense email failed: {e}")
 
 
 # ==================== ENUMS ====================
@@ -473,6 +503,7 @@ async def get_pending_expenses(
 async def approve_expense(
     expense_id: str,
     approval_data: dict,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -537,6 +568,20 @@ async def approve_expense(
             "is_read": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
+        background_tasks.add_task(
+            _send_expense_email,
+            expense["employee_id"],
+            f"✅ Expense Approved — {expense['expense_number']} (₹{expense['amount']:,.0f})",
+            "✅ Expense Claim Approved / खर्च क्लेम स्वीकृत",
+            "#22c55e",
+            [
+                ("Claim", f"{expense['title']} ({expense['expense_number']})"),
+                ("Amount", f"Rs. {expense['amount']:,.2f}"),
+                ("Category", expense.get("category", "").replace("_", " ").title()),
+                ("Status", "APPROVED"),
+            ],
+            "The amount will be reimbursed with your next salary payout.",
+        )
     
     return {
         "message": f"Expense approved by {role.upper()} / खर्च {role.upper()} द्वारा स्वीकृत",
@@ -548,6 +593,7 @@ async def approve_expense(
 async def reject_expense(
     expense_id: str,
     rejection_data: dict,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -587,12 +633,27 @@ async def reject_expense(
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
+    background_tasks.add_task(
+        _send_expense_email,
+        expense["employee_id"],
+        f"❌ Expense Rejected — {expense['expense_number']}",
+        "❌ Expense Claim Rejected / खर्च क्लेम अस्वीकृत",
+        "#ef4444",
+        [
+            ("Claim", f"{expense['title']} ({expense['expense_number']})"),
+            ("Amount", f"Rs. {expense['amount']:,.2f}"),
+            ("Rejected By", role.upper()),
+            ("Reason", reason or "—"),
+        ],
+        "Please contact HR for clarification or resubmit with correct details.",
+    )
     return {"message": "Expense rejected / खर्च अस्वीकृत"}
 
 
 @router.post("/expense/add-to-salary")
 async def add_expenses_to_salary(
     data: dict,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
     db=Depends(get_database)
 ):
@@ -646,6 +707,22 @@ async def add_expenses_to_salary(
         
         added_count += 1
         total_amount += expense["amount"]
+        
+        period_label = datetime(year, month, 1).strftime("%B %Y")
+        background_tasks.add_task(
+            _send_expense_email,
+            expense["employee_id"],
+            f"💰 Expense Reimbursed — {expense['expense_number']} (₹{expense['amount']:,.0f})",
+            "💰 Expense Reimbursed / खर्च का भुगतान",
+            "#f97316",
+            [
+                ("Claim", f"{expense['title']} ({expense['expense_number']})"),
+                ("Amount", f"Rs. {expense['amount']:,.2f}"),
+                ("Added To", f"{period_label} salary"),
+                ("Status", "REIMBURSED"),
+            ],
+            "The amount has been added to your salary for this period. Check your payslip in the Employee Portal.",
+        )
     
     return {
         "message": f"Added {added_count} expenses to salary / {added_count} खर्च सैलरी में जोड़े गए",

@@ -938,7 +938,15 @@ async def generate_payroll(
         
         present_days = len([a for a in attendance if a.get("status") == "present"])
         half_days = len([a for a in attendance if a.get("status") == "half_day"])
-        working_days = present_days + (half_days * 0.5)
+        
+        # Company holidays count as paid days (skip if employee already has attendance that day)
+        month_holidays = await db.company_holidays.find(
+            {"date": {"$gte": start_date, "$lt": end_date}}, {"_id": 0, "date": 1}
+        ).to_list(40)
+        att_dates = {a.get("date") for a in attendance}
+        holiday_days = len([h for h in month_holidays if h["date"] not in att_dates])
+        
+        working_days = present_days + (half_days * 0.5) + holiday_days
         
         # Calculate pro-rata salary
         working_days_in_month = salary_config.get("working_days_per_month", 26)
@@ -979,6 +987,7 @@ async def generate_payroll(
             "working_days_in_month": working_days_in_month,
             "present_days": present_days,
             "half_days": half_days,
+            "holiday_days": holiday_days,
             "effective_working_days": working_days,
             
             # Earnings

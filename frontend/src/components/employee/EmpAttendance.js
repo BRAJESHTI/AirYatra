@@ -23,6 +23,11 @@ export const EmpAttendance = ({ onChanged }) => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [selfieOpen, setSelfieOpen] = useState(false);
   const [selfieFile, setSelfieFile] = useState(null);
+  const [holidays, setHolidays] = useState([]);
+
+  useEffect(() => {
+    api.get('/hr/holidays').then((res) => setHolidays(res.data.holidays || [])).catch(() => {});
+  }, []);
 
   const load = async () => {
     try {
@@ -79,10 +84,18 @@ export const EmpAttendance = ({ onChanged }) => {
   const todayRec = data?.attendance?.find((a) => a.date === today);
   const checkedIn = todayRec && !todayRec.check_out_time;
   const done = todayRec && todayRec.check_out_time;
+  const todayHoliday = holidays.find((h) => h.date === today);
+  const upcoming = holidays.filter((h) => h.date >= today).slice(0, 3);
 
   return (
     <div className="space-y-6" data-testid="emp-attendance">
       <h1 className="text-2xl font-bold text-white">Attendance / उपस्थिति</h1>
+
+      {todayHoliday && (
+        <div className="bg-purple-500/15 border border-purple-500/40 rounded-xl p-4 text-white" data-testid="emp-holiday-banner">
+          🎉 Aaj company holiday hai: <b>{todayHoliday.name}</b> — check-in optional hai, yeh paid day hai
+        </div>
+      )}
 
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -138,6 +151,19 @@ export const EmpAttendance = ({ onChanged }) => {
           </span>
         )}
       </div>
+
+      {upcoming.length > 0 && (
+        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700" data-testid="upcoming-holidays-card">
+          <p className="text-purple-400 font-semibold text-sm mb-2">Upcoming Holidays / आने वाली छुट्टियां</p>
+          <div className="flex flex-wrap gap-3">
+            {upcoming.map((h) => (
+              <span key={h.id} className="bg-purple-500/15 border border-purple-500/30 rounded-lg px-3 py-1.5 text-sm text-white">
+                {new Date(h.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} — {h.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
         {!data?.attendance?.length ? (
