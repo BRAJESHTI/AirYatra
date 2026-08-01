@@ -148,6 +148,153 @@ async def erp_logbook(
     }
 
 
+@router.get("/analytics")
+async def erp_analytics(current_user: dict = Depends(get_current_user), db=Depends(get_database)):
+    """Advanced ERP analytics: utilization trend, fuel efficiency, pilot duty hours, maintenance costs, revenue"""
+    operator = await _get_operator(db, current_user)
+    fleet_query = {"operator_id": operator["id"]} if operator else {}
+    fleet = await db.aircraft.find(fleet_query, {"_id": 0, "id": 1, "registration_number": 1, "model_name": 1, "aircraft_type": 1}).to_list(100)
+    fleet_map = {a["id"]: a for a in fleet}
+    fleet_ids = list(fleet_map.keys())
+    now = datetime.now(timezone.utc)
+
+    # 6-month utilization trend
+    six_months_ago = (now.replace(day=1) - timedelta(days=155)).strftime("%Y-%m-01")
+    records = await db.flight_records.find(
+        {"aircraft_id": {"$in": fleet_ids}, "departure_time": {"$gte": six_months_ago}}, {"_id": 0}
+    ).to_list(5000)
+    trend = {}
+    for i in range(5, -1, -1):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        trend[f"{y}-{m:02d}"] = {"label": datetime(y, m, 1).strftime("%b"), "flights": 0, "hours": 0}
+    for r in records:
+        key = (r.get("departure_time") or "")[:7]
+        if key in trend:
+            trend[key]["flights"] += 1
+            trend[key]["hours"] += r.get("flight_duration_minutes", 0) / 60
+    monthly_trend = [{"month": k, "label": v["label"], "flights": v["flights"], "hours": round(v["hours"], 1)} for k, v in trend.items()]
+
+    # Fuel efficiency per aircraft (all records this period)
+    fuel_stats = []
+    for a in fleet:
+        recs = [r for r in records if r["aircraft_id"] == a["id"]]
+        hours = sum(r.get("flight_duration_minutes", 0) for r in recs) / 60
+        fuel = sum(r.get("fuel_used_liters", 0) for r in recs)
+        km = sum(r.get("distance_km", 0) for r in recs)
+        fuel_stats.append({
+            "aircraft_id": a["id"],
+            "label": f"{a.get('model_name') or a.get('aircraft_type', '')} ({a.get('registration_number', 'N/A')})",
+            "hours": round(hours, 1), "fuel_liters": round(fuel, 1), "km": round(km, 1),
+            "liters_per_hour": round(fuel / hours, 1) if hours > 0 else 0,
+        })
+
+    # Pilot duty hours this month (DGCA FDTL ~100h/month watch)
+    month_start = f"{now.year}-{now.month:02d}-01"
+    month_recs = [r for r in records if (r.get("departure_time") or "") >= month_start]
+    pilots = await db.pilots.find({"operator_id": operator["id"]} if operator else {}, {"_id": 0, "id": 1, "full_name": 1, "name": 1}).to_list(100)
+    pilot_hours = []
+    for p in pilots:
+        p_recs = [r for r in month_recs if r.get("pilot_id") == p["id"]]
+        hrs = round(sum(r.get("flight_duration_minutes", 0) for r in p_recs) / 60, 1)
+        pilot_hours.append({
+            "pilot_id": p["id"], "name": p.get("full_name") or p.get("name", ""),
+            "flights": len(p_recs), "hours": hrs,
+            "fdtl_status": "over_limit" if hrs > 100 else ("watch" if hrs > 80 else "ok"),
+        })
+    pilot_hours.sort(key=lambda x: -x["hours"])
+
+    # Maintenance costs
+    year_start = f"{now.year}-01-01"
+    completed = await db.maintenance_schedules.find(
+        {"aircraft_id": {"$in": fleet_ids}, "status": "completed", "completion_date": {"$gte": year_start}},
+        {"_id": 0, "actual_cost": 1, "estimated_cost": 1}
+    ).to_list(500)
+    upcoming = await db.maintenance_schedules.find(
+        {"aircraft_id": {"$in": fleet_ids}, "status": {"$in": ["scheduled", "in_progress"]}},
+        {"_id": 0, "estimated_cost": 1}
+    ).to_list(500)
+    maintenance_costs = {
+        "spent_ytd": round(sum(c.get("actual_cost") or c.get("estimated_cost") or 0 for c in completed), 2),
+        "completed_count": len(completed),
+        "upcoming_estimate": round(sum(u.get("estimated_cost") or 0 for u in upcoming), 2),
+        "upcoming_count": len(upcoming),
+    }
+
+    # Revenue this month (accepted quotes)
+    quotes = await db.quotes.find(
+        {"operator_id": operator["id"] if operator else {"$exists": True},
+         "status": {"$in": ["accepted", "approved", "converted"]},
+         "created_at": {"$gte": month_start}},
+        {"_id": 0, "amount": 1}
+    ).to_list(1000)
+    revenue_month = round(sum(q.get("amount", 0) for q in quotes), 2)
+    fuel_month = sum(r.get("fuel_used_liters", 0) for r in month_recs)
+
+    return {
+        "monthly_trend": monthly_trend,
+        "fuel_stats": fuel_stats,
+        "pilot_hours": pilot_hours,
+        "maintenance_costs": maintenance_costs,
+        "revenue_this_month": revenue_month,
+        "fuel_this_month_liters": round(fuel_month, 1),
+        "accepted_quotes_this_month": len(quotes),
+    }
+
+
+@router.get("/logbook/export")
+async def export_logbook_csv(
+    aircraft_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """One-click CSV export of the digital flight logbook (DGCA audit ready)"""
+    import csv
+    import io
+    from fastapi.responses import Response
+    operator = await _get_operator(db, current_user)
+    fleet_query = {"operator_id": operator["id"]} if operator else {}
+    fleet = await db.aircraft.find(fleet_query, {"_id": 0, "id": 1, "registration_number": 1, "model_name": 1, "aircraft_type": 1}).to_list(100)
+    fleet_map = {a["id"]: a for a in fleet}
+    ids = [aircraft_id] if aircraft_id and aircraft_id in fleet_map else list(fleet_map.keys())
+    records = await db.flight_records.find({"aircraft_id": {"$in": ids}}, {"_id": 0}).sort("departure_time", -1).to_list(5000)
+    pilots = await db.pilots.find({"operator_id": operator["id"]} if operator else {}, {"_id": 0, "id": 1, "full_name": 1, "name": 1}).to_list(100)
+    pilot_map = {p["id"]: p.get("full_name") or p.get("name", "") for p in pilots}
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    now = datetime.now(timezone.utc)
+    w.writerow([f"AirYatra ERP - Digital Flight Logbook - {operator.get('company_name', '') if operator else 'All Operators'}"])
+    w.writerow([f"Generated: {now.strftime('%d %b %Y %H:%M UTC')}", f"Total entries: {len(records)}"])
+    w.writerow([])
+    w.writerow(["Date/Time (Departure)", "Aircraft", "Registration", "From", "To", "Pilot", "Duration (min)", "Distance (km)", "Fuel (L)", "Remarks"])
+    for r in records:
+        ac = fleet_map.get(r["aircraft_id"], {})
+        w.writerow([
+            (r.get("departure_time") or "").replace("T", " ")[:16],
+            ac.get("model_name") or ac.get("aircraft_type", ""),
+            ac.get("registration_number", ""),
+            r.get("departure_location", ""), r.get("arrival_location", ""),
+            pilot_map.get(r.get("pilot_id"), ""),
+            r.get("flight_duration_minutes", 0), r.get("distance_km", 0),
+            r.get("fuel_used_liters", 0), r.get("remarks", ""),
+        ])
+    total_min = sum(r.get("flight_duration_minutes", 0) for r in records)
+    w.writerow([])
+    w.writerow(["TOTALS", "", "", "", "", "", f"{total_min} min ({round(total_min/60,1)}h)",
+                round(sum(r.get("distance_km", 0) for r in records), 1),
+                round(sum(r.get("fuel_used_liters", 0) for r in records), 1), ""])
+    fname = f"AirYatra_Flight_Logbook_{now.strftime('%Y%m%d')}.csv"
+    return Response(
+        content="\ufeff" + buf.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
 @router.post("/maintenance/{maintenance_id}/complete")
 async def complete_maintenance(
     maintenance_id: str,

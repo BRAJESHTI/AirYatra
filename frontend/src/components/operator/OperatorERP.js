@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plane, BookOpen, Wrench, AlertTriangle, Plus, Loader2, CheckCircle2, Gauge, Fuel } from 'lucide-react';
+import { Plane, BookOpen, Wrench, AlertTriangle, Plus, Loader2, CheckCircle2, Gauge, Fuel, TrendingUp, Download, UserCheck, BadgeIndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ const EMPTY_MAINT = { aircraft_id: '', type: 'routine', description: '', schedul
 
 function OperatorERP() {
   const [overview, setOverview] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [logbook, setLogbook] = useState(null);
   const [aircraftFilter, setAircraftFilter] = useState('');
   const [pilots, setPilots] = useState([]);
@@ -32,8 +33,13 @@ function OperatorERP() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [ov, pl] = await Promise.all([api.get('/erp/operator/overview'), operatorAPI.getPilots().catch(() => ({ data: { pilots: [] } }))]);
+      const [ov, an, pl] = await Promise.all([
+        api.get('/erp/operator/overview'),
+        api.get('/erp/operator/analytics').catch(() => ({ data: null })),
+        operatorAPI.getPilots().catch(() => ({ data: { pilots: [] } })),
+      ]);
       setOverview(ov.data);
+      setAnalytics(an.data);
       setPilots(pl.data.pilots || []);
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed to load ERP overview'); }
     setLoading(false);
@@ -102,6 +108,7 @@ function OperatorERP() {
     { label: 'Fleet / फ्लीट', value: kpis.fleet_size, icon: Plane, color: 'text-sky-400' },
     { label: 'Flights (month)', value: kpis.flights_this_month, icon: BookOpen, color: 'text-green-400' },
     { label: 'Hours (month)', value: `${kpis.hours_this_month}h`, icon: Gauge, color: 'text-orange-400' },
+    { label: 'Revenue (month)', value: analytics ? `₹${(analytics.revenue_this_month || 0).toLocaleString()}` : '—', icon: TrendingUp, color: 'text-emerald-400' },
     { label: 'Open Maintenance', value: kpis.open_maintenance, icon: Wrench, color: 'text-yellow-400' },
     { label: 'Critical Alerts', value: kpis.critical_alerts, icon: AlertTriangle, color: kpis.critical_alerts > 0 ? 'text-red-400' : 'text-slate-400' },
   ];
@@ -123,7 +130,7 @@ function OperatorERP() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         {kpiCards.map((k) => (
           <div key={k.label} className="bg-slate-800/50 rounded-xl p-4 border border-slate-700" data-testid={`erp-kpi-${k.label.split(' ')[0].toLowerCase()}`}>
             <k.icon className={`h-5 w-5 mb-2 ${k.color}`} />
@@ -132,6 +139,91 @@ function OperatorERP() {
           </div>
         ))}
       </div>
+
+      {/* Advanced Analytics */}
+      {analytics && (
+        <div className="grid lg:grid-cols-2 gap-4" data-testid="erp-analytics-section">
+          {/* Utilization Trend */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="utilization-trend-card">
+            <h2 className="text-white font-semibold mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-400" />Fleet Utilization — Last 6 Months</h2>
+            <div className="flex items-end gap-3 h-36">
+              {(() => {
+                const maxH = Math.max(1, ...analytics.monthly_trend.map((m) => m.hours));
+                return analytics.monthly_trend.map((m) => (
+                  <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-emerald-400 text-xs font-semibold">{m.hours}h</span>
+                    <div className="w-full rounded-t-md bg-gradient-to-t from-emerald-600 to-emerald-400 transition-all" style={{ height: `${Math.max(4, (m.hours / maxH) * 100)}px` }} title={`${m.flights} flights`} />
+                    <span className="text-slate-400 text-xs">{m.label}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+            <p className="text-slate-500 text-xs mt-2">{analytics.accepted_quotes_this_month} accepted quotes • {analytics.fuel_this_month_liters}L fuel this month</p>
+          </div>
+
+          {/* Pilot Duty Hours (FDTL) */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="pilot-duty-card">
+            <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><UserCheck className="h-4 w-4 text-sky-400" />Pilot Duty Hours (This Month) — DGCA FDTL Watch</h2>
+            {analytics.pilot_hours.length === 0 ? (
+              <p className="text-slate-400 text-sm">No pilots added yet</p>
+            ) : (
+              <div className="space-y-2">
+                {analytics.pilot_hours.map((p) => (
+                  <div key={p.pilot_id} className="flex items-center justify-between bg-slate-900/40 rounded-lg p-2.5 border border-slate-700/60" data-testid={`pilot-hours-${p.pilot_id}`}>
+                    <div>
+                      <p className="text-white text-sm font-medium">{p.name}</p>
+                      <p className="text-slate-500 text-xs">{p.flights} flights • {p.hours}h flown</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 h-2 rounded-full bg-slate-700 overflow-hidden">
+                        <div className={`h-full ${p.fdtl_status === 'over_limit' ? 'bg-red-500' : p.fdtl_status === 'watch' ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${Math.min(100, p.hours)}%` }} />
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.fdtl_status === 'over_limit' ? 'bg-red-500/20 text-red-400' : p.fdtl_status === 'watch' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                        {p.fdtl_status === 'over_limit' ? 'OVER 100h' : p.fdtl_status === 'watch' ? 'WATCH' : 'OK'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Fuel Efficiency */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="fuel-efficiency-card">
+            <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><Fuel className="h-4 w-4 text-orange-400" />Fuel Efficiency (6 months)</h2>
+            <div className="space-y-2">
+              {analytics.fuel_stats.map((f) => (
+                <div key={f.aircraft_id} className="flex items-center justify-between bg-slate-900/40 rounded-lg p-2.5 border border-slate-700/60">
+                  <div>
+                    <p className="text-white text-sm font-medium">{f.label}</p>
+                    <p className="text-slate-500 text-xs">{f.hours}h • {f.km} km • {f.fuel_liters}L</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-orange-400 font-bold">{f.liters_per_hour} L/hr</p>
+                    <p className="text-slate-500 text-[10px]">burn rate</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Maintenance Costs */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="maintenance-cost-card">
+            <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><BadgeIndianRupee className="h-4 w-4 text-yellow-400" />Maintenance Spend</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-900/40 rounded-lg p-4 border border-slate-700/60 text-center">
+                <p className="text-2xl font-bold text-yellow-400">₹{(analytics.maintenance_costs.spent_ytd || 0).toLocaleString()}</p>
+                <p className="text-slate-400 text-xs mt-1">Spent this year ({analytics.maintenance_costs.completed_count} completed)</p>
+              </div>
+              <div className="bg-slate-900/40 rounded-lg p-4 border border-slate-700/60 text-center">
+                <p className="text-2xl font-bold text-sky-400">₹{(analytics.maintenance_costs.upcoming_estimate || 0).toLocaleString()}</p>
+                <p className="text-slate-400 text-xs mt-1">Upcoming estimate ({analytics.maintenance_costs.upcoming_count} scheduled)</p>
+              </div>
+            </div>
+            <p className="text-slate-500 text-xs mt-3">Maintenance complete karte waqt actual cost log hota hai — budget tracking ke liye.</p>
+          </div>
+        </div>
+      )}
 
       {/* Maintenance Alerts */}
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="maintenance-alerts-panel">
@@ -192,6 +284,21 @@ function OperatorERP() {
             {logbook?.totals && (
               <span className="text-slate-400 text-xs">{logbook.totals.flights} flights • {logbook.totals.hours}h • {logbook.totals.distance_km} km • <Fuel className="h-3 w-3 inline" /> {logbook.totals.fuel_liters}L</span>
             )}
+            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:text-white h-8" data-testid="export-logbook-btn"
+              onClick={async () => {
+                try {
+                  const res = await api.get('/erp/operator/logbook/export', { params: aircraftFilter ? { aircraft_id: aircraftFilter } : {}, responseType: 'blob' });
+                  const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'AirYatra_Flight_Logbook.csv';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success('Logbook CSV exported — DGCA audit ready');
+                } catch (e) { toast.error('Export failed'); }
+              }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />Export CSV
+            </Button>
             <select value={aircraftFilter} onChange={(e) => setAircraftFilter(e.target.value)} className="bg-slate-800 text-white rounded-lg px-3 py-1.5 border border-slate-700 text-sm" data-testid="logbook-aircraft-filter">
               <option value="">All Aircraft</option>
               {fleet.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}

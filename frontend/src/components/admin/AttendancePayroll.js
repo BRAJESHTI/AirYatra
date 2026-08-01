@@ -287,7 +287,8 @@ function AttendancePayroll() {
       {/* Attendance Tab */}
       {activeTab === 'attendance' && attendanceReport && (
         <div className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-slate-500 text-xs">Showing employees with attendance activity this month / इस महीने उपस्थिति वाले कर्मचारी</p>
             <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:text-white" data-testid="export-attendance-btn"
               onClick={async () => {
                 try {
