@@ -929,13 +929,13 @@ async def generate_payroll(
         })
         
         if existing:
+            payroll_record["id"] = existing["id"]
             await db.payroll.update_one(
                 {"id": existing["id"]},
                 {"$set": payroll_record}
             )
-            payroll_record["id"] = existing["id"]
         else:
-            await db.payroll.insert_one(payroll_record)
+            await db.payroll.insert_one(dict(payroll_record))
         
         payroll_records.append(payroll_record)
     

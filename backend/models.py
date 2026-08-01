@@ -14,6 +14,7 @@ class UserRole(str, Enum):
     SALES = "sales"
     SUPPORT = "support"
     OPERATIONS = "operations"
+    EMPLOYEE = "employee"
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 

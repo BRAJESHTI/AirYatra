@@ -460,6 +460,21 @@ function AttendancePayroll() {
                         </td>
                         <td className="p-4 text-center">
                           <div className="flex gap-1 justify-center">
+                            <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:text-white"
+                              onClick={async () => {
+                                try {
+                                  const res = await api.get(`/hr/payroll/${record.id}/payslip.pdf`, { responseType: 'blob' });
+                                  const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `Payslip_${record.employee_name?.replace(/ /g, '_')}_${record.period?.replace(' ', '_')}.pdf`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                } catch (e) { toast.error('Failed to download payslip'); }
+                              }}
+                              data-testid={`download-payslip-${record.id}`}>
+                              <Download className="h-3 w-3" />
+                            </Button>
                             {record.status === 'draft' && (
                               <Button size="sm" onClick={() => approvePayroll(record.id)}>
                                 Approve

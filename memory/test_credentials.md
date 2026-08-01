@@ -40,3 +40,8 @@
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
 | Customer | loyaltytest@airyatra.com | Loyalty@123 | Has gold BLACK membership (1.5x multiplier), loyalty points, redeemed vouchers. Use for /customer/loyalty testing |
+
+## HRMS Employee (created Aug 1, 2026)
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Employee | employee@airyatra.com | Employee@123 | EMP-0001 Rahul Verma, Operations dept, salary structure set (₹66,000 gross). Logs into /employee self-service portal (check-in, leave, payslips, expenses) |

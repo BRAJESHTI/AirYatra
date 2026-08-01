@@ -19,6 +19,7 @@ const BookingPage = lazy(() => import('./pages/BookingPage'));
 const PaymentPage = lazy(() => import('./pages/PaymentPage'));
 // New Role-based Dashboards - lazy loaded
 const HRDashboard = lazy(() => import('./pages/HRDashboard'));
+const EmployeePortal = lazy(() => import('./pages/EmployeePortal'));
 const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
 const SupportDashboard = lazy(() => import('./pages/SupportDashboard'));
 const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
@@ -146,6 +147,10 @@ function App() {
           element={user && (user.roles.includes('helipad_owner') || user.roles.includes('admin')) ? <HelipadOwnerDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />}
         />
         {/* New Role-based Dashboards */}
+        <Route
+          path="/employee/*"
+          element={user && (user.roles.includes('employee') || user.roles.includes('hr') || user.roles.includes('sales') || user.roles.includes('finance') || user.roles.includes('support') || user.roles.includes('marketing') || user.roles.includes('operations') || user.roles.includes('admin')) ? <EmployeePortal user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
         <Route
           path="/hr/*"
           element={user && (user.roles.includes('hr') || user.roles.includes('admin')) ? <HRDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}

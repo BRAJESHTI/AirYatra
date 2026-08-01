@@ -6,6 +6,7 @@ import NotificationBell from '@/components/shared/NotificationBell';
 // Import HR Components
 import IncentiveConfig from '@/components/admin/IncentiveConfig';
 import AttendancePayroll from '@/components/admin/AttendancePayroll';
+import EmployeeManagement from '@/components/admin/EmployeeManagement';
 import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
 
 // Lazy load new components
@@ -114,6 +115,9 @@ function HRDashboard({ user, onLogout }) {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'all_employees':
+      case 'field_staff':
+        return <EmployeeManagement />;
       case 'field_tracking':
         return <LiveTrackingDashboard />;
       case 'attendance_payroll':

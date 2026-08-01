@@ -38,6 +38,8 @@ function GlobalNav({ user, showBack = true }) {
       navigate('/finance');
     } else if (roles.includes('hr')) {
       navigate('/hr');
+    } else if (roles.includes('employee')) {
+      navigate('/employee');
     } else if (roles.includes('sales')) {
       navigate('/sales');
     } else if (roles.includes('support')) {
