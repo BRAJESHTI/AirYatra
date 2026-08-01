@@ -34,6 +34,7 @@ const PaymentLinkPage = lazy(() => import('./pages/PaymentLinkPage'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
+import KeyboardShortcutsPanel from './components/shared/KeyboardShortcutsPanel';
 
 // Import Google Auth components
 import { GoogleAuthSuccess, GoogleAuthError, EmergentAuthCallback } from './components/auth/GoogleLogin';
@@ -207,6 +208,9 @@ function App() {
       
       {/* AI Chatbot - Available on all pages */}
       <AIChatbot user={user} />
+      
+      {/* Keyboard Shortcuts Panel - Press ? to open */}
+      <KeyboardShortcutsPanel />
     </BrowserRouter>
   );
 }

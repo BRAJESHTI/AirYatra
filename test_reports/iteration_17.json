@@ -1,0 +1,55 @@
+{
+  "summary": "Frontend-only responsive/mobile-centering test across 3 dashboards (Admin, Operator, Customer) at 375px / 768px / 1920px. Hamburger open/close & overlay work correctly on mobile. HOWEVER the mobile content-centering fix is INCOMPLETE: on <1024px viewports the collapsed sidebar (w-16 = 64px) still occupies flex space, pushing main content 64px to the right and producing an ASYMMETRIC layout (left margin ~80px, right margin ~16px). Content is NOT centered — the original user bug is NOT fully fixed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ResponsiveSidebar (/app/frontend/src/components/shared/Sidebar.js line ~114)",
+        "issue": "The <aside> element has BOTH `relative` and `fixed lg:sticky` position utilities. In the compiled Tailwind CSS, `.relative` is defined AFTER `.fixed` (position utilities are alphabetical: absolute, fixed, relative, sticky, static). Because both selectors have identical specificity, `.relative` wins on mobile/tablet, so `position: fixed` is overridden. Verified via getComputedStyle: on 375px & 768px the aside's computed position is `relative` (should be `fixed`), while at 1920px it correctly becomes `sticky` (only because `lg:sticky` is a higher-breakpoint utility). Result: the collapsed 64px-wide aside occupies flex space, offsetting <main> by x=64 on mobile — so max-w-7xl mx-auto centers within an already-shifted parent, producing left-margin 80px vs right-margin 16px on 375px, 80px vs 16px on 768px. Content appears left-shifted, not centered.",
+        "selector": "aside (in ResponsiveSidebar)",
+        "priority": "HIGH"
+      },
+      {
+        "component": "OperatorDashboard - Welcome heading on mobile",
+        "issue": "Because main content starts at x=64 on 375px viewport, only 311px of horizontal space remains. The `Welcome, AirFleet Services Pvt Ltd` heading wraps across 4 lines and is offset ~64px from the left edge. Fixing the sidebar position bug above will resolve this.",
+        "selector": "main heading in OperatorDashboard",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Mobile 375px (all 3 dashboards)",
+        "issues": [
+          "Content block has ~80px left margin and ~16px right margin (asymmetric). User's reported bug 'Mobile me content centre me nahi dikh rha' is still present.",
+          "Effective usable width for cards/text is 311px (16px page padding on right, 64px phantom sidebar on left, 16px page padding on left) — reduces content area unnecessarily on already-small screens."
+        ]
+      },
+      {
+        "screen": "Tablet 768px (all 3 dashboards)",
+        "issues": [
+          "Same phantom-sidebar issue: main.x=64, inner marginL=80 vs marginR=16. Not centered."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "FIX Sidebar.js aside class list: change `relative` to `lg:relative` (or restructure so `position: relative` is only applied at lg+). Currently `relative` overrides `fixed lg:sticky` on <1024px viewports, causing the collapsed sidebar to occupy 64px of flex space.",
+    "After fix, verify main.x=0 on mobile/tablet and inner content is symmetrically centered (equal marginL and marginR).",
+    "Consider also hiding the sidebar entirely (display:none) on <lg breakpoints when closed instead of only translating it off-screen — this avoids any flex-space reservation regardless of position property.",
+    "Re-run the responsive test after fix to confirm centering."
+  ],
+  "critical_code_review_comments": [
+    "Sidebar.js: mixing `relative`, `fixed`, `lg:sticky` on a single element is fragile — Tailwind's class-name order in the template literal does NOT control CSS specificity; the order in the compiled stylesheet does. Prefer explicit breakpoint prefixes for every position utility (e.g., `fixed lg:sticky lg:relative`) or split into two separately-styled elements.",
+    "CustomerDashboard has no max-w-7xl wrapper on its <main> (inner query returned null in tests). If content-centering behavior is expected to match Admin/Operator, add the same `<div className='max-w-7xl mx-auto'>` wrapper."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only)", "frontend": "50% - hamburger/overlay/desktop work; mobile centering broken"},
+  "seed_data_creation": "None",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin: admin@airyatra.com / Admin123! ; Operator: operator@airyatra.com / Operator@123456 ; Customer: loyaltytest@airyatra.com / Loyalty@123 (the customer@airyatra.com/Customer@123 in the request is INVALID — not in /app/memory/test_credentials.md)",
+  "context_for_next_testing_agent": "Root cause identified via getComputedStyle: aside computed position is `relative` on <1024px because `.relative` in the class list is compiled after `.fixed` in Tailwind. Verify the fix by asserting `window.getComputedStyle(document.querySelector('aside')).position === 'fixed'` at width 375/768 and that `document.querySelector('main').getBoundingClientRect().x === 0`. Then check that inner `.max-w-7xl` element's left and right margins from viewport are approximately equal (both ~16px on mobile). All 3 dashboards (Admin, Operator, Customer) need to be re-verified. Hamburger open/close + overlay + desktop 1920px are already confirmed working.",
+  "rca_of_the_issue": "In /app/frontend/src/components/shared/Sidebar.js the aside element carries `relative` alongside `fixed lg:sticky` in its className. In the compiled Tailwind CSS bundle, `.relative` is placed after `.fixed` (both are base-layer, single-class, equal specificity), so the browser applies `position: relative` on viewports below the `lg` breakpoint (<1024px). Because `relative` keeps the element in normal flow, the collapsed w-16 (64px) sidebar occupies 64px of the flex row, offsetting <main> by 64px. The `max-w-7xl mx-auto` wrapper then centers inside the shifted main, producing asymmetric margins on mobile (80px left vs 16px right). Fix: change `relative` to `lg:relative` so position:relative applies only when the sidebar is actually visible."
+}

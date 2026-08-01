@@ -256,29 +256,31 @@ function OperatorDashboard({ user, onLogout }) {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <Routes>
-            <Route index element={<OperatorHome operator={operator} />} />
-            <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
-            <Route path="erp" element={<OperatorERP />} />
-            <Route path="revenue" element={<OperatorRevenueDashboard user={user} />} />
-            <Route path="fleet-analytics" element={<OperatorFleetAnalytics operator={operator} />} />
-            <Route path="pilot-duty" element={<PilotDutyTracker />} />
-            <Route path="maintenance-calendar" element={<FleetMaintenanceCalendar />} />
-            <Route path="fleet" element={<FleetManagement operator={operator} />} />
-            <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
-            <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />
-            <Route path="pilots" element={<PilotManagement operator={operator} />} />
-            <Route path="journey-otp" element={<JourneyOTPManager operator={operator} />} />
-            <Route path="flight-records" element={<FlightRecordsManager operator={operator} />} />
-            <Route path="fuel-records" element={<FuelRecordsManager operator={operator} />} />
-            <Route path="live-tracking" element={<LiveTrackingMap operator={operator} />} />
-            <Route path="landing-permissions" element={<LandingPermissionViewer operator={operator} />} />
-            <Route path="pricing" element={<OperatorPricingConfig />} />
-            <Route path="profile" element={<OperatorProfile operator={operator} onOperatorUpdate={setOperator} />} />
-            <Route path="pilot-assignment" element={<PilotAssignmentCalendar />} />
-            <Route path="cost-tracker" element={<MaintenanceCostTracker />} />
-            <Route path="pilot-documents" element={<PilotDocumentUpload />} />
-          </Routes>
+          <div className="max-w-7xl mx-auto">
+            <Routes>
+              <Route index element={<OperatorHome operator={operator} />} />
+              <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
+              <Route path="erp" element={<OperatorERP />} />
+              <Route path="revenue" element={<OperatorRevenueDashboard user={user} />} />
+              <Route path="fleet-analytics" element={<OperatorFleetAnalytics operator={operator} />} />
+              <Route path="pilot-duty" element={<PilotDutyTracker />} />
+              <Route path="maintenance-calendar" element={<FleetMaintenanceCalendar />} />
+              <Route path="fleet" element={<FleetManagement operator={operator} />} />
+              <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
+              <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />
+              <Route path="pilots" element={<PilotManagement operator={operator} />} />
+              <Route path="journey-otp" element={<JourneyOTPManager operator={operator} />} />
+              <Route path="flight-records" element={<FlightRecordsManager operator={operator} />} />
+              <Route path="fuel-records" element={<FuelRecordsManager operator={operator} />} />
+              <Route path="live-tracking" element={<LiveTrackingMap operator={operator} />} />
+              <Route path="landing-permissions" element={<LandingPermissionViewer operator={operator} />} />
+              <Route path="pricing" element={<OperatorPricingConfig />} />
+              <Route path="profile" element={<OperatorProfile operator={operator} onOperatorUpdate={setOperator} />} />
+              <Route path="pilot-assignment" element={<PilotAssignmentCalendar />} />
+              <Route path="cost-tracker" element={<MaintenanceCostTracker />} />
+              <Route path="pilot-documents" element={<PilotDocumentUpload />} />
+            </Routes>
+          </div>
         </main>
       </div>
     </div>

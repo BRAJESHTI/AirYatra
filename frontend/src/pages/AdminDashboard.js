@@ -517,7 +517,9 @@ function AdminDashboard({ user, onLogout }) {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          {renderContent()}
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>

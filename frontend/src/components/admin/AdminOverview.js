@@ -54,33 +54,33 @@ function AdminOverview({ data, onRefresh, loading, onNavigate }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-slate-400 mt-1">Overview of platform performance and pending actions</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="text-center sm:text-left w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Admin Dashboard</h1>
+          <p className="text-slate-400 mt-1 text-sm sm:text-base">Overview of platform performance and pending actions</p>
         </div>
-        <Button onClick={onRefresh} variant="outline" className="border-slate-600 text-slate-300 hover:text-white">
+        <Button onClick={onRefresh} variant="outline" className="border-slate-600 text-slate-300 hover:text-white w-full sm:w-auto">
           <RefreshCw className="h-4 w-4 mr-2" /> Refresh
         </Button>
       </div>
 
       {/* Stats Grid - CLICKABLE */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <button
               key={index}
               onClick={() => handleCardClick(stat.navigateTo)}
-              className={`p-4 rounded-xl border ${colorClasses[stat.color]} cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg text-left w-full group`}
+              className={`p-3 sm:p-4 rounded-xl border ${colorClasses[stat.color]} cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg text-left w-full group`}
             >
               <div className="flex items-center justify-between">
-                <Icon className={`h-8 w-8 ${iconColorClasses[stat.color]}`} />
-                <span className="text-3xl font-bold text-white">{stat.value}</span>
+                <Icon className={`h-6 sm:h-8 w-6 sm:w-8 ${iconColorClasses[stat.color]}`} />
+                <span className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <p className="text-sm text-slate-300">{stat.label}</p>
-                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-white transition-colors" />
+                <p className="text-xs sm:text-sm text-slate-300 truncate pr-1">{stat.label}</p>
+                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-white transition-colors shrink-0" />
               </div>
             </button>
           );

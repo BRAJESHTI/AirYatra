@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -17,6 +17,8 @@ import CustomerBookingStats from '../components/customer/CustomerBookingStats';
 import FlightPriceHistory from '../components/customer/FlightPriceHistory';
 import RouteSuggestions from '../components/customer/RouteSuggestions';
 import NotificationBell from '../components/shared/NotificationBell';
+import GlobalSearch from '../components/shared/GlobalSearch';
+import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 
 // Organized Navigation Structure - 4 Main Categories
 const navGroups = [
@@ -75,6 +77,9 @@ function CustomerDashboard({ user, onLogout }) {
   const [expandedGroups, setExpandedGroups] = useState(['main']);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Responsive sidebar hook
+  const sidebar = useResponsiveSidebar();
 
   useEffect(() => {
     fetchBookings();
@@ -127,6 +132,8 @@ function CustomerDashboard({ user, onLogout }) {
     if (!expandedGroups.includes(groupId)) {
       setExpandedGroups(prev => [...prev, groupId]);
     }
+    // Close mobile sidebar
+    sidebar.closeMobile();
   };
 
   const getActiveGroup = () => {
@@ -263,14 +270,20 @@ function CustomerDashboard({ user, onLogout }) {
     <div className="min-h-screen bg-slate-950" data-testid="customer-dashboard">
       {/* Top Navigation */}
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
-        <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-full mx-auto px-4 lg:px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
+            {/* Mobile Menu Button */}
+            <MobileMenuButton 
+              onClick={sidebar.toggleMobile} 
+              isOpen={sidebar.isMobileOpen}
+            />
             <Plane className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold text-white">AirYatra</span>
+            <span className="text-xl lg:text-2xl font-bold text-white">AirYatra</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 lg:space-x-4">
+            <GlobalSearch user={user} />
             <NotificationBell user={user} />
-            <span className="text-slate-300" data-testid="user-name">{user.full_name}</span>
+            <span className="text-slate-300 hidden sm:inline text-sm lg:text-base" data-testid="user-name">{user.full_name}</span>
             <Button variant="ghost" onClick={onLogout} className="text-white hover:text-orange-400" data-testid="logout-btn">
               <LogOut className="h-5 w-5" />
             </Button>
@@ -279,68 +292,68 @@ function CustomerDashboard({ user, onLogout }) {
       </nav>
 
       <div className="flex min-h-[calc(100vh-73px)]">
-        {/* Sidebar - Collapsible Groups */}
-        <aside className="w-64 bg-slate-900/50 border-r border-slate-800 overflow-y-auto sticky top-[73px] h-[calc(100vh-73px)]">
-          <nav className="p-3 space-y-1">
-            {navGroups.map((group) => {
-              const GroupIcon = group.icon;
-              const isExpanded = expandedGroups.includes(group.id);
-              const isActiveGroup = activeGroup === group.id;
+        {/* Responsive Sidebar */}
+        <ResponsiveSidebar
+          isCollapsed={sidebar.isCollapsed}
+          isMobileOpen={sidebar.isMobileOpen}
+          isHovered={sidebar.isHovered}
+          setIsHovered={sidebar.setIsHovered}
+          closeMobile={sidebar.closeMobile}
+          toggleCollapse={sidebar.toggleCollapse}
+        >
+          {navGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isExpanded = expandedGroups.includes(group.id);
+            const isActiveGroup = activeGroup === group.id;
 
-              return (
-                <div key={group.id} className="mb-1">
-                  {/* Group Header */}
-                  <button
-                    onClick={() => toggleGroup(group.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
-                      isActiveGroup
-                        ? 'bg-orange-500/20 text-orange-400'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <GroupIcon className={`h-5 w-5 ${isActiveGroup ? 'text-orange-400' : ''}`} />
-                      <span className="font-medium text-sm">{group.label}</span>
-                    </div>
-                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </button>
-
-                  {/* Group Items */}
-                  {isExpanded && (
-                    <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
-                      {group.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavClick(item, group.id)}
-                            className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
-                              activeTab === item.id
-                                ? 'bg-orange-500 text-white'
-                                : item.highlight
-                                  ? 'text-yellow-400 hover:bg-yellow-500/20'
-                                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                            }`}
-                          >
-                            <ItemIcon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                            {item.highlight && activeTab !== item.id && (
-                              <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </aside>
+            return (
+              <CollapsibleNavGroup
+                key={group.id}
+                icon={GroupIcon}
+                label={group.label}
+                isExpanded={isExpanded}
+                onToggle={() => toggleGroup(group.id)}
+                isActive={isActiveGroup}
+                hasHighlight={group.items.some(item => item.highlight)}
+                isCollapsed={sidebar.effectiveCollapsed}
+              >
+                {group.items.map((item) => {
+                  const ItemIcon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavClick(item, group.id)}
+                      title={sidebar.effectiveCollapsed ? item.label : undefined}
+                      className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
+                        activeTab === item.id
+                          ? 'bg-orange-500 text-white'
+                          : item.highlight
+                            ? 'text-yellow-400 hover:bg-yellow-500/20'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <ItemIcon className="h-4 w-4 shrink-0" />
+                      {!sidebar.effectiveCollapsed && (
+                        <>
+                          <span className="truncate">{item.label}</span>
+                          {item.highlight && activeTab !== item.id && (
+                            <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full shrink-0" />
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </CollapsibleNavGroup>
+            );
+          })}
+        </ResponsiveSidebar>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          {renderContent()}
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+          <div className="max-w-6xl mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>
