@@ -33,6 +33,9 @@ dist
 # Credentials (but NOT .env files - they are needed for deployment)
 *token.json*
 *credentials.json*
+credentials.json
+*.key
+.credentials
 
 # Logs and debug files
 npm-debug.log*
@@ -80,86 +83,6 @@ android-sdk/
 
 # Node cache
 frontend/node_modules/.cache/
-frontend/node_modules/.cache/default-development/9.pack
-frontend/node_modules/.cache/default-development/1.pack
-frontend/node_modules/.cache/default-development/11.pack
 frontend/node_modules/.cache/default-development/2.pack
-frontend/node_modules/.cache/default-development/3.pack
-frontend/node_modules/.cache/default-development/4.pack
-frontend/node_modules/.cache/default-development/6.pack
-frontend/node_modules/.cache/default-development/7.pack
-frontend/node_modules/.cache/default-development/5.pack
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/6.pack_
-frontend/node_modules/.cache/default-development/0.pack
-frontend/node_modules/.cache/default-development/10.pack
-frontend/node_modules/.cache/default-development/12.pack_
-frontend/node_modules/.cache/default-development/12.pack
-frontend/node_modules/.cache/default-development/14.pack
-frontend/node_modules/.cache/default-development/16.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/13.pack
-frontend/node_modules/.cache/default-development/15.pack
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/8.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-.env
-.env.*
-credentials.json
-*.key
-.credentials
-frontend/node_modules/.cache/default-development/17.pack
-frontend/node_modules/.cache/default-development/20.pack
-frontend/node_modules/.cache/default-development/19.pack
-frontend/node_modules/.cache/default-development/23.pack
-frontend/node_modules/.cache/default-development/34.pack
-frontend/node_modules/.cache/default-development/39.pack
 frontend/node_modules/.cache/default-development/41.pack
+frontend/node_modules/.cache/default-development/0.pack
