@@ -25,6 +25,7 @@ import OperatorERP from '../components/operator/OperatorERP';
 import OperatorRevenueDashboard from '../components/operator/OperatorRevenueDashboard';
 import OperatorFleetAnalytics from '../components/operator/OperatorFleetAnalytics';
 import PilotDutyTracker from '../components/operator/PilotDutyTracker';
+import FleetMaintenanceCalendar from '../components/operator/FleetMaintenanceCalendar';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -56,6 +57,7 @@ const navGroups = [
     icon: Plane,
     items: [
       { id: 'fleet', label: 'Fleet Management / फ्लीट', icon: Plane, path: '/operator/fleet' },
+      { id: 'maintenance-calendar', label: 'Maintenance Calendar / रखरखाव', icon: Calendar, path: '/operator/maintenance-calendar', highlight: true },
       { id: 'pilots', label: 'Pilots / पायलट', icon: Users, path: '/operator/pilots' },
     ]
   },
@@ -247,6 +249,7 @@ function OperatorDashboard({ user, onLogout }) {
             <Route path="revenue" element={<OperatorRevenueDashboard user={user} />} />
             <Route path="fleet-analytics" element={<OperatorFleetAnalytics operator={operator} />} />
             <Route path="pilot-duty" element={<PilotDutyTracker />} />
+            <Route path="maintenance-calendar" element={<FleetMaintenanceCalendar />} />
             <Route path="fleet" element={<FleetManagement operator={operator} />} />
             <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
             <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />

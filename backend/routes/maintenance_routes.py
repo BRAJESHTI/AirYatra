@@ -387,3 +387,189 @@ async def get_aircraft_maintenance_history(
             "total_hours": total_hours
         }
     }
+
+
+# ============== MAINTENANCE CALENDAR & iCAL EXPORT ==============
+
+@router.get("/calendar")
+async def get_maintenance_calendar(
+    month: int = Query(None, description="Month (1-12)"),
+    year: int = Query(None, description="Year"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get maintenance calendar view for operator's fleet"""
+    db = get_database()
+    
+    if not any(role in current_user.get("roles", []) for role in ["admin", "operator"]):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    now = datetime.now(timezone.utc)
+    target_month = month or now.month
+    target_year = year or now.year
+    
+    # Build date range for the month
+    month_start = datetime(target_year, target_month, 1, tzinfo=timezone.utc)
+    if target_month == 12:
+        month_end = datetime(target_year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        month_end = datetime(target_year, target_month + 1, 1, tzinfo=timezone.utc)
+    
+    # Get operator's aircraft
+    operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    
+    query = {"scheduled_date": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}}
+    
+    if operator:
+        # Get operator's aircraft IDs
+        aircraft_list = await db.aircraft.find(
+            {"operator_id": operator["id"]},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+        aircraft_ids = [a["id"] for a in aircraft_list]
+        query["aircraft_id"] = {"$in": aircraft_ids}
+    
+    # Get maintenance schedules
+    schedules = await db.maintenance_schedules.find(
+        query,
+        {"_id": 0}
+    ).sort("scheduled_date", 1).to_list(500)
+    
+    # Group by date for calendar view
+    calendar_data = {}
+    for schedule in schedules:
+        date_key = schedule.get("scheduled_date", "")[:10]  # YYYY-MM-DD
+        if date_key not in calendar_data:
+            calendar_data[date_key] = []
+        calendar_data[date_key].append({
+            "id": schedule.get("id"),
+            "maintenance_number": schedule.get("maintenance_number"),
+            "aircraft_registration": schedule.get("aircraft_registration"),
+            "aircraft_type": schedule.get("aircraft_type"),
+            "type": schedule.get("type"),
+            "description": schedule.get("description"),
+            "priority": schedule.get("priority"),
+            "status": schedule.get("status"),
+            "estimated_hours": schedule.get("estimated_hours"),
+            "estimated_cost": schedule.get("estimated_cost"),
+            "assigned_technician": schedule.get("assigned_technician")
+        })
+    
+    # Get summary stats
+    total_scheduled = len(schedules)
+    by_status = {}
+    by_priority = {}
+    for s in schedules:
+        status = s.get("status", "scheduled")
+        priority = s.get("priority", "medium")
+        by_status[status] = by_status.get(status, 0) + 1
+        by_priority[priority] = by_priority.get(priority, 0) + 1
+    
+    return {
+        "month": target_month,
+        "year": target_year,
+        "calendar": calendar_data,
+        "schedules": schedules,
+        "summary": {
+            "total": total_scheduled,
+            "by_status": by_status,
+            "by_priority": by_priority
+        }
+    }
+
+
+@router.get("/calendar/ical")
+async def export_maintenance_ical(
+    months_ahead: int = Query(3, description="Months to include"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Export maintenance calendar as iCal (.ics) file"""
+    from fastapi.responses import Response
+    
+    db = get_database()
+    
+    if not any(role in current_user.get("roles", []) for role in ["admin", "operator"]):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    now = datetime.now(timezone.utc)
+    end_date = now + timedelta(days=months_ahead * 30)
+    
+    # Get operator's aircraft
+    operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    
+    query = {
+        "scheduled_date": {"$gte": now.isoformat(), "$lte": end_date.isoformat()},
+        "status": {"$in": ["scheduled", "in_progress"]}
+    }
+    
+    if operator:
+        aircraft_list = await db.aircraft.find(
+            {"operator_id": operator["id"]},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+        aircraft_ids = [a["id"] for a in aircraft_list]
+        query["aircraft_id"] = {"$in": aircraft_ids}
+    
+    schedules = await db.maintenance_schedules.find(
+        query,
+        {"_id": 0}
+    ).sort("scheduled_date", 1).to_list(500)
+    
+    # Build iCal content
+    ical_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//AirYatra//Fleet Maintenance Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:AirYatra Fleet Maintenance",
+        "X-WR-TIMEZONE:Asia/Kolkata"
+    ]
+    
+    for schedule in schedules:
+        try:
+            scheduled_date = schedule.get("scheduled_date", "")
+            if not scheduled_date:
+                continue
+            
+            # Parse date
+            dt = datetime.fromisoformat(scheduled_date.replace('Z', '+00:00'))
+            dtstart = dt.strftime("%Y%m%dT%H%M%SZ")
+            
+            # End time based on estimated hours
+            duration_hours = schedule.get("estimated_hours", 2) or 2
+            dtend = (dt + timedelta(hours=duration_hours)).strftime("%Y%m%dT%H%M%SZ")
+            
+            priority_map = {"critical": 1, "high": 3, "medium": 5, "low": 7}
+            priority = priority_map.get(schedule.get("priority", "medium"), 5)
+            
+            summary = f"[{schedule.get('aircraft_registration', 'N/A')}] {schedule.get('type', 'Maintenance').title()} - {schedule.get('description', 'Scheduled maintenance')[:50]}"
+            
+            description = f"Aircraft: {schedule.get('aircraft_registration')}\\nType: {schedule.get('type')}\\nDescription: {schedule.get('description')}\\nEstimated Hours: {duration_hours}h\\nEstimated Cost: Rs.{schedule.get('estimated_cost', 0)}\\nTechnician: {schedule.get('assigned_technician') or 'TBD'}\\nStatus: {schedule.get('status')}"
+            
+            ical_lines.extend([
+                "BEGIN:VEVENT",
+                f"UID:{schedule.get('id')}@airyatra.com",
+                f"DTSTAMP:{now.strftime('%Y%m%dT%H%M%SZ')}",
+                f"DTSTART:{dtstart}",
+                f"DTEND:{dtend}",
+                f"SUMMARY:{summary}",
+                f"DESCRIPTION:{description}",
+                f"PRIORITY:{priority}",
+                f"CATEGORIES:MAINTENANCE,{schedule.get('type', 'scheduled').upper()}",
+                "STATUS:CONFIRMED",
+                "END:VEVENT"
+            ])
+        except Exception as e:
+            continue
+    
+    ical_lines.append("END:VCALENDAR")
+    
+    ical_content = "\r\n".join(ical_lines)
+    
+    return Response(
+        content=ical_content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f"attachment; filename=airyatra_maintenance_{now.strftime('%Y%m%d')}.ics"
+        }
+    )

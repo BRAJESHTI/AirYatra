@@ -5,6 +5,7 @@ Handles automated tasks like lead reassignment, notifications, etc.
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime, timezone, timedelta
+from uuid import uuid4
 import logging
 import asyncio
 
@@ -918,8 +919,252 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Pilot document expiry alerts - Daily check at 9 AM IST
+    scheduler.add_job(
+        check_pilot_document_expiry,
+        trigger=IntervalTrigger(hours=24),
+        id="pilot_document_expiry",
+        name="Pilot Document Expiry Alerts (30 days notice)",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders, pilot_document_expiry")
+
+
+async def check_pilot_document_expiry():
+    """
+    Check for pilot documents expiring in 30 days and send alerts.
+    Runs daily at 9 AM IST.
+    """
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for pilot document expiry check")
+            return
+        
+        now = datetime.now(timezone.utc)
+        thirty_days_later = now + timedelta(days=30)
+        
+        # Find pilots with documents expiring in 30 days
+        expiring_pilots = []
+        
+        all_pilots = await db.pilots.find({}, {"_id": 0}).to_list(500)
+        
+        for pilot in all_pilots:
+            alerts = []
+            
+            # Check license expiry
+            license_expiry = pilot.get("license_expiry")
+            if license_expiry:
+                try:
+                    expiry_date = datetime.fromisoformat(license_expiry.replace('Z', '+00:00'))
+                    days_until = (expiry_date - now).days
+                    if 0 < days_until <= 30:
+                        alerts.append({
+                            "type": "license",
+                            "document": "Pilot License",
+                            "expiry_date": license_expiry,
+                            "days_remaining": days_until,
+                            "urgency": "critical" if days_until <= 7 else "warning" if days_until <= 14 else "info"
+                        })
+                except (ValueError, TypeError):
+                    pass
+            
+            # Check medical expiry
+            medical_expiry = pilot.get("medical_expiry")
+            if medical_expiry:
+                try:
+                    expiry_date = datetime.fromisoformat(medical_expiry.replace('Z', '+00:00'))
+                    days_until = (expiry_date - now).days
+                    if 0 < days_until <= 30:
+                        alerts.append({
+                            "type": "medical",
+                            "document": "Medical Certificate",
+                            "expiry_date": medical_expiry,
+                            "days_remaining": days_until,
+                            "urgency": "critical" if days_until <= 7 else "warning" if days_until <= 14 else "info"
+                        })
+                except (ValueError, TypeError):
+                    pass
+            
+            # Check type rating expiry
+            type_rating_expiry = pilot.get("type_rating_expiry")
+            if type_rating_expiry:
+                try:
+                    expiry_date = datetime.fromisoformat(type_rating_expiry.replace('Z', '+00:00'))
+                    days_until = (expiry_date - now).days
+                    if 0 < days_until <= 30:
+                        alerts.append({
+                            "type": "type_rating",
+                            "document": "Type Rating",
+                            "expiry_date": type_rating_expiry,
+                            "days_remaining": days_until,
+                            "urgency": "critical" if days_until <= 7 else "warning" if days_until <= 14 else "info"
+                        })
+                except (ValueError, TypeError):
+                    pass
+            
+            if alerts:
+                expiring_pilots.append({
+                    "pilot": pilot,
+                    "alerts": alerts
+                })
+        
+        if not expiring_pilots:
+            logger.info("No pilot documents expiring in next 30 days")
+            return
+        
+        # Group by operator and send alerts
+        operator_alerts = {}
+        for item in expiring_pilots:
+            pilot = item["pilot"]
+            operator_id = pilot.get("operator_id")
+            if operator_id:
+                if operator_id not in operator_alerts:
+                    operator_alerts[operator_id] = []
+                operator_alerts[operator_id].append(item)
+        
+        # Send email to each operator
+        for operator_id, pilots_data in operator_alerts.items():
+            try:
+                operator = await db.operators.find_one({"id": operator_id}, {"_id": 0})
+                if not operator:
+                    continue
+                
+                operator_user = await db.users.find_one({"id": operator.get("user_id")}, {"_id": 0, "email": 1})
+                if not operator_user or not operator_user.get("email"):
+                    continue
+                
+                # Build email content
+                await send_pilot_document_expiry_email(
+                    operator_email=operator_user["email"],
+                    operator_name=operator.get("company_name", "Operator"),
+                    pilots_data=pilots_data
+                )
+                
+                # Record notification sent
+                for item in pilots_data:
+                    for alert in item["alerts"]:
+                        await db.notifications.insert_one({
+                            "id": str(uuid4()),
+                            "type": "pilot_document_expiry",
+                            "recipient_id": operator.get("user_id"),
+                            "pilot_id": item["pilot"].get("id"),
+                            "document_type": alert["type"],
+                            "days_remaining": alert["days_remaining"],
+                            "created_at": now.isoformat(),
+                            "read": False
+                        })
+                
+                logger.info(f"Sent pilot document expiry alert to {operator.get('company_name')}")
+                
+            except Exception as e:
+                logger.error(f"Failed to send pilot document expiry alert to operator {operator_id}: {e}")
+        
+        logger.info(f"Pilot document expiry check completed. Found {len(expiring_pilots)} pilots with expiring documents")
+        
+    except Exception as e:
+        logger.error(f"Pilot document expiry check failed: {e}")
+
+
+async def send_pilot_document_expiry_email(operator_email: str, operator_name: str, pilots_data: list):
+    """Send pilot document expiry alert email to operator"""
+    from services.email_service import email_service
+    from uuid import uuid4
+    
+    # Build pilot alerts HTML
+    pilot_rows = ""
+    for item in pilots_data:
+        pilot = item["pilot"]
+        for alert in item["alerts"]:
+            urgency_color = "#ef4444" if alert["urgency"] == "critical" else "#f97316" if alert["urgency"] == "warning" else "#eab308"
+            urgency_label = "CRITICAL" if alert["urgency"] == "critical" else "WARNING" if alert["urgency"] == "warning" else "INFO"
+            
+            pilot_rows += f"""
+            <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #334155;">{pilot.get('name', 'Unknown')}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #334155;">{alert['document']}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #334155;">{alert['expiry_date'][:10]}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #334155;">
+                    <span style="background: {urgency_color}20; color: {urgency_color}; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                        {alert['days_remaining']} days - {urgency_label}
+                    </span>
+                </td>
+            </tr>
+            """
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }}
+            .header {{ background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 24px; }}
+            .content {{ padding: 30px; }}
+            .alert-box {{ background: #f97316/10; border: 1px solid #f9731640; border-radius: 8px; padding: 15px; margin-bottom: 20px; }}
+            table {{ width: 100%; border-collapse: collapse; }}
+            th {{ text-align: left; padding: 12px; background: #0f172a; color: #94a3b8; font-size: 12px; text-transform: uppercase; }}
+            td {{ color: #e2e8f0; }}
+            .cta {{ display: block; background: #f97316; color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; text-align: center; font-weight: 600; margin: 20px 0; }}
+            .footer {{ text-align: center; padding: 20px; color: #64748b; font-size: 12px; border-top: 1px solid #334155; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>⚠️ Pilot Document Expiry Alert</h1>
+            </div>
+            <div class="content">
+                <p>Namaste {operator_name}! 🙏</p>
+                
+                <div class="alert-box">
+                    <p style="margin: 0; color: #f97316; font-weight: 600;">
+                        The following pilot documents are expiring within 30 days:
+                    </p>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pilot Name</th>
+                            <th>Document</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {pilot_rows}
+                    </tbody>
+                </table>
+                
+                <a href="https://airyatra.com/operator/pilots" class="cta">
+                    Manage Pilot Documents →
+                </a>
+                
+                <p style="color: #94a3b8; font-size: 14px;">
+                    Please ensure these documents are renewed before expiry to avoid grounding.
+                    DGCA regulations require valid documents for all flight operations.
+                </p>
+            </div>
+            <div class="footer">
+                <p>🚁 AirYatra - India's Premium Air Mobility Platform</p>
+                <p>This is an automated alert for document compliance.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    await email_service.send_email(
+        to_email=operator_email,
+        subject=f"⚠️ Pilot Document Expiry Alert - {len(pilots_data)} pilots - AirYatra",
+        html_content=html_content
+    )
 
 
 def stop_scheduler():
