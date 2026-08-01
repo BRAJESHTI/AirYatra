@@ -210,3 +210,11 @@
 - Language persists in localStorage key `airyatra_lang`, auto-detects browser language
 - NOTE: Deep booking form field labels still bilingual EN/HI inline (pending migration to i18n keys)
 - Verified via screenshots: EN→HI→TA switch on landing, persistence to /booking, PA on booking page
+
+## August 1, 2026 - Booking Form Full Translation (Multi-Language Phase 2)
+- Migrated ENTIRE BookingPage form to i18n: all 4 steps, dropdown OPTIONS, price breakdown, booking summary, validation toasts, village landing warnings
+- Added `bookingForm` (~100 keys) + `options` (22 keys) namespaces to all 9 locale files
+- bookingConfig.js option labels now rendered via t(`options.${value}`) in BookingPage (config file untouched for backward compat)
+- FIXED: file corruption at BookingPage.js end (duplicate export lines from misapplied edit) causing webpack parse error
+- Tested: iteration_5.json - 16/16 passed (100%) - languages, persistence, dropdowns, toasts, mid-form switch state retention
+- KNOWN SCOPE LIMIT: LandingPointSelector internal search UI strings still bilingual EN/HI (deliberate, pending future migration)
