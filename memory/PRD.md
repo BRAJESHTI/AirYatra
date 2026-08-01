@@ -137,6 +137,20 @@
 || AI Route Suggestions | 🟢 DONE | (Aug 1, 2026) Customer → Main → Route Ideas. AI-powered personalized recommendations: (1) **For You** section — routes based on booking history, top 2 personalized with "Personalized" badge. (2) **Trending Routes** — 4 popular routes with popularity %, purpose icons (pilgrimage/business/tourism/leisure), duration, price range, best time. (3) **All Popular Routes** table — Mumbai→Shirdi, Delhi→Agra, etc. with Book buttons. (4) **Seasonal Suggestions** — Diwali/Wedding/Summer offers based on current month. Clicking "Book" navigates to /booking?from=X&to=Y. User preference summary shows top purpose and visited cities. API: GET /api/customer/route-suggestions |
 || Pilot Document Expiry Alerts | 🟢 DONE | (Aug 1, 2026) Auto-notify operators when pilot documents expire in 30 days. Scheduler job `check_pilot_document_expiry` runs daily. Checks: license_expiry, medical_expiry, type_rating_expiry. Urgency levels: critical (≤7 days), warning (≤14 days), info (≤30 days). Sends styled HTML email to operator with pilot list, document type, expiry date, days remaining. Records in notifications collection. Email includes: "Manage Pilot Documents →" CTA |
 || Fleet Maintenance Calendar | 🟢 DONE | (Aug 1, 2026) Operator → Fleet & Crew → Maintenance Calendar. Calendar view of maintenance schedule: Summary cards (Total Scheduled, Pending, Completed, Critical). Monthly calendar grid with color-coded priority badges. Click date to see detailed maintenance list. Status filter dropdown. **iCal Export**: GET /api/maintenance/calendar/ical generates .ics file for Google Calendar/Outlook import. Includes aircraft registration, type, description, estimated hours/cost, technician, priority. APIs: GET /api/maintenance/calendar (calendar data), GET /api/maintenance/calendar/ical (export) |
+|| Pilot Assignment Calendar | 🟢 DONE | (Aug 1, 2026) Operator → Fleet & Crew → Pilot Assignment. Calendar-based pilot-to-flight assignment with visual scheduling |
+|| Maintenance Cost Tracker | 🟢 DONE | (Aug 1, 2026) Operator → Fleet & Crew → Cost Tracker. Maintenance spending analytics with 6-month trend charts |
+|| Advanced Pilot Document Portal | 🟢 DONE | (Aug 1, 2026) Enhanced document management with bulk upload, expiry alerts, send notification button |
+|| Universal Global Search | 🟢 DONE | (Aug 1, 2026) Ctrl+K shortcut opens global search across Bookings, Users, Aircraft, Pilots. Component: GlobalSearch.js |
+|| Notification Center | 🟢 DONE | (Aug 1, 2026) Bell icon with unread badge, dropdown with tabs (All/Bookings/System/Alerts). Component: NotificationBell.js |
+|| Auto-Collapse Responsive Sidebar | 🟢 DONE | (Aug 1, 2026) All dashboards have responsive sidebars. Desktop: full→collapsed. Mobile: hamburger drawer. Components: Sidebar.js |
+|| Three-Dot Context Menus | 🟢 DONE | (Aug 1, 2026) ⋮ icon on table rows opens contextual actions. Component: ContextMenu.js |
+|| Keyboard Shortcuts Panel | 🟢 DONE | (Aug 1, 2026) Press `?` to open shortcuts panel. Component: KeyboardShortcutsPanel.js |
+|| Quick Booking Actions | 🟢 DONE | (Aug 1, 2026) Recent Bookings have inline View/Copy/Action buttons |
+|| Mobile UI Centering Fix | 🟢 DONE | (Aug 1, 2026) Fixed mobile grid alignment in Admin Overview stats |
+|| Bulk Document Upload | 🟢 DONE | (Aug 1, 2026) Multi-file drag-drop upload with progress bars. Component: BulkDocumentUpload.js in PilotDocumentUpload |
+|| Mobile Swipe Gestures | 🟢 DONE | (Aug 1, 2026) SwipeableCard.js - swipe left reveals actions on booking cards. "← Swipe for actions" hint on mobile |
+|| Dark/Light Theme Toggle | 🟢 DONE | (Aug 1, 2026) ThemeToggle.js with Sun/Moon icons, localStorage persistence, CSS variables. Button in all nav bars |
+|| Offline Mode Indicator | 🟢 DONE | (Aug 1, 2026) OfflineIndicator.js - red banner when offline, green "Back online!" auto-dismiss. In App.js |
 - 🔴 **DEFERRED** - Moved to end (WhatsApp, Payments)
 
 ---

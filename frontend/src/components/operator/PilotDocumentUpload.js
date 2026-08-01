@@ -3,16 +3,19 @@ import {
   FileText, Upload, Download, Trash2, CheckCircle, AlertTriangle,
   Clock, Calendar, RefreshCw, User, Eye, X, Loader2, File, Bell,
   Mail, ChevronDown, ChevronUp, Shield, Plus, Send, AlertCircle,
-  Search, Filter, Users
+  Search, Filter, Users, FolderUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import BulkDocumentUpload from './BulkDocumentUpload';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 function PilotDocumentUpload({ pilotId = null }) {
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [bulkUploadPilot, setBulkUploadPilot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -334,6 +337,17 @@ function PilotDocumentUpload({ pilotId = null }) {
     setShowUpload(true);
   };
 
+  const openBulkUpload = (pilot) => {
+    setBulkUploadPilot(pilot);
+    setShowBulkUpload(true);
+  };
+
+  const handleBulkUploadComplete = () => {
+    loadPilots(); // Refresh data
+    setShowBulkUpload(false);
+    setBulkUploadPilot(null);
+  };
+
   // Summary stats
   const totalExpired = Object.values(allPilotsData).reduce((sum, p) => sum + (p.expired || 0), 0);
   const totalExpiring = Object.values(allPilotsData).reduce((sum, p) => sum + (p.expiring || 0), 0);
@@ -507,6 +521,15 @@ function PilotDocumentUpload({ pilotId = null }) {
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Upload className="h-4 w-4 mr-1" /> Upload
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); openBulkUpload(pilot); }}
+                      className="border-purple-500 text-purple-400 hover:bg-purple-500/10"
+                    >
+                      <FolderUp className="h-4 w-4 mr-1" /> Bulk
                     </Button>
                     
                     {hasIssues && (
@@ -844,6 +867,19 @@ function PilotDocumentUpload({ pilotId = null }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUpload && bulkUploadPilot && (
+        <BulkDocumentUpload
+          pilotId={bulkUploadPilot.id}
+          pilotName={bulkUploadPilot.name || 'Unknown Pilot'}
+          onComplete={handleBulkUploadComplete}
+          onClose={() => {
+            setShowBulkUpload(false);
+            setBulkUploadPilot(null);
+          }}
+        />
       )}
     </div>
   );

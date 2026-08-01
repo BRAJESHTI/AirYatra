@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import FlightPriceHistory from '../components/customer/FlightPriceHistory';
 import RouteSuggestions from '../components/customer/RouteSuggestions';
 import NotificationBell from '../components/shared/NotificationBell';
 import GlobalSearch from '../components/shared/GlobalSearch';
+import SwipeableCard from '../components/shared/SwipeableCard';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -238,23 +239,44 @@ function CustomerDashboard({ user, onLogout }) {
               ) : (
                 <div className="space-y-4">
                   {bookings.slice(0, 5).map((booking) => (
-                    <div key={booking.id} className="bg-slate-900/50 p-4 rounded-lg border border-slate-700" data-testid={`booking-${booking.id}`}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-semibold text-white">{booking.booking_number}</div>
-                          <div className="text-slate-400 text-sm">
-                            {booking.from_location} → {booking.to_location}
+                    <SwipeableCard
+                      key={booking.id}
+                      className="rounded-lg overflow-hidden"
+                      actions={[
+                        {
+                          id: 'view',
+                          icon: Eye,
+                          color: 'bg-blue-500',
+                          onClick: () => navigate(`/customer/inquiry/${booking.id}`)
+                        },
+                        ...(booking.status !== 'cancelled' && booking.status !== 'completed' ? [{
+                          id: 'cancel',
+                          icon: XCircle,
+                          color: 'bg-red-500',
+                          onClick: () => toast.info('Cancel from My Trips page')
+                        }] : [])
+                      ]}
+                    >
+                      <div className="bg-slate-900/50 p-4 border border-slate-700" data-testid={`booking-${booking.id}`}>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-semibold text-white">{booking.booking_number}</div>
+                            <div className="text-slate-400 text-sm">
+                              {booking.from_location} → {booking.to_location}
+                            </div>
                           </div>
+                          <span className={`px-3 py-1 rounded-full text-xs ${
+                            booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                            booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                            'bg-orange-500/20 text-orange-400'
+                          }`} data-testid={`booking-status-${booking.id}`}>
+                            {booking.status.replace(/_/g, ' ')}
+                          </span>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs ${
-                          booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                          booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                          'bg-orange-500/20 text-orange-400'
-                        }`} data-testid={`booking-status-${booking.id}`}>
-                          {booking.status.replace(/_/g, ' ')}
-                        </span>
+                        {/* Mobile swipe hint */}
+                        <p className="text-xs text-slate-500 mt-2 sm:hidden">← Swipe for actions</p>
                       </div>
-                    </div>
+                    </SwipeableCard>
                   ))}
                 </div>
               )}

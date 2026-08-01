@@ -35,6 +35,8 @@ const PaymentLinkPage = lazy(() => import('./pages/PaymentLinkPage'));
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
 import KeyboardShortcutsPanel from './components/shared/KeyboardShortcutsPanel';
+import OfflineIndicator from './components/shared/OfflineIndicator';
+import { ThemeProvider, ThemeToggle } from './components/shared/ThemeToggle';
 
 // Import Google Auth components
 import { GoogleAuthSuccess, GoogleAuthError, EmergentAuthCallback } from './components/auth/GoogleLogin';
@@ -75,7 +77,11 @@ function App() {
   }
 
   return (
+    <ThemeProvider>
     <BrowserRouter>
+      {/* Offline Indicator - Shows when network is disconnected */}
+      <OfflineIndicator />
+      
       {/* Global Navigation - Home Button */}
       <GlobalNav user={user} />
       
@@ -212,6 +218,7 @@ function App() {
       {/* Keyboard Shortcuts Panel - Press ? to open */}
       <KeyboardShortcutsPanel />
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

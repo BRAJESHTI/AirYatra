@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
 import GlobalSearch from '@/components/shared/GlobalSearch';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup, NavItem } from '@/components/shared/Sidebar';
 
 // Import admin components
@@ -463,6 +464,7 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
             <NotificationBell user={user} />
+            <ThemeToggle />
             <span className="text-slate-300 hidden lg:inline">Welcome, {user.full_name}</span>
             <Button variant="ghost" onClick={onLogout} className="text-white hover:text-orange-400" data-testid="logout-btn">
               <LogOut className="h-5 w-5" />
