@@ -485,6 +485,7 @@ function AdminDashboard({ user, onLogout }) {
                           <button
                             key={item.id}
                             onClick={() => handleNavClick(item.id, group.id)}
+                            data-testid={`nav-${item.id}`}
                             className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-sm ${
                               activeTab === item.id
                                 ? 'bg-orange-500 text-white'

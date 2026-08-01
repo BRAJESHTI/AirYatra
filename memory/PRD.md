@@ -78,6 +78,13 @@
 - 🟡 **IN PROGRESS** - Currently being built
 - 🔵 **PLANNED** - Next in queue
 - ⚪ **BACKLOG** - Future consideration
+
+### Recent Additions (Aug 1, 2026)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Auction Outbid Alerts | 🟢 DONE | Instant email to previous highest bidder on outbid (SMTP verified) |
+| Country CEO Dashboard | 🟢 DONE | Admin → Analytics & Reports → CEO Dashboard: revenue, bookings, customers, fleet, marketplace KPIs, 6-month booking trend chart (recharts), membership breakdown, partner summary. Backend: /api/ceo/dashboard |
+| Partner API Platform | 🟢 DONE | Admin → Integrations → Partner API Platform: create partners w/ auto API keys (ayk_*), revoke/activate/regenerate, partner bookings pipeline (received→processing→confirmed/cancelled), API Docs tab. Public API: /api/partner/v1/{ping,aircraft,bookings} via X-API-Key header w/ usage tracking |
 - 🔴 **DEFERRED** - Moved to end (WhatsApp, Payments)
 
 ---
