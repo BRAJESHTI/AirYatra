@@ -491,9 +491,32 @@ async def get_auctions():
     return {"live": live, "ended": ended, "server_time": datetime.now(timezone.utc).isoformat()}
 
 
+async def _notify_outbid(email: str, name: str, title: str, new_bid: float, ends_at: str):
+    from services.email_service import email_service
+    try:
+        ends = datetime.fromisoformat(ends_at).strftime("%d %b %Y, %I:%M %p UTC")
+    except Exception:
+        ends = ends_at
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+      <div style="background:#dc2626;padding:20px 28px;"><h2 style="margin:0;color:#fff;">⚡ You've Been Outbid!</h2></div>
+      <div style="padding:28px;">
+        <p>Dear {name},</p>
+        <p>Someone just placed a higher bid on <b>{title}</b> in the AirYatra Aviation Exchange auction.</p>
+        <div style="background:#1e293b;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0;"><b>New Highest Bid:</b> <span style="color:#f97316;font-size:18px;">Rs. {new_bid:,.0f}</span></p>
+          <p style="margin:8px 0 0;"><b>Auction Ends:</b> {ends}</p>
+        </div>
+        <p><b>Don't lose this aircraft!</b> Head back to the auction and place a higher bid before time runs out. / समय खत्म होने से पहले ऊंची बोली लगाएं!</p>
+        <p style="color:#94a3b8;font-size:13px;">Team AirYatra • Live Aircraft Auctions</p>
+      </div>
+    </div>"""
+    await email_service.send_email(to_email=email, subject=f"⚡ Outbid Alert — {title} (Act fast!)", html_body=html)
+
+
 @router.post("/auctions/{auction_id}/bid")
-async def place_bid(auction_id: str, bid: BidCreate, current_user: dict = Depends(get_current_user)):
-    """Place a bid on a live auction"""
+async def place_bid(auction_id: str, bid: BidCreate, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    """Place a bid on a live auction (emails previous highest bidder)"""
     db = get_database()
     auction = await db.exchange_auctions.find_one({"id": auction_id}, {"_id": 0})
     if not auction:
@@ -504,6 +527,7 @@ async def place_bid(auction_id: str, bid: BidCreate, current_user: dict = Depend
     min_next = (auction["current_bid_inr"] + auction["min_increment_inr"]) if auction["bid_count"] > 0 else auction["starting_bid_inr"]
     if bid.amount_inr < min_next:
         raise HTTPException(status_code=400, detail=f"Minimum bid is ₹{min_next:,.0f}")
+    prev_bidder_id = auction.get("highest_bidder_id")
     r = await db.exchange_auctions.update_one(
         {"id": auction_id, "status": "live", "current_bid_inr": {"$lt": bid.amount_inr}},
         {"$set": {"current_bid_inr": bid.amount_inr, "highest_bidder_id": current_user["id"], "highest_bidder_name": current_user.get("full_name")}, "$inc": {"bid_count": 1}},
@@ -515,6 +539,10 @@ async def place_bid(auction_id: str, bid: BidCreate, current_user: dict = Depend
         "bidder_id": current_user["id"], "bidder_name": current_user.get("full_name"),
         "amount_inr": bid.amount_inr, "created_at": datetime.now(timezone.utc).isoformat(),
     })
+    if prev_bidder_id and prev_bidder_id != current_user["id"]:
+        prev = await db.users.find_one({"id": prev_bidder_id}, {"_id": 0, "email": 1, "full_name": 1})
+        if prev and prev.get("email"):
+            background_tasks.add_task(_notify_outbid, prev["email"], prev.get("full_name", "Bidder"), auction["title"], bid.amount_inr, auction["ends_at"])
     return {"message": "Bid placed! You are the highest bidder.", "current_bid_inr": bid.amount_inr}
 
 

@@ -77,6 +77,8 @@ import TwilioIntegration from '@/components/admin/TwilioIntegration';
 import TallyIntegration from '@/components/admin/TallyIntegration';
 import ZohoIntegration from '@/components/admin/ZohoIntegration';
 import ExchangeManagement from '@/components/admin/ExchangeManagement';
+import CEODashboard from '@/components/admin/CEODashboard';
+import PartnerManagement from '@/components/admin/PartnerManagement';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -178,6 +180,7 @@ const navGroups = [
     label: 'Analytics & Reports',
     icon: BarChart3,
     items: [
+      { id: 'ceo', label: 'CEO Dashboard', icon: TrendingUp, highlight: true },
       { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
       { id: 'reports', label: 'Reports', icon: PieChart },
       { id: 'predictive', label: 'Predictive Analytics', icon: BarChart3, highlight: true },
@@ -213,6 +216,7 @@ const navGroups = [
     label: 'Integrations / इंटीग्रेशन',
     icon: HardDrive,
     items: [
+      { id: 'partners', label: 'Partner API Platform', icon: Key, highlight: true },
       { id: 'twilio', label: 'Twilio (VoIP/Calls)', icon: Phone, highlight: true },
       { id: 'tally', label: 'Tally Accounting', icon: Calculator, highlight: true },
       { id: 'zoho', label: 'Zoho CRM/Books', icon: Cloud, highlight: true },
@@ -352,6 +356,10 @@ function AdminDashboard({ user, onLogout }) {
         return <ApprovalQueue />;
       case 'exchange':
         return <ExchangeManagement />;
+      case 'ceo':
+        return <CEODashboard />;
+      case 'partners':
+        return <PartnerManagement />;
       case 'multi_approval':
         return <MultiLevelApproval />;
       case 'users':
