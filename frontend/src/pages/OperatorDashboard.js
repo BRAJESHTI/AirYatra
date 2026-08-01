@@ -24,6 +24,7 @@ import OperatorPricingConfig from '../components/operator/OperatorPricingConfig'
 import OperatorERP from '../components/operator/OperatorERP';
 import OperatorRevenueDashboard from '../components/operator/OperatorRevenueDashboard';
 import OperatorFleetAnalytics from '../components/operator/OperatorFleetAnalytics';
+import PilotDutyTracker from '../components/operator/PilotDutyTracker';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -64,6 +65,7 @@ const navGroups = [
     icon: Navigation,
     items: [
       { id: 'live-tracking', label: 'Live Tracking / लाइव ट्रैकिंग', icon: MapPin, path: '/operator/live-tracking', highlight: true },
+      { id: 'pilot-duty', label: 'Pilot Duty Tracker / FDTL', icon: Shield, path: '/operator/pilot-duty', highlight: true },
       { id: 'flight-records', label: 'Flight Records / उड़ान रिकॉर्ड', icon: BookOpen, path: '/operator/flight-records' },
       { id: 'fuel-records', label: 'Fuel Records / ईंधन रिकॉर्ड', icon: Fuel, path: '/operator/fuel-records' },
       { id: 'landing-permissions', label: 'Landing Permissions / अनुमतियां', icon: Shield, path: '/operator/landing-permissions' },
@@ -244,6 +246,7 @@ function OperatorDashboard({ user, onLogout }) {
             <Route path="erp" element={<OperatorERP />} />
             <Route path="revenue" element={<OperatorRevenueDashboard user={user} />} />
             <Route path="fleet-analytics" element={<OperatorFleetAnalytics operator={operator} />} />
+            <Route path="pilot-duty" element={<PilotDutyTracker />} />
             <Route path="fleet" element={<FleetManagement operator={operator} />} />
             <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
             <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />

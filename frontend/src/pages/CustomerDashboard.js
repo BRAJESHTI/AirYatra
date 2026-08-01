@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import MyWatchlist from '../components/customer/MyWatchlist';
 import CustomerPaymentHistory from '../components/customer/CustomerPaymentHistory';
 import CustomerBookingStats from '../components/customer/CustomerBookingStats';
 import FlightPriceHistory from '../components/customer/FlightPriceHistory';
+import RouteSuggestions from '../components/customer/RouteSuggestions';
 import NotificationBell from '../components/shared/NotificationBell';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -28,6 +29,7 @@ const navGroups = [
       { id: 'trips', label: 'My Trips / मेरी यात्राएं', icon: MapPin, path: '/customer/trips', highlight: true },
       { id: 'stats', label: 'My Stats / मेरे आंकड़े', icon: PieChart, path: '/customer/stats', highlight: true },
       { id: 'price-trends', label: 'Price Trends / कीमत रुझान', icon: TrendingUp, path: '/customer/price-trends', highlight: true },
+      { id: 'route-suggestions', label: 'Route Ideas / मार्ग सुझाव', icon: Sparkles, path: '/customer/route-suggestions', highlight: true },
       { id: 'booking', label: 'New Booking / नई बुकिंग', icon: Calendar, path: '/booking', external: true, highlight: true },
       { id: 'mylistings', label: 'My Aircraft / मेरे विमान', icon: Plane, path: '/customer/listings' },
       { id: 'watchlist', label: 'My Watchlist / वॉचलिस्ट', icon: Bell, path: '/customer/watchlist' },
@@ -92,6 +94,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/payments')) setActiveTab('payments');
     else if (path.includes('/stats')) setActiveTab('stats');
     else if (path.includes('/price-trends')) setActiveTab('price-trends');
+    else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
     else setActiveTab('overview');
   }, [location]);
 
@@ -159,6 +162,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <CustomerBookingStats user={user} />;
       case 'price-trends':
         return <FlightPriceHistory user={user} />;
+      case 'route-suggestions':
+        return <RouteSuggestions user={user} />;
       default:
         return (
           <div className="max-w-6xl mx-auto">

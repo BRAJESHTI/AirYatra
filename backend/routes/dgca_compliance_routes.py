@@ -391,3 +391,106 @@ async def get_compliance_dashboard(current_user: dict = Depends(get_current_user
         "dgca_limits": DGCA_LIMITS,
         "recent_alerts": alerts["alerts"][:5]
     }
+
+
+# ============== OPERATOR PILOT DUTY TRACKER ==============
+
+@router.get("/operator/pilots/duty-status")
+async def get_operator_pilots_duty_status(current_user: dict = Depends(get_current_user)):
+    """Get FDTL compliance status for all pilots of an operator"""
+    db = get_database()
+    
+    if "operator" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    
+    # Get operator
+    operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    if not operator:
+        return {"pilots": [], "summary": {"total": 0, "ok": 0, "watch": 0, "over": 0}}
+    
+    # Get all pilots for this operator
+    pilots = await db.pilots.find(
+        {"operator_id": operator["id"]},
+        {"_id": 0}
+    ).to_list(100)
+    
+    pilot_duty_status = []
+    summary = {"total": len(pilots), "ok": 0, "watch": 0, "over": 0}
+    
+    for pilot in pilots:
+        pilot_id = pilot.get("id")
+        
+        # Get compliance data
+        compliance = await check_pilot_compliance(db, pilot_id)
+        
+        # Calculate status badge
+        monthly_hours = compliance["hours"]["monthly"]["total_hours"]
+        monthly_limit = DGCA_LIMITS["max_flight_time_monthly"]
+        usage_percent = (monthly_hours / monthly_limit) * 100 if monthly_limit > 0 else 0
+        
+        if usage_percent >= 90 or len(compliance["violations"]) > 0:
+            status = "over"
+            summary["over"] += 1
+        elif usage_percent >= 70 or len(compliance["warnings"]) > 0:
+            status = "watch"
+            summary["watch"] += 1
+        else:
+            status = "ok"
+            summary["ok"] += 1
+        
+        # Get last flight info
+        last_flight = await db.flight_duty_logs.find_one(
+            {"pilot_id": pilot_id},
+            {"_id": 0},
+            sort=[("date", -1)]
+        )
+        
+        # Calculate rest hours since last duty
+        rest_hours = None
+        if last_flight and last_flight.get("duty_end"):
+            try:
+                duty_end = datetime.fromisoformat(last_flight["duty_end"].replace('Z', '+00:00'))
+                rest_hours = round((datetime.now(timezone.utc) - duty_end).total_seconds() / 3600, 1)
+            except (ValueError, TypeError):
+                pass
+        
+        pilot_duty_status.append({
+            "pilot_id": pilot_id,
+            "name": pilot.get("name", "Unknown"),
+            "license_number": pilot.get("license_number"),
+            "phone": pilot.get("phone"),
+            "status": status,
+            "usage_percent": round(usage_percent, 1),
+            "hours": {
+                "daily": compliance["hours"]["daily"]["total_hours"],
+                "weekly": compliance["hours"]["weekly"]["total_hours"],
+                "monthly": compliance["hours"]["monthly"]["total_hours"],
+                "yearly": compliance["hours"]["yearly"]["total_hours"]
+            },
+            "limits": {
+                "daily": DGCA_LIMITS["max_flight_time_daily"],
+                "weekly": DGCA_LIMITS["max_flight_time_weekly"],
+                "monthly": DGCA_LIMITS["max_flight_time_monthly"],
+                "yearly": DGCA_LIMITS["max_flight_time_yearly"]
+            },
+            "can_fly": compliance["can_fly"],
+            "violations": compliance["violations"],
+            "warnings": compliance["warnings"],
+            "last_flight": {
+                "date": last_flight.get("date") if last_flight else None,
+                "route": last_flight.get("route") if last_flight else None,
+                "hours": last_flight.get("flight_time_hours") if last_flight else None
+            },
+            "rest_hours_since_duty": rest_hours,
+            "min_rest_required": DGCA_LIMITS["min_rest_period"]
+        })
+    
+    # Sort by status (over first, then watch, then ok)
+    status_order = {"over": 0, "watch": 1, "ok": 2}
+    pilot_duty_status.sort(key=lambda x: status_order.get(x["status"], 3))
+    
+    return {
+        "pilots": pilot_duty_status,
+        "summary": summary,
+        "dgca_limits": DGCA_LIMITS
+    }

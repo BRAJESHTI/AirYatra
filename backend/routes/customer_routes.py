@@ -710,3 +710,179 @@ async def get_customer_booking_stats(
         "rewards_earned": rewards_earned,
         "recent_flights": recent_flights,
     }
+
+
+# ============== AI ROUTE SUGGESTIONS ==============
+
+@router.get("/route-suggestions")
+async def get_route_suggestions(
+    lat: float = None,
+    lng: float = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get AI-powered route suggestions based on location and booking history"""
+    db = get_database()
+    
+    suggestions = []
+    
+    # 1. Get user's booking history for personalized suggestions
+    user_bookings = await db.inquiries.find(
+        {"customer_id": current_user["id"]},
+        {"_id": 0, "from_location": 1, "to_location": 1, "origin": 1, "destination": 1, "purpose": 1}
+    ).to_list(50)
+    
+    # Extract user's preferred routes/cities
+    user_cities = set()
+    user_purposes = {}
+    for b in user_bookings:
+        from_loc = b.get("from_location") or b.get("origin") or ""
+        to_loc = b.get("to_location") or b.get("destination") or ""
+        if from_loc:
+            user_cities.add(from_loc.split(",")[0].strip().lower())
+        if to_loc:
+            user_cities.add(to_loc.split(",")[0].strip().lower())
+        purpose = b.get("purpose", "leisure")
+        user_purposes[purpose] = user_purposes.get(purpose, 0) + 1
+    
+    # Get user's most common purpose
+    top_purpose = max(user_purposes, key=user_purposes.get) if user_purposes else "leisure"
+    
+    # 2. Popular Routes - India specific
+    popular_routes = [
+        {
+            "from": "Mumbai", "to": "Shirdi", "price_range": "₹75,000 - ₹95,000",
+            "duration": "45 mins", "purpose": "pilgrimage", "popularity": 95,
+            "description": "Most popular religious route / सबसे लोकप्रिय धार्मिक मार्ग",
+            "best_time": "Morning",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Mumbai", "to": "Pune", "price_range": "₹55,000 - ₹75,000",
+            "duration": "25 mins", "purpose": "business", "popularity": 88,
+            "description": "Corporate shuttle route / कॉर्पोरेट शटल मार्ग",
+            "best_time": "Weekday Morning",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Delhi", "to": "Agra", "price_range": "₹85,000 - ₹1,10,000",
+            "duration": "35 mins", "purpose": "tourism", "popularity": 85,
+            "description": "Taj Mahal aerial view / ताजमहल हवाई दृश्य",
+            "best_time": "Sunrise",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Bangalore", "to": "Coorg", "price_range": "₹65,000 - ₹85,000",
+            "duration": "40 mins", "purpose": "leisure", "popularity": 78,
+            "description": "Weekend getaway / सप्ताहांत यात्रा",
+            "best_time": "Morning",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Chennai", "to": "Tirupati", "price_range": "₹60,000 - ₹80,000",
+            "duration": "35 mins", "purpose": "pilgrimage", "popularity": 82,
+            "description": "Temple visit / मंदिर दर्शन",
+            "best_time": "Early Morning",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Ahmedabad", "to": "Statue of Unity", "price_range": "₹70,000 - ₹90,000",
+            "duration": "30 mins", "purpose": "tourism", "popularity": 75,
+            "description": "Iconic landmark / प्रतिष्ठित स्थल",
+            "best_time": "Afternoon",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Mumbai", "to": "Lonavala", "price_range": "₹45,000 - ₹60,000",
+            "duration": "15 mins", "purpose": "leisure", "popularity": 72,
+            "description": "Hill station escape / हिल स्टेशन",
+            "best_time": "Monsoon/Winter",
+            "aircraft": "Helicopter"
+        },
+        {
+            "from": "Hyderabad", "to": "Warangal", "price_range": "₹55,000 - ₹70,000",
+            "duration": "30 mins", "purpose": "heritage", "popularity": 65,
+            "description": "Heritage tour / विरासत यात्रा",
+            "best_time": "Morning",
+            "aircraft": "Helicopter"
+        }
+    ]
+    
+    # 3. Score and rank routes based on user preference
+    for route in popular_routes:
+        score = route["popularity"]
+        
+        # Boost if matches user's purpose
+        if route["purpose"] == top_purpose:
+            score += 15
+        
+        # Boost if user has visited nearby cities
+        if route["from"].lower() in user_cities or route["to"].lower() in user_cities:
+            score += 10
+        
+        # Boost pilgrimage routes (very popular in India)
+        if route["purpose"] == "pilgrimage":
+            score += 5
+        
+        route["score"] = score
+        route["personalized"] = route["from"].lower() in user_cities or route["to"].lower() in user_cities
+    
+    # Sort by score
+    popular_routes.sort(key=lambda x: x["score"], reverse=True)
+    
+    # 4. Create personalized suggestions
+    personalized = [r for r in popular_routes if r.get("personalized")][:2]
+    trending = [r for r in popular_routes if not r.get("personalized")][:4]
+    
+    # 5. Get actual booking counts from DB for validation
+    booking_counts = await db.inquiries.aggregate([
+        {
+            "$group": {
+                "_id": {
+                    "from": {"$ifNull": ["$from_location", "$origin"]},
+                    "to": {"$ifNull": ["$to_location", "$destination"]}
+                },
+                "count": {"$sum": 1}
+            }
+        },
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]).to_list(5)
+    
+    # 6. Seasonal suggestion based on current month
+    current_month = datetime.now().month
+    seasonal_suggestion = None
+    
+    if current_month in [10, 11]:  # Diwali season
+        seasonal_suggestion = {
+            "title": "Diwali Special / दिवाली स्पेशल",
+            "description": "Book helicopter for Shirdi darshan during Diwali",
+            "route": {"from": "Mumbai", "to": "Shirdi"},
+            "discount": "10% off with code DIWALI10"
+        }
+    elif current_month in [12, 1, 2]:  # Wedding season
+        seasonal_suggestion = {
+            "title": "Wedding Season / शादी सीजन",
+            "description": "Grand entry by helicopter for your special day",
+            "type": "wedding",
+            "discount": "Special wedding packages available"
+        }
+    elif current_month in [4, 5, 6]:  # Summer holidays
+        seasonal_suggestion = {
+            "title": "Summer Escape / गर्मी की छुट्टी",
+            "description": "Escape to hill stations by helicopter",
+            "route": {"from": "Any City", "to": "Hill Stations"},
+            "discount": "Family packages available"
+        }
+    
+    return {
+        "personalized_routes": personalized,
+        "trending_routes": trending,
+        "all_popular_routes": popular_routes[:6],
+        "seasonal_suggestion": seasonal_suggestion,
+        "user_preference": {
+            "top_purpose": top_purpose,
+            "visited_cities": list(user_cities)[:5],
+            "total_bookings": len(user_bookings)
+        },
+        "booking_tip": "Book 7+ days in advance for best prices / बेहतर कीमत के लिए 7+ दिन पहले बुक करें"
+    }

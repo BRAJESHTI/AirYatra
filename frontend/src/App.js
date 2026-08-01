@@ -139,6 +139,10 @@ function App() {
             path="/customer/price-trends"
             element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
+          <Route
+            path="/customer/route-suggestions"
+            element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
         <Route
           path="/customer/inquiry/:inquiryId"
           element={user && user.roles.includes('customer') ? <InquiryStatus user={user} /> : <Navigate to="/login" />}
