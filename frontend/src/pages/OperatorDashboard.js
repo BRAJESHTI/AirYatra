@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
 import NotificationBell from '../components/shared/NotificationBell';
+import GlobalSearch from '../components/shared/GlobalSearch';
 
 // Import operator sub-pages
 import OperatorHome from '../components/operator/OperatorHome';
@@ -166,6 +167,7 @@ function OperatorDashboard({ user, onLogout }) {
             <span className="text-2xl font-bold text-white">AirYatra Operator</span>
           </div>
           <div className="flex items-center space-x-4">
+            <GlobalSearch user={user} />
             <NotificationBell user={user} />
             <div className="text-right">
               <div className="text-white font-medium" data-testid="operator-name">{operator?.company_name}</div>

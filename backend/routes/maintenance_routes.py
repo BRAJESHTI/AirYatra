@@ -830,6 +830,8 @@ async def upload_pilot_document(
     document_type: str = Form(...),
     expiry_date: str = Form(None),
     document_number: str = Form(None),
+    issue_date: str = Form(None),
+    issuing_authority: str = Form("DGCA"),
     notes: str = Form(None),
     current_user: dict = Depends(get_current_user)
 ):
@@ -894,6 +896,14 @@ async def upload_pilot_document(
     
     # Create document record
     doc_id = str(uuid4())
+    days_until_expiry = None
+    if expiry_date:
+        try:
+            exp_date = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
+            days_until_expiry = (exp_date - datetime.now(timezone.utc)).days
+        except (ValueError, TypeError):
+            pass
+    
     document = {
         "id": doc_id,
         "pilot_id": pilot_id,
@@ -905,7 +915,10 @@ async def upload_pilot_document(
         "file_type": file.content_type,
         "file_size": len(content),
         "file_data": file_base64,
+        "issue_date": issue_date,
         "expiry_date": expiry_date,
+        "issuing_authority": issuing_authority,
+        "days_until_expiry": days_until_expiry,
         "notes": notes,
         "verification_status": verification_status,
         "verification_notes": verification_notes,
@@ -937,7 +950,8 @@ async def upload_pilot_document(
         "document": document,
         "auto_verification": {
             "status": verification_status,
-            "notes": verification_notes
+            "notes": verification_notes,
+            "days_left": days_until_expiry
         }
     }
 
@@ -1000,3 +1014,234 @@ async def delete_pilot_document(
     await db.pilot_documents.delete_one({"id": doc_id})
     
     return {"message": "Document deleted"}
+
+
+
+# ============== PILOT DOCUMENT ALERTS ==============
+
+class DocumentAlertRequest(BaseModel):
+    pilot_id: str
+    document_id: Optional[str] = None
+
+
+@router.post("/pilot-documents/send-alert")
+async def send_pilot_document_alert(
+    request: DocumentAlertRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Send expiry alert email to operator, pilot, and admin"""
+    from email_service import EmailService
+    
+    db = get_database()
+    email_service = EmailService()
+    
+    # Get pilot info
+    pilot = await db.pilots.find_one({"id": request.pilot_id}, {"_id": 0})
+    if not pilot:
+        raise HTTPException(status_code=404, detail="Pilot not found")
+    
+    # Get operator info
+    operator = None
+    if pilot.get("operator_id"):
+        operator = await db.operators.find_one({"id": pilot["operator_id"]}, {"_id": 0})
+    
+    # Get documents to alert about
+    query = {"pilot_id": request.pilot_id}
+    if request.document_id:
+        query["id"] = request.document_id
+    else:
+        # Get expired or expiring documents
+        query["verification_status"] = {"$in": ["expired", "expiring_soon"]}
+    
+    documents = await db.pilot_documents.find(query, {"_id": 0, "file_data": 0}).to_list(50)
+    
+    if not documents:
+        raise HTTPException(status_code=400, detail="No documents requiring alert found")
+    
+    # Build alert content
+    expired_docs = [d for d in documents if d.get("verification_status") == "expired"]
+    expiring_docs = [d for d in documents if d.get("verification_status") == "expiring_soon"]
+    
+    def get_days_until_expiry(exp_date):
+        if not exp_date:
+            return None
+        try:
+            exp = datetime.fromisoformat(exp_date.replace('Z', '+00:00'))
+            return (exp - datetime.now(timezone.utc)).days
+        except (ValueError, TypeError):
+            return None
+    
+    # Build document table HTML
+    doc_rows = ""
+    for doc in documents:
+        days_left = get_days_until_expiry(doc.get("expiry_date"))
+        status_color = "#dc2626" if doc.get("verification_status") == "expired" else "#eab308"
+        status_text = "EXPIRED" if doc.get("verification_status") == "expired" else f"Expires in {days_left} days"
+        
+        doc_rows += f"""
+        <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #334155;">{doc.get('document_type', 'N/A').replace('_', ' ').title()}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #334155;">{doc.get('document_number', '-')}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #334155;">{doc.get('expiry_date', '-')}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #334155; color: {status_color}; font-weight: bold;">{status_text}</td>
+        </tr>
+        """
+    
+    # Email HTML template
+    alert_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }}
+            .header {{ background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 24px; }}
+            .content {{ padding: 30px; }}
+            .alert-box {{ background: #7f1d1d; border: 1px solid #dc2626; border-radius: 8px; padding: 16px; margin-bottom: 20px; }}
+            .alert-box.warning {{ background: #713f12; border-color: #eab308; }}
+            .pilot-info {{ background: #334155; border-radius: 8px; padding: 16px; margin-bottom: 20px; }}
+            table {{ width: 100%; border-collapse: collapse; background: #334155; border-radius: 8px; overflow: hidden; }}
+            th {{ background: #475569; padding: 12px; text-align: left; font-weight: 600; }}
+            .footer {{ padding: 20px; text-align: center; border-top: 1px solid #334155; color: #94a3b8; font-size: 12px; }}
+            .btn {{ display: inline-block; background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🔔 Pilot Document Alert</h1>
+                <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0;">AirYatra Document Verification System</p>
+            </div>
+            
+            <div class="content">
+                {f'<div class="alert-box"><strong>⚠️ URGENT: {len(expired_docs)} document(s) have EXPIRED!</strong><br>Immediate action required for compliance.</div>' if expired_docs else ''}
+                {f'<div class="alert-box warning"><strong>⏰ WARNING: {len(expiring_docs)} document(s) expiring soon</strong><br>Please renew before expiry to avoid grounding.</div>' if expiring_docs else ''}
+                
+                <div class="pilot-info">
+                    <h3 style="margin: 0 0 10px; color: #f97316;">👨‍✈️ Pilot Information</h3>
+                    <p style="margin: 5px 0;"><strong>Name:</strong> {pilot.get('name', 'N/A')}</p>
+                    <p style="margin: 5px 0;"><strong>License:</strong> {pilot.get('license_number', 'N/A')}</p>
+                    <p style="margin: 5px 0;"><strong>Phone:</strong> {pilot.get('phone', 'N/A')}</p>
+                </div>
+                
+                <h3 style="color: #f97316;">📄 Documents Requiring Attention</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Document Type</th>
+                            <th>Number</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {doc_rows}
+                    </tbody>
+                </table>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="https://airyatra.co.in/operator/pilot-documents" class="btn">
+                        Manage Documents →
+                    </a>
+                </div>
+                
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 20px;">
+                    <strong>Next Steps:</strong><br>
+                    1. Contact the pilot to obtain renewed documents<br>
+                    2. Upload new documents to the portal<br>
+                    3. Verify expiry dates are updated<br>
+                    4. Ensure compliance before next flight
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>This is an automated alert from AirYatra Document Management System</p>
+                <p>© 2026 AirYatra Aviation Private Limited</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Collect recipient emails
+    recipients = []
+    
+    # 1. Operator email
+    if operator:
+        operator_user = await db.users.find_one({"id": operator.get("user_id")}, {"_id": 0, "email": 1})
+        if operator_user:
+            recipients.append({"email": operator_user["email"], "type": "operator"})
+    
+    # 2. Admin emails
+    admins = await db.users.find({"roles": "admin"}, {"_id": 0, "email": 1}).to_list(10)
+    for admin in admins:
+        recipients.append({"email": admin["email"], "type": "admin"})
+    
+    # 3. Pilot email (if has user account)
+    if pilot.get("user_id"):
+        pilot_user = await db.users.find_one({"id": pilot["user_id"]}, {"_id": 0, "email": 1})
+        if pilot_user:
+            recipients.append({"email": pilot_user["email"], "type": "pilot"})
+    
+    # Send emails
+    sent_to = []
+    subject = f"🔔 Pilot Document Alert: {pilot.get('name', 'Unknown')} - {len(expired_docs)} Expired, {len(expiring_docs)} Expiring"
+    
+    for recipient in recipients:
+        try:
+            email_service.send_email(
+                to_email=recipient["email"],
+                subject=subject,
+                html_content=alert_html
+            )
+            sent_to.append(f"{recipient['type']}: {recipient['email']}")
+        except Exception as e:
+            print(f"Failed to send alert to {recipient['email']}: {e}")
+    
+    # Log the alert
+    await db.document_alerts.insert_one({
+        "id": str(uuid4()),
+        "pilot_id": request.pilot_id,
+        "pilot_name": pilot.get("name"),
+        "document_ids": [d["id"] for d in documents],
+        "expired_count": len(expired_docs),
+        "expiring_count": len(expiring_docs),
+        "sent_to": sent_to,
+        "sent_by": current_user["id"],
+        "sent_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "message": f"Alert sent to {len(sent_to)} recipient(s)",
+        "sent_to": sent_to,
+        "documents_alerted": len(documents)
+    }
+
+
+@router.get("/pilot-documents/alerts-history")
+async def get_document_alerts_history(
+    pilot_id: str = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get history of document alerts sent"""
+    db = get_database()
+    
+    query = {}
+    if pilot_id:
+        query["pilot_id"] = pilot_id
+    
+    # Only operator or admin can view
+    if "operator" in current_user.get("roles", []):
+        operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0, "id": 1})
+        if operator:
+            pilots = await db.pilots.find({"operator_id": operator["id"]}, {"_id": 0, "id": 1}).to_list(100)
+            pilot_ids = [p["id"] for p in pilots]
+            query["pilot_id"] = {"$in": pilot_ids}
+    elif "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    alerts = await db.document_alerts.find(query, {"_id": 0}).sort("sent_at", -1).to_list(100)
+    
+    return {"alerts": alerts}

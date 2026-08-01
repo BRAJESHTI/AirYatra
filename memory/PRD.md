@@ -409,3 +409,25 @@ All APIs prefixed with `/api/`
 | Maintenance Cost Tracker | 🟢 DONE | Operator → Fleet & Crew → Cost Tracker. Track estimated vs actual maintenance costs: Summary cards (Total Estimated, Total Actual, Variance %, Completed Count). Budget status cards (On/Under/Over Budget). Charts: Monthly Cost Trend, Cost by Type. API: GET /api/maintenance/cost-tracker |
 | Pilot Document Upload Portal | 🟢 DONE | Operator → Fleet & Crew → Pilot Documents. Upload pilot licenses, medicals, certificates: Pilot selector, 11 document types, upload dialog with expiry date. Documents table with download/delete. APIs: GET/POST/DELETE /api/maintenance/pilot-documents |
 
+
+### Latest Updates (Aug 1, 2026 - Session 3)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Pilot Document Portal V2 | 🟢 DONE | Enhanced with: Pilot list view with document summary, filter by status (All/Expired/Expiring/No Docs), search by name/license, expandable cards with document table, direct Upload button per pilot, advanced upload form (Document No., Issue Date, Expiry, Issuing Authority), Send Alert button, auto-alert API (/api/maintenance/pilot-documents/send-alert) sends email to Operator/Admin/Pilot |
+| Universal Search (Ctrl+K) | 🟢 DONE | Global search modal (⌘K/Ctrl+K). Searches: Bookings, Customers, Operators, Invoices, Aircraft, Pilots, Inquiries. Features: Quick Actions, Recent Searches, keyboard navigation (↑↓ Enter Esc), categorized results with badges, role-based filtering. API: GET /api/search/global?q=term&limit=20 |
+| Notification Center V2 | 🟢 DONE | Enhanced NotificationBell with tabs (All/Bookings/System/Alerts), unread count badge, mark as read, mark all read, click-to-navigate, time formatting (Just now/Xm ago/Xh ago/Xd ago), polling every 30s |
+| Auto-Collapse Sidebar | 🟢 DONE | Reusable component at /app/frontend/src/components/shared/Sidebar.js. SidebarProvider (context), Sidebar, SidebarGroup, SidebarItem, MobileMenuButton, SidebarToggle. Mobile: hidden by default + hamburger. Tablet: collapsed (icons only) + hover expand. Desktop: full sidebar. |
+| Three-Dot Context Menus | 🟢 DONE | Reusable ContextMenu component at /app/frontend/src/components/shared/ContextMenu.js. Preset actions: View, Edit, Delete, Copy ID, Open Link, Download, Email, Share. Divider support. Keyboard (Escape) close. Animation. |
+
+### Files Created/Modified This Session
+- /app/frontend/src/components/operator/PilotDocumentUpload.js (enhanced)
+- /app/frontend/src/components/shared/GlobalSearch.js (new)
+- /app/frontend/src/components/shared/NotificationBell.js (enhanced)
+- /app/frontend/src/components/shared/Sidebar.js (new)
+- /app/frontend/src/components/shared/ContextMenu.js (new)
+- /app/backend/routes/search_routes.py (new)
+- /app/backend/routes/maintenance_routes.py (added send-alert API)
+- /app/frontend/src/pages/AdminDashboard.js (added GlobalSearch)
+- /app/frontend/src/pages/OperatorDashboard.js (added GlobalSearch)
+

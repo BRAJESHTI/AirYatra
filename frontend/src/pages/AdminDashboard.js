@@ -3,6 +3,7 @@ import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, 
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
+import GlobalSearch from '@/components/shared/GlobalSearch';
 
 // Import admin components
 import AdminOverview from '@/components/admin/AdminOverview';
@@ -441,6 +442,7 @@ function AdminDashboard({ user, onLogout }) {
             <span className="text-2xl font-bold text-white">AirYatra Admin</span>
           </div>
           <div className="flex items-center space-x-4">
+            <GlobalSearch user={user} />
             {dashboardData?.statistics?.pending_operator_approvals > 0 && (
               <div className="flex items-center px-3 py-1 bg-orange-500/20 rounded-full">
                 <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />

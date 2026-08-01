@@ -95,6 +95,7 @@ from routes import membership_routes
 from routes import corporate_routes
 from routes import document_vault_routes
 from routes import admin_payments_routes
+from routes import search_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -203,6 +204,7 @@ api_router.include_router(partner_routes.router)
 api_router.include_router(partner_routes.api_router)
 api_router.include_router(marketing_routes.router)
 api_router.include_router(maintenance_routes.router)
+api_router.include_router(search_routes.router)
 api_router.include_router(pricing_routes.router)
 api_router.include_router(route_optimization_routes.router)
 api_router.include_router(insurance_routes.router)
