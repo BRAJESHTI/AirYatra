@@ -83,6 +83,9 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Auction Outbid Alerts | 🟢 DONE | Instant email to previous highest bidder on outbid (SMTP verified) |
+| Auction Watchlist | 🟢 DONE | Bell watch toggle on auction cards + "N watching" count. Watchers get email reminder when auction ends within 60 min (apscheduler job `auction_ending_reminders` every 10 min). Endpoints: POST /api/exchange/auctions/{id}/watch, GET /api/exchange/auctions/watchlist/my |
+| CEO Board Report PDF | 🟢 DONE | "Board Report (PDF)" button on CEO Dashboard → reportlab investor report (Financial, Operations, Marketplace, HR, Partnerships sections). GET /api/ceo/report.pdf |
+| HRMS in CEO Panel | 🟢 DONE | "People & HR (HRMS)" KPI row on CEO Dashboard: employees, attendance today, pending leaves, pending expense claims (+amount), payroll this month. Existing HRMS backend (hr_routes: attendance check-in/out, leave, payroll generate; hr_advanced_routes: expense claims approval flow, salary payments) surfaced to executives |
 | Country CEO Dashboard | 🟢 DONE | Admin → Analytics & Reports → CEO Dashboard: revenue, bookings, customers, fleet, marketplace KPIs, 6-month booking trend chart (recharts), membership breakdown, partner summary. Backend: /api/ceo/dashboard |
 | Partner API Platform | 🟢 DONE | Admin → Integrations → Partner API Platform: create partners w/ auto API keys (ayk_*), revoke/activate/regenerate, partner bookings pipeline (received→processing→confirmed/cancelled), API Docs tab. Public API: /api/partner/v1/{ping,aircraft,bookings} via X-API-Key header w/ usage tracking |
 - 🔴 **DEFERRED** - Moved to end (WhatsApp, Payments)
