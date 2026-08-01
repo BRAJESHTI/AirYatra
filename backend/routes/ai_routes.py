@@ -190,6 +190,89 @@ async def chat_with_ai(
         "ai_generated": result.get("ai_generated", False)
     }
 
+@router.post("/chat/stream")
+async def chat_with_ai_stream(
+    request: ChatbotRequest,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Streaming AI chatbot (OpenAI GPT-5.4 via Emergent, SSE)"""
+    import json as _json
+    import os as _os
+    from fastapi.responses import StreamingResponse
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+    
+    user_id = current_user["id"]
+    conversation_id = request.conversation_id or str(uuid4())
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # Save user message
+    await db.ai_chat_history.insert_one({
+        "id": str(uuid4()),
+        "conversation_id": conversation_id,
+        "user_id": user_id,
+        "role": "user",
+        "content": request.message,
+        "created_at": timestamp
+    })
+    
+    # Build history context (last 10 messages before this one)
+    messages = await db.ai_chat_history.find(
+        {"conversation_id": conversation_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(50)
+    history_text = ""
+    for m in messages[-11:-1]:
+        role = "Customer" if m.get("role") == "user" else "Assistant"
+        history_text += f"{role}: {m.get('content', '')}\n"
+    
+    system_message = f"""You are AirYatra AI Assistant - a friendly, helpful assistant for AirYatra, India's premier helicopter charter booking platform.
+
+You help customers with: helicopter/chartered plane bookings, pricing (₹ per km based), routes across India, BLACK membership (Silver/Gold/Platinum tiers with discounts up to 20%), loyalty points (1 pt per ₹100, tier multipliers), document vault, corporate travel, and general aviation questions.
+
+Customer name: {current_user.get('full_name', 'Guest')}
+Respond in the language the customer uses (English, Hindi, or Hinglish). Keep responses concise (under 150 words), warm and professional.
+
+Previous conversation:
+{history_text}"""
+    
+    chat = LlmChat(
+        api_key=_os.environ.get("EMERGENT_LLM_KEY"),
+        session_id=conversation_id,
+        system_message=system_message
+    ).with_model("openai", "gpt-5.4")
+    
+    async def event_stream():
+        full_response = ""
+        try:
+            async for chunk in chat.stream_message(UserMessage(text=request.message)):
+                if isinstance(chunk, TextDelta):
+                    full_response += chunk.content
+                    yield f"data: {_json.dumps({'delta': chunk.content})}\n\n"
+                elif isinstance(chunk, StreamDone):
+                    break
+        except Exception as e:
+            yield f"data: {_json.dumps({'error': 'AI temporarily unavailable. Please try again.'})}\n\n"
+            print(f"AI stream error: {e}")
+        
+        if full_response:
+            await db.ai_chat_history.insert_one({
+                "id": str(uuid4()),
+                "conversation_id": conversation_id,
+                "user_id": user_id,
+                "role": "assistant",
+                "content": full_response,
+                "ai_generated": True,
+                "model": "gpt-5.4",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        yield f"data: {_json.dumps({'done': True, 'conversation_id': conversation_id})}\n\n"
+    
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
+    )
+
 @router.get("/chat/history/{conversation_id}")
 async def get_chat_history(
     conversation_id: str,

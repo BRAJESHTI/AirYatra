@@ -292,7 +292,11 @@ async def download_file(file_id: str):
         {"$inc": {"download_count": 1}}
     )
     
-    content = base64.b64decode(file_doc["content"])
+    if file_doc.get("storage_path"):
+        from services.storage_service import get_object
+        content, _ct = await get_object(file_doc["storage_path"])
+    else:
+        content = base64.b64decode(file_doc["content"])  # legacy documents
     
     return Response(
         content=content,
@@ -326,12 +330,19 @@ async def upload_new_version(
     file_id = f"doc_{uuid.uuid4().hex}"
     file_url = f"/api/vault/file/{file_id}"
     
-    # Store new file
+    # Store new file in object storage
+    ext = file.filename.split(".")[-1].lower() if "." in (file.filename or "") else "bin"
+    storage_path = f"airyatra/vault/{document['owner_id']}/{uuid.uuid4().hex}.{ext}"
+    from services.storage_service import put_object
+    stored = await put_object(storage_path, file_content, file.content_type or "application/octet-stream")
+    
     await db.document_files.insert_one({
         "file_id": file_id,
-        "content": base64.b64encode(file_content).decode(),
+        "storage_path": stored["path"],
         "file_name": file.filename,
         "content_type": file.content_type,
+        "size": file_size,
+        "is_deleted": False,
         "created_at": datetime.utcnow()
     })
     

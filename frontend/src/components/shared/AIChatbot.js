@@ -57,37 +57,71 @@ How can I assist you today?
     setInput('');
     setLoading(true);
 
+    const aiMsgId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, {
+      id: aiMsgId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      ai_generated: true,
+      streaming: true
+    }]);
+
     try {
-      const response = await api.post('/ai/chat', {
-        message: userMessage.content,
-        conversation_id: conversationId
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/ai/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          conversation_id: conversationId
+        })
       });
 
-      const aiMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.data.response,
-        timestamp: new Date().toISOString(),
-        ai_generated: response.data.ai_generated
-      };
+      if (!response.ok || !response.body) throw new Error('Stream failed');
 
-      setMessages(prev => [...prev, aiMessage]);
-      
-      if (!conversationId) {
-        setConversationId(response.data.conversation_id);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.delta) {
+              fullText += data.delta;
+              setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: fullText } : m));
+            } else if (data.error) {
+              throw new Error(data.error);
+            } else if (data.done) {
+              if (!conversationId) setConversationId(data.conversation_id);
+              setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, streaming: false } : m));
+            }
+          } catch (e) {
+            if (e.message && e.message !== 'Unexpected end of JSON input') throw e;
+          }
+        }
       }
+      if (!fullText) throw new Error('Empty response');
     } catch (error) {
-      // Fallback response if API fails
-      const fallbackMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+        ...m,
+        streaming: false,
         content: `I'm having trouble connecting right now. Please try again or contact support@airyatra.com
 
 मुझे अभी कनेक्ट करने में समस्या हो रही है। कृपया पुनः प्रयास करें।`,
-        timestamp: new Date().toISOString(),
         ai_generated: false
-      };
-      setMessages(prev => [...prev, fallbackMessage]);
+      } : m));
     } finally {
       setLoading(false);
     }

@@ -243,3 +243,15 @@
 - scheduler.py: send_voucher_expiry_alerts() job (every 12h) - finds active vouchers expiring within 7 days (expiry_alert_sent != true), sends branded HTML email via Hostinger SMTP, marks expiry_alert_sent=true (no duplicates)
 - Admin trigger: POST /loyalty/admin/vouchers/send-expiry-alerts
 - Tested: seeded voucher expiring in 3 days -> trigger sent 1 email (SMTP success in logs), re-trigger sent 0 (dedupe works)
+
+## August 1, 2026 - OpenAI Chat + Object Storage Integrations
+### OpenAI Chat Models (GPT-5.4 via Emergent Universal Key)
+- Upgraded emergentintegrations 0.1.0 -> 0.2.0 (old broken Chat/Model API caused ALL AI features to be mocked)
+- services/ai_service.py: migrated to LlmChat API (chat_with_support, price suggestion, route recs now REAL AI on openai gpt-5.4)
+- routes/ai_routes.py: NEW POST /ai/chat/stream - SSE streaming, multi-turn (history from db.ai_chat_history injected into system message), session via conversation_id
+- AIChatbot.js widget: fetch-based SSE streaming with token-by-token display, fallback on error
+- Tested: streaming works, multi-turn memory verified ("remembers Ravi"), Hinglish replies, widget UI screenshot OK
+### File & Media Storage (Emergent Object Storage)
+- services/storage_service.py: init (lazy, EMERGENT_LLM_KEY), put_object/get_object (async via to_thread)
+- document_vault_routes.py: upload + new-version now store files in object storage (storage_path in db.document_files); download supports storage_path + legacy base64 fallback
+- Tested via curl: upload -> object storage -> download returns exact content

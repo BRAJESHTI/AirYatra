@@ -8,9 +8,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    from emergentintegrations.llm.chat import Chat, Message, Model
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from uuid import uuid4 as _uuid4
     EMERGENT_AVAILABLE = True
-    logger.info("emergentintegrations loaded successfully")
+    logger.info("emergentintegrations (LlmChat) loaded successfully")
+
+    def _make_chat(api_key: str, system_prompt: str, session_id: str = None):
+        return LlmChat(
+            api_key=api_key,
+            session_id=session_id or f"ai-{_uuid4()}",
+            system_message=system_prompt
+        ).with_model("openai", "gpt-5.4")
 except ImportError:
     EMERGENT_AVAILABLE = False
     logger.info("emergentintegrations not available, AI features will use mock responses")
@@ -94,12 +102,11 @@ Only respond with valid JSON, no additional text."""
 
         if EMERGENT_AVAILABLE:
             try:
-                chat = Chat(
-                    emergent_api_key=self.emergent_key,
-                    model=Model.CLAUDE_SONNET,
-                    system_prompt="You are an aviation pricing expert. Always respond with valid JSON only."
+                chat = _make_chat(
+                    self.emergent_key,
+                    "You are an aviation pricing expert. Always respond with valid JSON only."
                 )
-                response = await chat.send_async(prompt)
+                response = await chat.send_message(UserMessage(text=prompt))
                 
                 # Parse JSON response
                 try:
@@ -321,17 +328,13 @@ Respond helpfully and professionally. Keep response under 200 words."""
         
         if EMERGENT_AVAILABLE:
             try:
-                chat = Chat(
-                    emergent_api_key=self.emergent_key,
-                    model=Model.CLAUDE_SONNET,
-                    system_prompt=self.chatbot_system_prompt
-                )
-                response = await chat.send_async(prompt)
+                chat = _make_chat(self.emergent_key, self.chatbot_system_prompt)
+                response = await chat.send_message(UserMessage(text=prompt))
                 
                 return {
                     "response": response,
                     "ai_generated": True,
-                    "model": "claude-sonnet"
+                    "model": "gpt-5.4"
                 }
             except Exception as e:
                 print(f"AI chatbot error: {e}")
