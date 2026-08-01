@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Gift, Share2, Copy, Check, Wallet, TrendingUp, Users, 
   ChevronRight, Loader2, ExternalLink, MessageCircle, Mail,
-  IndianRupee, History, Clock
+  IndianRupee, History, Clock, Trophy, Crown, Medal, Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,12 +14,20 @@ function ReferAndEarn({ user }) {
   const [referralCode, setReferralCode] = useState(null);
   const [stats, setStats] = useState(null);
   const [wallet, setWallet] = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState('month');
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState('refer');
 
   useEffect(() => {
     loadData();
   }, []);
+  
+  useEffect(() => {
+    if (activeTab === 'leaderboard') {
+      loadLeaderboard();
+    }
+  }, [activeTab, leaderboardPeriod]);
 
   const loadData = async () => {
     setLoading(true);
@@ -37,6 +45,15 @@ function ReferAndEarn({ user }) {
       console.error('Failed to load referral data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const loadLeaderboard = async () => {
+    try {
+      const res = await referralAPI.getLeaderboard(leaderboardPeriod);
+      setLeaderboard(res.data);
+    } catch (error) {
+      console.error('Failed to load leaderboard:', error);
     }
   };
 
@@ -85,7 +102,7 @@ function ReferAndEarn({ user }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 justify-center">
+      <div className="flex gap-2 justify-center flex-wrap">
         <button
           onClick={() => setActiveTab('refer')}
           className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
@@ -93,6 +110,14 @@ function ReferAndEarn({ user }) {
           }`}
         >
           <Share2 className="h-4 w-4" /> Refer / रेफर करें
+        </button>
+        <button
+          onClick={() => setActiveTab('leaderboard')}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+            activeTab === 'leaderboard' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'
+          }`}
+        >
+          <Trophy className="h-4 w-4" /> Leaderboard / लीडरबोर्ड
         </button>
         <button
           onClick={() => setActiveTab('wallet')}
@@ -319,6 +344,143 @@ function ReferAndEarn({ user }) {
               <p className="text-slate-500 text-sm">Share your code to start earning!</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Leaderboard Tab */}
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-6">
+          {/* Rewards Info */}
+          <div className="bg-gradient-to-r from-yellow-500/10 via-slate-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-500/30">
+            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              Monthly Rewards / मासिक पुरस्कार
+            </h4>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                <Crown className="h-6 w-6 text-yellow-400 mx-auto mb-1" />
+                <p className="text-yellow-400 font-bold">₹1,000</p>
+                <p className="text-slate-400 text-xs">1st Place / पहला स्थान</p>
+              </div>
+              <div className="p-3 bg-slate-400/20 rounded-lg border border-slate-400/30">
+                <Medal className="h-6 w-6 text-slate-300 mx-auto mb-1" />
+                <p className="text-slate-300 font-bold">₹500</p>
+                <p className="text-slate-400 text-xs">2nd Place / दूसरा स्थान</p>
+              </div>
+              <div className="p-3 bg-orange-500/20 rounded-lg border border-orange-500/30">
+                <Award className="h-6 w-6 text-orange-400 mx-auto mb-1" />
+                <p className="text-orange-400 font-bold">₹250</p>
+                <p className="text-slate-400 text-xs">3rd Place / तीसरा स्थान</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Period Toggle */}
+          <div className="flex justify-center gap-2">
+            <button
+              onClick={() => setLeaderboardPeriod('month')}
+              className={`px-4 py-2 rounded-lg text-sm ${
+                leaderboardPeriod === 'month' ? 'bg-yellow-500 text-black font-bold' : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              This Month / इस महीने
+            </button>
+            <button
+              onClick={() => setLeaderboardPeriod('all-time')}
+              className={`px-4 py-2 rounded-lg text-sm ${
+                leaderboardPeriod === 'all-time' ? 'bg-yellow-500 text-black font-bold' : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              All Time / सभी समय
+            </button>
+          </div>
+
+          {/* Current User Rank */}
+          {leaderboard?.current_user && (
+            <div className="bg-purple-500/10 rounded-xl p-4 border border-purple-500/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-lg">
+                    #{leaderboard.current_user.rank}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">Your Rank / आपकी रैंक</p>
+                    <p className="text-slate-400 text-sm">{leaderboard.current_user.referrals} referrals this {leaderboardPeriod === 'month' ? 'month' : 'time'}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-400 font-bold text-xl">₹{leaderboard.current_user.earnings?.toLocaleString()}</p>
+                  <p className="text-slate-500 text-xs">Earned / कमाया</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Leaderboard List */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="p-4 border-b border-slate-700">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-400" />
+                Top Referrers / शीर्ष रेफरर्स
+                <span className="text-slate-500 text-sm ml-auto">{leaderboard?.total_participants || 0} participants</span>
+              </h3>
+            </div>
+            
+            {leaderboard?.top_referrers?.length > 0 ? (
+              <div className="divide-y divide-slate-700">
+                {leaderboard.top_referrers.map((entry, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`p-4 flex items-center gap-4 ${
+                      entry.user_id === user?.id ? 'bg-purple-500/10' : ''
+                    } ${idx < 3 ? 'bg-gradient-to-r' : ''} ${
+                      idx === 0 ? 'from-yellow-500/10 to-transparent' : 
+                      idx === 1 ? 'from-slate-400/10 to-transparent' : 
+                      idx === 2 ? 'from-orange-500/10 to-transparent' : ''
+                    }`}
+                  >
+                    {/* Rank */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      idx === 0 ? 'bg-yellow-500 text-black' :
+                      idx === 1 ? 'bg-slate-400 text-black' :
+                      idx === 2 ? 'bg-orange-500 text-black' :
+                      'bg-slate-700 text-slate-400'
+                    }`}>
+                      {idx === 0 ? <Crown className="h-5 w-5" /> :
+                       idx === 1 ? <Medal className="h-5 w-5" /> :
+                       idx === 2 ? <Award className="h-5 w-5" /> :
+                       entry.rank}
+                    </div>
+                    
+                    {/* User Info */}
+                    <div className="flex-1">
+                      <p className="text-white font-medium">
+                        {entry.user_name || 'Anonymous'}
+                        {entry.user_id === user?.id && (
+                          <span className="ml-2 px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs">You</span>
+                        )}
+                      </p>
+                      <p className="text-slate-500 text-sm">{entry.referrals} successful referrals</p>
+                    </div>
+                    
+                    {/* Earnings */}
+                    <div className="text-right">
+                      <p className="text-green-400 font-bold">₹{entry.earnings?.toLocaleString()}</p>
+                      {entry.bonus_reward > 0 && (
+                        <p className="text-yellow-400 text-xs">+₹{entry.bonus_reward} bonus</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <Trophy className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400">No referrals yet this {leaderboardPeriod === 'month' ? 'month' : 'period'}</p>
+                <p className="text-slate-500 text-sm">Be the first to top the leaderboard!</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

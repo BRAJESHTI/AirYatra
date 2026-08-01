@@ -24,6 +24,7 @@ import MultiLevelApproval from '@/components/admin/MultiLevelApproval';
 import InAppChat from '@/components/shared/InAppChat';
 import InquiryManagement from '@/components/admin/InquiryManagement';
 import ReferralSettings from '@/components/admin/ReferralSettings';
+import AdminDiscountCodes from '@/components/admin/AdminDiscountCodes';
 import CRMDashboard from '@/components/admin/CRMDashboard';
 import APIKeysSettings from '@/components/admin/APIKeysSettings';
 import SchedulerStatus from '@/components/admin/SchedulerStatus';
@@ -200,7 +201,8 @@ const navGroups = [
     items: [
       { id: 'marketing', label: 'Marketing Campaigns', icon: TrendingUp },
       { id: 'loyalty', label: 'VIP & Loyalty Program', icon: Gift },
-      { id: 'referral', label: 'Referral & Discount', icon: Gift },
+      { id: 'referral', label: 'Referral Settings', icon: Gift },
+      { id: 'discount_codes', label: 'Discount Codes / कोड', icon: Percent, highlight: true },
       { id: 'push_notifications', label: 'Push Notifications', icon: Bell },
     ]
   },
@@ -301,6 +303,8 @@ function AdminDashboard({ user, onLogout }) {
         return <LoyaltyProgram />;
       case 'marketing':
         return <MarketingCampaigns />;
+      case 'discount_codes':
+        return <AdminDiscountCodes />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features

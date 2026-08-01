@@ -286,6 +286,76 @@ async def credit_wallet(
     return {"message": "Wallet credited", "new_balance": new_balance}
 
 
+async def _send_referral_bonus_email(email_service, referrer_email: str, referrer_name: str, 
+                                     referred_name: str, bonus_amount: float, 
+                                     new_balance: float, booking_amount: float):
+    """Send email notification to referrer when bonus is credited"""
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }}
+            .container {{ max-width: 500px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }}
+            .header {{ background: linear-gradient(135deg, #22c55e 0%, #10b981 100%); padding: 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 24px; }}
+            .content {{ padding: 30px; }}
+            .bonus-card {{ background: linear-gradient(135deg, #22c55e20 0%, #10b98120 100%); border: 1px solid #22c55e40; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }}
+            .bonus-amount {{ font-size: 36px; font-weight: bold; color: #22c55e; }}
+            .balance {{ color: #94a3b8; font-size: 14px; margin-top: 10px; }}
+            .details {{ background: #0f172a; border-radius: 8px; padding: 15px; margin: 20px 0; }}
+            .details p {{ margin: 8px 0; color: #94a3b8; }}
+            .details strong {{ color: #e2e8f0; }}
+            .cta {{ display: block; background: #f97316; color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; text-align: center; font-weight: 600; margin: 20px 0; }}
+            .footer {{ text-align: center; padding: 20px; color: #64748b; font-size: 12px; border-top: 1px solid #334155; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Referral Bonus Credited!</h1>
+            </div>
+            <div class="content">
+                <p>Namaste {referrer_name}! 🙏</p>
+                
+                <p>Great news! Your friend <strong>{referred_name}</strong> just completed their first booking on AirYatra!</p>
+                
+                <div class="bonus-card">
+                    <p style="margin:0; color: #94a3b8;">Bonus Earned / बोनस</p>
+                    <div class="bonus-amount">+₹{int(bonus_amount)}</div>
+                    <p class="balance">Wallet Balance: ₹{int(new_balance)}</p>
+                </div>
+                
+                <div class="details">
+                    <p><strong>Friend's Booking:</strong> ₹{int(booking_amount):,}</p>
+                    <p><strong>Your Reward:</strong> ₹{int(bonus_amount)} credited to wallet</p>
+                    <p><strong>Status:</strong> ✅ Credited instantly</p>
+                </div>
+                
+                <p>Keep sharing your referral code to earn more rewards! Every successful referral earns you ₹500.</p>
+                
+                <a href="https://airyatra.com/customer" class="cta">View Your Wallet →</a>
+                
+                <p style="color: #64748b; font-size: 13px;">
+                    Use your wallet balance on your next booking for instant discount!
+                </p>
+            </div>
+            <div class="footer">
+                <p>🚁 AirYatra - India's Premium Air Mobility Platform</p>
+                <p>Thank you for spreading the word!</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    await email_service.send_email(
+        to_email=referrer_email,
+        subject=f"🎉 ₹{int(bonus_amount)} Referral Bonus Credited! - AirYatra",
+        html_content=html_content
+    )
+
+
 async def process_referral_bonus(booking_id: str, booking_amount: float, customer_id: str):
     """Internal function to process referral bonus after successful booking"""
     db = get_database()
@@ -383,6 +453,26 @@ async def process_referral_bonus(booking_id: str, booking_amount: float, custome
         {"id": customer_id},
         {"$set": {"first_booking_done": True}}
     )
+    
+    # Send email notification to referrer about bonus credit
+    try:
+        referrer = await db.users.find_one({"id": referrer_id}, {"_id": 0, "email": 1, "full_name": 1})
+        referred_user = await db.users.find_one({"id": customer_id}, {"_id": 0, "full_name": 1})
+        
+        if referrer and referrer.get("email"):
+            from services.email_service import email_service
+            await _send_referral_bonus_email(
+                email_service,
+                referrer_email=referrer["email"],
+                referrer_name=referrer.get("full_name", "User"),
+                referred_name=referred_user.get("full_name", "Your friend") if referred_user else "Your friend",
+                bonus_amount=bonus,
+                new_balance=new_balance,
+                booking_amount=booking_amount
+            )
+            print(f"Referral bonus email sent to {referrer['email']}")
+    except Exception as e:
+        print(f"Referral bonus email failed: {e}")
 
 
 # ============== DISCOUNT CODE MANAGEMENT ==============
@@ -599,3 +689,158 @@ async def generate_discount_code_string(
     random_part = ''.join(secrets.choice(chars) for _ in range(length))
     
     return {"code": f"{prefix}{random_part}"}
+
+
+# ============== REFERRAL LEADERBOARD ==============
+
+@router.get("/leaderboard")
+async def get_referral_leaderboard(
+    period: str = Query("month", description="month, all-time"),
+    user: dict = Depends(get_current_user)
+):
+    """Get top referrers leaderboard"""
+    db = get_database()
+    
+    # Get all referral codes with stats
+    referrals = await db.referral_codes.find(
+        {"successful_referrals": {"$gt": 0}},
+        {"_id": 0}
+    ).sort("total_earnings", -1).to_list(100)
+    
+    # If period is month, filter by this month's earnings
+    if period == "month":
+        now = datetime.now(timezone.utc)
+        month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc).isoformat()
+        
+        # Get this month's referral history
+        monthly_stats = {}
+        history = await db.referral_history.find(
+            {"created_at": {"$gte": month_start}, "status": "completed"},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        for h in history:
+            rid = h.get("referrer_id")
+            if rid not in monthly_stats:
+                monthly_stats[rid] = {"referrals": 0, "earnings": 0}
+            monthly_stats[rid]["referrals"] += 1
+            monthly_stats[rid]["earnings"] += h.get("bonus_amount", 0)
+        
+        # Build leaderboard with monthly stats
+        leaderboard = []
+        for ref in referrals:
+            uid = ref.get("user_id")
+            monthly = monthly_stats.get(uid, {"referrals": 0, "earnings": 0})
+            if monthly["referrals"] > 0:
+                leaderboard.append({
+                    "user_id": uid,
+                    "user_name": ref.get("user_name", "User"),
+                    "code": ref.get("code"),
+                    "referrals": monthly["referrals"],
+                    "earnings": monthly["earnings"],
+                    "total_referrals": ref.get("successful_referrals", 0),
+                    "total_earnings": ref.get("total_earnings", 0)
+                })
+        
+        # Sort by monthly earnings
+        leaderboard.sort(key=lambda x: x["earnings"], reverse=True)
+    else:
+        # All-time leaderboard
+        leaderboard = [{
+            "user_id": ref.get("user_id"),
+            "user_name": ref.get("user_name", "User"),
+            "code": ref.get("code"),
+            "referrals": ref.get("successful_referrals", 0),
+            "earnings": ref.get("total_earnings", 0),
+            "total_referrals": ref.get("successful_referrals", 0),
+            "total_earnings": ref.get("total_earnings", 0)
+        } for ref in referrals]
+    
+    # Add rank and badges
+    for i, entry in enumerate(leaderboard[:10]):
+        entry["rank"] = i + 1
+        if i == 0:
+            entry["badge"] = "gold"
+            entry["bonus_reward"] = 1000  # Top 1 gets extra ₹1000
+        elif i == 1:
+            entry["badge"] = "silver"
+            entry["bonus_reward"] = 500  # Top 2 gets extra ₹500
+        elif i == 2:
+            entry["badge"] = "bronze"
+            entry["bonus_reward"] = 250  # Top 3 gets extra ₹250
+        else:
+            entry["badge"] = None
+            entry["bonus_reward"] = 0
+    
+    # Find current user's rank
+    current_user_rank = None
+    for i, entry in enumerate(leaderboard):
+        if entry["user_id"] == user["id"]:
+            current_user_rank = {
+                **entry,
+                "rank": i + 1
+            }
+            break
+    
+    return {
+        "period": period,
+        "top_referrers": leaderboard[:10],
+        "total_participants": len(leaderboard),
+        "current_user": current_user_rank,
+        "rewards_info": {
+            "gold": {"rank": 1, "bonus": 1000, "label": "Gold / स्वर्ण"},
+            "silver": {"rank": 2, "bonus": 500, "label": "Silver / रजत"},
+            "bronze": {"rank": 3, "bonus": 250, "label": "Bronze / कांस्य"}
+        }
+    }
+
+
+# ============== WALLET DEDUCTION FOR PAYMENT ==============
+
+@router.post("/wallet/use")
+async def use_wallet_balance(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Deduct wallet balance for booking payment"""
+    db = get_database()
+    
+    amount = float(data.get("amount", 0))
+    booking_id = data.get("booking_id")
+    
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    
+    # Get wallet
+    wallet = await db.wallets.find_one({"user_id": user["id"]}, {"_id": 0})
+    
+    if not wallet or wallet.get("balance", 0) < amount:
+        raise HTTPException(status_code=400, detail="Insufficient wallet balance")
+    
+    # Deduct balance
+    new_balance = wallet["balance"] - amount
+    await db.wallets.update_one(
+        {"user_id": user["id"]},
+        {
+            "$set": {"balance": new_balance},
+            "$inc": {"total_used": amount}
+        }
+    )
+    
+    # Record transaction
+    await db.wallet_transactions.insert_one({
+        "id": str(uuid4()),
+        "user_id": user["id"],
+        "type": "debit",
+        "amount": amount,
+        "balance_after": new_balance,
+        "reason": f"Payment for booking {booking_id}",
+        "booking_id": booking_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "message": "Wallet balance used successfully",
+        "amount_used": amount,
+        "new_balance": new_balance
+    }

@@ -196,7 +196,12 @@ function BookingPage({ user }) {
   const loadWalletBalance = async () => {
     try {
       const res = await referralAPI.getWallet();
-      setWalletBalance(res.data.balance || 0);
+      const balance = res.data.balance || 0;
+      setWalletBalance(balance);
+      // Auto-apply wallet if balance exists (Smart Wallet feature)
+      if (balance > 0) {
+        setUseWallet(true);
+      }
     } catch (e) {
       console.log('Wallet not available');
     }

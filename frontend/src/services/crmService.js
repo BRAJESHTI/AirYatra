@@ -43,6 +43,10 @@ export const referralAPI = {
   
   // Wallet
   getWallet: () => api.get('/referral/wallet'),
+  useWallet: (data) => api.post('/referral/wallet/use', data),
+  
+  // Leaderboard
+  getLeaderboard: (period = 'month') => api.get('/referral/leaderboard', { params: { period } }),
   
   // Discount codes (public)
   validateDiscount: (data) => api.post('/referral/validate-discount', data),
