@@ -45,3 +45,8 @@
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
 | Employee | employee@airyatra.com | Employee@123 | EMP-0001 Rahul Verma, Operations dept, salary structure set (₹66,000 gross). Logs into /employee self-service portal (check-in, leave, payslips, expenses) |
+
+## Stripe Test Payments (Aug 1, 2026)
+- Customer with unpaid test inquiry: loyaltytest@airyatra.com / Loyalty@123 → inquiry `test-stripe-inquiry-1` (NOW PAID after iteration_16 E2E; seed a fresh unpaid inquiry for re-testing)
+- Stripe TEST card: 4242 4242 4242 4242, exp 12/34, CVC 123
+- Key: STRIPE_API_KEY=sk_test_emergent (backend/.env)
