@@ -630,3 +630,83 @@ async def get_payment_info(
         "status": inquiry.get("status"),
         "passenger_details_filled": bool(inquiry.get("passenger_details"))
     }
+
+
+
+# ==================== CUSTOMER BOOKING STATS ====================
+
+@router.get("/booking-stats")
+async def get_customer_booking_stats(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Get customer's flight stats, total spend, and loyalty tier progress"""
+    
+    customer_id = current_user["id"]
+    
+    # Get all bookings and inquiries
+    bookings = await db.bookings.find(
+        {"customer_id": customer_id},
+        {"_id": 0, "id": 1, "from_location": 1, "to_location": 1, "departure_date": 1,
+         "estimated_price": 1, "accepted_quote": 1, "status": 1, "payment_status": 1,
+         "flight_duration": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
+    
+    inquiries = await db.inquiries.find(
+        {"customer_id": customer_id},
+        {"_id": 0, "id": 1, "from_location": 1, "to_location": 1, "departure_date": 1,
+         "estimated_price": 1, "accepted_quote": 1, "status": 1, "payment_status": 1,
+         "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
+    
+    all_trips = bookings + inquiries
+    
+    # Calculate stats
+    total_spend = 0
+    completed_flights = 0
+    unique_routes = set()
+    total_hours = 0
+    
+    for trip in all_trips:
+        # Count paid/completed trips
+        if trip.get("payment_status") in ["paid", "fully_paid"]:
+            amount = float(trip.get("accepted_quote", {}).get("amount") or trip.get("estimated_price") or 0)
+            total_spend += amount
+            completed_flights += 1
+            
+            # Track unique routes
+            route = f"{trip.get('from_location', '')}-{trip.get('to_location', '')}"
+            unique_routes.add(route)
+            
+            # Estimate flight hours (assume 1.5 hours per flight if not specified)
+            hours = float(trip.get("flight_duration", 1.5) or 1.5)
+            total_hours += hours
+    
+    # Get loyalty points
+    loyalty = await db.loyalty_points.find_one(
+        {"customer_id": customer_id},
+        {"_id": 0, "points": 1, "tier": 1}
+    )
+    rewards_earned = loyalty.get("points", 0) if loyalty else int(total_spend / 100)  # 1 point per ₹100
+    
+    # Recent flights (last 10)
+    recent_flights = []
+    for trip in all_trips[:10]:
+        recent_flights.append({
+            "id": trip.get("id"),
+            "from_location": trip.get("from_location", ""),
+            "to_location": trip.get("to_location", ""),
+            "departure_date": trip.get("departure_date", ""),
+            "amount": float(trip.get("accepted_quote", {}).get("amount") or trip.get("estimated_price") or 0),
+            "status": trip.get("status", "pending"),
+            "payment_status": trip.get("payment_status", "pending"),
+        })
+    
+    return {
+        "total_spend": round(total_spend, 2),
+        "total_flights": completed_flights,
+        "unique_routes": len(unique_routes),
+        "total_hours": round(total_hours, 1),
+        "rewards_earned": rewards_earned,
+        "recent_flights": recent_flights,
+    }

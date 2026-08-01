@@ -22,6 +22,7 @@ import InquiryNotifications from '../components/operator/InquiryNotifications';
 import OperatorProfile from '../components/operator/OperatorProfile';
 import OperatorPricingConfig from '../components/operator/OperatorPricingConfig';
 import OperatorERP from '../components/operator/OperatorERP';
+import OperatorRevenueDashboard from '../components/operator/OperatorRevenueDashboard';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -32,6 +33,7 @@ const navGroups = [
     items: [
       { id: 'home', label: 'Overview', icon: Home, path: '/operator' },
       { id: 'erp', label: 'ERP Command Center / ईआरपी', icon: BarChart3, path: '/operator/erp', highlight: true },
+      { id: 'revenue', label: 'Revenue Dashboard / राजस्व', icon: DollarSign, path: '/operator/revenue', highlight: true },
       { id: 'new-inquiries', label: 'New Inquiries / नई पूछताछ', icon: Bell, path: '/operator/new-inquiries', highlight: true },
     ]
   },
@@ -238,6 +240,7 @@ function OperatorDashboard({ user, onLogout }) {
             <Route index element={<OperatorHome operator={operator} />} />
             <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
             <Route path="erp" element={<OperatorERP />} />
+            <Route path="revenue" element={<OperatorRevenueDashboard user={user} />} />
             <Route path="fleet" element={<FleetManagement operator={operator} />} />
             <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
             <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />

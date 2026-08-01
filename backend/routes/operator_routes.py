@@ -361,4 +361,109 @@ async def get_my_quotes(user: dict = Depends(get_current_user)):
     
     return {"quotes": quotes}
 
-    return {"message": "Pilot deleted successfully"}
+
+# ==================== OPERATOR REVENUE DASHBOARD ====================
+
+@router.get("/revenue/dashboard")
+async def get_operator_revenue_dashboard(user: dict = Depends(get_current_user)):
+    """Get operator's revenue dashboard with earnings, commission breakdown, payouts"""
+    from datetime import timedelta
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    
+    # Get operator profile
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        return {
+            "stats": {"total_earnings": 0, "month_earnings": 0, "pending_payout": 0, "commission_rate": 85},
+            "monthly_breakdown": [],
+            "recent_payouts": [],
+            "commission_breakdown": {}
+        }
+    
+    operator_id = operator["id"]
+    now = datetime.utcnow()
+    
+    # Get all completed bookings/inquiries for this operator
+    completed_inquiries = await db.inquiries.find(
+        {
+            "assigned_operator_id": operator_id,
+            "payment_status": {"$in": ["paid", "fully_paid"]}
+        },
+        {"_id": 0, "id": 1, "accepted_quote": 1, "estimated_price": 1, "payment_status": 1,
+         "departure_date": 1, "created_at": 1, "paid_at": 1}
+    ).to_list(500)
+    
+    # Calculate total earnings
+    total_gross = 0
+    month_gross = 0
+    current_month = now.strftime("%Y-%m")
+    
+    for inq in completed_inquiries:
+        amount = float(inq.get("accepted_quote", {}).get("amount") or inq.get("estimated_price") or 0)
+        total_gross += amount
+        
+        # Check if this month
+        paid_at = inq.get("paid_at") or inq.get("created_at") or ""
+        if paid_at.startswith(current_month):
+            month_gross += amount
+    
+    # Commission calculation (operator gets 85%, platform 15%)
+    commission_rate = 85
+    platform_fee_rate = 15
+    tax_rate = 18  # GST
+    
+    platform_fee = total_gross * (platform_fee_rate / 100)
+    operator_share_before_tax = total_gross - platform_fee
+    taxes = operator_share_before_tax * (tax_rate / 100)
+    operator_share = operator_share_before_tax - taxes
+    
+    # Monthly breakdown (last 6 months)
+    monthly_data = {}
+    for i in range(6):
+        month_date = datetime(now.year, now.month, 1) - timedelta(days=30*i)
+        month_key = month_date.strftime("%Y-%m")
+        month_label = month_date.strftime("%b %Y")
+        monthly_data[month_key] = {"month": month_label, "earnings": 0, "flights": 0}
+    
+    for inq in completed_inquiries:
+        paid_at = inq.get("paid_at") or inq.get("created_at") or ""
+        month_key = paid_at[:7] if paid_at else ""
+        if month_key in monthly_data:
+            amount = float(inq.get("accepted_quote", {}).get("amount") or inq.get("estimated_price") or 0)
+            monthly_data[month_key]["earnings"] += amount * (commission_rate / 100)
+            monthly_data[month_key]["flights"] += 1
+    
+    monthly_breakdown = sorted(monthly_data.values(), key=lambda x: x["month"])
+    
+    # Get payouts
+    payouts = await db.operator_payouts.find(
+        {"operator_id": operator_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    # Calculate pending payout (earnings not yet paid out)
+    total_paid_out = sum(float(p.get("amount", 0)) for p in payouts if p.get("status") == "paid")
+    pending_payout = max(0, operator_share - total_paid_out)
+    
+    return {
+        "stats": {
+            "total_earnings": round(operator_share, 2),
+            "month_earnings": round(month_gross * (commission_rate / 100), 2),
+            "pending_payout": round(pending_payout, 2),
+            "commission_rate": commission_rate,
+            "completed_flights": len(completed_inquiries),
+            "month_flights": sum(1 for inq in completed_inquiries if (inq.get("paid_at") or "").startswith(current_month)),
+            "next_payout_date": "15th of month",
+        },
+        "monthly_breakdown": monthly_breakdown,
+        "recent_payouts": payouts,
+        "commission_breakdown": {
+            "gross_value": round(total_gross, 2),
+            "platform_fee": round(platform_fee, 2),
+            "taxes": round(taxes, 2),
+            "operator_share": round(operator_share, 2),
+        }
+    }
