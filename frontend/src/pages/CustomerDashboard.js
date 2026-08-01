@@ -11,6 +11,7 @@ import ReferAndEarn from '../components/customer/ReferAndEarn';
 import LoyaltyRewards from '../components/customer/LoyaltyRewards';
 import MyAircraftListings from '../components/customer/MyAircraftListings';
 import MyInvestments from '../components/customer/MyInvestments';
+import MyWatchlist from '../components/customer/MyWatchlist';
 import NotificationBell from '../components/shared/NotificationBell';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -24,6 +25,7 @@ const navGroups = [
       { id: 'trips', label: 'My Trips / मेरी यात्राएं', icon: MapPin, path: '/customer/trips', highlight: true },
       { id: 'booking', label: 'New Booking / नई बुकिंग', icon: Calendar, path: '/booking', external: true, highlight: true },
       { id: 'mylistings', label: 'My Aircraft / मेरे विमान', icon: Plane, path: '/customer/listings' },
+      { id: 'watchlist', label: 'My Watchlist / वॉचलिस्ट', icon: Bell, path: '/customer/watchlist' },
     ]
   },
   {
@@ -76,6 +78,7 @@ function CustomerDashboard({ user, onLogout }) {
     if (path.includes('/trips')) setActiveTab('trips');
     else if (path.includes('/listings')) setActiveTab('mylistings');
     else if (path.includes('/investments')) setActiveTab('investments');
+    else if (path.includes('/watchlist')) setActiveTab('watchlist');
     else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
     else if (path.includes('/refer')) setActiveTab('refer');
@@ -131,6 +134,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <MyAircraftListings user={user} />;
       case 'investments':
         return <MyInvestments user={user} />;
+      case 'watchlist':
+        return <MyWatchlist user={user} />;
       case 'profile':
         return <CustomerProfile user={user} />;
       case 'messages':

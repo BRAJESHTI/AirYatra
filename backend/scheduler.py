@@ -363,6 +363,51 @@ async def send_auction_ending_reminders():
         return 0
 
 
+async def send_monthly_board_report():
+    """Email the board report PDF to configured investors on the 1st of each month. Runs every 12 hours."""
+    from database import get_database_sync
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        now = datetime.now(timezone.utc)
+        if now.day != 1:
+            return 0
+        period_key = now.strftime("%Y-%m")
+        doc = await db.ceo_settings.find_one({"type": "investor_report"}, {"_id": 0})
+        if not doc or not doc.get("emails"):
+            return 0
+        if doc.get("last_sent_period") == period_key:
+            return 0
+        from routes.ceo_routes import _gather_kpis, _generate_board_report, _investor_email_html
+        data = await _gather_kpis(db)
+        pdf = _generate_board_report(data)
+        fname = f"AirYatra_Board_Report_{data['period'].replace(' ', '_')}.pdf"
+        from services.email_service import email_service
+        sent = 0
+        for email in doc["emails"]:
+            try:
+                result = await email_service.send_email(
+                    to_email=email,
+                    subject=f"AirYatra Monthly Board Report — {data['period']}",
+                    html_body=_investor_email_html(data["period"]),
+                    attachments=[{"filename": fname, "content": pdf}],
+                )
+                if result.get("success"):
+                    sent += 1
+            except Exception as e:
+                logger.error(f"Board report email failed for {email}: {e}")
+        await db.ceo_settings.update_one(
+            {"type": "investor_report"},
+            {"$set": {"last_sent_period": period_key, "last_sent_at": now.isoformat(), "last_sent_count": sent}}
+        )
+        logger.info(f"Monthly board report sent to {sent} investor(s)")
+        return sent
+    except Exception as e:
+        logger.error(f"send_monthly_board_report failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -420,8 +465,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Monthly investor board report (checks every 12 hours, sends on the 1st)
+    scheduler.add_job(
+        send_monthly_board_report,
+        trigger=IntervalTrigger(hours=12),
+        id="monthly_board_report",
+        name="Monthly Investor Board Report",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report")
 
 
 def stop_scheduler():

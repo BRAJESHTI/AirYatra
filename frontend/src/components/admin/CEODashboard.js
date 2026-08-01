@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet } from 'lucide-react';
+import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet, Mail, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
 import api from '../../services/api';
@@ -26,6 +29,11 @@ const CEODashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [investorsOpen, setInvestorsOpen] = useState(false);
+  const [emailsText, setEmailsText] = useState('');
+  const [investorInfo, setInvestorInfo] = useState(null);
+  const [savingInv, setSavingInv] = useState(false);
+  const [sendingNow, setSendingNow] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -36,6 +44,43 @@ const CEODashboard = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  const openInvestors = async () => {
+    setInvestorsOpen(true);
+    try {
+      const res = await api.get('/ceo/investors');
+      setInvestorInfo(res.data);
+      setEmailsText((res.data.emails || []).join('\n'));
+    } catch (e) { /* noop */ }
+  };
+
+  const saveInvestors = async () => {
+    setSavingInv(true);
+    try {
+      const emails = emailsText.split(/[\n,;]+/).map(e => e.trim()).filter(Boolean);
+      const res = await api.post('/ceo/investors', { emails });
+      toast.success(res.data.message);
+      setEmailsText((res.data.emails || []).join('\n'));
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to save');
+    } finally {
+      setSavingInv(false);
+    }
+  };
+
+  const sendNow = async () => {
+    setSendingNow(true);
+    try {
+      const res = await api.post('/ceo/investors/send-now');
+      toast.success(res.data.message);
+      const info = await api.get('/ceo/investors');
+      setInvestorInfo(info.data);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to send report');
+    } finally {
+      setSendingNow(false);
+    }
+  };
 
   const downloadReport = async () => {
     setDownloading(true);
@@ -71,6 +116,9 @@ const CEODashboard = () => {
           <p className="text-slate-400 text-sm">Executive view — revenue, fleet, marketplace & HR at a glance / एक नज़र में पूरा कारोबार</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={openInvestors} variant="outline" className="border-slate-700 text-slate-300 hover:border-orange-500/50" data-testid="investor-emails-btn">
+            <Mail className="h-4 w-4 mr-2" /> Investors
+          </Button>
           <Button onClick={downloadReport} disabled={downloading} className="bg-orange-500 hover:bg-orange-600" data-testid="download-board-report-btn">
             {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
             Board Report (PDF)
@@ -80,6 +128,41 @@ const CEODashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Investor Emails Dialog */}
+      <Dialog open={investorsOpen} onOpenChange={setInvestorsOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md" data-testid="investor-emails-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-orange-400" /> Investor Report Distribution</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              The board report PDF is auto-emailed to these investors on the <b className="text-orange-400">1st of every month</b>.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <label className="text-xs text-slate-400">Investor Emails (one per line)</label>
+            <textarea
+              value={emailsText}
+              onChange={(e) => setEmailsText(e.target.value)}
+              placeholder={"investor1@fund.com\ninvestor2@capital.in"}
+              className="w-full bg-slate-800 border border-slate-600 rounded-md p-3 text-sm text-white min-h-[110px] font-mono"
+              data-testid="investor-emails-textarea"
+            />
+          </div>
+          {investorInfo?.last_sent_at && (
+            <p className="text-slate-500 text-xs">
+              Last sent: {new Date(investorInfo.last_sent_at).toLocaleString('en-IN')} to {investorInfo.last_sent_count} investor(s)
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={saveInvestors} disabled={savingInv} className="flex-1 bg-orange-500 hover:bg-orange-600" data-testid="save-investors-btn">
+              {savingInv ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Save List
+            </Button>
+            <Button onClick={sendNow} disabled={sendingNow} variant="outline" className="border-green-500/50 text-green-400 hover:bg-green-500/10" data-testid="send-report-now-btn">
+              {sendingNow ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />} Send Now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Revenue & Growth */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

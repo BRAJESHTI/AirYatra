@@ -96,7 +96,10 @@ export default function AviationExchangePage({ user }) {
   const [listings, setListings] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState('buy');
+  const [mode, setMode] = useState(() => {
+    const m = new URLSearchParams(window.location.search).get('mode');
+    return ['buy', 'auctions', 'fractional'].includes(m) ? m : 'buy';
+  });
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');

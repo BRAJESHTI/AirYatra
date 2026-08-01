@@ -240,3 +240,85 @@ async def download_board_report(current_user: dict = Depends(get_current_user)):
     pdf = _generate_board_report(data)
     fname = f"AirYatra_Board_Report_{data['period'].replace(' ', '_')}.pdf"
     return Response(content=pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+
+
+# ---------- Investor Report Distribution ----------
+
+from pydantic import BaseModel
+from typing import List
+
+
+class InvestorEmails(BaseModel):
+    emails: List[str]
+
+
+def _investor_email_html(period: str) -> str:
+    return f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+      <div style="background:#f97316;padding:20px 28px;"><h2 style="margin:0;color:#fff;">AirYatra — Monthly Board Report</h2></div>
+      <div style="padding:28px;">
+        <p>Dear Investor,</p>
+        <p>Please find attached the AirYatra monthly board report for <b>{period}</b> — covering financial performance, operations, the Aviation Exchange marketplace, People & HR, and partnerships.</p>
+        <p>For any questions, reply to this email and our executive team will get back to you.</p>
+        <p style="color:#94a3b8;font-size:13px;">Confidential — AirYatra Aviation Pvt Ltd</p>
+      </div>
+    </div>"""
+
+
+@router.get("/investors")
+async def get_investor_emails(current_user: dict = Depends(get_current_user)):
+    """Configured investor email list for monthly board report"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    doc = await db.ceo_settings.find_one({"type": "investor_report"}, {"_id": 0}) or {}
+    return {"emails": doc.get("emails", []), "last_sent_period": doc.get("last_sent_period"), "last_sent_at": doc.get("last_sent_at"), "last_sent_count": doc.get("last_sent_count")}
+
+
+@router.post("/investors")
+async def save_investor_emails(req: InvestorEmails, current_user: dict = Depends(get_current_user)):
+    """Save investor email list (auto-emailed report on 1st of every month)"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    clean = list(dict.fromkeys(e.strip().lower() for e in req.emails if e.strip() and "@" in e))
+    db = get_database()
+    await db.ceo_settings.update_one(
+        {"type": "investor_report"},
+        {"$set": {"emails": clean, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"message": f"{len(clean)} investor email(s) saved — report auto-sends on the 1st of every month", "emails": clean}
+
+
+@router.post("/investors/send-now")
+async def send_board_report_now(current_user: dict = Depends(get_current_user)):
+    """Immediately email the board report PDF to all configured investors"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    db = get_database()
+    doc = await db.ceo_settings.find_one({"type": "investor_report"}, {"_id": 0}) or {}
+    emails = doc.get("emails", [])
+    if not emails:
+        raise HTTPException(status_code=400, detail="Add investor emails first")
+    data = await _gather_kpis(db)
+    pdf = _generate_board_report(data)
+    fname = f"AirYatra_Board_Report_{data['period'].replace(' ', '_')}.pdf"
+    from services.email_service import email_service
+    sent = 0
+    for email in emails:
+        try:
+            result = await email_service.send_email(
+                to_email=email,
+                subject=f"AirYatra Monthly Board Report — {data['period']}",
+                html_body=_investor_email_html(data["period"]),
+                attachments=[{"filename": fname, "content": pdf}],
+            )
+            if result.get("success"):
+                sent += 1
+        except Exception:
+            pass
+    await db.ceo_settings.update_one(
+        {"type": "investor_report"},
+        {"$set": {"last_sent_at": datetime.now(timezone.utc).isoformat(), "last_sent_count": sent}},
+    )
+    return {"message": f"Board report emailed to {sent} of {len(emails)} investor(s)"}

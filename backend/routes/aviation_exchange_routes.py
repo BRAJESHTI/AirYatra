@@ -451,6 +451,32 @@ async def _create_auction(db, listing, cfg: dict):
     return auction
 
 
+async def _notify_winner(email: str, name: str, title: str, winning_bid: float):
+    from services.email_service import email_service
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+      <div style="background:#16a34a;padding:20px 28px;"><h2 style="margin:0;color:#fff;">🏆 Congratulations — You Won the Auction!</h2></div>
+      <div style="padding:28px;">
+        <p>Dear {name},</p>
+        <p>Your bid was the highest and the reserve was met — <b>{title}</b> is yours! / बधाई हो, नीलामी आपने जीत ली!</p>
+        <div style="background:#1e293b;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0;"><b>Winning Bid:</b> <span style="color:#f97316;font-size:20px;">Rs. {winning_bid:,.0f}</span></p>
+        </div>
+        <h3 style="color:#f97316;margin-bottom:8px;">📋 Next Steps Checklist</h3>
+        <ol style="line-height:1.9;padding-left:20px;margin-top:0;">
+          <li><b>Welcome Call</b> — Our aviation desk will call you within 24 hours to kick off the process</li>
+          <li><b>Sale Agreement & Documents</b> — Verification of registration, airworthiness certificate and maintenance logs</li>
+          <li><b>Secure Payment Coordination</b> — Our team will guide you through the escrow & payment process</li>
+          <li><b>Pre-Delivery Inspection</b> — Final inspection at the aircraft's base with your engineer</li>
+          <li><b>DGCA Ownership Transfer & Handover</b> — We handle the paperwork, you take the keys ✈️</li>
+        </ol>
+        <p style="margin-top:16px;">Keep this email handy — quote your auction win when our team calls.</p>
+        <p style="color:#94a3b8;font-size:13px;">Team AirYatra • India's First Aircraft Auction Platform</p>
+      </div>
+    </div>"""
+    await email_service.send_email(to_email=email, subject=f"🏆 You WON the auction — {title}! Next steps inside", html_body=html)
+
+
 async def _finalize_if_due(db, auction):
     if auction.get("status") != "live":
         return auction
@@ -460,8 +486,13 @@ async def _finalize_if_due(db, auction):
         result = "sold" if auction["current_bid_inr"] >= auction["reserve_price_inr"] else "reserve_not_met"
     else:
         result = "no_bids"
-    await db.exchange_auctions.update_one({"id": auction["id"], "status": "live"}, {"$set": {"status": "ended", "result": result}})
+    r = await db.exchange_auctions.update_one({"id": auction["id"], "status": "live"}, {"$set": {"status": "ended", "result": result}})
     await db.exchange_listings.update_one({"id": auction["listing_id"]}, {"$set": {"status": "sold" if result == "sold" else "active"}})
+    if r.modified_count == 1 and result == "sold":
+        winner = await db.users.find_one({"id": auction["highest_bidder_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+        if winner and winner.get("email"):
+            import asyncio
+            asyncio.create_task(_notify_winner(winner["email"], winner.get("full_name", "Winner"), auction["title"], auction["current_bid_inr"]))
     auction["status"] = "ended"
     auction["result"] = result
     return auction
@@ -830,3 +861,25 @@ async def get_my_watchlist(current_user: dict = Depends(get_current_user)):
     db = get_database()
     items = await db.exchange_watchlist.find({"user_id": current_user["id"]}, {"_id": 0, "auction_id": 1}).to_list(200)
     return {"auction_ids": [i["auction_id"] for i in items]}
+
+
+@router.get("/auctions/watchlist/details")
+async def get_my_watchlist_details(current_user: dict = Depends(get_current_user)):
+    """Full auction data for the current user's watchlist"""
+    db = get_database()
+    items = await db.exchange_watchlist.find({"user_id": current_user["id"]}, {"_id": 0, "auction_id": 1, "created_at": 1}).sort("created_at", -1).to_list(200)
+    ids = [i["auction_id"] for i in items]
+    auctions = await db.exchange_auctions.find({"id": {"$in": ids}}, {"_id": 0}).to_list(200) if ids else []
+    counts = {}
+    async for c in db.exchange_watchlist.aggregate([{"$group": {"_id": "$auction_id", "count": {"$sum": 1}}}]):
+        counts[c["_id"]] = c["count"]
+    out = []
+    for a in auctions:
+        a = await _finalize_if_due(db, a)
+        pa = _public_auction(a)
+        pa["is_highest_bidder"] = a.get("highest_bidder_id") == current_user["id"]
+        pa["watchers"] = counts.get(a["id"], 0)
+        out.append(pa)
+    order = {aid: idx for idx, aid in enumerate(ids)}
+    out.sort(key=lambda x: order.get(x["id"], 999))
+    return {"auctions": out}
