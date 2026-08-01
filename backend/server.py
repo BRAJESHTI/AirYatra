@@ -46,6 +46,7 @@ from routes import reviews_routes
 from routes import weather_routes
 from routes import invoice_routes
 from routes import loyalty_routes
+from routes import aviation_exchange_routes
 from routes import marketing_routes
 from routes import maintenance_routes
 from routes import pricing_routes
@@ -187,6 +188,7 @@ api_router.include_router(reviews_routes.router)
 api_router.include_router(weather_routes.router)
 api_router.include_router(invoice_routes.router)
 api_router.include_router(loyalty_routes.router)
+api_router.include_router(aviation_exchange_routes.router)
 api_router.include_router(marketing_routes.router)
 api_router.include_router(maintenance_routes.router)
 api_router.include_router(pricing_routes.router)

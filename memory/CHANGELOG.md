@@ -255,3 +255,10 @@
 - services/storage_service.py: init (lazy, EMERGENT_LLM_KEY), put_object/get_object (async via to_thread)
 - document_vault_routes.py: upload + new-version now store files in object storage (storage_path in db.document_files); download supports storage_path + legacy base64 fallback
 - Tested via curl: upload -> object storage -> download returns exact content
+
+## August 1, 2026 - Aviation Exchange (Phase 2 Launch)
+- Backend routes/aviation_exchange_routes.py: GET /exchange/listings (filters: category/search/price, sort), GET /exchange/listings/{id} (+views), POST /exchange/listings (auth, pending_review), POST /exchange/listings/{id}/inquire (auth), PATCH /exchange/admin/listings/{id}/status (admin approve/sold)
+- 6 seeded listings (Bell 407GXi, H125, R44, Citation XLS+, King Air 250, AW109) with 4 AI-generated aircraft photos
+- Frontend pages/AviationExchangePage.js at /exchange (public): hero, category tabs, search, sort, listing grid with verified badges + ₹Cr prices, detail dialog with specs/features/inquiry form
+- LandingPage nav: "Aviation Exchange" link added
+- Tested: curl (list 6, jet filter 1, detail+views, inquiry sent) + screenshots (grid, filter, detail dialog)

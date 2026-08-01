@@ -18,6 +18,11 @@ function LandingPage({ user }) {
             <span className="text-2xl font-bold text-white tracking-tight">AirYatra</span>
           </div>
           <div className="flex items-center space-x-3">
+            <Link to="/exchange" className="hidden md:block">
+              <Button variant="ghost" className="text-orange-400 hover:text-orange-300" data-testid="exchange-nav-btn">
+                Aviation Exchange
+              </Button>
+            </Link>
             <LanguageSwitcher />
             {user ? (
               <Link to={`/${user.roles[0]}`}>
