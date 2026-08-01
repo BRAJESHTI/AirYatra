@@ -31,6 +31,32 @@ async def register(user_data: UserCreate):
     insert_dict = user_dict.copy()
     await db.users.insert_one(insert_dict)
     
+    # Welcome bonus: 500 loyalty points for new customers
+    if "customer" in user_dict.get("roles", []):
+        try:
+            now_iso = datetime.utcnow().isoformat()
+            await db.loyalty_profiles.insert_one({
+                "user_id": user_dict["id"],
+                "total_points": 500,
+                "available_points": 500,
+                "lifetime_points": 500,
+                "tier": "bronze",
+                "total_bookings": 0,
+                "total_spent": 0,
+                "joined_at": now_iso,
+            })
+            await db.points_history.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user_dict["id"],
+                "type": "bonus",
+                "points": 500,
+                "description": "🎉 Welcome bonus - Thank you for joining AirYatra!",
+                "reference_id": "welcome_bonus",
+                "created_at": now_iso,
+            })
+        except Exception as e:
+            print(f"Welcome bonus failed: {e}")
+    
     access_token = create_access_token(data={"sub": user_dict["id"], "roles": user_dict["roles"]})
     
     user_response = {k: v for k, v in user_dict.items() if k != "password_hash"}

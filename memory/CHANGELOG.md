@@ -234,3 +234,7 @@
 - payment_routes.py: create-order accepts voucher_code -> validates, applies discount (min(value, amount)), stores original_amount/voucher_discount in payment_orders; verify marks voucher status=used with used_for_booking
 - Frontend: PaymentPage.js (live flow at /customer/payment/:inquiryId) + PaymentCheckout.js both have voucher section: code input + Apply, "Your active vouchers" quick-pick chips, applied voucher card with remove, struck-through original + discounted payable, Pay button shows final amount
 - E2E tested: curl (validate/invalid/order discount 50000->49500/verify/re-validate fails "already used") + full UI flow (chip apply ₹20,000->₹18,000, mock pay, booking confirmed, voucher marked used in DB)
+
+## August 1, 2026 - Welcome Bonus Points
+- auth_routes.py register: new customers get 500 welcome points (loyalty_profiles created + points_history "Welcome bonus" entry). Non-customer roles skipped.
+- Tested via curl: new registration -> 500 points, bronze tier, history entry visible
