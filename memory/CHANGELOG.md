@@ -228,3 +228,9 @@
 - Frontend: components/customer/LoyaltyRewards.js rendered at /customer/loyalty (CustomerDashboard 'loyalty' tab + App.js route + URL sync fix)
 - Tested via curl (earn 1x & 1.5x membership multiplier, idempotency, tier-lock 403, redeem, deduction) + screenshots (UI, redeem dialog, voucher code toast, points 3500→2750)
 - Test customer: loyaltytest@airyatra.com / Loyalty@123 (has gold membership + vouchers seeded)
+
+## August 1, 2026 - Voucher At Checkout
+- Backend: POST /loyalty/vouchers/validate (ownership, active, not expired, monetary value check) + validate_voucher_for_user() helper
+- payment_routes.py: create-order accepts voucher_code -> validates, applies discount (min(value, amount)), stores original_amount/voucher_discount in payment_orders; verify marks voucher status=used with used_for_booking
+- Frontend: PaymentPage.js (live flow at /customer/payment/:inquiryId) + PaymentCheckout.js both have voucher section: code input + Apply, "Your active vouchers" quick-pick chips, applied voucher card with remove, struck-through original + discounted payable, Pay button shows final amount
+- E2E tested: curl (validate/invalid/order discount 50000->49500/verify/re-validate fails "already used") + full UI flow (chip apply ₹20,000->₹18,000, mock pay, booking confirmed, voucher marked used in DB)

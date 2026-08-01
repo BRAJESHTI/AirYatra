@@ -13,6 +13,7 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 class CreateOrderRequest(BaseModel):
     booking_id: str
     amount: float  # Amount in INR
+    voucher_code: Optional[str] = None  # RWD loyalty voucher code
 
 class VerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
@@ -48,8 +49,20 @@ async def create_payment_order(
     if booking.get("customer_id") != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    # Apply loyalty voucher discount
+    discount = 0.0
+    voucher = None
+    if request.voucher_code:
+        from routes.loyalty_routes import validate_voucher_for_user
+        voucher, error = await validate_voucher_for_user(db, current_user["id"], request.voucher_code)
+        if error:
+            raise HTTPException(status_code=400, detail=error)
+        discount = min(float(voucher["value"]), request.amount)
+    
+    final_amount = max(1.0, request.amount - discount)
+    
     # Convert INR to paise
-    amount_paise = int(request.amount * 100)
+    amount_paise = int(final_amount * 100)
     
     result = await payment_service.create_order(
         amount=amount_paise,
@@ -59,7 +72,8 @@ async def create_payment_order(
             "booking_id": request.booking_id,
             "customer_id": current_user["id"],
             "customer_email": current_user.get("email"),
-            "is_inquiry": is_inquiry
+            "is_inquiry": is_inquiry,
+            "voucher_code": voucher["code"] if voucher else None
         }
     )
     
@@ -71,12 +85,19 @@ async def create_payment_order(
             "booking_id": request.booking_id,
             "is_inquiry": is_inquiry,
             "customer_id": current_user["id"],
-            "amount": request.amount,
+            "amount": final_amount,
+            "original_amount": request.amount,
+            "voucher_code": voucher["code"] if voucher else None,
+            "voucher_discount": discount,
             "amount_paise": amount_paise,
             "status": "created",
             "mock": result.get("mock", False),
             "created_at": datetime.now(timezone.utc).isoformat()
         })
+        result["original_amount"] = request.amount
+        result["discount"] = discount
+        result["final_amount"] = final_amount
+        result["voucher_code"] = voucher["code"] if voucher else None
     
     return result
 
@@ -142,6 +163,17 @@ async def verify_payment(
                 "verified_at": datetime.now(timezone.utc).isoformat()
             }}
         )
+        
+        # Mark applied loyalty voucher as used
+        if payment_order and payment_order.get("voucher_code"):
+            await db.reward_redemptions.update_one(
+                {"code": payment_order["voucher_code"], "status": "active"},
+                {"$set": {
+                    "status": "used",
+                    "used_at": datetime.now(timezone.utc).isoformat(),
+                    "used_for_booking": request.booking_id
+                }}
+            )
         
         # Send confirmation notifications
         if booking:

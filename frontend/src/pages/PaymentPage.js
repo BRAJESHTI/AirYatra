@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   CreditCard, Smartphone, Building2, Wallet, Calendar, Check, 
-  Loader2, AlertCircle, ChevronLeft, Shield, MapPin, Users, Plane
+  Loader2, AlertCircle, ChevronLeft, Shield, MapPin, Users, Plane, Ticket, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { customerAPI, paymentsAPI, bookingAPI } from '../services/api';
+import { Input } from '@/components/ui/input';
+import api, { customerAPI, paymentsAPI, bookingAPI } from '../services/api';
 import { toast } from 'sonner';
 
 function PaymentPage({ user }) {
@@ -19,6 +20,10 @@ function PaymentPage({ user }) {
   const [processing, setProcessing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('upi');
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [applying, setApplying] = useState(false);
+  const [myVouchers, setMyVouchers] = useState([]);
 
   useEffect(() => {
     if (!inquiry) {
@@ -27,7 +32,38 @@ function PaymentPage({ user }) {
       loadPaymentInfo();
     }
     loadPaymentMethods();
+    loadMyVouchers();
   }, [inquiryId]);
+
+  const loadMyVouchers = async () => {
+    try {
+      const res = await api.get('/loyalty/my-redemptions');
+      setMyVouchers((res.data.redemptions || []).filter(v => v.status === 'active' && v.value > 0));
+    } catch (e) {
+      // vouchers optional
+    }
+  };
+
+  const applyVoucher = async (code) => {
+    const trimmed = (code || '').trim();
+    if (!trimmed) return;
+    setApplying(true);
+    try {
+      const res = await api.post('/loyalty/vouchers/validate', { code: trimmed });
+      setAppliedVoucher(res.data);
+      setVoucherCode(res.data.code);
+      toast.success(`🎫 ${res.data.reward_name} applied! / वाउचर लागू हुआ!`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Invalid voucher code / अमान्य वाउचर कोड');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+  };
 
   const loadInquiryAndPaymentInfo = async () => {
     setLoading(true);
@@ -81,7 +117,8 @@ function PaymentPage({ user }) {
       // Create payment order
       const orderResponse = await paymentsAPI.createOrder({
         booking_id: inquiryId,
-        amount: amount
+        amount: amount,
+        voucher_code: appliedVoucher?.code || null
       });
 
       if (!orderResponse.data.success) {
@@ -185,6 +222,8 @@ function PaymentPage({ user }) {
   const advanceAmount = paymentInfo?.advance_amount || inquiry?.estimated_price;
   const advancePercent = paymentInfo?.advance_percent || 100;
   const remainingAmount = paymentInfo?.remaining_amount || 0;
+  const voucherDiscount = appliedVoucher ? Math.min(appliedVoucher.value, advanceAmount || 0) : 0;
+  const payableAmount = Math.max(voucherDiscount > 0 ? 1 : 0, (advanceAmount || 0) - voucherDiscount) || advanceAmount;
 
   return (
     <div className="min-h-screen bg-slate-950 py-8 px-4">
@@ -241,12 +280,22 @@ function PaymentPage({ user }) {
         </div>
 
         {/* Payment Amount */}
-        <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-2xl p-6 border border-orange-500/30 mb-6">
+        <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-2xl p-6 border border-orange-500/30 mb-6" data-testid="payment-amount-card">
           <div className="text-center">
             <p className="text-slate-400 text-sm">Amount to Pay Now ({advancePercent}% Advance)</p>
-            <p className="text-4xl font-bold text-white mt-2">
-              ₹{advanceAmount?.toLocaleString()}
-            </p>
+            {voucherDiscount > 0 ? (
+              <>
+                <p className="text-slate-500 line-through text-lg mt-2" data-testid="original-amount">₹{advanceAmount?.toLocaleString()}</p>
+                <p className="text-4xl font-bold text-white" data-testid="payable-amount">₹{payableAmount?.toLocaleString()}</p>
+                <p className="text-green-400 text-sm mt-1" data-testid="voucher-discount-line">
+                  🎫 Voucher discount / वाउचर छूट: −₹{voucherDiscount.toLocaleString()}
+                </p>
+              </>
+            ) : (
+              <p className="text-4xl font-bold text-white mt-2" data-testid="payable-amount">
+                ₹{advanceAmount?.toLocaleString()}
+              </p>
+            )}
             
             {advancePercent < 100 && remainingAmount > 0 && (
               <div className="mt-4 pt-4 border-t border-orange-500/30">
@@ -259,6 +308,65 @@ function PaymentPage({ user }) {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Loyalty Voucher */}
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-6" data-testid="voucher-section">
+          <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <Ticket className="h-5 w-5 text-orange-400" />
+            Apply Loyalty Voucher / वाउचर लगाएं
+          </h3>
+          {appliedVoucher ? (
+            <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3" data-testid="applied-voucher">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{appliedVoucher.reward_icon}</span>
+                <div>
+                  <p className="text-green-400 font-medium">{appliedVoucher.reward_name}</p>
+                  <p className="text-slate-400 text-xs font-mono">{appliedVoucher.code}</p>
+                </div>
+              </div>
+              <button onClick={removeVoucher} className="text-slate-400 hover:text-red-400 p-1" data-testid="remove-voucher-btn">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <Input
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                  placeholder="RWD-XXXXXXXX"
+                  className="bg-slate-800 border-slate-600 text-white font-mono"
+                  data-testid="voucher-code-input"
+                />
+                <Button
+                  onClick={() => applyVoucher(voucherCode)}
+                  disabled={applying || !voucherCode.trim()}
+                  className="bg-orange-500 hover:bg-orange-600"
+                  data-testid="apply-voucher-btn"
+                >
+                  {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                </Button>
+              </div>
+              {myVouchers.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-slate-500 text-xs mb-2">Your active vouchers / आपके वाउचर:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {myVouchers.map(v => (
+                      <button
+                        key={v.id}
+                        onClick={() => applyVoucher(v.code)}
+                        className="px-3 py-1.5 rounded-full border border-orange-500/40 text-orange-400 text-xs hover:bg-orange-500/10 flex items-center gap-1"
+                        data-testid={`voucher-chip-${v.code}`}
+                      >
+                        {v.reward_icon} ₹{v.value.toLocaleString()} off
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Payment Methods */}
@@ -302,13 +410,14 @@ function PaymentPage({ user }) {
           onClick={handlePayment}
           disabled={processing}
           className="w-full py-6 text-lg bg-green-600 hover:bg-green-700"
+          data-testid="pay-now-btn"
         >
           {processing ? (
             <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Processing...</>
           ) : (
             <>
               <CreditCard className="h-5 w-5 mr-2" />
-              Pay ₹{advanceAmount?.toLocaleString()}
+              Pay ₹{payableAmount?.toLocaleString()}
             </>
           )}
         </Button>

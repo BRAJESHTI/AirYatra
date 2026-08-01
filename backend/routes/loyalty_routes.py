@@ -647,3 +647,40 @@ async def upsert_reward(reward: dict, current_user: dict = Depends(get_current_u
     
     await db.rewards_catalog.update_one({"id": reward["id"]}, {"$set": reward}, upsert=True)
     return {"message": "Reward saved", "reward_id": reward["id"]}
+
+# ============ VOUCHER VALIDATION (Checkout Discounts) ============
+
+async def validate_voucher_for_user(db, user_id: str, code: str):
+    """Validate a monetary voucher for checkout. Returns (voucher, error)."""
+    voucher = await db.reward_redemptions.find_one(
+        {"code": code.strip().upper(), "user_id": user_id}, {"_id": 0}
+    )
+    if not voucher:
+        return None, "Invalid voucher code"
+    if voucher.get("status") == "used":
+        return None, "Voucher already used"
+    now = datetime.now(timezone.utc).isoformat()
+    if voucher.get("status") == "expired" or voucher.get("expires_at", "9999") < now:
+        return None, "Voucher has expired"
+    if not voucher.get("value"):
+        return None, "This voucher cannot be applied as a payment discount"
+    return voucher, None
+
+class VoucherValidateRequest(BaseModel):
+    code: str
+
+@router.post("/vouchers/validate")
+async def validate_voucher(request: VoucherValidateRequest, current_user: dict = Depends(get_current_user)):
+    """Validate a RWD voucher code for checkout discount"""
+    db = get_database()
+    voucher, error = await validate_voucher_for_user(db, current_user["id"], request.code)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    return {
+        "valid": True,
+        "code": voucher["code"],
+        "value": voucher["value"],
+        "reward_name": voucher["reward_name"],
+        "reward_icon": voucher.get("reward_icon", "🎫"),
+        "expires_at": voucher.get("expires_at"),
+    }

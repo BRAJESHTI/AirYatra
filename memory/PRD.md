@@ -91,7 +91,7 @@
 | 1.1 | AirYatra BLACK Membership | P0 | 🟢 DONE | Premium 4-tier membership (Silver/Gold/Platinum/BLACK) with up to 20% discount, priority booking, dedicated pilot, lounge access |
 | 1.2 | Corporate Travel Console | P0 | 🟢 DONE | Complete corporate registration, employee management, budget controls, approval workflows, travel analytics |
 | 1.3 | Smart Document Vault | P0 | 🟢 DONE | Secure encrypted storage for DGCA docs, insurance, licenses with expiry alerts, version control, secure sharing |
-| 1.4 | Loyalty & Rewards Enhancement | P1 | 🟢 DONE | Tier-based earning multipliers (Bronze 1x → Platinum 2x, BLACK members up to 3x), auto points on flight completion (1pt/₹100, idempotent), 7-item rewards catalog with tier-locked rewards, voucher redemption (RWD- codes, expiry), UI at /customer/loyalty |
+| 1.4 | Loyalty & Rewards Enhancement | P1 | 🟢 DONE | Tier-based earning multipliers (Bronze 1x → Platinum 2x, BLACK members up to 3x), auto points on flight completion (1pt/₹100, idempotent), 7-item rewards catalog with tier-locked rewards, voucher redemption (RWD- codes, expiry), UI at /customer/loyalty. Vouchers applicable at checkout (/customer/payment) for instant discounts — validated, single-use, marked used on payment success |
 | 1.5 | Partner API Platform | P1 | 🔵 PLANNED | APIs for hotels, travel agencies, concierge |
 | 1.6 | Multi-Language Engine | P1 | 🟢 DONE | 9 languages (EN + Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati, Kannada, Punjabi) via react-i18next. Landing Page, FULL Booking Form (all steps, dropdowns, price breakdown, validation toasts), Global Navigation. Persists in localStorage (`airyatra_lang`) |
 
