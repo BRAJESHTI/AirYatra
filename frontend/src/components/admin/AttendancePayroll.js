@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import api from '../../services/api';
 import { toast } from 'sonner';
 
+const BACKEND = process.env.REACT_APP_BACKEND_URL;
+
 function AttendancePayroll() {
   const [activeTab, setActiveTab] = useState('attendance');
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,7 @@ function AttendancePayroll() {
   const [payrollRecords, setPayrollRecords] = useState([]);
   const [payrollSummary, setPayrollSummary] = useState(null);
   const [generatingPayroll, setGeneratingPayroll] = useState(false);
+  const [autoRun, setAutoRun] = useState(null);
   
   // Leaves
   const [pendingLeaves, setPendingLeaves] = useState([]);
@@ -49,7 +52,8 @@ function AttendancePayroll() {
         loadAttendance(),
         loadPayroll(),
         loadPendingLeaves(),
-        loadSalaryConfig()
+        loadSalaryConfig(),
+        loadAutoRun()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -87,6 +91,25 @@ function AttendancePayroll() {
       setPendingLeaves(response.data.pending_leaves || []);
     } catch (error) {
       console.error('Failed to load pending leaves:', error);
+    }
+  };
+
+  const loadAutoRun = async () => {
+    try {
+      const response = await api.get('/hr/payroll-auto-run');
+      setAutoRun(response.data);
+    } catch (error) {
+      console.error('Failed to load auto-run settings:', error);
+    }
+  };
+
+  const toggleAutoRun = async () => {
+    try {
+      await api.post('/hr/payroll-auto-run', { enabled: !autoRun?.enabled });
+      toast.success(!autoRun?.enabled ? 'Payroll auto-run enabled / ऑटो-रन चालू' : 'Payroll auto-run disabled / ऑटो-रन बंद');
+      loadAutoRun();
+    } catch (error) {
+      toast.error('Failed to update auto-run');
     }
   };
 
@@ -310,6 +333,16 @@ function AttendancePayroll() {
                       <td className="p-4 text-center">
                         <span className="text-slate-300">{emp.total_hours}h</span>
                       </td>
+                      <td className="p-4 text-center">
+                        <div className="flex justify-center -space-x-2">
+                          {(emp.attendance_records || []).filter(r => r.selfie_url).slice(-3).map((r) => (
+                            <a key={r.date} href={`${BACKEND}${r.selfie_url}`} target="_blank" rel="noreferrer" title={r.date} data-testid={`admin-selfie-${emp.employee_id}-${r.date}`}>
+                              <img src={`${BACKEND}${r.selfie_url}`} alt={r.date} className="h-8 w-8 rounded-full object-cover border-2 border-slate-800 hover:scale-150 transition-transform" />
+                            </a>
+                          ))}
+                          {!(emp.attendance_records || []).some(r => r.selfie_url) && <span className="text-slate-600">—</span>}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -375,6 +408,26 @@ function AttendancePayroll() {
       {/* Payroll Tab */}
       {activeTab === 'payroll' && (
         <div className="space-y-4">
+          {/* Auto-run settings */}
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 flex flex-wrap items-center justify-between gap-3" data-testid="payroll-auto-run-card">
+            <div>
+              <p className="text-white font-medium flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 text-orange-400" />
+                Payroll Auto-Run / ऑटो पेरोल
+                <span className={`px-2 py-0.5 rounded text-xs ${autoRun?.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {autoRun?.enabled ? 'ON' : 'OFF'}
+                </span>
+              </p>
+              <p className="text-slate-400 text-xs mt-1">
+                Har mahine ki 1 tareekh ko pichhle month ka payroll auto-generate hota hai + HR ko summary email.
+                {autoRun?.last_run_at && ` Last run: ${autoRun.last_run_period} (${autoRun.last_run_count} employees, ₹${(autoRun.last_run_net || 0).toLocaleString()})`}
+              </p>
+            </div>
+            <Button size="sm" onClick={toggleAutoRun} variant="outline" data-testid="toggle-auto-run-btn"
+              className={`border-slate-600 ${autoRun?.enabled ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'}`}>
+              {autoRun?.enabled ? 'Disable' : 'Enable'}
+            </Button>
+          </div>
           {/* Actions */}
           <div className="flex items-center justify-between">
             <div className="flex gap-4">

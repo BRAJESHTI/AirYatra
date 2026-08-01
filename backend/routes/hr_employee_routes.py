@@ -1,12 +1,13 @@
 """
 HRMS Employee Management + Self-Service + Payslip PDF
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import Response
 from typing import Optional
 from datetime import datetime, timezone
 from uuid import uuid4
 import io
+import os
 from database import get_database
 from middleware import get_current_user, require_roles
 from models import UserRole
@@ -129,6 +130,71 @@ async def update_employee(
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     return {"message": "Employee updated / कर्मचारी अपडेट हो गया"}
+
+
+# ==================== ATTENDANCE SELFIE ====================
+
+@router.post("/attendance/{attendance_id}/selfie")
+async def upload_attendance_selfie(
+    attendance_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """Attach a check-in selfie to own attendance record"""
+    att = await db.attendance.find_one({"id": attendance_id, "employee_id": current_user["id"]})
+    if not att:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Selfie too large (max 8MB)")
+
+    upload_dir = "/app/uploads/attendance_selfies"
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = file.filename.split(".")[-1].lower() if "." in (file.filename or "") else "jpg"
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        ext = "jpg"
+    fname = f"{attendance_id}_{uuid4().hex[:8]}.{ext}"
+    with open(f"{upload_dir}/{fname}", "wb") as f:
+        f.write(content)
+
+    selfie_url = f"/api/uploads/attendance_selfies/{fname}"
+    await db.attendance.update_one({"id": attendance_id}, {"$set": {"selfie_url": selfie_url}})
+    return {"message": "Selfie uploaded / सेल्फी अपलोड हो गई", "selfie_url": selfie_url}
+
+
+# ==================== PAYROLL AUTO-RUN SETTINGS ====================
+
+@router.get("/payroll-auto-run")
+async def get_payroll_auto_run(
+    current_user: dict = Depends(require_roles(HR_ADMIN)),
+    db=Depends(get_database)
+):
+    """Payroll auto-run status (runs on 1st of month for previous month)"""
+    settings = await db.hr_settings.find_one({"type": "payroll_auto_run"}, {"_id": 0}) or {}
+    return {
+        "enabled": settings.get("enabled", True),
+        "last_run_period": settings.get("last_run_period"),
+        "last_run_at": settings.get("last_run_at"),
+        "last_run_count": settings.get("last_run_count"),
+        "last_run_net": settings.get("last_run_net"),
+    }
+
+
+@router.post("/payroll-auto-run")
+async def set_payroll_auto_run(
+    data: dict,
+    current_user: dict = Depends(require_roles(HR_ADMIN)),
+    db=Depends(get_database)
+):
+    """Enable/disable monthly payroll auto-run"""
+    await db.hr_settings.update_one(
+        {"type": "payroll_auto_run"},
+        {"$set": {"enabled": bool(data.get("enabled", True)), "updated_by": current_user["id"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"message": f"Payroll auto-run {'enabled' if data.get('enabled', True) else 'disabled'}"}
 
 
 # ==================== EMPLOYEE SELF-SERVICE OVERVIEW ====================

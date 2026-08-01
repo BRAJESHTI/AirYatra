@@ -408,6 +408,78 @@ async def send_monthly_board_report():
         return 0
 
 
+async def run_monthly_payroll():
+    """Auto-generate payroll for the previous month on the 1st + email HR a summary. Runs every 12 hours."""
+    from database import get_database_sync
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        now = datetime.now(timezone.utc)
+        if now.day != 1:
+            return 0
+        settings = await db.hr_settings.find_one({"type": "payroll_auto_run"}, {"_id": 0}) or {}
+        if settings.get("enabled") is False:
+            return 0
+        prev = now.replace(day=1) - timedelta(days=1)
+        month, year = prev.month, prev.year
+        period_key = f"{year}-{month:02d}"
+        if settings.get("last_run_period") == period_key:
+            return 0
+
+        from routes.hr_routes import generate_payroll
+        result = await generate_payroll(
+            {"month": month, "year": year},
+            {"id": "system_scheduler", "full_name": "AirYatra Scheduler"},
+            db,
+        )
+        records = result.get("records", [])
+        total_net = round(sum(r.get("net_salary", 0) for r in records), 2)
+        period_label = prev.strftime("%B %Y")
+
+        from services.email_service import email_service
+        hr_users = await db.users.find(
+            {"roles": {"$in": ["hr", "admin"]}, "is_active": True}, {"_id": 0, "email": 1}
+        ).to_list(10)
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <div style="background:#0f172a;padding:20px 24px;"><span style="color:#fff;font-size:20px;font-weight:bold;">AirYatra</span><span style="color:#f97316;font-size:13px;margin-left:8px;">HRMS</span></div>
+          <div style="padding:24px;">
+            <h2 style="color:#f97316;margin:0 0 12px;font-size:18px;">🗓️ Monthly Payroll Auto-Run Complete — {period_label}</h2>
+            <p style="color:#0f172a;font-size:14px;">Payroll drafts generated for <b>{len(records)}</b> employee(s). Total net payable: <b>Rs. {total_net:,.2f}</b></p>
+            <p style="color:#64748b;font-size:13px;">Login to HR Dashboard → Payroll → Attendance &amp; Payroll to review, approve and mark salaries as paid.</p>
+          </div>
+        </div>"""
+        sent = 0
+        for u in hr_users:
+            try:
+                r = await email_service.send_email(
+                    to_email=u["email"],
+                    subject=f"Payroll Auto-Run Complete — {period_label} ({len(records)} employees)",
+                    html_body=html,
+                )
+                if r.get("success"):
+                    sent += 1
+            except Exception as e:
+                logger.error(f"Payroll summary email failed for {u.get('email')}: {e}")
+
+        await db.hr_settings.update_one(
+            {"type": "payroll_auto_run"},
+            {"$set": {
+                "last_run_period": period_key,
+                "last_run_at": now.isoformat(),
+                "last_run_count": len(records),
+                "last_run_net": total_net,
+            }},
+            upsert=True,
+        )
+        logger.info(f"Monthly payroll auto-run: {len(records)} records for {period_label}, HR emails sent: {sent}")
+        return len(records)
+    except Exception as e:
+        logger.error(f"run_monthly_payroll failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -474,8 +546,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Monthly payroll auto-run (checks every 12 hours, runs on the 1st for previous month)
+    scheduler.add_job(
+        run_monthly_payroll,
+        trigger=IntervalTrigger(hours=12),
+        id="monthly_payroll_run",
+        name="Monthly Payroll Auto-Run",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run")
 
 
 def stop_scheduler():

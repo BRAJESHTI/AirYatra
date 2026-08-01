@@ -2,7 +2,7 @@
 HR Management Routes
 Incentives, Attendance, Salary, Leave Management
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta, date
 from uuid import uuid4
@@ -528,9 +528,90 @@ async def get_attendance_report(
 
 # ==================== LEAVE MANAGEMENT ====================
 
+def _leave_email_html(title: str, color: str, rows: list, footer: str) -> str:
+    row_html = "".join(
+        f'<tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">{k}</td>'
+        f'<td style="padding:6px 12px;color:#0f172a;font-size:14px;font-weight:600;">{v}</td></tr>'
+        for k, v in rows
+    )
+    return f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+      <div style="background:#0f172a;padding:20px 24px;">
+        <span style="color:#fff;font-size:20px;font-weight:bold;">AirYatra</span>
+        <span style="color:#f97316;font-size:13px;margin-left:8px;">HRMS</span>
+      </div>
+      <div style="padding:24px;">
+        <h2 style="color:{color};margin:0 0 16px;font-size:18px;">{title}</h2>
+        <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;">{row_html}</table>
+        <p style="color:#64748b;font-size:12px;margin-top:20px;">{footer}</p>
+      </div>
+    </div>"""
+
+
+async def _notify_hr_leave_applied(leave: dict):
+    """Email HR/Admin when a new leave application is submitted"""
+    try:
+        from services.email_service import email_service
+        db = get_database()
+        hr_users = await db.users.find(
+            {"roles": {"$in": ["hr", "admin"]}, "is_active": True}, {"_id": 0, "email": 1}
+        ).to_list(10)
+        html = _leave_email_html(
+            "📩 New Leave Application / नया छुट्टी आवेदन",
+            "#f97316",
+            [
+                ("Employee", leave["employee_name"]),
+                ("Leave Type", leave["leave_type"].title()),
+                ("Duration", f'{leave["start_date"]} → {leave["end_date"]} ({leave["days"]} day(s))'),
+                ("Reason", leave.get("reason") or "—"),
+            ],
+            "Login to the HR Dashboard → Payroll → Leave Management to approve or reject.",
+        )
+        for u in hr_users:
+            await email_service.send_email(
+                to_email=u["email"],
+                subject=f"New Leave Application — {leave['employee_name']} ({leave['days']} day(s))",
+                html_body=html,
+            )
+    except Exception as e:
+        print(f"Leave HR email failed: {e}")
+
+
+async def _notify_employee_leave_decision(leave_id: str, approved: bool, reason: str = ""):
+    """Email employee when their leave is approved/rejected"""
+    try:
+        from services.email_service import email_service
+        db = get_database()
+        leave = await db.leaves.find_one({"id": leave_id}, {"_id": 0})
+        if not leave:
+            return
+        emp = await db.users.find_one({"id": leave["employee_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+        if not emp or not emp.get("email"):
+            return
+        if approved:
+            title, color, footer = "✅ Leave Approved / छुट्टी स्वीकृत", "#22c55e", "Enjoy your time off! Your leave balance has been updated."
+        else:
+            title, color, footer = "❌ Leave Rejected / छुट्टी अस्वीकृत", "#ef4444", "Please contact HR for more details."
+        rows = [
+            ("Leave Type", leave["leave_type"].title()),
+            ("Duration", f'{leave["start_date"]} → {leave["end_date"]} ({leave["days"]} day(s))'),
+            ("Status", "APPROVED" if approved else "REJECTED"),
+        ]
+        if not approved and reason:
+            rows.append(("Rejection Reason", reason))
+        await email_service.send_email(
+            to_email=emp["email"],
+            subject=f"Your leave has been {'approved ✅' if approved else 'rejected'} — AirYatra HRMS",
+            html_body=_leave_email_html(title, color, rows, footer),
+        )
+    except Exception as e:
+        print(f"Leave decision email failed: {e}")
+
+
 @router.post("/leave/apply")
 async def apply_leave(
     leave_data: dict,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -557,7 +638,8 @@ async def apply_leave(
     end = datetime.fromisoformat(leave_data["end_date"])
     leave["days"] = (end - start).days + 1
     
-    await db.leaves.insert_one(leave)
+    await db.leaves.insert_one(dict(leave))
+    background_tasks.add_task(_notify_hr_leave_applied, leave)
     
     return {
         "message": "Leave application submitted / छुट्टी आवेदन जमा हो गया",
@@ -604,7 +686,8 @@ async def get_my_leaves(
 @router.put("/leave/{leave_id}/approve")
 async def approve_leave(
     leave_id: str,
-    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
     db=Depends(get_database)
 ):
     """Approve a leave application"""
@@ -644,6 +727,7 @@ async def approve_leave(
         )
         current += timedelta(days=1)
     
+    background_tasks.add_task(_notify_employee_leave_decision, leave_id, True)
     return {"message": "Leave approved / छुट्टी स्वीकृत"}
 
 
@@ -651,7 +735,8 @@ async def approve_leave(
 async def reject_leave(
     leave_id: str,
     rejection_data: dict,
-    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
     db=Depends(get_database)
 ):
     """Reject a leave application"""
@@ -665,6 +750,7 @@ async def reject_leave(
         }}
     )
     
+    background_tasks.add_task(_notify_employee_leave_decision, leave_id, False, rejection_data.get("reason", ""))
     return {"message": "Leave rejected / छुट्टी अस्वीकृत"}
 
 

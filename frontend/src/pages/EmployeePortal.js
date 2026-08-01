@@ -90,7 +90,7 @@ export default function EmployeePortal({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-slate-950" data-testid="employee-portal">
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
-        <div className="max-w-full mx-auto pl-56 pr-6 py-4 flex justify-between items-center">
+        <div className="max-w-full mx-auto pl-64 pr-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Plane className="h-8 w-8 text-sky-500" />
             <span className="text-2xl font-bold text-white">AirYatra <span className="text-sky-400">People</span></span>
