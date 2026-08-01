@@ -26,6 +26,195 @@ class StripeCheckoutRequest(BaseModel):
     payment_type: Optional[str] = "advance"
 
 
+# ==================== PUBLIC PAYMENT LINK ROUTES ====================
+
+@router.get("/payments/link/{token}")
+async def verify_payment_link(
+    token: str,
+    db=Depends(get_database)
+):
+    """Public endpoint to verify a payment link token and get booking details"""
+    # Find the payment link
+    payment_link = await db.payment_links.find_one(
+        {"token": token, "status": "active"},
+        {"_id": 0}
+    )
+    
+    if not payment_link:
+        raise HTTPException(status_code=404, detail="Payment link not found or expired")
+    
+    # Check expiry
+    expires_at = payment_link.get("expires_at", "")
+    if expires_at and expires_at < datetime.now(timezone.utc).isoformat():
+        await db.payment_links.update_one(
+            {"token": token},
+            {"$set": {"status": "expired"}}
+        )
+        raise HTTPException(status_code=410, detail="Payment link has expired")
+    
+    # Get booking details
+    booking = await db.inquiries.find_one(
+        {"id": payment_link.get("booking_id")},
+        {"_id": 0}
+    )
+    if not booking:
+        booking = await db.bookings.find_one(
+            {"id": payment_link.get("booking_id")},
+            {"_id": 0}
+        )
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Check if already fully paid
+    if booking.get("payment_status") == "fully_paid":
+        return {
+            "valid": False,
+            "already_paid": True,
+            "message": "This booking is already fully paid",
+            "booking_id": payment_link.get("booking_id"),
+        }
+    
+    # Calculate actual remaining balance
+    total_amount, credited, remaining, _ = await _payment_ledger(db, booking)
+    
+    if remaining <= 0:
+        return {
+            "valid": False,
+            "already_paid": True,
+            "message": "No balance remaining",
+            "booking_id": payment_link.get("booking_id"),
+        }
+    
+    # Get customer info
+    customer = await db.users.find_one(
+        {"id": booking.get("customer_id")},
+        {"_id": 0, "full_name": 1, "email": 1}
+    )
+    
+    return {
+        "valid": True,
+        "token": token,
+        "booking_id": payment_link.get("booking_id"),
+        "inquiry_number": booking.get("inquiry_number", payment_link.get("booking_id", "")[:8]),
+        "customer_name": (customer or {}).get("full_name", booking.get("customer_name", "Customer")),
+        "customer_email": (customer or {}).get("email", booking.get("customer_email", "")),
+        "route": f"{booking.get('from_location', '')} → {booking.get('to_location', '')}",
+        "departure_date": booking.get("departure_date", ""),
+        "total_amount": total_amount,
+        "already_paid": credited,
+        "remaining_balance": remaining,
+        "expires_at": payment_link.get("expires_at"),
+    }
+
+
+@router.post("/payments/link/{token}/checkout")
+async def create_payment_link_checkout(
+    token: str,
+    request: Request,
+    db=Depends(get_database)
+):
+    """Public endpoint to create Stripe checkout from payment link (no auth required)"""
+    # Verify payment link
+    payment_link = await db.payment_links.find_one(
+        {"token": token, "status": "active"},
+        {"_id": 0}
+    )
+    
+    if not payment_link:
+        raise HTTPException(status_code=404, detail="Payment link not found or expired")
+    
+    # Check expiry
+    expires_at = payment_link.get("expires_at", "")
+    if expires_at and expires_at < datetime.now(timezone.utc).isoformat():
+        await db.payment_links.update_one({"token": token}, {"$set": {"status": "expired"}})
+        raise HTTPException(status_code=410, detail="Payment link has expired")
+    
+    booking_id = payment_link.get("booking_id")
+    customer_id = payment_link.get("customer_id")
+    
+    # Get booking
+    booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Check payment status
+    if booking.get("payment_status") == "fully_paid":
+        raise HTTPException(status_code=400, detail="Already fully paid")
+    
+    # Calculate remaining
+    total_amount, credited, remaining, _ = await _payment_ledger(db, booking)
+    if remaining <= 0:
+        raise HTTPException(status_code=400, detail="No balance remaining")
+    
+    # Create Stripe checkout session
+    stripe = _get_stripe(request)
+    origin_url = str(request.base_url).rstrip("/")
+    
+    inquiry_number = booking.get("inquiry_number", booking_id[:8])
+    route = f"{booking.get('from_location', '')} → {booking.get('to_location', '')}"
+    
+    session_req = CheckoutSessionRequest(
+        line_items=[{
+            "price_data": {
+                "currency": "inr",
+                "product_data": {
+                    "name": f"AirYatra Balance Payment - #{inquiry_number}",
+                    "description": f"Remaining balance for {route}",
+                },
+                "unit_amount": int(remaining * 100),
+            },
+            "quantity": 1,
+        }],
+        success_url=f"{origin_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}&token={token}",
+        cancel_url=f"{origin_url}/pay/{token}?cancelled=true",
+        mode="payment",
+        metadata={
+            "booking_id": booking_id,
+            "customer_id": customer_id,
+            "payment_type": "balance",
+            "payment_link_token": token,
+        },
+    )
+    session = stripe.create_session(session_req)
+    
+    # Record transaction
+    txn_id = str(uuid4())
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.payment_transactions.insert_one({
+        "id": txn_id,
+        "booking_id": booking_id,
+        "customer_id": customer_id,
+        "session_id": session.id,
+        "payment_type": "balance",
+        "amount": remaining,
+        "voucher_discount": 0,
+        "currency": "INR",
+        "gateway": "stripe_test",
+        "payment_status": "pending",
+        "payment_link_token": token,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    })
+    
+    # Mark payment link as used
+    await db.payment_links.update_one(
+        {"token": token},
+        {"$set": {"status": "checkout_initiated", "checkout_session_id": session.id, "checkout_at": now_iso}}
+    )
+    
+    return {
+        "checkout_url": session.url,
+        "session_id": session.id,
+        "amount": remaining,
+    }
+
+
+# ==================== END PUBLIC ROUTES ====================
+
+
 async def _payment_ledger(db, booking: dict):
     """Total owed vs paid (voucher discounts credited as paid value)"""
     total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)

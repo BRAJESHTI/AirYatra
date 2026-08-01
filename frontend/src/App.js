@@ -30,6 +30,7 @@ const AviationExchangePage = lazy(() => import('./pages/AviationExchangePage'));
 const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage'));
 const CorporateDashboard = lazy(() => import('./pages/CorporateDashboard'));
 const DocumentVault = lazy(() => import('./pages/DocumentVault'));
+const PaymentLinkPage = lazy(() => import('./pages/PaymentLinkPage'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -86,6 +87,9 @@ function App() {
           <Route path="/auth/google/success" element={<GoogleAuthSuccess onLogin={setUser} />} />
           <Route path="/auth/google/error" element={<GoogleAuthError />} />
           <Route path="/auth/google/callback" element={<EmergentAuthCallback onLogin={setUser} />} />
+          
+          {/* Public Payment Link Page (no auth required) */}
+          <Route path="/pay/:token" element={<PaymentLinkPage />} />
           
           <Route
             path="/customer"

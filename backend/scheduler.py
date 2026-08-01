@@ -625,6 +625,197 @@ async def send_erp_weekly_digest():
         return 0
 
 
+async def send_auto_balance_reminders():
+    """
+    Automatically send balance reminder emails to customers with pending balance
+    when their departure is 3 days away.
+    Runs twice daily, sends max 1 reminder per booking.
+    """
+    from database import get_database_sync
+    from services.email_service import email_service
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for auto balance reminders")
+            return 0
+        
+        now = datetime.now(timezone.utc)
+        
+        # Target date: 3 days from now
+        target_date = (now + timedelta(days=3)).strftime("%Y-%m-%d")
+        tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        day_after = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+        
+        # Find bookings with:
+        # - payment_status = "paid" (advance paid, balance pending)
+        # - departure_date is within 1-3 days
+        # - No auto reminder sent yet for this departure
+        bookings = await db.inquiries.find({
+            "payment_status": "paid",
+            "departure_date": {"$in": [target_date, day_after, tomorrow]},
+            "auto_balance_reminder_sent": {"$ne": True}
+        }, {"_id": 0}).to_list(100)
+        
+        if not bookings:
+            logger.info("No pending balance reminders to send")
+            return 0
+        
+        sent = 0
+        for booking in bookings:
+            try:
+                # Calculate remaining balance
+                total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+                if total_amount <= 0:
+                    continue
+                
+                # Get paid transactions
+                txns = await db.payment_transactions.find(
+                    {"booking_id": booking["id"], "payment_status": "paid"},
+                    {"_id": 0, "amount": 1, "voucher_discount": 1}
+                ).to_list(10)
+                credited = sum(float(t.get("amount", 0)) + float(t.get("voucher_discount", 0)) for t in txns)
+                remaining = max(0.0, round(total_amount - credited, 2))
+                
+                if remaining <= 0:
+                    # No balance remaining, mark as done
+                    await db.inquiries.update_one(
+                        {"id": booking["id"]},
+                        {"$set": {"auto_balance_reminder_sent": True}}
+                    )
+                    continue
+                
+                # Get customer email
+                customer = await db.users.find_one(
+                    {"id": booking.get("customer_id")},
+                    {"_id": 0, "email": 1, "full_name": 1}
+                )
+                if not customer or not customer.get("email"):
+                    continue
+                
+                customer_name = customer.get("full_name", "Customer")
+                inquiry_number = booking.get("inquiry_number", booking.get("id", "")[:8])
+                route = f"{booking.get('from_location', '')} → {booking.get('to_location', '')}"
+                departure_date = booking.get("departure_date", "")
+                
+                # Calculate days until departure
+                days_left = (datetime.strptime(departure_date, "%Y-%m-%d") - now.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)).days
+                urgency = "⚠️ URGENT" if days_left <= 1 else "⏰"
+                
+                subject = f"{urgency} Payment Reminder - ₹{remaining:,.0f} Balance Due in {days_left} day(s) | Booking #{inquiry_number}"
+                
+                html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #dc2626, #ea580c); padding: 30px; text-align: center; }}
+        .content {{ padding: 30px; }}
+        .amount-box {{ background: #1a1a2e; border-radius: 12px; padding: 25px; text-align: center; margin: 20px 0; border: 2px solid #dc2626; }}
+        .amount {{ font-size: 36px; font-weight: bold; color: #f97316; }}
+        .countdown {{ background: #fef3c7; color: #92400e; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; font-size: 18px; }}
+        .info-row {{ display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2a2a4e; }}
+        .btn {{ display: inline-block; background: #22c55e; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; margin-top: 15px; }}
+        .footer {{ background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size:50px;">🚁</div>
+            <h1 style="margin:10px 0 0;">Payment Reminder</h1>
+            <p style="margin:5px 0 0; opacity:0.9;">Your flight is approaching!</p>
+        </div>
+        <div class="content">
+            <p>Namaste <strong>{customer_name}</strong>,</p>
+            
+            <div class="countdown">
+                <strong>🗓️ Your helicopter departs in {days_left} day(s)!</strong><br>
+                <small>Departure: {departure_date}</small>
+            </div>
+            
+            <p>Please complete your remaining balance payment to ensure a smooth boarding experience.</p>
+            
+            <div class="amount-box">
+                <p style="margin:0 0 10px; color:#94a3b8;">Balance Amount Due</p>
+                <div class="amount">₹{remaining:,.0f}</div>
+            </div>
+            
+            <div style="background:#1a1a2e; border-radius:12px; padding:20px; margin:15px 0;">
+                <h3 style="margin-top:0; color:#f97316;">📋 Booking Details</h3>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Booking Ref:</span>
+                    <span style="font-weight:600;">#{inquiry_number}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Route:</span>
+                    <span style="font-weight:600;">{route}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Departure:</span>
+                    <span style="font-weight:600; color:#dc2626;">{departure_date}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Total Amount:</span>
+                    <span style="font-weight:600;">₹{total_amount:,.0f}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Already Paid:</span>
+                    <span style="font-weight:600; color:#22c55e;">₹{credited:,.0f}</span>
+                </div>
+            </div>
+            
+            <p style="text-align:center;">
+                <a href="https://airyatra.co.in/customer/inquiries" class="btn">💳 Pay Balance Now</a>
+            </p>
+            
+            <p style="color:#fbbf24; font-size:13px; background:#422006; padding:15px; border-radius:8px; margin-top:20px; text-align:center;">
+                ⚠️ Payment must be completed before departure to avoid flight cancellation.
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra - India's Premium Helicopter Booking Platform</p>
+            <p>📞 Support: info@airyatra.co.in</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+                
+                # Send email
+                result = await email_service.send_email(
+                    to_email=customer["email"],
+                    subject=subject,
+                    html_body=html_body
+                )
+                
+                if result.get("success"):
+                    # Mark reminder as sent
+                    await db.inquiries.update_one(
+                        {"id": booking["id"]},
+                        {"$set": {
+                            "auto_balance_reminder_sent": True,
+                            "auto_balance_reminder_at": now.isoformat(),
+                            "auto_balance_reminder_amount": remaining
+                        }}
+                    )
+                    sent += 1
+                    logger.info(f"Auto balance reminder sent to {customer['email']} for booking {inquiry_number}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to send auto reminder for booking {booking.get('id')}: {e}")
+        
+        logger.info(f"Auto balance reminders: {sent} emails sent")
+        return sent
+        
+    except Exception as e:
+        logger.error(f"send_auto_balance_reminders failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -718,8 +909,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Auto balance reminders - 3 days before departure (checks twice daily)
+    scheduler.add_job(
+        send_auto_balance_reminders,
+        trigger=IntervalTrigger(hours=12),
+        id="auto_balance_reminders",
+        name="Auto Balance Reminders (3 days before departure)",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders")
 
 
 def stop_scheduler():
