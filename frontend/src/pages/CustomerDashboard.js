@@ -8,6 +8,7 @@ import MyTrips from '../components/customer/MyTrips';
 import ChatWidget from '../components/customer/ChatWidget';
 import CustomerProfile from '../components/customer/CustomerProfile';
 import ReferAndEarn from '../components/customer/ReferAndEarn';
+import LoyaltyRewards from '../components/customer/LoyaltyRewards';
 import NotificationBell from '../components/shared/NotificationBell';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -72,6 +73,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
     else if (path.includes('/refer')) setActiveTab('refer');
+    else if (path.includes('/loyalty')) setActiveTab('loyalty');
     else setActiveTab('overview');
   }, [location]);
 
@@ -125,6 +127,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <ChatWidget user={user} />;
       case 'refer':
         return <ReferAndEarn user={user} />;
+      case 'loyalty':
+        return <LoyaltyRewards user={user} />;
       default:
         return (
           <div className="max-w-6xl mx-auto">

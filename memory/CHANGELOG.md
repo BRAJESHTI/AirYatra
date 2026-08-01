@@ -218,3 +218,13 @@
 - FIXED: file corruption at BookingPage.js end (duplicate export lines from misapplied edit) causing webpack parse error
 - Tested: iteration_5.json - 16/16 passed (100%) - languages, persistence, dropdowns, toasts, mid-form switch state retention
 - KNOWN SCOPE LIMIT: LandingPointSelector internal search UI strings still bilingual EN/HI (deliberate, pending future migration)
+
+## August 1, 2026 - Loyalty Rewards Upgrade (P1 - 1.4)
+- Backend (loyalty_routes.py): LOYALTY_TIER_MULTIPLIERS (bronze 1x, silver 1.25x, gold 1.5x, platinum 2x), effective multiplier = max(loyalty tier, active BLACK membership multiplier up to 3x)
+- award_booking_points() helper: 1 pt per ₹100 spent × multiplier, idempotent per booking (points_history reference_id check), auto tier upgrade
+- Hooked into journey completion (journey_routes.py complete-journey) - points auto-awarded on every completed flight
+- New endpoints: GET /loyalty/rewards (seeded 7-item catalog, can_redeem/tier_locked flags), POST /loyalty/rewards/{id}/redeem (voucher RWD-XXXX, expiry), GET /loyalty/my-redemptions, POST /loyalty/earn/{booking_id} (manual/idempotent), POST /loyalty/admin/rewards (upsert)
+- /loyalty/my-status now returns "earning" block (rate, multipliers, membership boost)
+- Frontend: components/customer/LoyaltyRewards.js rendered at /customer/loyalty (CustomerDashboard 'loyalty' tab + App.js route + URL sync fix)
+- Tested via curl (earn 1x & 1.5x membership multiplier, idempotency, tier-lock 403, redeem, deduction) + screenshots (UI, redeem dialog, voucher code toast, points 3500→2750)
+- Test customer: loyaltytest@airyatra.com / Loyalty@123 (has gold membership + vouchers seeded)

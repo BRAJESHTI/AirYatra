@@ -375,11 +375,22 @@ async def verify_journey_completion(
             {"$inc": {"total_flight_hours": round(flight_duration_hours, 2)}}
         )
     
+    # Award loyalty points (tier-based multiplier)
+    loyalty_award = None
+    try:
+        from routes.loyalty_routes import award_booking_points
+        amount = booking.get("total_amount") or (booking.get("price_estimate") or {}).get("total") or booking.get("ai_price_suggestion") or 0
+        if booking.get("customer_id") and amount:
+            loyalty_award = await award_booking_points(db, booking["customer_id"], request.booking_id, float(amount))
+    except Exception as e:
+        print(f"Loyalty points award failed: {e}")
+    
     return {
         "message": "Journey completed successfully!",
         "booking_id": request.booking_id,
         "flight_duration_hours": round(flight_duration_hours, 2),
-        "journey_status": "completed"
+        "journey_status": "completed",
+        "loyalty_points_awarded": loyalty_award["points_earned"] if loyalty_award else 0
     }
 
 @router.get("/status/{booking_id}")

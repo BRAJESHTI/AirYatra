@@ -35,3 +35,8 @@
 ---
 
 *Last Updated: December 2025*
+
+## Loyalty Test Customer (created Aug 1, 2026)
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Customer | loyaltytest@airyatra.com | Loyalty@123 | Has gold BLACK membership (1.5x multiplier), loyalty points, redeemed vouchers. Use for /customer/loyalty testing |
