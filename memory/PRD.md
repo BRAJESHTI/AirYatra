@@ -82,6 +82,7 @@
 ### Recent Additions (Aug 1, 2026)
 | Feature | Status | Notes |
 |---------|--------|-------|
+| Full HRMS Suite (Phase 3) | 🟢 DONE | (Aug 1, 2026) Complete HRMS: (1) **Employee Management** — new `employee` UserRole, Admin/HR creates staff accounts w/ salary structure via HR Dashboard → Employees → All Employees (EmployeeManagement.js), auto EMP-xxxx codes, activate/deactivate, set-salary dialog. Backend: hr_employee_routes.py (POST/GET/PUT /api/hr/employees). (2) **Employee Self-Service Portal** at /employee (EmployeePortal.js, sky-blue theme) — Overview KPIs, geolocation Check-in/Check-out, monthly attendance table, Leave apply + balance + history, Payslip viewer w/ branded PDF download (reportlab, GET /api/hr/payroll/{id}/payslip.pdf), Expense claims (create→receipt upload→auto-submit, status tracking). (3) **Payroll** — existing generate flow + payslip PDF buttons in admin AttendancePayroll; FIXED regenerate bug (insert_one ObjectId mutation + id overwrite in hr_routes.py). Test employee: employee@airyatra.com / Employee@123 (EMP-0001). Tested: iteration_12, 100% pass |
 | Auction Outbid Alerts | 🟢 DONE | Instant email to previous highest bidder on outbid (SMTP verified) |
 | Auction Watchlist | 🟢 DONE | Bell watch toggle on auction cards + "N watching" count. Watchers get email reminder when auction ends within 60 min (apscheduler job `auction_ending_reminders` every 10 min). Endpoints: POST /api/exchange/auctions/{id}/watch, GET /api/exchange/auctions/watchlist/my |
 | CEO Board Report PDF | 🟢 DONE | "Board Report (PDF)" button on CEO Dashboard → reportlab investor report (Financial, Operations, Marketplace, HR, Partnerships sections). GET /api/ceo/report.pdf |
@@ -153,6 +154,7 @@
 
 | # | Feature | Priority | Status | Description |
 |---|---------|----------|--------|-------------|
+| 3.0 | Full HRMS Suite | P1 | 🟢 DONE | (Aug 1, 2026) Employee Mgmt + Attendance + Leave + Payroll/Payslip PDF + Expense Reimbursement, with employee self-service portal at /employee |
 | 3.1 | AirYatra OS (Operator SaaS) | P0 | ⚪ BACKLOG | Complete ERP for operators |
 | 3.2 | Digital Flight Logbook | P0 | ⚪ BACKLOG | Automatic flight history tracking |
 | 3.3 | Predictive Maintenance AI | P0 | ⚪ BACKLOG | AI-based maintenance alerts |
