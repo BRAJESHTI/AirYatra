@@ -648,6 +648,15 @@ async def upsert_reward(reward: dict, current_user: dict = Depends(get_current_u
     await db.rewards_catalog.update_one({"id": reward["id"]}, {"$set": reward}, upsert=True)
     return {"message": "Reward saved", "reward_id": reward["id"]}
 
+@router.post("/admin/vouchers/send-expiry-alerts")
+async def trigger_voucher_expiry_alerts(current_user: dict = Depends(get_current_user)):
+    """Admin: manually trigger voucher expiry email alerts"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    from scheduler import send_voucher_expiry_alerts
+    sent = await send_voucher_expiry_alerts()
+    return {"message": f"Expiry alerts sent: {sent}", "sent_count": sent}
+
 # ============ VOUCHER VALIDATION (Checkout Discounts) ============
 
 async def validate_voucher_for_user(db, user_id: str, code: str):

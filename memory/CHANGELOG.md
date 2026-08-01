@@ -238,3 +238,8 @@
 ## August 1, 2026 - Welcome Bonus Points
 - auth_routes.py register: new customers get 500 welcome points (loyalty_profiles created + points_history "Welcome bonus" entry). Non-customer roles skipped.
 - Tested via curl: new registration -> 500 points, bronze tier, history entry visible
+
+## August 1, 2026 - Voucher Expiry Alerts
+- scheduler.py: send_voucher_expiry_alerts() job (every 12h) - finds active vouchers expiring within 7 days (expiry_alert_sent != true), sends branded HTML email via Hostinger SMTP, marks expiry_alert_sent=true (no duplicates)
+- Admin trigger: POST /loyalty/admin/vouchers/send-expiry-alerts
+- Tested: seeded voucher expiring in 3 days -> trigger sent 1 email (SMTP success in logs), re-trigger sent 0 (dedupe works)

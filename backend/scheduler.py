@@ -239,6 +239,73 @@ async def generate_daily_reports():
         logger.error(f"Error in generate_daily_reports: {e}")
 
 
+async def send_voucher_expiry_alerts():
+    """Email members whose active vouchers expire within 7 days. Runs every 12 hours."""
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        
+        now = datetime.now(timezone.utc)
+        cutoff = (now + timedelta(days=7)).isoformat()
+        
+        vouchers = await db.reward_redemptions.find({
+            "status": "active",
+            "expiry_alert_sent": {"$ne": True},
+            "expires_at": {"$gt": now.isoformat(), "$lt": cutoff}
+        }, {"_id": 0}).to_list(100)
+        
+        sent = 0
+        for v in vouchers:
+            user = await db.users.find_one({"id": v["user_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+            if not user or not user.get("email"):
+                continue
+            
+            expires = datetime.fromisoformat(v["expires_at"].replace("Z", "+00:00"))
+            days_left = max(1, (expires - now).days)
+            value_line = f"<p style='font-size:18px;color:#16a34a;'><b>Worth ₹{int(v.get('value', 0)):,} discount!</b></p>" if v.get("value") else ""
+            
+            html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#0f172a;color:#e2e8f0;padding:30px;border-radius:12px;">
+                <h2 style="color:#f97316;">⏰ Your Voucher Expires Soon!</h2>
+                <p>Hi {user.get('full_name', 'Traveler')},</p>
+                <p>Your reward voucher <b>{v.get('reward_icon','🎫')} {v['reward_name']}</b> expires in <b style="color:#f97316;">{days_left} day(s)</b>.</p>
+                <div style="background:#1e293b;border:1px dashed #f97316;padding:15px;border-radius:8px;text-align:center;margin:20px 0;">
+                    <p style="margin:0;color:#94a3b8;font-size:12px;">VOUCHER CODE</p>
+                    <p style="margin:5px 0;font-size:22px;letter-spacing:2px;color:#f97316;"><b>{v['code']}</b></p>
+                    <p style="margin:0;color:#94a3b8;font-size:12px;">Valid till {expires.strftime('%d %b %Y')}</p>
+                </div>
+                {value_line}
+                <p>Apply it at checkout on your next booking — don't let your reward go to waste!</p>
+                <p style="margin-top:25px;">Happy Flying! ✈️<br/><b>Team AirYatra</b></p>
+            </div>
+            """
+            try:
+                from services.email_service import email_service
+                result = await email_service.send_email(
+                    to_email=user["email"],
+                    subject=f"⏰ Your ₹{int(v.get('value', 0)):,} AirYatra voucher expires in {days_left} day(s)!" if v.get("value") else f"⏰ Your AirYatra voucher expires in {days_left} day(s)!",
+                    html_body=html
+                )
+                if result.get("success"):
+                    await db.reward_redemptions.update_one(
+                        {"id": v["id"]},
+                        {"$set": {"expiry_alert_sent": True, "expiry_alert_at": now.isoformat()}}
+                    )
+                    sent += 1
+            except Exception as e:
+                logger.error(f"Voucher expiry email failed for {v['code']}: {e}")
+        
+        if sent:
+            logger.info(f"Voucher expiry alerts sent: {sent}")
+        return sent
+    except Exception as e:
+        logger.error(f"send_voucher_expiry_alerts failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -278,8 +345,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Voucher expiry alerts every 12 hours
+    scheduler.add_job(
+        send_voucher_expiry_alerts,
+        trigger=IntervalTrigger(hours=12),
+        id="voucher_expiry_alerts",
+        name="Voucher Expiry Email Alerts",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts")
 
 
 def stop_scheduler():
