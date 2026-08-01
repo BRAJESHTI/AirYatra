@@ -4,13 +4,13 @@ import {
   Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, 
   MapPin, ChevronLeft, ChevronRight, Check, AlertCircle, 
   Briefcase, Target, Navigation, Calculator, Send, Loader2,
-  UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign
+  UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign, Gift, Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { bookingAPI, settingsAPI, landingAPI, pricingEngineAPI } from '../services/api';
+import { bookingAPI, settingsAPI, landingAPI, pricingEngineAPI, referralAPI } from '../services/api';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import PinCodeInput from '../components/shared/PinCodeInput';
@@ -147,6 +147,15 @@ function BookingPage({ user }) {
   const [distanceKm, setDistanceKm] = useState(0);
   const [landingRent, setLandingRent] = useState({ pickup: null, drop: null, total: 0 });
   const [permissionRequired, setPermissionRequired] = useState(false);
+  
+  // Referral & Discount State
+  const [referralCode, setReferralCode] = useState('');
+  const [referralApplied, setReferralApplied] = useState(null);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountApplied, setDiscountApplied] = useState(null);
+  const [applyingCode, setApplyingCode] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
 
   // Use imported steps from config (titles localized)
   const steps = bookingSteps.map(s => ({ ...s, title: t(`booking.steps.${s.id}`) }));
@@ -172,7 +181,26 @@ function BookingPage({ user }) {
 
   useEffect(() => {
     loadPricingSettings();
-  }, []);
+    // Load wallet balance if logged in
+    if (user) {
+      loadWalletBalance();
+      // Check URL for referral code
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+      if (refCode) {
+        setReferralCode(refCode);
+      }
+    }
+  }, [user]);
+  
+  const loadWalletBalance = async () => {
+    try {
+      const res = await referralAPI.getWallet();
+      setWalletBalance(res.data.balance || 0);
+    } catch (e) {
+      console.log('Wallet not available');
+    }
+  };
 
   useEffect(() => {
     // Calculate total passengers
@@ -589,6 +617,92 @@ function BookingPage({ user }) {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
+  // Apply Referral Code
+  const applyReferral = async () => {
+    if (!referralCode.trim()) {
+      toast.error('Please enter a referral code / कृपया रेफरल कोड डालें');
+      return;
+    }
+    
+    setApplyingCode(true);
+    try {
+      const res = await referralAPI.applyReferralCode(referralCode.trim().toUpperCase());
+      setReferralApplied({
+        discount_percent: res.data.first_booking_discount,
+        referrer_name: res.data.referrer_name,
+        message: res.data.message
+      });
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Invalid referral code / अमान्य रेफरल कोड');
+      setReferralApplied(null);
+    } finally {
+      setApplyingCode(false);
+    }
+  };
+  
+  // Apply Discount Code
+  const applyDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast.error('Please enter a discount code / कृपया डिस्काउंट कोड डालें');
+      return;
+    }
+    
+    if (!priceEstimate?.total) {
+      toast.error('Wait for price calculation / कृपया कीमत गणना का इंतजार करें');
+      return;
+    }
+    
+    setApplyingCode(true);
+    try {
+      const res = await referralAPI.validateDiscount({
+        code: discountCode.trim().toUpperCase(),
+        booking_amount: priceEstimate.total
+      });
+      setDiscountApplied({
+        code: res.data.code,
+        discount_type: res.data.discount_type,
+        discount_value: res.data.discount_value,
+        discount_amount: res.data.discount_amount,
+        message: res.data.message
+      });
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Invalid discount code / अमान्य डिस्काउंट कोड');
+      setDiscountApplied(null);
+    } finally {
+      setApplyingCode(false);
+    }
+  };
+  
+  // Calculate final price with discounts
+  const getFinalPrice = () => {
+    let total = priceEstimate?.total || 0;
+    let discounts = [];
+    
+    // Apply referral discount (first booking 10%)
+    if (referralApplied) {
+      const referralDiscount = Math.round(total * (referralApplied.discount_percent / 100));
+      discounts.push({ type: 'Referral Discount', amount: referralDiscount });
+      total -= referralDiscount;
+    }
+    
+    // Apply discount code
+    if (discountApplied) {
+      discounts.push({ type: 'Promo Code', amount: discountApplied.discount_amount });
+      total -= discountApplied.discount_amount;
+    }
+    
+    // Apply wallet balance
+    if (useWallet && walletBalance > 0) {
+      const walletUse = Math.min(walletBalance, total);
+      discounts.push({ type: 'Wallet Balance', amount: walletUse });
+      total -= walletUse;
+    }
+    
+    return { total: Math.max(0, total), discounts };
+  };
+
   const handleSubmitInquiry = async () => {
     if (!user) {
       // Save form data before redirecting to login
@@ -645,6 +759,21 @@ function BookingPage({ user }) {
         price_breakdown: priceEstimate,
         pricing_calculation_id: priceEstimate?.calculation_id, // Audit trail
         landing_rent_breakdown: landingRent,
+        
+        // Referral & Discount data
+        referral_code_used: referralApplied ? referralCode.toUpperCase() : null,
+        referral_discount: referralApplied ? {
+          percent: referralApplied.discount_percent,
+          amount: Math.round((priceEstimate?.total || 0) * (referralApplied.discount_percent / 100))
+        } : null,
+        discount_code_used: discountApplied ? discountApplied.code : null,
+        discount_applied: discountApplied ? {
+          type: discountApplied.discount_type,
+          value: discountApplied.discount_value,
+          amount: discountApplied.discount_amount
+        } : null,
+        wallet_used: useWallet ? Math.min(walletBalance, getFinalPrice().total + (useWallet && walletBalance > 0 ? Math.min(walletBalance, priceEstimate?.total || 0) : 0)) : 0,
+        final_price: getFinalPrice().total,
         
         // Permission workflow
         permission_required: permissionRequired,
@@ -1311,6 +1440,130 @@ function BookingPage({ user }) {
                 </div>
               )}
             </div>
+            
+            {/* Referral & Discount Section */}
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 mt-4">
+              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                <Gift className="h-4 w-4 text-green-400" />
+                Referral & Discounts / रेफरल और छूट
+              </h4>
+              
+              {/* Referral Code Input */}
+              {!referralApplied && (
+                <div className="mb-3">
+                  <label className="text-slate-400 text-sm mb-1 block">Referral Code (Friend&apos;s Code) / रेफरल कोड</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      placeholder="AIRXXX"
+                      className="bg-slate-900 border-slate-600 text-white uppercase"
+                      disabled={applyingCode}
+                    />
+                    <Button
+                      onClick={applyReferral}
+                      disabled={applyingCode || !referralCode.trim()}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {applyingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                    </Button>
+                  </div>
+                  <p className="text-slate-500 text-xs mt-1">Get 10% off on your first booking! / पहली बुकिंग पर 10% छूट!</p>
+                </div>
+              )}
+              
+              {/* Referral Applied Badge */}
+              {referralApplied && (
+                <div className="mb-3 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-400" />
+                      <span className="text-green-400">Referral Applied! / रेफरल लागू!</span>
+                    </div>
+                    <span className="text-green-400 font-bold">-{referralApplied.discount_percent}%</span>
+                  </div>
+                  <p className="text-slate-400 text-xs mt-1">Referred by: {referralApplied.referrer_name}</p>
+                </div>
+              )}
+              
+              {/* Discount Code Input */}
+              {!discountApplied && (
+                <div className="mb-3">
+                  <label className="text-slate-400 text-sm mb-1 block">Promo Code / प्रोमो कोड</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                      placeholder="AIRYATRA10"
+                      className="bg-slate-900 border-slate-600 text-white uppercase"
+                      disabled={applyingCode}
+                    />
+                    <Button
+                      onClick={applyDiscount}
+                      disabled={applyingCode || !discountCode.trim()}
+                      variant="outline"
+                      className="border-slate-600"
+                    >
+                      {applyingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Discount Applied Badge */}
+              {discountApplied && (
+                <div className="mb-3 p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-purple-400" />
+                      <span className="text-purple-400">{discountApplied.code} Applied!</span>
+                    </div>
+                    <span className="text-purple-400 font-bold">-₹{discountApplied.discount_amount?.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Wallet Balance */}
+              {walletBalance > 0 && (
+                <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="use-wallet"
+                        checked={useWallet}
+                        onCheckedChange={setUseWallet}
+                      />
+                      <label htmlFor="use-wallet" className="text-white cursor-pointer">
+                        Use Wallet Balance / वॉलेट बैलेंस उपयोग करें
+                      </label>
+                    </div>
+                    <span className="text-blue-400 font-bold">₹{walletBalance.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Final Price After Discounts */}
+            {(referralApplied || discountApplied || (useWallet && walletBalance > 0)) && (
+              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/40 mt-2">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Original Price:</span>
+                    <span className="line-through">₹{(priceEstimate.total || 0).toLocaleString()}</span>
+                  </div>
+                  {getFinalPrice().discounts.map((d, i) => (
+                    <div key={i} className="flex justify-between text-green-400">
+                      <span>{d.type}:</span>
+                      <span>-₹{d.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2 border-t border-green-500/30">
+                    <span className="text-white font-bold text-lg">You Pay / आप देंगे:</span>
+                    <span className="text-green-400 font-bold text-2xl">₹{getFinalPrice().total.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Notes */}
             {priceEstimate.notes && priceEstimate.notes.length > 0 && (

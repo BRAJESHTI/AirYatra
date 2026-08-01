@@ -382,6 +382,19 @@ async def _apply_payment_success(db, txn: dict):
             )
         except Exception as e:
             print(f"Booking confirmation notification failed: {e}")
+    
+    # Process referral bonus for first-time bookings (advance payment only)
+    if booking and txn.get("payment_type") != "balance":
+        try:
+            from routes.referral_routes import process_referral_bonus
+            await process_referral_bonus(
+                booking_id=txn["booking_id"],
+                booking_amount=txn.get("amount", 0),
+                customer_id=txn["customer_id"]
+            )
+            print(f"Referral bonus processed for booking {txn['booking_id'][:8]}")
+        except Exception as e:
+            print(f"Referral bonus processing skipped/failed: {e}")
 
 
 async def _mark_paid_if_needed(db, session_id: str) -> dict:
