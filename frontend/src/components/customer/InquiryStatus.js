@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { customerAPI, bookingAPI, landingAPI } from '@/services/api';
+import api from '@/services/api';
 import { toast } from 'sonner';
 import PassengerDetailsForm from './PassengerDetailsForm';
 import VillageLandingDocuments from './VillageLandingDocuments';
@@ -28,6 +29,24 @@ function InquiryStatus({ user }) {
   const [quotes, setQuotes] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [villagePermission, setVillagePermission] = useState(null);
+  const [ledger, setLedger] = useState(null);
+
+  useEffect(() => {
+    api.get(`/payments/transactions/${inquiryId}`).then((res) => setLedger(res.data)).catch(() => {});
+  }, [inquiryId]);
+
+  const downloadReceipt = async (t) => {
+    try {
+      const res = await api.get(`/payments/receipt/${t.session_id}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AirYatra_Receipt_${t.id.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Receipt downloaded / रसीद डाउनलोड हो गई');
+    } catch (e) { toast.error('Failed to download receipt'); }
+  };
   const [loading, setLoading] = useState(true);
   const [showQuotesDialog, setShowQuotesDialog] = useState(false);
   const [showPassengerForm, setShowPassengerForm] = useState(false);
@@ -453,6 +472,47 @@ function InquiryStatus({ user }) {
                   <li>SP/DCP Acknowledgment / SP/DCP की पावती</li>
                 </ul>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payments & Receipts */}
+        {ledger && ledger.transactions?.length > 0 && (
+          <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-8" data-testid="payments-receipts-section">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-green-400" />
+              Payments & Receipts / भुगतान और रसीदें
+            </h3>
+            <div className="space-y-2 mb-4">
+              {ledger.transactions.map((t) => (
+                <div key={t.id} className="flex items-center justify-between bg-slate-800/60 rounded-lg p-3 border border-slate-700/60" data-testid={`payment-txn-${t.id}`}>
+                  <div>
+                    <p className="text-white text-sm font-medium">
+                      {t.payment_type === 'balance' ? 'Remaining Balance' : 'Advance Payment'} — ₹{Number(t.amount).toLocaleString()}
+                      {t.voucher_discount > 0 && <span className="text-green-400 text-xs ml-2">(voucher -₹{t.voucher_discount.toLocaleString()})</span>}
+                    </p>
+                    <p className="text-slate-500 text-xs">{(t.paid_at || '').slice(0, 16).replace('T', ' ')} • Stripe (Test)</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => downloadReceipt(t)} className="border-slate-600 text-slate-300 hover:text-white h-8" data-testid={`download-receipt-${t.id}`}>
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />Receipt PDF
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-700/60 pt-3">
+              <p className="text-slate-400 text-sm">
+                Paid: <span className="text-green-400 font-semibold">₹{Number(ledger.paid_total).toLocaleString()}</span>
+                <span className="mx-2">•</span>
+                Remaining: <span className={`font-semibold ${ledger.remaining_due > 0 ? 'text-orange-400' : 'text-green-400'}`}>₹{Number(ledger.remaining_due).toLocaleString()}</span>
+              </p>
+              {ledger.remaining_due > 0 && ledger.payment_status === 'paid' && (
+                <Button onClick={() => navigate(`/customer/payment/${inquiryId}?type=balance`)} className="bg-orange-500 hover:bg-orange-600" data-testid="pay-remaining-btn">
+                  <CreditCard className="h-4 w-4 mr-2" />Pay Remaining ₹{Number(ledger.remaining_due).toLocaleString()}
+                </Button>
+              )}
+              {ledger.payment_status === 'fully_paid' && (
+                <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-sm font-semibold" data-testid="fully-paid-badge">✓ Fully Paid / पूर्ण भुगतान</span>
+              )}
             </div>
           </div>
         )}

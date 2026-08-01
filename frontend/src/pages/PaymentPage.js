@@ -24,6 +24,14 @@ function PaymentPage({ user }) {
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applying, setApplying] = useState(false);
   const [myVouchers, setMyVouchers] = useState([]);
+  const isBalance = new URLSearchParams(location.search).get('type') === 'balance';
+  const [ledger, setLedger] = useState(null);
+
+  useEffect(() => {
+    if (isBalance) {
+      api.get(`/payments/transactions/${inquiryId}`).then((res) => setLedger(res.data)).catch(() => {});
+    }
+  }, [isBalance, inquiryId]);
 
   useEffect(() => {
     if (!inquiry) {
@@ -114,8 +122,9 @@ function PaymentPage({ user }) {
     try {
       const res = await api.post('/payments/stripe/checkout', {
         booking_id: inquiryId,
-        voucher_code: appliedVoucher?.code || null,
+        voucher_code: isBalance ? null : (appliedVoucher?.code || null),
         origin_url: window.location.origin,
+        payment_type: isBalance ? 'balance' : 'advance',
       });
       if (res.data.checkout_url) {
         toast.info('Redirecting to secure Stripe checkout... / सुरक्षित भुगतान पेज पर जा रहे हैं');
@@ -159,10 +168,10 @@ function PaymentPage({ user }) {
     );
   }
 
-  const advanceAmount = paymentInfo?.advance_amount || inquiry?.estimated_price;
+  const advanceAmount = isBalance ? (ledger?.remaining_due ?? paymentInfo?.remaining_amount) : (paymentInfo?.advance_amount || inquiry?.estimated_price);
   const advancePercent = paymentInfo?.advance_percent || 100;
-  const remainingAmount = paymentInfo?.remaining_amount || 0;
-  const voucherDiscount = appliedVoucher ? Math.min(appliedVoucher.value, advanceAmount || 0) : 0;
+  const remainingAmount = isBalance ? 0 : (paymentInfo?.remaining_amount || 0);
+  const voucherDiscount = !isBalance && appliedVoucher ? Math.min(appliedVoucher.value, advanceAmount || 0) : 0;
   const payableAmount = Math.max(voucherDiscount > 0 ? 1 : 0, (advanceAmount || 0) - voucherDiscount) || advanceAmount;
 
   return (
@@ -222,7 +231,7 @@ function PaymentPage({ user }) {
         {/* Payment Amount */}
         <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-2xl p-6 border border-orange-500/30 mb-6" data-testid="payment-amount-card">
           <div className="text-center">
-            <p className="text-slate-400 text-sm">Amount to Pay Now ({advancePercent}% Advance)</p>
+            <p className="text-slate-400 text-sm">{isBalance ? 'Remaining Balance Payment / शेष राशि भुगतान' : `Amount to Pay Now (${advancePercent}% Advance)`}</p>
             {voucherDiscount > 0 ? (
               <>
                 <p className="text-slate-500 line-through text-lg mt-2" data-testid="original-amount">₹{advanceAmount?.toLocaleString()}</p>
@@ -251,6 +260,7 @@ function PaymentPage({ user }) {
         </div>
 
         {/* Loyalty Voucher */}
+        {!isBalance && (
         <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-6" data-testid="voucher-section">
           <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
             <Ticket className="h-5 w-5 text-orange-400" />
@@ -308,6 +318,7 @@ function PaymentPage({ user }) {
             </>
           )}
         </div>
+        )}
 
         {/* Payment Methods */}
         <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-6">

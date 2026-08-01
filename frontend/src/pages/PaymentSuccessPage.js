@@ -53,6 +53,22 @@ export default function PaymentSuccessPage() {
               <Button onClick={() => navigate(txn?.booking_id ? `/customer/inquiry/${txn.booking_id}` : '/customer')} className="w-full bg-green-600 hover:bg-green-700" data-testid="view-booking-btn">
                 <Plane className="h-4 w-4 mr-2" />View Booking / बुकिंग देखें
               </Button>
+              <Button variant="outline" data-testid="download-receipt-btn"
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+                    const res = await axios.get(`${API}/payments/receipt/${sessionId}`, { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } });
+                    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'AirYatra_Receipt.pdf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch (e) { /* receipt needs login */ }
+                }}
+                className="w-full border-slate-600 text-slate-300">
+                Download Receipt (PDF) / रसीद डाउनलोड
+              </Button>
               <Button variant="outline" onClick={() => navigate('/customer')} className="w-full border-slate-600 text-slate-300">Go to Dashboard</Button>
             </div>
           </>

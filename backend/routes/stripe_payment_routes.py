@@ -59,7 +59,7 @@ async def create_stripe_checkout(
         raise HTTPException(status_code=400, detail="No payable amount on this booking")
 
     if payment_type == "balance":
-        if booking.get("payment_status") not in ["paid"]:
+        if booking.get("payment_status") not in ["paid", "fully_paid"]:
             raise HTTPException(status_code=400, detail="Advance payment pending — pehle advance bharein")
         if remaining <= 0:
             raise HTTPException(status_code=400, detail="Already fully paid / पूरा भुगतान हो चुका है")
