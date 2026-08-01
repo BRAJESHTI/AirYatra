@@ -400,3 +400,12 @@ All APIs prefixed with `/api/`
 *Document Version: 2.0*
 *Last Updated: December 2025*
 *AirYatra - World's First Aviation Super Ecosystem*
+
+### Latest Updates (Aug 1, 2026 - Session 2)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Pilot Assignment Calendar | 🟢 DONE | Operator → Fleet & Crew → Pilot Assignment. Visual calendar to assign pilots to bookings: Summary cards (Total Pilots, Assigned, Unassigned, Total Bookings). Monthly calendar view. Right panel shows selected date bookings with Assign dropdown. APIs: GET /api/operator/pilots/availability, POST /api/operator/pilots/assign. Prevents double-booking |
+| Maintenance Cost Tracker | 🟢 DONE | Operator → Fleet & Crew → Cost Tracker. Track estimated vs actual maintenance costs: Summary cards (Total Estimated, Total Actual, Variance %, Completed Count). Budget status cards (On/Under/Over Budget). Charts: Monthly Cost Trend, Cost by Type. API: GET /api/maintenance/cost-tracker |
+| Pilot Document Upload Portal | 🟢 DONE | Operator → Fleet & Crew → Pilot Documents. Upload pilot licenses, medicals, certificates: Pilot selector, 11 document types, upload dialog with expiry date. Documents table with download/delete. APIs: GET/POST/DELETE /api/maintenance/pilot-documents |
+

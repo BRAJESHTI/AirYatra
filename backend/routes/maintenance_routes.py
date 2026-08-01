@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -573,3 +573,430 @@ async def export_maintenance_ical(
             "Content-Disposition": f"attachment; filename=airyatra_maintenance_{now.strftime('%Y%m%d')}.ics"
         }
     )
+
+
+# ============== MAINTENANCE COST TRACKER ==============
+
+@router.get("/cost-tracker")
+async def get_maintenance_cost_tracker(
+    months: int = Query(6, description="Number of months to analyze"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get maintenance cost tracking with estimated vs actual variance"""
+    db = get_database()
+    
+    if not any(role in current_user.get("roles", []) for role in ["admin", "operator"]):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    now = datetime.now(timezone.utc)
+    start_date = (now - timedelta(days=months * 30)).isoformat()
+    
+    # Get operator's aircraft if operator
+    query = {"scheduled_date": {"$gte": start_date}}
+    
+    operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    if operator:
+        aircraft_list = await db.aircraft.find(
+            {"operator_id": operator["id"]},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+        aircraft_ids = [a["id"] for a in aircraft_list]
+        query["aircraft_id"] = {"$in": aircraft_ids}
+    
+    # Get all maintenance records with costs
+    records = await db.maintenance_schedules.find(
+        query,
+        {"_id": 0}
+    ).sort("scheduled_date", -1).to_list(500)
+    
+    # Calculate totals and variances
+    total_estimated = 0
+    total_actual = 0
+    completed_count = 0
+    over_budget_count = 0
+    under_budget_count = 0
+    on_budget_count = 0
+    
+    monthly_data = {}
+    by_type = {}
+    variance_items = []
+    
+    for record in records:
+        estimated = float(record.get("estimated_cost", 0) or 0)
+        actual = float(record.get("actual_cost", 0) or 0)
+        
+        total_estimated += estimated
+        
+        if record.get("status") == "completed" and actual > 0:
+            total_actual += actual
+            completed_count += 1
+            
+            variance = actual - estimated
+            variance_percent = ((actual - estimated) / estimated * 100) if estimated > 0 else 0
+            
+            if variance_percent > 10:
+                over_budget_count += 1
+            elif variance_percent < -10:
+                under_budget_count += 1
+            else:
+                on_budget_count += 1
+            
+            variance_items.append({
+                "id": record.get("id"),
+                "maintenance_number": record.get("maintenance_number"),
+                "aircraft": record.get("aircraft_registration"),
+                "type": record.get("type"),
+                "description": record.get("description"),
+                "scheduled_date": record.get("scheduled_date"),
+                "estimated_cost": estimated,
+                "actual_cost": actual,
+                "variance": round(variance, 2),
+                "variance_percent": round(variance_percent, 1),
+                "status": "over" if variance_percent > 10 else "under" if variance_percent < -10 else "on_budget"
+            })
+        
+        # Monthly aggregation
+        month_key = record.get("scheduled_date", "")[:7]  # YYYY-MM
+        if month_key:
+            if month_key not in monthly_data:
+                monthly_data[month_key] = {"estimated": 0, "actual": 0, "count": 0}
+            monthly_data[month_key]["estimated"] += estimated
+            if actual > 0:
+                monthly_data[month_key]["actual"] += actual
+            monthly_data[month_key]["count"] += 1
+        
+        # By type aggregation
+        mtype = record.get("type", "other")
+        if mtype not in by_type:
+            by_type[mtype] = {"estimated": 0, "actual": 0, "count": 0}
+        by_type[mtype]["estimated"] += estimated
+        if actual > 0:
+            by_type[mtype]["actual"] += actual
+        by_type[mtype]["count"] += 1
+    
+    # Format monthly data for charts
+    monthly_chart = []
+    for month_key in sorted(monthly_data.keys()):
+        data = monthly_data[month_key]
+        monthly_chart.append({
+            "month": month_key,
+            "estimated": round(data["estimated"], 2),
+            "actual": round(data["actual"], 2),
+            "count": data["count"]
+        })
+    
+    # Format by type
+    type_breakdown = []
+    for mtype, data in by_type.items():
+        variance = data["actual"] - data["estimated"] if data["actual"] > 0 else 0
+        type_breakdown.append({
+            "type": mtype,
+            "estimated": round(data["estimated"], 2),
+            "actual": round(data["actual"], 2),
+            "variance": round(variance, 2),
+            "count": data["count"]
+        })
+    
+    # Sort variance items by variance (highest first)
+    variance_items.sort(key=lambda x: abs(x["variance"]), reverse=True)
+    
+    total_variance = total_actual - total_estimated
+    total_variance_percent = ((total_actual - total_estimated) / total_estimated * 100) if total_estimated > 0 else 0
+    
+    return {
+        "summary": {
+            "total_estimated": round(total_estimated, 2),
+            "total_actual": round(total_actual, 2),
+            "total_variance": round(total_variance, 2),
+            "variance_percent": round(total_variance_percent, 1),
+            "completed_count": completed_count,
+            "over_budget": over_budget_count,
+            "under_budget": under_budget_count,
+            "on_budget": on_budget_count
+        },
+        "monthly_trend": monthly_chart[-6:],  # Last 6 months
+        "by_type": type_breakdown,
+        "variance_details": variance_items[:20],  # Top 20 variances
+        "analysis_period_months": months
+    }
+
+
+@router.put("/schedules/{schedule_id}/actual-cost")
+async def update_actual_cost(
+    schedule_id: str,
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update actual cost after maintenance completion"""
+    db = get_database()
+    
+    if not any(role in current_user.get("roles", []) for role in ["admin", "operator"]):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    actual_cost = float(data.get("actual_cost", 0))
+    actual_hours = float(data.get("actual_hours", 0))
+    notes = data.get("notes", "")
+    
+    if actual_cost < 0:
+        raise HTTPException(status_code=400, detail="Cost cannot be negative")
+    
+    schedule = await db.maintenance_schedules.find_one({"id": schedule_id}, {"_id": 0})
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Maintenance schedule not found")
+    
+    # Calculate variance
+    estimated = float(schedule.get("estimated_cost", 0) or 0)
+    variance = actual_cost - estimated
+    variance_percent = ((actual_cost - estimated) / estimated * 100) if estimated > 0 else 0
+    
+    await db.maintenance_schedules.update_one(
+        {"id": schedule_id},
+        {"$set": {
+            "actual_cost": actual_cost,
+            "actual_hours": actual_hours,
+            "cost_variance": variance,
+            "cost_variance_percent": variance_percent,
+            "completion_notes": notes,
+            "cost_updated_at": datetime.now(timezone.utc).isoformat(),
+            "cost_updated_by": current_user["id"]
+        }}
+    )
+    
+    return {
+        "message": "Actual cost updated",
+        "variance": round(variance, 2),
+        "variance_percent": round(variance_percent, 1)
+    }
+
+
+# ============== PILOT DOCUMENT UPLOAD PORTAL ==============
+
+@router.get("/pilot-documents")
+async def get_pilot_documents(
+    pilot_id: str = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get pilot documents for upload portal"""
+    db = get_database()
+    
+    # Determine if user is pilot viewing own docs or operator viewing pilot docs
+    query = {}
+    
+    if "operator" in current_user.get("roles", []):
+        operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0})
+        if operator and pilot_id:
+            query = {"pilot_id": pilot_id, "operator_id": operator["id"]}
+        elif operator:
+            # Get all docs for operator's pilots
+            pilots = await db.pilots.find({"operator_id": operator["id"]}, {"_id": 0, "id": 1}).to_list(100)
+            pilot_ids = [p["id"] for p in pilots]
+            query = {"pilot_id": {"$in": pilot_ids}}
+    else:
+        # User is viewing own pilot docs
+        pilot = await db.pilots.find_one({"user_id": current_user["id"]}, {"_id": 0})
+        if pilot:
+            query = {"pilot_id": pilot["id"]}
+        else:
+            return {"documents": [], "pilot": None}
+    
+    documents = await db.pilot_documents.find(query, {"_id": 0}).sort("uploaded_at", -1).to_list(100)
+    
+    # Get pilot info if specific pilot
+    pilot_info = None
+    if pilot_id:
+        pilot_info = await db.pilots.find_one({"id": pilot_id}, {"_id": 0, "id": 1, "name": 1, "license_number": 1})
+    
+    return {
+        "documents": documents,
+        "pilot": pilot_info,
+        "document_types": [
+            {"value": "license", "label": "Pilot License / पायलट लाइसेंस"},
+            {"value": "medical", "label": "Medical Certificate / चिकित्सा प्रमाणपत्र"},
+            {"value": "type_rating", "label": "Type Rating / टाइप रेटिंग"},
+            {"value": "instrument_rating", "label": "Instrument Rating"},
+            {"value": "english_proficiency", "label": "English Proficiency"},
+            {"value": "id_proof", "label": "ID Proof / आईडी प्रूफ"},
+            {"value": "passport", "label": "Passport / पासपोर्ट"},
+            {"value": "training_certificate", "label": "Training Certificate"},
+            {"value": "other", "label": "Other / अन्य"}
+        ]
+    }
+
+
+@router.post("/pilot-documents/upload")
+async def upload_pilot_document(
+    file: UploadFile = File(...),
+    pilot_id: str = Form(...),
+    document_type: str = Form(...),
+    expiry_date: str = Form(None),
+    document_number: str = Form(None),
+    notes: str = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload pilot document with auto-verification"""
+    import base64
+    db = get_database()
+    
+    # Validate pilot access
+    pilot = await db.pilots.find_one({"id": pilot_id}, {"_id": 0})
+    if not pilot:
+        raise HTTPException(status_code=404, detail="Pilot not found")
+    
+    # Check permission
+    has_permission = False
+    if "operator" in current_user.get("roles", []):
+        operator = await db.operators.find_one({"user_id": current_user["id"]}, {"_id": 0})
+        if operator and pilot.get("operator_id") == operator["id"]:
+            has_permission = True
+    elif pilot.get("user_id") == current_user["id"]:
+        has_permission = True
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    # Read file
+    content = await file.read()
+    
+    # Validate file type
+    allowed_types = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Only PDF and image files allowed")
+    
+    # Max 5MB
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
+    
+    # Store as base64
+    file_base64 = base64.b64encode(content).decode()
+    
+    # Auto-verification checks
+    verification_status = "pending"
+    verification_notes = []
+    
+    # Check expiry date
+    if expiry_date:
+        try:
+            exp_date = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
+            now = datetime.now(timezone.utc)
+            days_until_expiry = (exp_date - now).days
+            
+            if days_until_expiry < 0:
+                verification_status = "expired"
+                verification_notes.append("Document has expired / दस्तावेज़ समाप्त हो गया है")
+            elif days_until_expiry < 30:
+                verification_status = "expiring_soon"
+                verification_notes.append(f"Expires in {days_until_expiry} days / {days_until_expiry} दिनों में समाप्त")
+            else:
+                verification_status = "valid"
+                verification_notes.append("Document valid / दस्तावेज़ वैध")
+        except (ValueError, TypeError):
+            verification_notes.append("Could not verify expiry date")
+    
+    # Create document record
+    doc_id = str(uuid4())
+    document = {
+        "id": doc_id,
+        "pilot_id": pilot_id,
+        "pilot_name": pilot.get("name"),
+        "operator_id": pilot.get("operator_id"),
+        "document_type": document_type,
+        "document_number": document_number,
+        "file_name": file.filename,
+        "file_type": file.content_type,
+        "file_size": len(content),
+        "file_data": file_base64,
+        "expiry_date": expiry_date,
+        "notes": notes,
+        "verification_status": verification_status,
+        "verification_notes": verification_notes,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": current_user["id"]
+    }
+    
+    await db.pilot_documents.insert_one(document.copy())
+    
+    # Update pilot's expiry dates based on document type
+    update_fields = {}
+    if document_type == "license" and expiry_date:
+        update_fields["license_expiry"] = expiry_date
+        update_fields["license_number"] = document_number or pilot.get("license_number")
+    elif document_type == "medical" and expiry_date:
+        update_fields["medical_expiry"] = expiry_date
+    elif document_type == "type_rating" and expiry_date:
+        update_fields["type_rating_expiry"] = expiry_date
+    
+    if update_fields:
+        update_fields["documents_updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.pilots.update_one({"id": pilot_id}, {"$set": update_fields})
+    
+    # Remove file data from response
+    del document["file_data"]
+    
+    return {
+        "message": "Document uploaded successfully",
+        "document": document,
+        "auto_verification": {
+            "status": verification_status,
+            "notes": verification_notes
+        }
+    }
+
+
+@router.get("/pilot-documents/{doc_id}/download")
+async def download_pilot_document(
+    doc_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Download pilot document"""
+    import base64
+    from fastapi.responses import Response
+    
+    db = get_database()
+    
+    document = await db.pilot_documents.find_one({"id": doc_id}, {"_id": 0})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check permission
+    has_permission = False
+    if "operator" in current_user.get("roles", []) or "admin" in current_user.get("roles", []):
+        has_permission = True
+    else:
+        pilot = await db.pilots.find_one({"id": document.get("pilot_id")}, {"_id": 0})
+        if pilot and pilot.get("user_id") == current_user["id"]:
+            has_permission = True
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    # Decode file
+    file_data = base64.b64decode(document.get("file_data", ""))
+    
+    return Response(
+        content=file_data,
+        media_type=document.get("file_type", "application/octet-stream"),
+        headers={
+            "Content-Disposition": f"attachment; filename={document.get('file_name', 'document')}"
+        }
+    )
+
+
+@router.delete("/pilot-documents/{doc_id}")
+async def delete_pilot_document(
+    doc_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete pilot document"""
+    db = get_database()
+    
+    document = await db.pilot_documents.find_one({"id": doc_id}, {"_id": 0})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check permission (only operator/admin can delete)
+    if not any(role in current_user.get("roles", []) for role in ["operator", "admin"]):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    await db.pilot_documents.delete_one({"id": doc_id})
+    
+    return {"message": "Document deleted"}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation } from 'lucide-react';
+import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -26,6 +26,9 @@ import OperatorRevenueDashboard from '../components/operator/OperatorRevenueDash
 import OperatorFleetAnalytics from '../components/operator/OperatorFleetAnalytics';
 import PilotDutyTracker from '../components/operator/PilotDutyTracker';
 import FleetMaintenanceCalendar from '../components/operator/FleetMaintenanceCalendar';
+import PilotAssignmentCalendar from '../components/operator/PilotAssignmentCalendar';
+import MaintenanceCostTracker from '../components/operator/MaintenanceCostTracker';
+import PilotDocumentUpload from '../components/operator/PilotDocumentUpload';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -58,7 +61,10 @@ const navGroups = [
     items: [
       { id: 'fleet', label: 'Fleet Management / फ्लीट', icon: Plane, path: '/operator/fleet' },
       { id: 'maintenance-calendar', label: 'Maintenance Calendar / रखरखाव', icon: Calendar, path: '/operator/maintenance-calendar', highlight: true },
+      { id: 'cost-tracker', label: 'Cost Tracker / लागत', icon: DollarSign, path: '/operator/cost-tracker', highlight: true },
       { id: 'pilots', label: 'Pilots / पायलट', icon: Users, path: '/operator/pilots' },
+      { id: 'pilot-assignment', label: 'Pilot Assignment / असाइनमेंट', icon: UserPlus, path: '/operator/pilot-assignment', highlight: true },
+      { id: 'pilot-documents', label: 'Pilot Documents / दस्तावेज़', icon: FileText, path: '/operator/pilot-documents', highlight: true },
     ]
   },
   {
@@ -261,6 +267,9 @@ function OperatorDashboard({ user, onLogout }) {
             <Route path="landing-permissions" element={<LandingPermissionViewer operator={operator} />} />
             <Route path="pricing" element={<OperatorPricingConfig />} />
             <Route path="profile" element={<OperatorProfile operator={operator} onOperatorUpdate={setOperator} />} />
+            <Route path="pilot-assignment" element={<PilotAssignmentCalendar />} />
+            <Route path="cost-tracker" element={<MaintenanceCostTracker />} />
+            <Route path="pilot-documents" element={<PilotDocumentUpload />} />
           </Routes>
         </main>
       </div>

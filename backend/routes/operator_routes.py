@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from database import get_database
 from models import Operator, OperatorStatus, ApprovalStatus
 from middleware import get_current_user
 import uuid
-from datetime import datetime
+from uuid import uuid4
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -599,3 +600,203 @@ async def get_fleet_analytics(user: dict = Depends(get_current_user)):
         "fleet": fleet_data,
         "utilization_trend": utilization_trend
     }
+
+
+# ============== PILOT ASSIGNMENT CALENDAR ==============
+
+@router.get("/pilots/availability")
+async def get_pilots_availability(
+    month: int = Query(None),
+    year: int = Query(None),
+    user: dict = Depends(get_current_user)
+):
+    """Get pilot availability calendar for assignment"""
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        return {"pilots": [], "bookings": [], "assignments": []}
+    
+    now = datetime.now(timezone.utc)
+    target_month = month or now.month
+    target_year = year or now.year
+    
+    # Build date range
+    month_start = datetime(target_year, target_month, 1, tzinfo=timezone.utc)
+    if target_month == 12:
+        month_end = datetime(target_year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        month_end = datetime(target_year, target_month + 1, 1, tzinfo=timezone.utc)
+    
+    # Get all pilots
+    pilots = await db.pilots.find(
+        {"operator_id": operator["id"]},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get bookings needing pilot assignment in this month
+    bookings = await db.inquiries.find(
+        {
+            "operator_id": operator["id"],
+            "status": {"$in": ["confirmed", "assigned", "quoted"]},
+            "$or": [
+                {"departure_date": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}},
+                {"travel_date": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}}
+            ]
+        },
+        {"_id": 0, "id": 1, "from_location": 1, "to_location": 1, "origin": 1, "destination": 1, 
+         "departure_date": 1, "travel_date": 1, "customer_name": 1, "assigned_pilot_id": 1, "status": 1}
+    ).to_list(500)
+    
+    # Get existing pilot assignments
+    assignments = await db.pilot_assignments.find(
+        {
+            "operator_id": operator["id"],
+            "date": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}
+        },
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Build pilot availability map
+    pilot_calendar = {}
+    for pilot in pilots:
+        pilot_id = pilot.get("id")
+        pilot_calendar[pilot_id] = {
+            "pilot": {
+                "id": pilot_id,
+                "name": pilot.get("name"),
+                "license_number": pilot.get("license_number"),
+                "phone": pilot.get("phone")
+            },
+            "assignments": [],
+            "unavailable_dates": pilot.get("unavailable_dates", [])
+        }
+    
+    # Map assignments to pilots
+    for assignment in assignments:
+        pilot_id = assignment.get("pilot_id")
+        if pilot_id in pilot_calendar:
+            pilot_calendar[pilot_id]["assignments"].append(assignment)
+    
+    # Format bookings
+    formatted_bookings = []
+    for b in bookings:
+        date = b.get("departure_date") or b.get("travel_date")
+        formatted_bookings.append({
+            "id": b.get("id"),
+            "date": date,
+            "route": f"{b.get('from_location') or b.get('origin', 'N/A')} → {b.get('to_location') or b.get('destination', 'N/A')}",
+            "customer": b.get("customer_name"),
+            "assigned_pilot_id": b.get("assigned_pilot_id"),
+            "status": b.get("status")
+        })
+    
+    return {
+        "month": target_month,
+        "year": target_year,
+        "pilots": list(pilot_calendar.values()),
+        "bookings": formatted_bookings,
+        "total_pilots": len(pilots),
+        "unassigned_bookings": len([b for b in formatted_bookings if not b.get("assigned_pilot_id")])
+    }
+
+
+@router.post("/pilots/assign")
+async def assign_pilot_to_booking(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Assign a pilot to a booking"""
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    
+    booking_id = data.get("booking_id")
+    pilot_id = data.get("pilot_id")
+    
+    if not booking_id or not pilot_id:
+        raise HTTPException(status_code=400, detail="booking_id and pilot_id required")
+    
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    
+    # Get booking
+    booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get pilot
+    pilot = await db.pilots.find_one({"id": pilot_id, "operator_id": operator["id"]}, {"_id": 0})
+    if not pilot:
+        raise HTTPException(status_code=404, detail="Pilot not found")
+    
+    booking_date = booking.get("departure_date") or booking.get("travel_date")
+    
+    # Check for conflicts
+    existing = await db.pilot_assignments.find_one({
+        "pilot_id": pilot_id,
+        "date": booking_date,
+        "booking_id": {"$ne": booking_id}
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Pilot already assigned to another booking on this date")
+    
+    # Create/update assignment
+    assignment = {
+        "id": str(uuid4()),
+        "booking_id": booking_id,
+        "pilot_id": pilot_id,
+        "pilot_name": pilot.get("name"),
+        "operator_id": operator["id"],
+        "date": booking_date,
+        "route": f"{booking.get('from_location') or booking.get('origin', 'N/A')} → {booking.get('to_location') or booking.get('destination', 'N/A')}",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"]
+    }
+    
+    await db.pilot_assignments.update_one(
+        {"booking_id": booking_id},
+        {"$set": assignment},
+        upsert=True
+    )
+    
+    # Update booking with assigned pilot
+    await db.inquiries.update_one(
+        {"id": booking_id},
+        {"$set": {
+            "assigned_pilot_id": pilot_id,
+            "assigned_pilot_name": pilot.get("name"),
+            "pilot_assigned_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": f"Pilot {pilot.get('name')} assigned to booking", "assignment": assignment}
+
+
+@router.delete("/pilots/assign/{booking_id}")
+async def unassign_pilot_from_booking(
+    booking_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Remove pilot assignment from booking"""
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    
+    # Remove assignment
+    await db.pilot_assignments.delete_one({"booking_id": booking_id})
+    
+    # Update booking
+    await db.inquiries.update_one(
+        {"id": booking_id},
+        {"$unset": {"assigned_pilot_id": "", "assigned_pilot_name": "", "pilot_assigned_at": ""}}
+    )
+    
+    return {"message": "Pilot unassigned from booking"}
