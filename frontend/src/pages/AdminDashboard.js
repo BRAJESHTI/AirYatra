@@ -86,6 +86,8 @@ import CEODashboard from '@/components/admin/CEODashboard';
 import PartnerManagement from '@/components/admin/PartnerManagement';
 import AdminPaymentsDashboard from '@/components/admin/AdminPaymentsDashboard';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
+import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
+import VerificationAPISettings from '@/components/admin/VerificationAPISettings';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -223,6 +225,15 @@ const navGroups = [
     ]
   },
   {
+    id: 'document_master',
+    label: 'Document Master / दस्तावेज़ मास्टर',
+    icon: Shield,
+    items: [
+      { id: 'document_types', label: 'Document Types / प्रकार', icon: FileText, highlight: true },
+      { id: 'verification_apis', label: 'Verification APIs / सत्यापन', icon: Shield, highlight: true },
+    ]
+  },
+  {
     id: 'integrations',
     label: 'Integrations / इंटीग्रेशन',
     icon: HardDrive,
@@ -235,8 +246,14 @@ const navGroups = [
   },
 ];
 
+import { useLocation } from 'react-router-dom';
+
 function AdminDashboard({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const initialTab = urlParams.get('tab') || 'overview';
+  
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState(['main']); // Main dashboard expanded by default
@@ -432,6 +449,10 @@ function AdminDashboard({ user, onLogout }) {
         return <AuditLogs />;
       case 'settings':
         return <GlobalSettings />;
+      case 'document_types':
+        return <DocumentTypeMaster />;
+      case 'verification_apis':
+        return <VerificationAPISettings />;
       default:
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} />;
     }

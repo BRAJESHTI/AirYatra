@@ -96,6 +96,7 @@ from routes import corporate_routes
 from routes import document_vault_routes
 from routes import admin_payments_routes
 from routes import search_routes
+from routes import document_master_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -246,6 +247,8 @@ api_router.include_router(membership_routes.router)
 api_router.include_router(corporate_routes.router)
 api_router.include_router(document_vault_routes.router)
 api_router.include_router(admin_payments_routes.router)
+# Document Master & Verification APIs
+api_router.include_router(document_master_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

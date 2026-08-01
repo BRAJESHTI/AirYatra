@@ -151,6 +151,8 @@
 || Mobile Swipe Gestures | 🟢 DONE | (Aug 1, 2026) SwipeableCard.js - swipe left reveals actions on booking cards. "← Swipe for actions" hint on mobile |
 || Dark/Light Theme Toggle | 🟢 DONE | (Aug 1, 2026) ThemeToggle.js with Sun/Moon icons, localStorage persistence, CSS variables. Button in all nav bars |
 || Offline Mode Indicator | 🟢 DONE | (Aug 1, 2026) OfflineIndicator.js - red banner when offline, green "Back online!" auto-dismiss. In App.js |
+|| Document Type Master | 🟢 DONE | (Aug 1, 2026) Admin → Document Master → Document Types. Enterprise master configuration for all document types across Customer/Pilot/Aircraft/Employee categories. 27 default types seeded. Features: Add/Edit/Deactivate types, Hindi names, required fields config, expiry tracking, verification API linkage, category filters, search. API: GET/POST/PUT/DELETE /api/admin/documents/types, POST /api/admin/documents/seed-defaults |
+|| Verification API Settings | 🟢 DONE | (Aug 1, 2026) Admin → Document Master → Verification APIs. Government & third-party KYC API configuration panel. 8 APIs seeded (Aadhar eKYC, PAN, Bank Account, Passport, DL, DGCA License, GST, Company). Features: API endpoint config, key storage (masked), sandbox mode, enable/disable toggle, test connection, rate limits, cost per call tracking, provider info (Surepass, Karza, Digio). API: GET/POST/PUT/DELETE /api/admin/documents/verification-apis, POST /verify |
 - 🔴 **DEFERRED** - Moved to end (WhatsApp, Payments)
 
 ---
