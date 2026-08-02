@@ -17,6 +17,11 @@ class UserRole(str, Enum):
     EMPLOYEE = "employee"
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
+    # Finance ERP Roles (₹100 Cr+ Operations)
+    CFO = "cfo"                       # Chief Financial Officer - Full treasury access
+    FINANCE_HEAD = "finance_head"     # Finance Head - Bank & payment management
+    ACCOUNTS_MANAGER = "accounts_manager"  # Accounts Manager - Daily transactions
+    TREASURY_ANALYST = "treasury_analyst"  # Treasury Analyst - View & report access
 
 class BookingStatus(str, Enum):
     PENDING_QUOTES = "pending_quotes"

@@ -226,7 +226,7 @@ function App() {
         />
         <Route
           path="/finance/*"
-          element={user && (user.roles.includes('finance') || user.roles.includes('admin')) ? <FinanceDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          element={user && (user.roles.includes('finance') || user.roles.includes('cfo') || user.roles.includes('finance_head') || user.roles.includes('accounts_manager') || user.roles.includes('treasury_analyst') || user.roles.includes('admin')) ? <FinanceDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route path="/booking" element={<BookingPage user={user} />} />
         {/* Phase 1: Premium Services Routes */}

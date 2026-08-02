@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock } from 'lucide-react';
+import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock, Activity, Landmark, CircleDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
 import api from '@/services/apiClient';
@@ -22,8 +22,23 @@ const GSTPayments = React.lazy(() => import('@/components/finance/GSTPayments'))
 const ITCManagement = React.lazy(() => import('@/components/finance/ITCManagement'));
 const VendorCompliance = React.lazy(() => import('@/components/finance/VendorCompliance'));
 
-// Organized Navigation Structure - 7 Main Categories
+// Treasury ERP Components (Phase 1)
+const TreasuryDashboard = React.lazy(() => import('@/components/finance/TreasuryDashboard'));
+const FinanceCommandCenter = React.lazy(() => import('@/components/finance/FinanceCommandCenter'));
+
+// Organized Navigation Structure - 8 Main Categories (with Treasury ERP)
 const navGroups = [
+  {
+    id: 'treasury',
+    label: 'Treasury ERP / खजाना',
+    icon: Landmark,
+    items: [
+      { id: 'treasury_dashboard', label: 'Treasury Dashboard', icon: Wallet, highlight: true },
+      { id: 'command_center', label: 'Command Center 24x7', icon: Activity, highlight: true },
+      { id: 'bank_accounts', label: 'Bank Accounts', icon: Building2 },
+      { id: 'cashflow_forecast', label: 'Cashflow Forecast', icon: TrendingUp },
+    ]
+  },
   {
     id: 'main',
     label: 'Dashboard / डैशबोर्ड',
@@ -95,8 +110,8 @@ const navGroups = [
 ];
 
 function FinanceDashboard({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [expandedGroups, setExpandedGroups] = useState(['main', 'payroll']);
+  const [activeTab, setActiveTab] = useState('treasury_dashboard');
+  const [expandedGroups, setExpandedGroups] = useState(['treasury', 'main']);
   const [stats, setStats] = useState({
     total_revenue: 1250000,
     pending_settlements: 45000,
@@ -151,6 +166,21 @@ function FinanceDashboard({ user, onLogout }) {
 
   const renderContent = () => {
     switch (activeTab) {
+      // Treasury ERP Routes
+      case 'treasury_dashboard':
+      case 'bank_accounts':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <TreasuryDashboard />
+          </React.Suspense>
+        );
+      case 'command_center':
+      case 'cashflow_forecast':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <FinanceCommandCenter />
+          </React.Suspense>
+        );
       case 'all_settlements':
       case 'pending_settlements':
         return <SettlementManagement />;

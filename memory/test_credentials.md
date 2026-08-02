@@ -4,9 +4,10 @@
 
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
-| Admin | admin@airyatra.com | Admin123! | Full platform access |
-| Operator | operator@airyatra.com | Operator@123456 | Fleet & booking management |
-| Pilot | pilot@airyatra.com | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access, 3 upcoming flights, medical expiring in 24 days |
+| Admin | admin@airyatra.com | Admin123! | Full platform access (TOTP 2FA enabled) |
+| Operator | operator@airyatra.com | Operator@123456 | Fleet & booking management (OTP required) |
+| Pilot | pilot@airyatra.com | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
+| Finance/CFO | finance@airyatra.com | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
 
 ## Third-Party Services
 
