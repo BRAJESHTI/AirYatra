@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock, Activity, Landmark, CircleDollarSign, Target, Bot, Bell, Archive } from 'lucide-react';
+import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock, Activity, Landmark, CircleDollarSign, Target, Bot, Bell, Archive, History, Globe, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
 import api from '@/services/apiClient';
@@ -37,6 +37,12 @@ const AIFinanceAssistant = React.lazy(() => import('@/components/finance/AIFinan
 const AutoReminders = React.lazy(() => import('@/components/finance/AutoReminders'));
 const BillRepository = React.lazy(() => import('@/components/finance/BillRepository'));
 
+// Finance ERP Phase 5 Components
+const AuditTrailDashboard = React.lazy(() => import('@/components/finance/AuditTrailDashboard'));
+const ExpenseAnalytics = React.lazy(() => import('@/components/finance/ExpenseAnalytics'));
+const MultiCurrencySupport = React.lazy(() => import('@/components/finance/MultiCurrencySupport'));
+const PDFInvoiceExport = React.lazy(() => import('@/components/finance/PDFInvoiceExport'));
+
 // Organized Navigation Structure - 8 Main Categories (with Treasury ERP)
 const navGroups = [
   {
@@ -69,6 +75,17 @@ const navGroups = [
       { id: 'budget_vs_actual', label: 'Budget vs Actual', icon: Target, highlight: true },
       { id: 'ai_assistant', label: 'AI Finance Assistant', icon: Activity, highlight: true },
       { id: 'bill_repository', label: 'Bill Repository', icon: FileText, highlight: true },
+      { id: 'expense_analytics', label: 'Expense Analytics', icon: PieChart, highlight: true },
+    ]
+  },
+  {
+    id: 'advanced',
+    label: 'Advanced / उन्नत',
+    icon: Settings,
+    items: [
+      { id: 'audit_trail', label: 'Audit Trail', icon: History, highlight: true },
+      { id: 'multi_currency', label: 'Multi-Currency', icon: Globe, highlight: true },
+      { id: 'pdf_invoice', label: 'PDF Invoice Export', icon: FileDown, highlight: true },
     ]
   },
   {
@@ -143,7 +160,7 @@ const navGroups = [
 
 function FinanceDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('treasury_dashboard');
-  const [expandedGroups, setExpandedGroups] = useState(['treasury', 'compliance']);
+  const [expandedGroups, setExpandedGroups] = useState(['treasury', 'compliance', 'analytics', 'advanced']);
   const [stats, setStats] = useState({
     total_revenue: 1250000,
     pending_settlements: 45000,
@@ -320,6 +337,31 @@ function FinanceDashboard({ user, onLogout }) {
         return (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
             <VendorCompliance />
+          </React.Suspense>
+        );
+      // Phase 5 Routes
+      case 'audit_trail':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <AuditTrailDashboard />
+          </React.Suspense>
+        );
+      case 'expense_analytics':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <ExpenseAnalytics />
+          </React.Suspense>
+        );
+      case 'multi_currency':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <MultiCurrencySupport />
+          </React.Suspense>
+        );
+      case 'pdf_invoice':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <PDFInvoiceExport />
           </React.Suspense>
         );
       default:
