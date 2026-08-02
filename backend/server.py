@@ -124,6 +124,8 @@ from routes import ai_reports_routes
 from routes import favorites_routes
 # Finance ERP - Treasury Management System
 from routes import finance_treasury_routes
+# Finance ERP - Advanced (Challans, Compliance, Reconciliation)
+from routes import finance_advanced_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -336,6 +338,9 @@ api_router.include_router(favorites_routes.router)
 
 # Finance ERP - Treasury Management System
 api_router.include_router(finance_treasury_routes.router)
+
+# Finance ERP - Advanced (Challans, Compliance, Reconciliation)
+api_router.include_router(finance_advanced_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

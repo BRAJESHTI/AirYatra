@@ -747,3 +747,32 @@ All APIs prefixed with `/api/`
 - **Phase 3 (P1)**: Government Challan Management (GST/TDS/PF), Compliance Dashboard, Auto Reminder Engine
 - **Phase 4 (P2)**: Bill Repository, Bank Reconciliation, Budget vs Actual, AI Finance Assistant
 
+
+### Finance ERP Phase 2 & 3 (Aug 2, 2026 - Session 7 Continued)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Government Challans | 🟢 DONE | Complete challan management for GST, TDS, PF, ESIC, PT, IT. **APIs**: POST/GET `/api/finance/advanced/challans`, PUT `/challans/{id}/pay`, GET `/challans/upcoming`. **Features**: Due date tracking, auto-overdue detection, period-based filtering, challan status management. **Frontend**: `GovernmentChallans.js` with create modal, type filters, status badges. |
+| Compliance Dashboard | 🟢 DONE | Unified compliance monitoring with health scoring. **API**: GET `/api/finance/advanced/compliance/dashboard`, `/compliance/calendar`. **Features**: Real-time compliance score (0-100), type-wise breakdown (GST/TDS/PF/ESIC/PT/IT), critical deadline alerts (≤7 days), compliance calendar with 3-month view. **Frontend**: `ComplianceDashboard.js` with score card, type-wise cards, calendar grid. |
+| Bank Reconciliation | 🟢 DONE | Match bank statements with recorded transactions. **APIs**: POST `/api/finance/advanced/reconciliation/upload-statement`, GET `/reconciliation/entries`, POST `/reconciliation/auto-match`, PUT `/entries/{id}/match`, PUT `/entries/{id}/ignore`, GET `/reconciliation/summary`. **Features**: Auto-match by amount+date, manual match, ignore entries, reconciliation rate tracking. **Frontend**: `BankReconciliation.js` with upload modal, balance comparison, entries list. |
+| Vendor Payment OTP | 🟢 DONE | OTP-based approval for vendor payments. **APIs**: POST `/api/finance/advanced/vendor-payment/initiate` (sends OTP), POST `/vendor-payment/approve` (verify OTP + process payment), GET `/vendor-payment/pending`. **Features**: 10-min OTP expiry, payment mode selection (NEFT/RTGS/IMPS/UPI), approval audit trail. |
+
+### Finance ERP Test Results (Phase 2 & 3)
+- POST /api/finance/advanced/challans: ✅ Created GST (₹1.25L), TDS (₹45K), PF (₹85K) challans
+- GET /api/finance/advanced/compliance/dashboard: ✅ Score 94%, 3 pending challans, TDS deadline in 4 days
+- POST /api/finance/advanced/reconciliation/upload-statement: ✅ 3 entries uploaded
+- POST /api/finance/advanced/reconciliation/auto-match: ✅ 2/3 matched (66.7% rate)
+- GET /api/finance/advanced/reconciliation/summary: ✅ Unreconciled amount ₹500 (bank charges)
+
+### Files Created (Phase 2 & 3)
+- /app/backend/routes/finance_advanced_routes.py - NEW (Challans, Compliance, Reconciliation, OTP Payments)
+- /app/frontend/src/components/finance/GovernmentChallans.js - NEW
+- /app/frontend/src/components/finance/ComplianceDashboard.js - NEW  
+- /app/frontend/src/components/finance/BankReconciliation.js - NEW
+- /app/frontend/src/pages/FinanceDashboard.js - Updated navigation with Compliance section
+
+### Navigation Structure Updated
+- Treasury ERP (Treasury Dashboard, Command Center, Bank Accounts, Cashflow Forecast, **Bank Reconciliation**)
+- **Compliance** (Compliance Dashboard, Govt Challans GST/TDS)
+- Dashboard, Payroll, Vendors, Billing, GST, Settlements, Accounting
+

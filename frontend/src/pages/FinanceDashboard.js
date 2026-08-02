@@ -26,6 +26,11 @@ const VendorCompliance = React.lazy(() => import('@/components/finance/VendorCom
 const TreasuryDashboard = React.lazy(() => import('@/components/finance/TreasuryDashboard'));
 const FinanceCommandCenter = React.lazy(() => import('@/components/finance/FinanceCommandCenter'));
 
+// Finance ERP Phase 2 & 3 Components
+const GovernmentChallans = React.lazy(() => import('@/components/finance/GovernmentChallans'));
+const ComplianceDashboard = React.lazy(() => import('@/components/finance/ComplianceDashboard'));
+const BankReconciliation = React.lazy(() => import('@/components/finance/BankReconciliation'));
+
 // Organized Navigation Structure - 8 Main Categories (with Treasury ERP)
 const navGroups = [
   {
@@ -37,6 +42,16 @@ const navGroups = [
       { id: 'command_center', label: 'Command Center 24x7', icon: Activity, highlight: true },
       { id: 'bank_accounts', label: 'Bank Accounts', icon: Building2 },
       { id: 'cashflow_forecast', label: 'Cashflow Forecast', icon: TrendingUp },
+      { id: 'bank_reconciliation', label: 'Bank Reconciliation', icon: RefreshCw, highlight: true },
+    ]
+  },
+  {
+    id: 'compliance',
+    label: 'Compliance / अनुपालन',
+    icon: Shield,
+    items: [
+      { id: 'compliance_dashboard', label: 'Compliance Dashboard', icon: Shield, highlight: true },
+      { id: 'govt_challans', label: 'Govt Challans (GST/TDS)', icon: FileText, highlight: true },
     ]
   },
   {
@@ -111,7 +126,7 @@ const navGroups = [
 
 function FinanceDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('treasury_dashboard');
-  const [expandedGroups, setExpandedGroups] = useState(['treasury', 'main']);
+  const [expandedGroups, setExpandedGroups] = useState(['treasury', 'compliance']);
   const [stats, setStats] = useState({
     total_revenue: 1250000,
     pending_settlements: 45000,
@@ -179,6 +194,24 @@ function FinanceDashboard({ user, onLogout }) {
         return (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
             <FinanceCommandCenter />
+          </React.Suspense>
+        );
+      case 'bank_reconciliation':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <BankReconciliation />
+          </React.Suspense>
+        );
+      case 'compliance_dashboard':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <ComplianceDashboard />
+          </React.Suspense>
+        );
+      case 'govt_challans':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <GovernmentChallans />
           </React.Suspense>
         );
       case 'all_settlements':
