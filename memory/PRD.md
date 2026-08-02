@@ -641,6 +641,13 @@ All APIs prefixed with `/api/`
 | In-App Security Notifications | 🟢 DONE | CRITICAL risk logins trigger notifications to Admin/CEO/HR. NotificationBell.js updated with: red alert banner, Security tab filter, beep sound for critical alerts. No email sent - in-app only. |
 | Command Palette Security Index | 🟢 DONE | GlobalSearch.js updated: Login Shield AI™ and Session Manager added to QUICK_ACTIONS. Security category added (red color). Admins can press Ctrl+K → type "shield" or "session" to navigate directly. |
 
+### Latest Updates (Aug 2, 2026 - Session 10: Password Strength + Login Activity)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Password Strength Meter | 🟢 DONE | Real-time strength indicator during registration. Shows requirements checklist (8+ chars, uppercase, lowercase, number, special char). Visual progress bar with Weak/Fair/Good/Strong labels (Hinglish). Eye icon for show/hide password. Component: `PasswordStrengthMeter.js` |
+| Login Activity Log | 🟢 DONE | Backend API: `GET /api/auth/login-activity`. Shows recent logins with device, browser, OS, IP, location, risk level. Frontend component: `LoginActivityLog.js`. Integrated in Customer Dashboard security tab. Parses user-agent for device/browser info. |
+
 ### Remaining MESL Tasks
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)

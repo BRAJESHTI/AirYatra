@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plane, Mail, Lock, User, Phone, Shield, Smartphone, CheckCircle, RefreshCw } from 'lucide-react';
+import { Plane, Mail, Lock, User, Phone, Shield, Smartphone, CheckCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { authAPI } from '../services/api';
 import { toast } from 'sonner';
 import { GoogleLoginButton } from '../components/auth/GoogleLogin';
+import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter';
 
 function LoginPage({ setUser }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,6 +26,7 @@ function LoginPage({ setUser }) {
   const [trustDevice, setTrustDevice] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [otpMessage, setOtpMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const otpRefs = useRef([]);
   const navigate = useNavigate();
 
@@ -390,15 +392,31 @@ function LoginPage({ setUser }) {
               <Input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="pl-10 bg-slate-900 border-slate-700 text-white"
+                className="pl-10 pr-10 bg-slate-900 border-slate-700 text-white"
                 data-testid="password-input"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
+            
+            {/* Password Strength Meter - Only show during registration */}
+            {!isLogin && (
+              <PasswordStrengthMeter 
+                password={formData.password} 
+                showRequirements={true}
+              />
+            )}
           </div>
 
           <Button

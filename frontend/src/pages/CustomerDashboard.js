@@ -20,6 +20,7 @@ import NotificationBell from '../components/shared/NotificationBell';
 import GlobalSearch from '../components/shared/GlobalSearch';
 import SwipeableCard from '../components/shared/SwipeableCard';
 import CustomerKYCUpload from '../components/customer/CustomerKYCUpload';
+import LoginActivityLog from '../components/auth/LoginActivityLog';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -163,6 +164,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <CustomerProfile user={user} />;
       case 'kyc':
         return <CustomerKYCUpload user={user} />;
+      case 'security':
+        return <LoginActivityLog user={user} />;
       case 'messages':
         return <ChatWidget user={user} />;
       case 'refer':

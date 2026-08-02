@@ -950,3 +950,121 @@ async def get_user_risk_history(
     """Get risk assessment history for a specific user"""
     history = await login_shield.get_user_risk_history(user_id=user_id, limit=limit)
     return {"history": history, "total": len(history)}
+
+
+# ========== LOGIN ACTIVITY LOG ==========
+
+@router.get("/login-activity")
+async def get_login_activity(
+    limit: int = 20,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get user's own login activity history
+    Shows recent logins with device, browser, IP, location, and status
+    """
+    db = get_database()
+    
+    # Fetch login attempts from audit_logs
+    activities = await db.audit_logs.find(
+        {
+            "user_id": current_user["id"],
+            "action": {"$in": ["login", "login_failed", "otp_verified", "logout"]}
+        },
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(limit).to_list(limit)
+    
+    # Enrich with device info parsing
+    enriched_activities = []
+    for activity in activities:
+        # Parse user agent for device/browser info
+        user_agent = activity.get("user_agent", "")
+        device_info = _parse_user_agent(user_agent)
+        
+        # Get location from IP if available
+        location = activity.get("details", {}).get("location", {})
+        location_str = _format_location(location)
+        
+        enriched_activities.append({
+            "id": activity.get("id", ""),
+            "action": activity.get("action", ""),
+            "status": activity.get("status", "unknown"),
+            "timestamp": activity.get("timestamp", ""),
+            "ip_address": activity.get("ip_address", "Unknown"),
+            "device": device_info.get("device", "Unknown Device"),
+            "browser": device_info.get("browser", "Unknown Browser"),
+            "os": device_info.get("os", "Unknown OS"),
+            "location": location_str,
+            "risk_level": activity.get("details", {}).get("risk_level", ""),
+            "reason": activity.get("details", {}).get("reason", ""),
+        })
+    
+    return {
+        "activities": enriched_activities,
+        "total": len(enriched_activities),
+        "user_id": current_user["id"]
+    }
+
+
+def _parse_user_agent(user_agent: str) -> dict:
+    """Parse user agent string to extract device, browser, and OS info"""
+    if not user_agent:
+        return {"device": "Unknown", "browser": "Unknown", "os": "Unknown"}
+    
+    ua = user_agent.lower()
+    
+    # Detect OS
+    if "windows nt 10" in ua:
+        os_name = "Windows 10/11"
+    elif "windows" in ua:
+        os_name = "Windows"
+    elif "macintosh" in ua or "mac os" in ua:
+        os_name = "macOS"
+    elif "iphone" in ua:
+        os_name = "iOS"
+    elif "ipad" in ua:
+        os_name = "iPadOS"
+    elif "android" in ua:
+        os_name = "Android"
+    elif "linux" in ua:
+        os_name = "Linux"
+    else:
+        os_name = "Unknown OS"
+    
+    # Detect Browser
+    if "edg/" in ua or "edge" in ua:
+        browser = "Microsoft Edge"
+    elif "chrome" in ua and "safari" in ua:
+        browser = "Chrome"
+    elif "firefox" in ua:
+        browser = "Firefox"
+    elif "safari" in ua and "chrome" not in ua:
+        browser = "Safari"
+    elif "opera" in ua or "opr/" in ua:
+        browser = "Opera"
+    else:
+        browser = "Unknown Browser"
+    
+    # Detect Device Type
+    if "mobile" in ua or "iphone" in ua:
+        device = "Mobile"
+    elif "tablet" in ua or "ipad" in ua:
+        device = "Tablet"
+    else:
+        device = "Desktop"
+    
+    return {"device": device, "browser": browser, "os": os_name}
+
+
+def _format_location(location: dict) -> str:
+    """Format location dict to readable string"""
+    if not location:
+        return "Unknown Location"
+    
+    city = location.get("city", "")
+    region = location.get("region", "")
+    country = location.get("country", "")
+    
+    parts = [p for p in [city, region, country] if p]
+    return ", ".join(parts) if parts else "Unknown Location"
+
