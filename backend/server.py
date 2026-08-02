@@ -116,13 +116,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - SECURITY: Use specific origins, not '*' in production
+# Set CORS_ORIGINS in .env to restrict allowed origins
+allowed_origins = os.environ.get('CORS_ORIGINS', 'https://aviation-erp-2.preview.emergentagent.com').split(',')
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # ==================== HIGH-PERFORMANCE MIDDLEWARE STACK ====================
@@ -262,7 +264,15 @@ uploads_dir.mkdir(exist_ok=True)
 village_docs_dir = uploads_dir / "village_documents"
 village_docs_dir.mkdir(exist_ok=True)
 
-# Mount static files for uploads
+# SECURITY: Create secure upload directory for sensitive files (KYC, etc.)
+# These are NOT served via static mount - use authenticated download endpoints
+secure_uploads_dir = Path("/app/secure_uploads")
+secure_uploads_dir.mkdir(exist_ok=True)
+(secure_uploads_dir / "kyc").mkdir(exist_ok=True)
+(secure_uploads_dir / "pilot_documents").mkdir(exist_ok=True)
+
+# Mount static files for NON-SENSITIVE uploads only (general assets, NOT KYC/documents)
+# WARNING: Do NOT put sensitive files in /app/uploads - use secure_uploads instead
 app.mount("/api/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 # Health check endpoint

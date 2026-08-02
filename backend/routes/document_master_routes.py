@@ -1,6 +1,7 @@
 """
 Document Master & Verification API Settings Routes
 Admin panel for managing document types and government verification APIs
+SECURED: All endpoints require admin authentication
 """
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -8,9 +9,19 @@ from typing import Optional, List
 from datetime import datetime, timezone
 from bson import ObjectId
 from database import get_database
+from routes.auth_routes import get_current_user
 import os
 
 router = APIRouter(prefix="/admin/documents", tags=["Document Master"])
+
+# Helper function to require specific roles
+def require_roles(allowed_roles: List[str]):
+    async def role_checker(current_user: dict = Depends(get_current_user)):
+        user_roles = current_user.get("roles", [])
+        if not any(role in user_roles for role in allowed_roles):
+            raise HTTPException(status_code=403, detail=f"Requires one of these roles: {', '.join(allowed_roles)}")
+        return current_user
+    return role_checker
 
 # ============== MODELS ==============
 
@@ -72,7 +83,11 @@ class VerificationAPIUpdate(BaseModel):
 # ============== DOCUMENT TYPE MASTER ==============
 
 @router.get("/types")
-async def get_document_types(category: Optional[str] = None, active_only: bool = True):
+async def get_document_types(
+    category: Optional[str] = None, 
+    active_only: bool = True,
+    current_user: dict = Depends(require_roles(["admin", "operator"]))
+):
     """Get all document types, optionally filtered by category"""
     db = get_database()
     
@@ -87,7 +102,10 @@ async def get_document_types(category: Optional[str] = None, active_only: bool =
     return {"document_types": types, "total": len(types)}
 
 @router.get("/types/{type_id}")
-async def get_document_type(type_id: str):
+async def get_document_type(
+    type_id: str,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
     """Get single document type by ID"""
     db = get_database()
     
@@ -98,7 +116,10 @@ async def get_document_type(type_id: str):
     return doc_type
 
 @router.post("/types")
-async def create_document_type(data: DocumentTypeCreate):
+async def create_document_type(
+    data: DocumentTypeCreate,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
     """Create new document type (Admin only)"""
     db = get_database()
     
@@ -124,7 +145,11 @@ async def create_document_type(data: DocumentTypeCreate):
     }
 
 @router.put("/types/{type_id}")
-async def update_document_type(type_id: str, data: DocumentTypeUpdate):
+async def update_document_type(
+    type_id: str, 
+    data: DocumentTypeUpdate,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
     """Update document type"""
     db = get_database()
     
@@ -145,7 +170,10 @@ async def update_document_type(type_id: str, data: DocumentTypeUpdate):
     return {"message": "Document type updated successfully"}
 
 @router.delete("/types/{type_id}")
-async def delete_document_type(type_id: str):
+async def delete_document_type(
+    type_id: str,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
     """Delete document type (soft delete - set inactive)"""
     db = get_database()
     
@@ -165,41 +193,46 @@ async def delete_document_type(type_id: str):
 # ============== VERIFICATION API SETTINGS ==============
 
 @router.get("/verification-apis")
-async def get_verification_apis():
-    """Get all verification API configurations"""
+async def get_verification_apis(current_user: dict = Depends(require_roles(["admin"]))):
+    """Get all verification API configurations - ADMIN ONLY"""
     db = get_database()
     
-    apis = await db.verification_apis.find({}, {"_id": 0}).to_list(100)
+    apis = await db.verification_apis.find({}, {"_id": 0, "api_key": 0, "api_secret": 0}).to_list(100)
     
+    # Never return raw secrets - just indicate if they're configured
     for api in apis:
-        # Mask sensitive data
-        if api.get("api_key"):
-            api["api_key"] = "***" + api["api_key"][-4:] if len(api["api_key"]) > 4 else "****"
-        if api.get("api_secret"):
-            api["api_secret"] = "***" + api["api_secret"][-4:] if len(api["api_secret"]) > 4 else "****"
+        api["has_api_key"] = bool(api.get("api_key_configured"))
+        api["has_api_secret"] = bool(api.get("api_secret_configured"))
     
     return {"verification_apis": apis, "total": len(apis)}
 
 @router.get("/verification-apis/{api_id}")
-async def get_verification_api(api_id: str):
-    """Get single verification API config"""
+async def get_verification_api(
+    api_id: str,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Get single verification API config - ADMIN ONLY"""
     db = get_database()
     
-    api = await db.verification_apis.find_one({"id": api_id}, {"_id": 0})
+    # Exclude raw secrets from query
+    api = await db.verification_apis.find_one(
+        {"id": api_id}, 
+        {"_id": 0, "api_key": 0, "api_secret": 0}
+    )
     if not api:
         raise HTTPException(status_code=404, detail="Verification API not found")
     
-    # Mask sensitive data for display
-    if api.get("api_key"):
-        api["api_key_masked"] = "***" + api["api_key"][-4:] if len(api["api_key"]) > 4 else "****"
-    if api.get("api_secret"):
-        api["api_secret_masked"] = "***" + api["api_secret"][-4:] if len(api["api_secret"]) > 4 else "****"
-    
+    # Indicate if keys are configured (without revealing them)
+    api["has_api_key"] = bool(api.get("api_key_configured"))
+    api["has_api_secret"] = bool(api.get("api_secret_configured"))
     return api
 
 @router.post("/verification-apis")
-async def create_verification_api(data: VerificationAPICreate):
-    """Create new verification API configuration"""
+async def create_verification_api(
+    data: VerificationAPICreate,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Create new verification API configuration - ADMIN ONLY"""
     db = get_database()
     
     # Check if code already exists
@@ -211,6 +244,8 @@ async def create_verification_api(data: VerificationAPICreate):
         **data.dict(),
         "id": f"vapi_{ObjectId()}",
         "code": data.code.upper(),
+        "api_key_configured": bool(data.api_key),
+        "api_secret_configured": bool(data.api_secret),
         "total_calls": 0,
         "successful_calls": 0,
         "failed_calls": 0,
@@ -228,13 +263,23 @@ async def create_verification_api(data: VerificationAPICreate):
     }
 
 @router.put("/verification-apis/{api_id}")
-async def update_verification_api(api_id: str, data: VerificationAPIUpdate):
-    """Update verification API configuration"""
+async def update_verification_api(
+    api_id: str, 
+    data: VerificationAPIUpdate,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Update verification API configuration - ADMIN ONLY"""
     db = get_database()
     
     update_data = {k: v for k, v in data.dict().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No data to update")
+    
+    # Track if keys are configured
+    if "api_key" in update_data:
+        update_data["api_key_configured"] = bool(update_data["api_key"])
+    if "api_secret" in update_data:
+        update_data["api_secret_configured"] = bool(update_data["api_secret"])
     
     update_data["updated_at"] = datetime.now(timezone.utc)
     
@@ -249,8 +294,11 @@ async def update_verification_api(api_id: str, data: VerificationAPIUpdate):
     return {"message": "Verification API updated successfully"}
 
 @router.delete("/verification-apis/{api_id}")
-async def delete_verification_api(api_id: str):
-    """Delete verification API configuration"""
+async def delete_verification_api(
+    api_id: str,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Delete verification API configuration - ADMIN ONLY"""
     db = get_database()
     
     result = await db.verification_apis.delete_one({"id": api_id})
@@ -261,8 +309,11 @@ async def delete_verification_api(api_id: str):
     return {"message": "Verification API deleted successfully"}
 
 @router.post("/verification-apis/{api_id}/test")
-async def test_verification_api(api_id: str):
-    """Test verification API connection"""
+async def test_verification_api(
+    api_id: str,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Test verification API connection - ADMIN ONLY"""
     db = get_database()
     
     api = await db.verification_apis.find_one({"id": api_id})
@@ -280,8 +331,11 @@ async def test_verification_api(api_id: str):
     }
 
 @router.post("/verification-apis/{api_id}/toggle")
-async def toggle_verification_api(api_id: str):
-    """Toggle verification API enabled/disabled"""
+async def toggle_verification_api(
+    api_id: str,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Toggle verification API enabled/disabled - ADMIN ONLY"""
     db = get_database()
     
     api = await db.verification_apis.find_one({"id": api_id})
@@ -303,9 +357,14 @@ async def toggle_verification_api(api_id: str):
 # ============== VERIFY DOCUMENT ==============
 
 @router.post("/verify")
-async def verify_document(document_type: str, document_number: str, additional_data: dict = {}):
+async def verify_document(
+    document_type: str, 
+    document_number: str, 
+    additional_data: dict = {},
+    current_user: dict = Depends(require_roles(["admin", "operator"]))
+):
     """
-    Verify a document using configured API
+    Verify a document using configured API - Requires authentication
     This is a placeholder - actual implementation requires real API credentials
     """
     db = get_database()
@@ -380,8 +439,10 @@ async def verify_document(document_type: str, document_number: str, additional_d
 # ============== SEED DEFAULT DOCUMENT TYPES ==============
 
 @router.post("/seed-defaults")
-async def seed_default_document_types():
-    """Seed default document types and verification APIs"""
+async def seed_default_document_types(
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Seed default document types and verification APIs - ADMIN ONLY"""
     db = get_database()
     
     # Default Document Types
@@ -526,8 +587,12 @@ async def seed_default_document_types():
 # ============== VERIFICATION LOGS ==============
 
 @router.get("/verification-logs")
-async def get_verification_logs(limit: int = 50, api_code: Optional[str] = None):
-    """Get verification logs"""
+async def get_verification_logs(
+    limit: int = 50, 
+    api_code: Optional[str] = None,
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Get verification logs - ADMIN ONLY"""
     db = get_database()
     
     query = {}
@@ -541,8 +606,10 @@ async def get_verification_logs(limit: int = 50, api_code: Optional[str] = None)
 # ============== STATISTICS ==============
 
 @router.get("/stats")
-async def get_document_stats():
-    """Get document and verification statistics"""
+async def get_document_stats(
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Get document and verification statistics - ADMIN ONLY"""
     db = get_database()
     
     # Document type counts by category
