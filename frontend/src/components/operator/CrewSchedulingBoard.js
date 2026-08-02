@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, Calendar, Plane, Clock, ChevronLeft, ChevronRight, 
-  RefreshCw, AlertCircle, CheckCircle, X, GripVertical
+  RefreshCw, AlertCircle, CheckCircle, X, GripVertical, Wrench, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -38,12 +38,30 @@ function CrewSchedulingBoard() {
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [draggingBooking, setDraggingBooking] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState([]);
+  const [showMaintenancePanel, setShowMaintenancePanel] = useState(false);
 
   const weekDates = getWeekDates(currentWeekStart);
 
   useEffect(() => {
     loadData();
+    loadMaintenanceAlerts();
   }, [currentWeekStart]);
+
+  const loadMaintenanceAlerts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/operator/aircraft/maintenance-alerts`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMaintenanceAlerts(data.alerts || []);
+      }
+    } catch (error) {
+      console.error('Failed to load maintenance alerts');
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -225,8 +243,81 @@ function CrewSchedulingBoard() {
           <Button onClick={loadData} variant="ghost" size="sm">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
+          {/* Maintenance Alerts Button */}
+          <Button 
+            onClick={() => setShowMaintenancePanel(!showMaintenancePanel)}
+            variant={maintenanceAlerts.length > 0 ? "default" : "outline"}
+            size="sm"
+            className={maintenanceAlerts.length > 0 
+              ? "bg-red-600 hover:bg-red-700 text-white" 
+              : "border-slate-700 text-slate-300"
+            }
+          >
+            <Wrench className="h-4 w-4 mr-1" />
+            Maintenance
+            {maintenanceAlerts.length > 0 && (
+              <span className="ml-1 bg-white text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                {maintenanceAlerts.length}
+              </span>
+            )}
+          </Button>
         </div>
       </div>
+
+      {/* Maintenance Alerts Panel */}
+      {showMaintenancePanel && (
+        <div className="mb-6 bg-slate-800/80 rounded-xl border border-red-500/30 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Aircraft Maintenance Alerts
+            </h3>
+            <button onClick={() => setShowMaintenancePanel(false)} className="text-slate-400 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {maintenanceAlerts.length === 0 ? (
+            <p className="text-green-400 text-center py-4">
+              <CheckCircle className="h-5 w-5 inline mr-2" />
+              All aircraft maintenance up to date!
+            </p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {maintenanceAlerts.map((alert, idx) => (
+                <div 
+                  key={idx}
+                  className={`rounded-lg p-3 border ${
+                    alert.severity === 'critical' 
+                      ? 'bg-red-500/10 border-red-500/50' 
+                      : 'bg-yellow-500/10 border-yellow-500/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-white font-semibold">{alert.aircraft_registration}</p>
+                      <p className="text-xs text-slate-400">{alert.aircraft_type}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      alert.severity === 'critical' 
+                        ? 'bg-red-500 text-white' 
+                        : 'bg-yellow-500 text-black'
+                    }`}>
+                      {alert.severity?.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-300 mt-2">{alert.message}</p>
+                  {alert.days_remaining !== undefined && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {alert.days_remaining} days remaining
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Unassigned Bookings Panel */}

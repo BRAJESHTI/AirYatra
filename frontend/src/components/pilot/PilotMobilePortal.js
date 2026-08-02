@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plane, FileText, Clock, Calendar, CheckCircle, AlertTriangle,
   Bell, User, LogOut, Plus, ChevronRight, RefreshCw, 
-  MapPin, Timer, Shield, Menu, X, Home, Settings, Wifi, WifiOff, BellRing
+  MapPin, Timer, Shield, Menu, X, Home, Settings, Wifi, WifiOff, BellRing,
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { PilotChatButton } from './PilotChat';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -559,11 +561,39 @@ const FlightsTab = ({ flightLogs, upcomingFlights, onAddLog }) => {
     }
   };
 
+  const [weatherData, setWeatherData] = useState(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
+
+  const loadWeather = async (origin, destination) => {
+    setLoadingWeather(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/pilot/preflight/weather-check`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ origin, destination })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWeatherData(data);
+      }
+    } catch (error) {
+      console.error('Failed to load weather');
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
+
   const handleStartPreflight = (flight) => {
     setSelectedFlight(flight);
     setItemsChecked({});
     setNotes('');
+    setWeatherData(null);
     loadChecklist();
+    loadWeather(flight.from, flight.to);
     setShowChecklist(true);
   };
 
@@ -651,11 +681,77 @@ const FlightsTab = ({ flightLogs, upcomingFlights, onAddLog }) => {
       {/* Flight Logs Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-white font-semibold">Flight Logs</h3>
-        <Button onClick={onAddLog} size="sm" className="bg-orange-600 hover:bg-orange-700">
-          <Plus className="h-4 w-4 mr-1" />
-          Add Log
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={onAddLog} size="sm" className="bg-orange-600 hover:bg-orange-700">
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
       </div>
+
+      {/* Export Buttons */}
+      {flightLogs?.length > 0 && (
+        <div className="flex gap-2">
+          <Button 
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/api/pilot/flight-logs/export/pdf`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `FlightLog_${new Date().toISOString().split('T')[0]}.pdf`;
+                  a.click();
+                  toast.success('PDF downloaded!');
+                } else {
+                  toast.error('Export failed');
+                }
+              } catch (e) {
+                toast.error('Download failed');
+              }
+            }}
+            size="sm"
+            variant="outline"
+            className="flex-1 border-slate-600 text-white hover:bg-slate-700"
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export PDF
+          </Button>
+          <Button 
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/api/pilot/flight-logs/export/excel`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `FlightLog_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.click();
+                  toast.success('Excel downloaded!');
+                } else {
+                  toast.error('Export failed');
+                }
+              } catch (e) {
+                toast.error('Download failed');
+              }
+            }}
+            size="sm"
+            variant="outline"
+            className="flex-1 border-slate-600 text-white hover:bg-slate-700"
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
+            Export Excel
+          </Button>
+        </div>
+      )}
 
       {/* Flight Logs */}
       <div className="space-y-3">
@@ -704,6 +800,58 @@ const FlightsTab = ({ flightLogs, upcomingFlights, onAddLog }) => {
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {/* Weather Card */}
+            {weatherData && (
+              <div className={`mx-4 mt-3 p-3 rounded-xl border ${
+                weatherData.route_status === 'GO' 
+                  ? 'bg-green-500/10 border-green-500/30' 
+                  : weatherData.route_status === 'CAUTION'
+                  ? 'bg-yellow-500/10 border-yellow-500/30'
+                  : 'bg-red-500/10 border-red-500/30'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white font-semibold text-sm">Weather Status</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                    weatherData.route_status === 'GO' 
+                      ? 'bg-green-500 text-white' 
+                      : weatherData.route_status === 'CAUTION'
+                      ? 'bg-yellow-500 text-black'
+                      : 'bg-red-500 text-white'
+                  }`}>
+                    {weatherData.route_status}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <p className="text-slate-400">{weatherData.origin?.location}</p>
+                    <p className="text-white">{weatherData.origin?.temperature?.celsius}°C</p>
+                    <p className="text-slate-400">Wind: {weatherData.origin?.wind?.speed_knots}kt</p>
+                    <p className="text-slate-400">Vis: {weatherData.origin?.visibility?.kilometers}km</p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <p className="text-slate-400">{weatherData.destination?.location}</p>
+                    <p className="text-white">{weatherData.destination?.temperature?.celsius}°C</p>
+                    <p className="text-slate-400">Wind: {weatherData.destination?.wind?.speed_knots}kt</p>
+                    <p className="text-slate-400">Vis: {weatherData.destination?.visibility?.kilometers}km</p>
+                  </div>
+                </div>
+                {weatherData.route_status !== 'GO' && (
+                  <p className="text-xs text-yellow-400 mt-2">
+                    ⚠️ {weatherData.recommendation?.slice(0, 80)}...
+                  </p>
+                )}
+                {weatherData.source === 'simulated' && (
+                  <p className="text-xs text-slate-500 mt-1 italic">*Simulated weather data</p>
+                )}
+              </div>
+            )}
+            {loadingWeather && (
+              <div className="mx-4 mt-3 p-3 bg-slate-800 rounded-xl text-center">
+                <RefreshCw className="h-4 w-4 animate-spin inline mr-2 text-orange-400" />
+                <span className="text-slate-400 text-sm">Loading weather...</span>
+              </div>
+            )}
 
             {/* Progress Bar */}
             <div className="px-4 py-2 bg-slate-800/50">
@@ -1079,6 +1227,9 @@ function PilotMobilePortal() {
 
       {/* Bottom Navigation */}
       <BottomNav active={activeTab} setActive={setActiveTab} />
+
+      {/* Pilot Chat Button */}
+      <PilotChatButton user={pilot} />
 
       {/* Offline Indicator Banner */}
       {!isOnline && (

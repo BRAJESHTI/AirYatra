@@ -872,3 +872,147 @@ async def delete_pilot_document(
     await db.pilot_documents.delete_one({"id": doc_id})
     
     return {"message": "Document deleted successfully"}
+
+
+
+# ==================== FLIGHT LOG EXPORT ====================
+
+@router.get("/flight-logs/export/pdf")
+async def export_flight_logs_pdf(
+    current_user: dict = Depends(get_current_user)
+):
+    """Export all flight logs as PDF"""
+    from fastapi.responses import Response
+    from services.flight_log_export_service import flight_log_exporter
+    
+    db = get_database()
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    
+    # Get all flight logs for this pilot
+    logs = await db.flight_logs.find(
+        {"pilot_id": user_id},
+        {"_id": 0}
+    ).sort("date", -1).to_list(500)
+    
+    # Get pilot info
+    pilot_info = {
+        "name": current_user.get("full_name", "Pilot"),
+        "email": current_user.get("email", ""),
+        "license_number": current_user.get("license_number", "N/A")
+    }
+    
+    # Generate PDF
+    pdf_bytes = flight_log_exporter.generate_pdf(pilot_info, logs)
+    
+    filename = f"AirYatra_FlightLog_{user_id[:8]}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+@router.get("/flight-logs/export/excel")
+async def export_flight_logs_excel(
+    current_user: dict = Depends(get_current_user)
+):
+    """Export all flight logs as Excel"""
+    from fastapi.responses import Response
+    from services.flight_log_export_service import flight_log_exporter
+    
+    db = get_database()
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    
+    # Get all flight logs for this pilot
+    logs = await db.flight_logs.find(
+        {"pilot_id": user_id},
+        {"_id": 0}
+    ).sort("date", -1).to_list(500)
+    
+    # Get pilot info
+    pilot_info = {
+        "name": current_user.get("full_name", "Pilot"),
+        "email": current_user.get("email", ""),
+        "license_number": current_user.get("license_number", "N/A")
+    }
+    
+    # Generate Excel
+    excel_bytes = flight_log_exporter.generate_excel(pilot_info, logs)
+    
+    filename = f"AirYatra_FlightLog_{user_id[:8]}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+
+# ==================== WEATHER API ====================
+
+@router.get("/weather/{location}")
+async def get_location_weather(
+    location: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get weather data for a location"""
+    from services.weather_service import weather_service
+    
+    weather_data = await weather_service.get_weather(location)
+    return weather_data
+
+
+@router.get("/weather/route/{origin}/{destination}")
+async def get_route_weather(
+    origin: str,
+    destination: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get weather data for a flight route"""
+    from services.weather_service import weather_service
+    
+    route_weather = await weather_service.get_route_weather(origin, destination)
+    return route_weather
+
+
+@router.post("/preflight/weather-check")
+async def preflight_weather_check(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get weather assessment for pre-flight check
+    
+    data: {
+        "origin": str,
+        "destination": str
+    }
+    """
+    from services.weather_service import weather_service
+    
+    origin = data.get("origin", "Mumbai")
+    destination = data.get("destination", "Delhi")
+    
+    route_weather = await weather_service.get_route_weather(origin, destination)
+    
+    # Add recommendation
+    status = route_weather["route_status"]
+    
+    if status == "GO":
+        recommendation = "Weather conditions are suitable for flight. Standard pre-flight checks recommended."
+    elif status == "CAUTION":
+        recommendation = "Weather conditions require careful review. Check all warnings before departure. Consider alternate routes if conditions worsen."
+    else:
+        recommendation = "Flight is NOT RECOMMENDED due to adverse weather conditions. Postpone until conditions improve."
+    
+    return {
+        **route_weather,
+        "recommendation": recommendation,
+        "can_proceed_with_preflight": status != "NO-GO"
+    }

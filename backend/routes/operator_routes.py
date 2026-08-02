@@ -800,3 +800,170 @@ async def unassign_pilot_from_booking(
     )
     
     return {"message": "Pilot unassigned from booking"}
+
+
+
+# ==================== MAINTENANCE ALERTS ====================
+
+@router.get("/aircraft/maintenance-alerts")
+async def get_aircraft_maintenance_alerts(
+    user: dict = Depends(get_current_user)
+):
+    """Get aircraft approaching maintenance due dates"""
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []) and "admin" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator/Admin access required")
+    
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0})
+    operator_id = operator["id"] if operator else None
+    
+    now = datetime.now(timezone.utc)
+    
+    # Get aircraft with maintenance data
+    query = {}
+    if operator_id:
+        query["operator_id"] = operator_id
+    
+    aircraft_list = await db.aircraft.find(query, {"_id": 0}).to_list(100)
+    
+    alerts = []
+    
+    for ac in aircraft_list:
+        registration = ac.get("registration", ac.get("id", "Unknown"))
+        
+        # Check various maintenance parameters
+        maintenance_checks = [
+            {
+                "type": "Hours Since Last Service",
+                "current": ac.get("hours_since_service", 0),
+                "limit": ac.get("service_interval_hours", 100),
+                "unit": "hours"
+            },
+            {
+                "type": "Days Since Last Inspection",
+                "current": 0,  # Calculate from last_inspection_date
+                "limit": ac.get("inspection_interval_days", 30),
+                "unit": "days"
+            },
+            {
+                "type": "Engine Hours",
+                "current": ac.get("engine_hours", 0),
+                "limit": ac.get("engine_overhaul_hours", 2000),
+                "unit": "hours"
+            }
+        ]
+        
+        # Calculate days since last inspection
+        last_inspection = ac.get("last_inspection_date") or ac.get("last_maintenance_date")
+        if last_inspection:
+            try:
+                if isinstance(last_inspection, str):
+                    last_date = datetime.fromisoformat(last_inspection.replace("Z", "+00:00"))
+                else:
+                    last_date = last_inspection
+                days_since = (now - last_date).days
+                maintenance_checks[1]["current"] = days_since
+            except Exception:
+                pass
+        
+        # Check next scheduled maintenance
+        next_maintenance = ac.get("next_maintenance_date")
+        if next_maintenance:
+            try:
+                if isinstance(next_maintenance, str):
+                    next_date = datetime.fromisoformat(next_maintenance.replace("Z", "+00:00"))
+                else:
+                    next_date = next_maintenance
+                days_until = (next_date - now).days
+                
+                if days_until <= 7:
+                    alerts.append({
+                        "aircraft_registration": registration,
+                        "aircraft_type": ac.get("type", ac.get("aircraft_type", "Unknown")),
+                        "alert_type": "scheduled_maintenance",
+                        "severity": "critical" if days_until <= 2 else "warning",
+                        "message": f"Scheduled maintenance in {days_until} days",
+                        "due_date": next_maintenance if isinstance(next_maintenance, str) else next_maintenance.isoformat(),
+                        "days_remaining": days_until
+                    })
+            except Exception:
+                pass
+        
+        # Check maintenance parameters
+        for check in maintenance_checks:
+            if check["limit"] > 0:
+                remaining = check["limit"] - check["current"]
+                percentage_used = (check["current"] / check["limit"]) * 100
+                
+                if percentage_used >= 90:
+                    alerts.append({
+                        "aircraft_registration": registration,
+                        "aircraft_type": ac.get("type", ac.get("aircraft_type", "Unknown")),
+                        "alert_type": check["type"].lower().replace(" ", "_"),
+                        "severity": "critical" if percentage_used >= 95 else "warning",
+                        "message": f"{check['type']}: {check['current']}/{check['limit']} {check['unit']} ({percentage_used:.0f}% used)",
+                        "current_value": check["current"],
+                        "limit_value": check["limit"],
+                        "remaining": remaining,
+                        "percentage_used": round(percentage_used, 1)
+                    })
+    
+    # Sort by severity
+    severity_order = {"critical": 0, "warning": 1, "info": 2}
+    alerts.sort(key=lambda x: severity_order.get(x.get("severity", "info"), 2))
+    
+    return {
+        "alerts": alerts,
+        "total_alerts": len(alerts),
+        "critical_count": sum(1 for a in alerts if a.get("severity") == "critical"),
+        "warning_count": sum(1 for a in alerts if a.get("severity") == "warning"),
+        "generated_at": now.isoformat()
+    }
+
+
+@router.post("/aircraft/{registration}/update-maintenance")
+async def update_aircraft_maintenance(
+    registration: str,
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Update aircraft maintenance record"""
+    db = get_database()
+    
+    if "operator" not in user.get("roles", []) and "admin" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator/Admin access required")
+    
+    now = datetime.now(timezone.utc)
+    
+    update_data = {}
+    
+    if "hours_since_service" in data:
+        update_data["hours_since_service"] = data["hours_since_service"]
+    if "engine_hours" in data:
+        update_data["engine_hours"] = data["engine_hours"]
+    if "last_inspection_date" in data:
+        update_data["last_inspection_date"] = data["last_inspection_date"]
+    if "next_maintenance_date" in data:
+        update_data["next_maintenance_date"] = data["next_maintenance_date"]
+    if "maintenance_notes" in data:
+        update_data["maintenance_notes"] = data["maintenance_notes"]
+    
+    update_data["updated_at"] = now.isoformat()
+    
+    result = await db.aircraft.update_one(
+        {"registration": registration},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        # Try by id
+        result = await db.aircraft.update_one(
+            {"id": registration},
+            {"$set": update_data}
+        )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+    
+    return {"message": "Maintenance record updated", "registration": registration}

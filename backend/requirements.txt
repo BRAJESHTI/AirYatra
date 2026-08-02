@@ -146,3 +146,4 @@ python-magic==0.4.27
 slowapi==0.1.10
 reportlab==5.0.0
 weasyprint==69.0
+openpyxl==3.1.5
