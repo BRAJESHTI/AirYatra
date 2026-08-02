@@ -1,0 +1,53 @@
+{
+  "summary": "Phase 6 P0 features tested end-to-end: (1) Emergency Booking Priority backend (6 endpoints), (2) Aircraft Comparison modal, (3) Multi-City Route Builder + Map. Backend: 14/14 tests pass in /app/backend/tests/test_emergency_booking.py — /api/emergency/config returns correct URGENCY_LEVELS+URGENCY_REASONS, POST /create requires auth, rejects invalid urgency_level, computes priority_score correctly (critical(1)-medical(1)=0, medium(3)-vip(0)=3), sets surcharge_percent (50/25/10), operators_notified count, and emergency_number 'EMR…' — persisted and returned by /my-requests. RBAC verified: /operator/pending returns 403 for customer, 200 for operator; /queue returns 403 for customer & operator, 200 for admin with results priority-sorted ascending; /respond returns 403 for customer, 404 for unknown id, 200 for operator and records response in DB. Frontend (public URL, /booking): Step 2 (Booking Type) shows Emergency Booking button (data-testid=emergency-booking-btn) and Compare Aircraft button (data-testid=compare-aircraft-btn); all 9 booking-type cards render (One Way, Round Trip, Multi-City, Hourly Charter, Daily Charter, Multi-Day, 5+ pax [group], Emergency, Event). Emergency modal opens with 3 urgency levels + 5 reasons + Pickup/Drop/Flight-Details form. Compare modal opens listing seeded verified aircraft (H145, 407, Citation XLS) with '0/3 selected' counter. Multi-City card selection routes Step 3 to MultiCityRouteBuilder which renders Leg 1 (Start), Leg 2 (End 5% off), 'Add Destination (2/8)' auto-chaining note, waiting-time and night-halts options.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/emergency/create", "issue": "When no operators are within radius, status is set to 'no_operators_found' — but the request STILL returns success:true with operators_notified=0 and no user-facing hint of retry/fallback. Consider surfacing a distinct message so the customer knows the broadcast reached zero operators."},
+      {"endpoint": "POST /api/emergency/respond", "issue": "Once an emergency has status='no_operators_found' operators can no longer respond (400 'no longer accepting responses'). If a late operator becomes available (comes online/gets verified) they cannot help. Consider re-opening or manual admin re-broadcast."},
+      {"endpoint": "GET /api/emergency/queue", "issue": "Priority sort is (priority_score asc, created_at asc) but response also carries the full priority_levels config on every call — slightly wasteful; move to /config only."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AircraftCompareModal", "issue": "Modal (fixed inset-0 z-50 overlay) does NOT close on Escape key press. Only the X icon in the header dismisses it. Screenshot confirms — after Escape the overlay still intercepts pointer events and blocks the underlying Next button. Add onKeyDown listener or migrate to shadcn Dialog primitive.", "selector": ".fixed.inset-0.bg-black\\/80.z-50 (AircraftCompareModal_144)", "priority": "MEDIUM"},
+      {"component": "EmergencyBookingForm", "issue": "Same — clicking outside the modal or pressing Escape does not close the Emergency Booking modal. Only a manual Cancel/close control works. Add backdrop-click and Escape handlers for accessibility and to prevent scroll-lock.", "selector": "emergency form modal container", "priority": "MEDIUM"},
+      {"component": "MultiCityRouteBuilder — Departure Date / Pickup Time", "issue": "Step 3 (multi-city) uses the browser's native mm/dd/yyyy and --:-- pickers instead of shadcn Calendar+Time components used elsewhere in the app. Inconsistent UX and no locale support for Indian date format.", "selector": "input[type='date'], input[type='time'] inside MultiCityRouteBuilder", "priority": "LOW"},
+      {"component": "BookingTypeSelector cards", "issue": "Card labels are visually truncated to 'Mult…', 'Roun…', 'Daily…', 'Hour…' etc. on 1920px viewport because of narrow fixed-width tiles. Full names are only visible on hover/selection. Consider two-row wrap or tooltip.", "selector": "BookingTypeSelector card titles", "priority": "LOW"},
+      {"component": "Multi-City Map", "issue": "MultiCityRouteMap only renders when 'showMap && totalDistance > 0'. With empty legs the map is hidden — could not be visually confirmed in this test run without filling from/to landing points (which require /api/landing-points lookups). Recommend a placeholder map (India centroid) or a note when legs are empty so users know the map exists.", "selector": "MultiCityRouteMap render guard", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Step 2 Booking Type (public URL /booking)", "issues": ["Truncated booking-type card labels", "Emergency Booking button has red outline + red text — good contrast on dark bg", "'Please login to submit booking inquiry' banner appears at bottom of every step for anonymous visitors — expected"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_emergency_booking.py",
+    "/app/test_reports/pytest/emergency_results.xml"
+  ],
+  "action_items": [
+    "Make AircraftCompareModal + EmergencyBookingForm modals dismiss on Escape and on backdrop click (currently only the X button works — trap-focus without keyboard exit is an a11y/UX bug).",
+    "Emergency /create: return a distinct status/message ('no_operators_found') to the frontend so the UI can prompt the user to widen radius, escalate urgency, or contact admin directly. Currently returns success:true with operators_notified=0.",
+    "Consider allowing admin re-broadcast of a 'no_operators_found' emergency once new operators come online, rather than terminally blocking responses.",
+    "Replace native date/time inputs in MultiCityRouteBuilder with the shadcn Calendar/TimePicker components already used elsewhere.",
+    "Show a placeholder Leaflet map (or an empty India-centered map) inside MultiCityRouteBuilder even before any leg coordinates are set, so users can discover the map feature."
+  ],
+  "critical_code_review_comments": [
+    "emergency_booking_routes.py:find_available_operators — when operator.base_latitude is missing it falls back to `emergency.from_latitude`, meaning that operator is treated as if co-located at the emergency origin (distance=0 km) and is always inside the radius. That means an operator with a missing base location is always notified. This is generous by design but should be documented — otherwise a genuine 800km-away operator with a null base_lat looks like a 0km match.",
+    "emergency_booking_routes.py:respond_to_emergency — validates aircraft only when can_fulfill and aircraft_id are both truthy. Operators can respond can_fulfill=True with no aircraft_id — this saves a 'yes' with no aircraft attached and confuses downstream select-operator. Add: `if response.can_fulfill and not response.aircraft_id: raise HTTPException(400, 'aircraft_id required when can_fulfill=True')`.",
+    "emergency_booking_routes.py:select_emergency_operator — uses Depends(get_current_user) but does not enforce role or that the current_user is the customer. It correctly checks `emergency.customer_id != current_user.id` so unauthorized selection is blocked. OK, but consider adding an explicit customer/admin role guard for defence-in-depth.",
+    "MultiCityRouteBuilder line 188: `showMap && totalDistance > 0` — this hides the map until at least one leg has geocoded coords. As a P0 'Multi-City Map View' feature this makes the map invisible to users who haven't yet picked landing points; consider always rendering an India-centered placeholder map and updating it live as legs are added.",
+    "AircraftCompareModal (raw fixed inset-0 overlay, not @radix Dialog) — lacks Escape-to-close, backdrop-click-to-close, focus trap, and aria-labelling. Prefer migrating to the existing shadcn `<Dialog>` primitive used elsewhere for consistency and a11y.",
+    "BookingPage.js is 2146 lines (was already flagged in earlier iterations). Split render*Step functions into their own files; adding Emergency/Compare/MultiCity has pushed this deeper into monolith territory."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_emergency_booking.py (new — 14 tests)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "~85% — Emergency + Compare + 9 booking types + MultiCity route builder all render correctly; Leaflet map render deferred to legs-with-coords which was not visually confirmed; modals lack Escape/backdrop close"},
+  "seed_data_creation": "Two TEST emergency bookings created and auto-cleaned in the test's session-scope fixture (via direct Mongo delete on emergency_bookings, emergency_alerts, notifications by emergency_booking_id).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Used direct create_access_token JWT mint (bypasses OTP). CUSTOMER id=d8bf6df5-360b-4a8e-b665-43d09a3e8626 (loyaltytest@airyatra.com), OPERATOR id=88e05bf4-57fc-43b3-82cb-18252892026b (operator8fkf0x@airyatra.com), ADMIN id=601a4741-f347-4ce8-845e-6cbd91bf9a78 (admin@airyatra.com).",
+  "context_for_next_testing_agent": "Emergency backend is fully functional (14/14). Frontend integration: Emergency + Compare buttons live on Step 2 with correct testids, 9 booking types render, MultiCity switches Step 3 to the route-builder tree. The Leaflet map inside MultiCityRouteBuilder only renders once legs have valid from/to coordinates — the placeholder-empty case was tested and the map is intentionally hidden. To visually confirm the Leaflet rendering, fill Leg1.from and Leg1.to via /api/landing-points/search results (LandingPointSelector) and re-open Step 3. Also verify the /respond → /select-operator → /notifications flow end-to-end with a live operator response (only 'cannot fulfill' path was exercised here). Modal Escape/backdrop-close is a known UX gap for both AircraftCompareModal and EmergencyBookingForm.",
+  "rca_of_the_issue": "N/A — no blocking defects. Two minor findings: (a) modals lack Escape/backdrop dismiss (AircraftCompareModal, EmergencyBookingForm), root cause is that both are hand-rolled `fixed inset-0` overlays rather than shadcn Dialog primitives — migrating to Dialog resolves it; (b) MultiCity Leaflet map hides when totalDistance==0, root cause is the explicit render guard `showMap && totalDistance > 0` — dropping the totalDistance>0 half (or defaulting to an India-centered empty map) makes the P0 map discoverable immediately."
+}

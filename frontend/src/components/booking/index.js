@@ -10,6 +10,11 @@ export { PriceLockTimer, PriceLockBadge } from './PriceLockTimer';
 export { BookingTypeSelector, BookingTypePill } from './BookingTypeSelector';
 export { MultiCityRouteBuilder } from './MultiCityRouteBuilder';
 
+// P0 Features: Emergency, Comparison, Map
+export { default as AircraftCompareModal } from './AircraftCompareModal';
+export { default as MultiCityRouteMap } from './MultiCityRouteMap';
+export { default as EmergencyBookingForm } from './EmergencyBookingForm';
+
 // Export configuration
 export {
   aircraftTypes,

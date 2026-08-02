@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, 
   MapPin, ChevronLeft, ChevronRight, Check, AlertCircle, 
   Briefcase, Target, Navigation, Calculator, Send, Loader2,
   UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign, Gift, Tag,
-  FileText, Scale, AlertTriangle, PenTool, ExternalLink, Lock
+  FileText, Scale, AlertTriangle, PenTool, ExternalLink, Lock, Siren
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,10 @@ import {
   BookingStepIndicator,
   PriceLockTimer,
   BookingTypeSelector,
+  AircraftCompareModal,
+  EmergencyBookingForm,
+  MultiCityRouteBuilder,
+  MultiCityRouteMap,
   aircraftTypes,
   udanPrakarOptions,
   bookingTypes,
@@ -170,6 +174,17 @@ function BookingPage({ user }) {
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   
+  // Aircraft Comparison State (NEW)
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [availableAircraft, setAvailableAircraft] = useState([]);
+  const [selectedAircraft, setSelectedAircraft] = useState(null);
+  
+  // Emergency Booking State (NEW)
+  const [showEmergencyForm, setShowEmergencyForm] = useState(false);
+  
+  // Multi-City Routes State (NEW)
+  const [multiCityRoutes, setMultiCityRoutes] = useState({ legs: [], totalDistance: 0, totalPrice: 0 });
+  
   // Mandatory Legal Consents State (5 required checkboxes)
   const [consents, setConsents] = useState({
     terms_conditions: false,      // T&C, Privacy, Cancellation Policy
@@ -222,6 +237,27 @@ function BookingPage({ user }) {
       }
     }
   }, [user]);
+  
+  // Load available aircraft for comparison (NEW)
+  const loadAvailableAircraft = async () => {
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const res = await fetch(`${API_URL}/api/aircraft/public/featured?limit=10`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableAircraft(data.aircraft || []);
+      }
+    } catch (e) {
+      console.log('Could not load aircraft for comparison');
+    }
+  };
+  
+  // Load aircraft when booking type step is reached
+  useEffect(() => {
+    if (currentStep >= 1) {
+      loadAvailableAircraft();
+    }
+  }, [currentStep]);
   
   const loadWalletBalance = async () => {
     try {
@@ -1007,6 +1043,53 @@ function BookingPage({ user }) {
   // Render Step 2: Booking Type (Dropdowns)
   const renderBookingTypeStep = () => (
     <div className="space-y-6">
+      {/* Emergency & Compare Buttons (NEW) */}
+      <div className="flex gap-3 mb-2">
+        <Button
+          variant="outline"
+          onClick={() => setShowEmergencyForm(true)}
+          className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+          data-testid="emergency-booking-btn"
+        >
+          <Siren className="h-4 w-4 mr-2" />
+          Emergency Booking
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowCompareModal(true)}
+          className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+          data-testid="compare-aircraft-btn"
+        >
+          <Scale className="h-4 w-4 mr-2" />
+          Compare Aircraft
+        </Button>
+      </div>
+      
+      {/* Selected Aircraft Display (NEW) */}
+      {selectedAircraft && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Check className="h-5 w-5 text-green-400" />
+            <div>
+              <p className="text-white font-medium">
+                {selectedAircraft.basic_info?.model || selectedAircraft.model} Selected
+              </p>
+              <p className="text-slate-400 text-sm">
+                {selectedAircraft.basic_info?.manufacturer || selectedAircraft.manufacturer}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedAircraft(null)}
+            className="text-slate-400"
+          >
+            Change
+          </Button>
+        </div>
+      )}
+      
       {/* NEW: Booking Type Selector (9 types) */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <BookingTypeSelector
@@ -1110,37 +1193,59 @@ function BookingPage({ user }) {
   // Render Step 3: Route Details
   const renderRouteStep = () => (
     <div className="space-y-6">
-      {/* Pickup Location - Landing Point Selector */}
-      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <Navigation className="h-5 w-5 text-green-400" />
-          {t('bookingForm.pickupLocation')}
-        </h3>
-        <LandingPointSelector
-          label={t('bookingForm.selectPickupPoint')}
-          type="pickup"
-          selectedDate={formData.departure_date}
-          aircraftType={formData.aircraft_type}
-          onSelect={(data) => handleLandingPointSelect('pickup', data)}
-          selectedPoint={formData.pickup_landing_point}
-        />
-      </div>
+      {/* Multi-City Route Builder (for multi_city booking type) */}
+      {formData.booking_type === 'multi_city' ? (
+        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+          <MultiCityRouteBuilder
+            routes={multiCityRoutes.legs}
+            onRoutesChange={(data) => {
+              setMultiCityRoutes(data);
+              // Update distance for pricing
+              setDistanceKm(data.totalDistance);
+            }}
+            selectedDate={formData.departure_date}
+            aircraftType={formData.aircraft_type}
+            basePrice={pricingSettings?.rate_per_hour || 80000}
+            perLegDiscount={5}
+            minLegs={2}
+            maxLegs={8}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Pickup Location - Landing Point Selector */}
+          <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-green-400" />
+              {t('bookingForm.pickupLocation')}
+            </h3>
+            <LandingPointSelector
+              label={t('bookingForm.selectPickupPoint')}
+              type="pickup"
+              selectedDate={formData.departure_date}
+              aircraftType={formData.aircraft_type}
+              onSelect={(data) => handleLandingPointSelect('pickup', data)}
+              selectedPoint={formData.pickup_landing_point}
+            />
+          </div>
 
-      {/* Drop Location - Landing Point Selector */}
-      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-red-400" />
-          {t('bookingForm.dropLocation')}
-        </h3>
-        <LandingPointSelector
-          label={t('bookingForm.selectDropPoint')}
-          type="drop"
-          selectedDate={formData.departure_date}
-          aircraftType={formData.aircraft_type}
-          onSelect={(data) => handleLandingPointSelect('drop', data)}
-          selectedPoint={formData.drop_landing_point}
-        />
-      </div>
+          {/* Drop Location - Landing Point Selector */}
+          <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-red-400" />
+              {t('bookingForm.dropLocation')}
+            </h3>
+            <LandingPointSelector
+              label={t('bookingForm.selectDropPoint')}
+              type="drop"
+              selectedDate={formData.departure_date}
+              aircraftType={formData.aircraft_type}
+              onSelect={(data) => handleLandingPointSelect('drop', data)}
+              selectedPoint={formData.drop_landing_point}
+            />
+          </div>
+        </>
+      )}
 
       {/* Distance Display */}
       {distanceKm > 0 && (
@@ -2002,6 +2107,37 @@ function BookingPage({ user }) {
           </div>
         )}
       </div>
+      
+      {/* Aircraft Comparison Modal (NEW) */}
+      <AircraftCompareModal
+        isOpen={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+        availableAircraft={availableAircraft}
+        onSelectAircraft={(aircraft) => {
+          setSelectedAircraft(aircraft);
+          handleInputChange('selected_aircraft_id', aircraft.id);
+          handleInputChange('selected_aircraft_model', aircraft.basic_info?.model || aircraft.model);
+        }}
+        selectedAircraftId={selectedAircraft?.id}
+        distanceKm={distanceKm}
+        passengerCount={formData.total_passengers}
+      />
+      
+      {/* Emergency Booking Modal (NEW) */}
+      {showEmergencyForm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+            <EmergencyBookingForm
+              user={user}
+              onSuccess={(data) => {
+                setShowEmergencyForm(false);
+                navigate(`/customer/emergency/${data.emergency_booking_id}`);
+              }}
+              onCancel={() => setShowEmergencyForm(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

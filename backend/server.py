@@ -148,6 +148,8 @@ from routes import price_breakup_routes
 from routes import compliance_monitor_routes
 # Admin Document Verification
 from routes import admin_document_routes
+# Emergency Booking Priority System
+from routes import emergency_booking_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -395,6 +397,9 @@ api_router.include_router(compliance_monitor_routes.router)
 
 # Admin Document Verification
 api_router.include_router(admin_document_routes.router)
+
+# Emergency Booking Priority System
+api_router.include_router(emergency_booking_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

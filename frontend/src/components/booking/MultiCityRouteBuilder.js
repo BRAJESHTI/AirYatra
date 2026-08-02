@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, MapPin, ArrowRight, Navigation, Calculator, AlertCircle, GripVertical } from 'lucide-react';
+import { Plus, Trash2, MapPin, ArrowRight, Navigation, Calculator, AlertCircle, GripVertical, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import LandingPointSelector from '../shared/LandingPointSelector';
+import MultiCityRouteMap from './MultiCityRouteMap';
 
 /**
  * Multi-City Route Builder Component
@@ -32,6 +33,8 @@ export const MultiCityRouteBuilder = ({
   const [totalDistance, setTotalDistance] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalDiscount, setTotalDiscount] = useState(0);
+  const [showMap, setShowMap] = useState(true);
+  const [mapExpanded, setMapExpanded] = useState(false);
   
   // Calculate distance between two points (Haversine formula)
   const calculateDistance = (from, to) => {
@@ -165,10 +168,32 @@ export const MultiCityRouteBuilder = ({
             Add {minLegs}-{maxLegs} destinations. Each additional leg gets {perLegDiscount}% off!
           </p>
         </div>
-        <Badge className="bg-blue-500/20 text-blue-400">
-          {legs.length} Legs / {legs.length} पड़ाव
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMap(!showMap)}
+            className={`border-slate-600 ${showMap ? 'bg-blue-500/20 text-blue-400' : ''}`}
+          >
+            <Map className="h-4 w-4 mr-1" />
+            {showMap ? 'Hide Map' : 'Show Map'}
+          </Button>
+          <Badge className="bg-blue-500/20 text-blue-400">
+            {legs.length} Legs / {legs.length} पड़ाव
+          </Badge>
+        </div>
       </div>
+      
+      {/* Interactive Route Map */}
+      {showMap && totalDistance > 0 && (
+        <MultiCityRouteMap
+          legs={legs}
+          totalDistance={totalDistance}
+          totalPrice={totalPrice}
+          isExpanded={mapExpanded}
+          onToggleExpand={() => setMapExpanded(!mapExpanded)}
+        />
+      )}
       
       {/* Route Legs */}
       <div className="space-y-3">
