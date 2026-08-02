@@ -74,7 +74,10 @@ export default function EmployeePortal({ user, onLogout }) {
     try {
       const res = await api.get('/hr/employee/overview');
       setOverview(res.data);
-    } catch (e) { /* silent */ }
+    } catch (e) { 
+      // Overview is primary dashboard data - log for debugging
+      console.error('Failed to load employee overview:', e.message);
+    }
   };
 
   useEffect(() => { loadOverview(); }, []);

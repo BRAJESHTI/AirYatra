@@ -166,7 +166,7 @@ function BookingPage({ user }) {
       setCurrentStep(savedStep);
       toast.success(`📋 ${t('bookingForm.formRestored')}`);
     }
-  }, [user, savedStep]);
+  }, [user, savedStep, t]);
 
   // Save form data to localStorage whenever it changes
   useEffect(() => {

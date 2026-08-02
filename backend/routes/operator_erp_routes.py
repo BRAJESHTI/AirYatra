@@ -6,6 +6,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from database import get_database
 from middleware import get_current_user
+import uuid
 
 router = APIRouter(prefix="/erp/operator", tags=["Operator ERP"])
 
@@ -364,7 +365,7 @@ async def add_compliance_document(data: dict, current_user: dict = Depends(get_c
     if not aircraft or (operator and aircraft.get("operator_id") != operator["id"]):
         raise HTTPException(status_code=403, detail="Not your aircraft")
     doc = {
-        "id": str(__import__('uuid').uuid4()),
+        "id": str(uuid.uuid4()),
         "aircraft_id": aircraft_id,
         "document_type": doc_type,
         "reference_number": data.get("reference_number", ""),

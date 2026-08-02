@@ -44,7 +44,7 @@ class BankVerifyRequest(BaseModel):
 class GenericVerifyRequest(BaseModel):
     document_type: str = Field(..., description="Document type code")
     document_number: str = Field(..., description="Document number")
-    additional_data: Optional[Dict[str, Any]] = Field(default={})
+    additional_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 # ============== HELPER FUNCTIONS ==============
 

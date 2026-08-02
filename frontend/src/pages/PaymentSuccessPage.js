@@ -82,7 +82,10 @@ export default function PaymentSuccessPage() {
           return; 
         }
         if (res.data.payment_status === 'expired' || res.data.status === 'failed') { setState('failed'); return; }
-      } catch (e) { /* keep polling */ }
+      } catch (e) { 
+        // Continue polling on error - payment verification may be temporarily unavailable
+        console.warn('Payment verification poll error:', e.message);
+      }
       if (attempts.current >= 12) { setState('timeout'); return; }
       timer = setTimeout(poll, 2500);
     };
@@ -182,7 +185,11 @@ export default function PaymentSuccessPage() {
                     a.download = 'AirYatra_Receipt.pdf';
                     a.click();
                     URL.revokeObjectURL(url);
-                  } catch (e) { /* receipt needs login */ }
+                  } catch (e) { 
+                    // Receipt download requires authentication
+                    console.warn('Receipt download failed - login required:', e.message);
+                    alert('Please login to download receipt / रसीद डाउनलोड करने के लिए लॉगिन करें');
+                  }
                 }}
                 className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10 h-11"
               >

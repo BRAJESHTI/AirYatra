@@ -60,8 +60,8 @@ class VerificationAPICreate(BaseModel):
     api_secret: Optional[str] = Field(None, description="API Secret (will be masked)")
     sandbox_mode: bool = Field(default=True, description="Is in test/sandbox mode?")
     is_enabled: bool = Field(default=False, description="Is this API enabled?")
-    verification_fields: List[str] = Field(default=[], description="Fields required for verification")
-    response_mapping: dict = Field(default={}, description="How to map API response to our fields")
+    verification_fields: List[str] = Field(default_factory=list, description="Fields required for verification")
+    response_mapping: dict = Field(default_factory=dict, description="How to map API response to our fields")
     rate_limit: int = Field(default=100, description="API calls per day limit")
     cost_per_call: float = Field(default=0, description="Cost per API call in INR")
     notes: Optional[str] = None

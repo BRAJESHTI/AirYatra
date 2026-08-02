@@ -48,7 +48,8 @@ function PaymentPage({ user }) {
       const res = await api.get('/loyalty/my-redemptions');
       setMyVouchers((res.data.redemptions || []).filter(v => v.status === 'active' && v.value > 0));
     } catch (e) {
-      // vouchers optional
+      // Vouchers are optional feature - silently continue
+      console.debug('Vouchers load skipped:', e.message);
     }
   };
 

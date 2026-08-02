@@ -195,11 +195,11 @@ def cached(ttl: int = 60, key_prefix: str = ""):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            # Generate cache key
+            # Generate cache key (using SHA256 for security)
             key_parts = [key_prefix or func.__name__]
             key_parts.extend(str(arg) for arg in args[1:])  # Skip self
             key_parts.extend(f"{k}={v}" for k, v in sorted(kwargs.items()))
-            cache_key = hashlib.md5("|".join(key_parts).encode()).hexdigest()
+            cache_key = hashlib.sha256("|".join(key_parts).encode()).hexdigest()[:32]
             
             # Try cache
             cached_value = await cache.get(cache_key)

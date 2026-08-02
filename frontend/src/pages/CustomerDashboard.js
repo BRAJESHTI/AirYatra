@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -107,9 +107,9 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
     else if (path.includes('/kyc')) setActiveTab('kyc');
     else setActiveTab('overview');
-  }, [location]);
+  }, [location.pathname]);
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       const response = await customerAPI.getTrips();
       setBookings(response.data.trips || []);
@@ -118,7 +118,7 @@ function CustomerDashboard({ user, onLogout }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => 

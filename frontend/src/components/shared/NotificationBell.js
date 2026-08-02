@@ -417,8 +417,8 @@ function NotificationBell({ user }) {
                     Critical Security Alerts ({criticalAlerts.length})
                   </p>
                 </div>
-                {criticalAlerts.map((alert, idx) => (
-                  <div key={idx} className="px-4 py-3 border-b border-red-500/20 hover:bg-red-500/10">
+                {criticalAlerts.map((alert) => (
+                  <div key={alert.id || `alert-${alert.timestamp}`} className="px-4 py-3 border-b border-red-500/20 hover:bg-red-500/10">
                     <div className="flex items-start gap-3">
                       <div className="p-2 bg-red-500/30 rounded-lg">
                         <Shield className="h-5 w-5 text-red-400" />
@@ -442,8 +442,8 @@ function NotificationBell({ user }) {
                               <div className="mt-1">
                                 <span className="text-slate-500">Factors:</span>
                                 <ul className="mt-1 space-y-0.5">
-                                  {alert.details.risk_factors.slice(0, 3).map((f, i) => (
-                                    <li key={i} className="text-red-300 flex items-center gap-1">
+                                  {alert.details.risk_factors.slice(0, 3).map((f, factorIdx) => (
+                                    <li key={`factor-${factorIdx}-${f.substring(0,10)}`} className="text-red-300 flex items-center gap-1">
                                       <span className="text-red-500">•</span> {f}
                                     </li>
                                   ))}

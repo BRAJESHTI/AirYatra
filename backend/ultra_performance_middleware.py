@@ -123,8 +123,8 @@ class FastCacheMiddleware(BaseHTTPMiddleware):
         if ttl == 0:
             return await call_next(request)
         
-        # Cache key
-        key = hashlib.md5(f"{path}:{request.query_params}".encode()).hexdigest()
+        # Cache key (SHA256 for security - MD5 is deprecated)
+        key = hashlib.sha256(f"{path}:{request.query_params}".encode()).hexdigest()[:32]
         
         # Check cache
         cached = get_cached(key)
@@ -157,10 +157,10 @@ class FastRateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in {"/health", "/api/auth/login"}:
             return await call_next(request)
         
-        # Get client ID
+        # Get client ID (SHA256 for security)
         auth = request.headers.get("Authorization", "")
         if auth:
-            client_id = hashlib.md5(auth.encode()).hexdigest()[:12]
+            client_id = hashlib.sha256(auth.encode()).hexdigest()[:12]
         else:
             client_id = request.client.host if request.client else "unknown"
         

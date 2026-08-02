@@ -87,10 +87,10 @@ class CacheMiddleware(BaseHTTPMiddleware):
         return response
     
     def _generate_cache_key(self, request: Request) -> str:
-        """Generate unique cache key from request"""
+        """Generate unique cache key from request (using SHA256 for security)"""
         key_parts = [request.method, request.url.path, str(sorted(request.query_params.items()))]
         key_string = "|".join(key_parts)
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.sha256(key_string.encode()).hexdigest()[:32]
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -144,11 +144,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return response
     
     def _get_client_id(self, request: Request) -> str:
-        """Get unique client identifier"""
+        """Get unique client identifier (using SHA256 for security)"""
         # Try to get user ID from auth header
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
-            return f"user:{hashlib.md5(auth_header.encode()).hexdigest()[:16]}"
+            return f"user:{hashlib.sha256(auth_header.encode()).hexdigest()[:16]}"
         
         # Fall back to IP address
         forwarded = request.headers.get("X-Forwarded-For")
