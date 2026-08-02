@@ -1099,6 +1099,148 @@ EMAIL_TEMPLATES = {
 </html>
 """
     },
+    
+    # ===== CRITICAL SECURITY ALERT FOR ADMIN/CEO/HR =====
+    "critical_security_alert": {
+        "subject": "🚨 CRITICAL SECURITY ALERT - {{ alert_type }} - AirYatra Login Shield",
+        "body": """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; border: 2px solid #dc2626; }
+        .header { background: linear-gradient(135deg, #dc2626, #991b1b); padding: 30px; text-align: center; }
+        .header-icon { font-size: 60px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .content { padding: 30px; }
+        .alert-badge { display: inline-block; background: #dc2626; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-bottom: 20px; }
+        .info-card { background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 15px 0; border-left: 4px solid #dc2626; }
+        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a4e; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #94a3b8; font-size: 13px; }
+        .info-value { color: #ffffff; font-weight: 600; text-align: right; }
+        .risk-factors { background: #450a0a; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .risk-factor { display: flex; align-items: center; gap: 8px; padding: 5px 0; color: #fca5a5; font-size: 13px; }
+        .location-map { background: #1a1a2e; border-radius: 12px; padding: 15px; margin: 15px 0; text-align: center; }
+        .btn { display: inline-block; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 5px; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-secondary { background: #3b82f6; color: white; }
+        .footer { background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+        .timestamp { color: #94a3b8; font-size: 11px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">🚨</div>
+            <h1 style="margin:10px 0 0; font-size: 24px;">CRITICAL SECURITY ALERT</h1>
+            <p style="margin:5px 0 0; opacity:0.9; font-size: 14px;">Login Shield AI™ has detected suspicious activity</p>
+        </div>
+        
+        <div class="content">
+            <div class="alert-badge">⚠️ {{ alert_type }}</div>
+            
+            <p style="color:#fca5a5; font-size: 16px; margin-bottom: 20px;">
+                <strong>Immediate attention required!</strong> A {{ risk_level }} risk login attempt has been detected.
+            </p>
+            
+            <!-- User Information -->
+            <div class="info-card">
+                <h4 style="margin:0 0 15px; color:#f97316;">👤 User Information</h4>
+                <div class="info-row">
+                    <span class="info-label">User Name</span>
+                    <span class="info-value">{{ user_name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ user_email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Role</span>
+                    <span class="info-value">{{ user_role }}</span>
+                </div>
+            </div>
+            
+            <!-- Location & Device -->
+            <div class="info-card">
+                <h4 style="margin:0 0 15px; color:#f97316;">📍 Location & Device</h4>
+                <div class="info-row">
+                    <span class="info-label">IP Address</span>
+                    <span class="info-value" style="color:#ef4444;">{{ ip_address }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Location</span>
+                    <span class="info-value">{{ location_city }}, {{ location_country }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ISP</span>
+                    <span class="info-value">{{ isp }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Device</span>
+                    <span class="info-value">{{ device_name }}</span>
+                </div>
+                {% if is_vpn %}
+                <div class="info-row">
+                    <span class="info-label">VPN/Proxy</span>
+                    <span class="info-value" style="color:#ef4444;">⚠️ DETECTED</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Risk Assessment -->
+            <div class="info-card">
+                <h4 style="margin:0 0 15px; color:#f97316;">🛡️ Risk Assessment</h4>
+                <div class="info-row">
+                    <span class="info-label">Risk Score</span>
+                    <span class="info-value" style="color:#ef4444; font-size: 20px;">{{ risk_score }}/100</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Risk Level</span>
+                    <span class="info-value" style="color:#ef4444;">🔴 {{ risk_level }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Action Taken</span>
+                    <span class="info-value">{{ action_taken }}</span>
+                </div>
+            </div>
+            
+            <!-- Risk Factors -->
+            <div class="risk-factors">
+                <h4 style="margin:0 0 10px; color:#ef4444;">⚠️ Risk Factors Detected</h4>
+                {% for factor in risk_factors %}
+                <div class="risk-factor">
+                    <span>•</span>
+                    <span>{{ factor }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="{{ dashboard_url }}" class="btn btn-danger">🔒 View in Dashboard</a>
+                <a href="{{ block_user_url }}" class="btn btn-secondary">🚫 Block User</a>
+            </div>
+            
+            <p class="timestamp">
+                Detected at: {{ timestamp }}<br>
+                Alert ID: {{ alert_id }}<br>
+                You are receiving this because you are an {{ recipient_role }}
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>AirYatra Login Shield AI™</strong></p>
+            <p>Enterprise Security Operations Center</p>
+            <p style="color:#ef4444; margin-top:10px;">This is an automated security alert. Do not reply to this email.</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    },
 }
 
 # ==================== EMAIL SERVICE CLASS ====================
