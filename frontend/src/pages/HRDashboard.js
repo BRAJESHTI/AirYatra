@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, Users, Calendar, DollarSign, Clock, MapPin, ChevronDown, ChevronRight, BarChart3, Settings, User, Wallet, CreditCard, Navigation, Target, Award, FileText, CheckSquare, Receipt, Upload, BanknoteIcon } from 'lucide-react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { LogOut, Plane, Home, Users, Calendar, DollarSign, Clock, MapPin, ChevronDown, ChevronRight, BarChart3, Settings, User, Wallet, CreditCard, Navigation, Target, Award, FileText, CheckSquare, Receipt, Upload, BanknoteIcon, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
 
@@ -10,6 +10,8 @@ import EmployeeManagement from '@/components/admin/EmployeeManagement';
 import TeamAttendanceToday from '@/components/admin/TeamAttendanceToday';
 import HolidayCalendar from '@/components/admin/HolidayCalendar';
 import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
+import LoginShieldDashboard from '@/components/admin/LoginShieldDashboard';
+import SessionManager from '@/components/auth/SessionManager';
 
 // Lazy load new components
 const ExpenseReimbursement = React.lazy(() => import('@/components/hr/ExpenseReimbursement'));
@@ -78,6 +80,15 @@ const navGroups = [
       { id: 'attendance_report', label: 'Attendance Report', icon: FileText },
       { id: 'payroll_report', label: 'Payroll Report', icon: FileText },
       { id: 'performance', label: 'Performance Report', icon: BarChart3 },
+    ]
+  },
+  {
+    id: 'security',
+    label: 'Security / सुरक्षा',
+    icon: Shield,
+    items: [
+      { id: 'login_shield', label: 'Login Shield AI™', icon: Shield, highlight: true },
+      { id: 'session_manager', label: 'Session Manager', icon: Users },
     ]
   },
 ];
@@ -152,6 +163,10 @@ function HRDashboard({ user, onLogout }) {
             <AutoSalaryPayment user={user} />
           </React.Suspense>
         );
+      case 'login_shield':
+        return <LoginShieldDashboard />;
+      case 'session_manager':
+        return <SessionManager />;
       default:
         return (
           <div className="space-y-6">

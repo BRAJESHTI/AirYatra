@@ -90,6 +90,8 @@ import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
 import VerificationAPISettings from '@/components/admin/VerificationAPISettings';
 import DocumentExpiryDashboard from '@/components/admin/DocumentExpiryDashboard';
 import CommandCenter from '@/components/admin/CommandCenter';
+import LoginShieldDashboard from '@/components/admin/LoginShieldDashboard';
+import SessionManager from '@/components/auth/SessionManager';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -188,6 +190,8 @@ const navGroups = [
       { id: 'attendance', label: 'Attendance & Payroll', icon: CreditCard },
       { id: 'field_tracking', label: 'Field Live Tracking', icon: Navigation, highlight: true },
       { id: 'two_factor', label: '2FA Security', icon: Shield },
+      { id: 'login_shield', label: 'Login Shield AI™', icon: Shield, highlight: true },
+      { id: 'session_manager', label: 'Session Manager', icon: Users },
     ]
   },
   {
@@ -376,6 +380,10 @@ function AdminDashboard({ user, onLogout }) {
         return <AIChatbot />;
       case 'two_factor':
         return <TwoFactorAuth />;
+      case 'login_shield':
+        return <LoginShieldDashboard />;
+      case 'session_manager':
+        return <SessionManager />;
       case 'calendar_sync':
         return <CalendarSync />;
       case 'accounting':

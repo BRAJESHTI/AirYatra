@@ -6,9 +6,10 @@ from middleware import get_current_user, hash_token
 from security_middleware import limiter, RATE_LIMITS, AuditLogger
 from services.otp_service import otp_service
 from services.email_service import EmailService
+from services.login_shield_service import login_shield
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -144,9 +145,39 @@ async def login(request: Request, credentials: UserLogin):
             detail="User account is inactive"
         )
     
-    # Check if OTP is required
+    # Login Shield AI - Calculate risk score
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("User-Agent", "")
+    
+    risk_assessment = await login_shield.calculate_risk_score(
+        user_id=user["id"],
+        email=user["email"],
+        ip_address=ip_address,
+        user_agent=user_agent,
+        login_successful=True
+    )
+    
+    # Check if login should be blocked
+    if risk_assessment["action"]["block_login"]:
+        # Send alert email to user
+        try:
+            await email_service.send_new_device_alert(
+                to_email=user["email"],
+                user_name=user.get("full_name", user["email"].split("@")[0]),
+                device_name=otp_service._parse_device_name(user_agent),
+                ip_address=ip_address,
+                location="Unknown"
+            )
+        except Exception:
+            pass
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Login blocked due to suspicious activity (Risk Score: {risk_assessment['score']}). Please contact support."
+        )
+    
+    # Determine if OTP is required (either by policy or by risk level)
+    force_otp_by_risk = risk_assessment["action"]["force_otp"]
     
     requires_otp, reason = await otp_service.should_require_otp(
         user_id=user["id"],
@@ -154,6 +185,11 @@ async def login(request: Request, credentials: UserLogin):
         ip_address=ip_address,
         user_data=user
     )
+    
+    # Force OTP if risk level demands it
+    if force_otp_by_risk and not requires_otp:
+        requires_otp = True
+        reason = f"risk_level_{risk_assessment['level'].lower()}"
     
     if requires_otp:
         # Generate and send OTP
@@ -207,7 +243,9 @@ async def login(request: Request, credentials: UserLogin):
             "otp_sent": True,
             "message": f"OTP sent to {user['email'][:3]}***{user['email'].split('@')[0][-1]}@{user['email'].split('@')[1]}",
             "reason": reason,
-            "expires_in_minutes": 5
+            "expires_in_minutes": 5,
+            "risk_score": risk_assessment["score"],
+            "risk_level": risk_assessment["level"]
         }
     
     # No OTP required - issue token directly
@@ -808,3 +846,107 @@ async def update_security_settings(
     )
     
     return {"message": "Security settings updated", "settings": update_data}
+
+
+
+# ===== LOGIN SHIELD AI ADMIN ENDPOINTS =====
+
+def require_admin_role(current_user: dict = Depends(get_current_user)):
+    """Dependency to ensure user has admin, ceo, or hr role"""
+    allowed_roles = ["admin", "ceo", "hr"]
+    user_roles = current_user.get("roles", [])
+    if not any(role in allowed_roles for role in user_roles):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+
+@router.get("/login-shield/stats")
+async def get_login_shield_stats(current_user: dict = Depends(require_admin_role)):
+    """Get Login Shield security statistics"""
+    stats = await login_shield.get_security_stats()
+    return stats
+
+
+@router.get("/login-shield/high-risk-logins")
+async def get_high_risk_logins(
+    hours: int = 24,
+    min_level: str = "MEDIUM",
+    current_user: dict = Depends(require_admin_role)
+):
+    """Get recent high-risk login attempts"""
+    logins = await login_shield.get_high_risk_logins(hours=hours, min_level=min_level)
+    return {"logins": logins, "total": len(logins), "period_hours": hours}
+
+
+@router.get("/login-shield/alerts")
+async def get_security_alerts(
+    unread_only: bool = False,
+    limit: int = 50,
+    current_user: dict = Depends(require_admin_role)
+):
+    """Get security alerts for admin"""
+    alerts = await login_shield.get_admin_alerts(unread_only=unread_only, limit=limit)
+    return {"alerts": alerts, "total": len(alerts)}
+
+
+@router.put("/login-shield/alerts/{alert_id}/read")
+async def mark_alert_read(
+    alert_id: str,
+    current_user: dict = Depends(require_admin_role)
+):
+    """Mark a security alert as read"""
+    success = await login_shield.mark_alert_read(alert_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"message": "Alert marked as read", "alert_id": alert_id}
+
+
+@router.get("/login-shield/incidents")
+async def get_security_incidents(
+    status: Optional[str] = None,
+    limit: int = 50,
+    current_user: dict = Depends(require_admin_role)
+):
+    """Get security incidents"""
+    db = get_database()
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    incidents = await db.security_incidents.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"incidents": incidents, "total": len(incidents)}
+
+
+@router.put("/login-shield/incidents/{incident_id}/resolve")
+async def resolve_security_incident(
+    incident_id: str,
+    resolution: dict,
+    current_user: dict = Depends(require_admin_role)
+):
+    """Resolve a security incident"""
+    success = await login_shield.resolve_incident(
+        incident_id=incident_id,
+        resolution=resolution.get("resolution", ""),
+        resolved_by=current_user["email"]
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    
+    return {"message": "Incident resolved", "incident_id": incident_id}
+
+
+@router.get("/login-shield/user-risk-history/{user_id}")
+async def get_user_risk_history(
+    user_id: str,
+    limit: int = 20,
+    current_user: dict = Depends(require_admin_role)
+):
+    """Get risk assessment history for a specific user"""
+    history = await login_shield.get_user_risk_history(user_id=user_id, limit=limit)
+    return {"history": history, "total": len(history)}

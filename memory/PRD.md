@@ -590,8 +590,48 @@ All APIs prefixed with `/api/`
 - SEC-004 (LOW): Fixed - OTP not shown in email subject
 - Additional hardening applied: constant-time OTP comparison using hmac.compare_digest
 
+---
+
+### Latest Updates (Aug 2, 2026 - Session 8: Login Shield AI™ + Panel Integration)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Login Shield AI™ | 🟢 DONE | Complete risk scoring engine with factors: failed attempts, new device, new IP, unusual time, rapid device switching, VPN detection. Risk levels: LOW (0-30), MEDIUM (31-60), HIGH (61-80), CRITICAL (81-100). |
+| Risk-Based Actions | 🟢 DONE | LOW=allow, MEDIUM=force OTP, HIGH=alert admin+OTP, CRITICAL=block login+alert+email user |
+| Admin Security Alerts | 🟢 DONE | Auto-generated alerts for HIGH/CRITICAL risk logins, stored in `admin_alerts` collection |
+| Security Incidents | 🟢 DONE | CRITICAL risk attempts create security incidents requiring investigation |
+| Login Shield Dashboard | 🟢 DONE | Full admin UI showing stats, risk distribution, high-risk logins, alerts, incidents |
+| Session Manager Integration | 🟢 DONE | Integrated into Admin Dashboard, CEO Dashboard, HR Dashboard |
+
+### Backend APIs Added (Login Shield)
+- `/api/auth/login-shield/stats` - GET security statistics (24h)
+- `/api/auth/login-shield/high-risk-logins` - GET recent high-risk attempts
+- `/api/auth/login-shield/alerts` - GET security alerts
+- `/api/auth/login-shield/alerts/{id}/read` - PUT mark alert as read
+- `/api/auth/login-shield/incidents` - GET security incidents
+- `/api/auth/login-shield/incidents/{id}/resolve` - PUT resolve incident
+- `/api/auth/login-shield/user-risk-history/{user_id}` - GET user's risk history
+
+### New Services Created
+- `/app/backend/services/login_shield_service.py` - Risk scoring engine, alert generation, incident management
+
+### Frontend Components Added
+- `/app/frontend/src/components/admin/LoginShieldDashboard.js` - NEW: Full security monitoring dashboard
+- Updated: AdminDashboard.js - Added Login Shield AI™ and Session Manager to Users & HR section
+- Updated: HRDashboard.js - Added Security section with Login Shield and Session Manager
+- Updated: CEODashboard.js - Added Security KPIs showing login stats, blocked attempts, incidents
+
+### Panel Integration Summary
+| Panel | Login Shield | Session Manager |
+|-------|--------------|-----------------|
+| Admin Dashboard | ✅ Full Dashboard | ✅ Full UI |
+| CEO Dashboard | ✅ KPI Stats | - |
+| HR Dashboard | ✅ Full Dashboard | ✅ Full UI |
+| Customer Dashboard | ❌ Not added | ❌ Not added |
+| Operator Dashboard | ❌ Not added | ❌ Not added |
+| Pilot Portal | ❌ Not added | ❌ Not added |
+
 ### Remaining MESL Tasks
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)
-- P2: Login Shield AI™ (Risk scoring)
 

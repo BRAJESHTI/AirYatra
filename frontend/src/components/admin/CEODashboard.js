@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet, Mail, Send, Bot, Sparkles } from 'lucide-react';
+import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet, Mail, Send, Bot, Sparkles, Shield, AlertTriangle, Ban, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -36,6 +36,7 @@ const CEODashboard = () => {
   const [savingInv, setSavingInv] = useState(false);
   const [sendingNow, setSendingNow] = useState(false);
   const [showAIAdvisor, setShowAIAdvisor] = useState(false);
+  const [securityStats, setSecurityStats] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -43,6 +44,11 @@ const CEODashboard = () => {
       .then(res => setData(res.data))
       .catch(() => toast.error('Failed to load CEO dashboard'))
       .finally(() => setLoading(false));
+    
+    // Load security stats
+    api.get('/auth/login-shield/stats')
+      .then(res => setSecurityStats(res.data))
+      .catch(() => {});
   };
 
   useEffect(() => { load(); }, []);
@@ -196,6 +202,19 @@ const CEODashboard = () => {
           <KPI icon={Wallet} label="Payroll This Month" value={fmtInr(hr.payroll_month_net_inr)} sub={`${hr.payroll_month_count} salary slips`} accent="text-purple-400" testid="kpi-payroll" />
         </div>
       </div>
+
+      {/* Security - Login Shield AI */}
+      {securityStats && (
+        <div>
+          <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><Shield className="h-4 w-4 text-red-400" /> Login Shield AI™ Security</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KPI icon={Users} label="Logins (24h)" value={securityStats.total_logins} sub={`${securityStats.success_rate}% success rate`} accent="text-green-400" testid="kpi-logins" />
+            <KPI icon={Ban} label="Blocked Logins" value={securityStats.blocked_logins} sub="high-risk attempts" accent="text-red-400" testid="kpi-blocked" />
+            <KPI icon={AlertTriangle} label="Open Incidents" value={securityStats.open_incidents} sub="requiring review" accent={securityStats.open_incidents > 0 ? "text-orange-400" : "text-green-400"} testid="kpi-incidents" />
+            <KPI icon={Globe} label="Suspicious IPs" value={securityStats.suspicious_ips} sub="3+ failed attempts" accent="text-yellow-400" testid="kpi-suspicious-ips" />
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Booking Trend */}
