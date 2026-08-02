@@ -6,16 +6,17 @@
 |------|-------|----------|-------|
 | Admin | admin@airyatra.com | Admin123! | Full platform access |
 | Operator | operator@airyatra.com | Operator@123456 | Fleet & booking management |
+| Pilot | pilot@airyatra.com | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access, 3 upcoming flights, medical expiring in 24 days |
 
 ## Third-Party Services
 
-### Email (Hostinger SMTP)
+### Email (Gmail SMTP)
 | Setting | Value |
 |---------|-------|
-| Host | smtp.hostinger.com |
-| Port | 465 (SSL) |
-| Email | info@airyatra.co.in |
-| Password | Info123@@123 |
+| Host | smtp.gmail.com |
+| Port | 587 (STARTTLS) |
+| Email | airyatraadmin@gmail.com |
+| Password | ianpkrkgtyokjlbw (App Password) |
 
 ### Google OAuth
 - Managed by Emergent (No keys required)

@@ -22,13 +22,14 @@ logger = logging.getLogger(__name__)
 # ==================== SMTP CONFIGURATION ====================
 
 SMTP_CONFIG = {
-    "host": os.environ.get("SMTP_HOST", "mail.airyatra.co.in"),
-    "port": int(os.environ.get("SMTP_PORT", 465)),
-    "username": os.environ.get("SMTP_USER", "info@airyatra.co.in"),
+    "host": os.environ.get("SMTP_HOST", "smtp.gmail.com"),
+    "port": int(os.environ.get("SMTP_PORT", 587)),
+    "username": os.environ.get("SMTP_USER", "airyatraadmin@gmail.com"),
     "password": os.environ.get("SMTP_PASSWORD", ""),
-    "from_email": os.environ.get("SMTP_FROM_EMAIL", "info@airyatra.co.in"),
+    "from_email": os.environ.get("SMTP_FROM_EMAIL", "airyatraadmin@gmail.com"),
     "from_name": os.environ.get("SMTP_FROM_NAME", "AirYatra"),
-    "use_tls": True,  # SSL on port 465
+    "use_tls": False,  # Use STARTTLS for Gmail (port 587)
+    "start_tls": True,  # Gmail requires STARTTLS
 }
 
 # ==================== EMAIL TEMPLATES ====================
@@ -979,6 +980,10 @@ class EmailService:
             # Create SSL context
             context = ssl.create_default_context()
             
+            # Check if using STARTTLS (Gmail) or direct TLS (Hostinger)
+            use_starttls = self.config.get('start_tls', False)
+            use_direct_tls = self.config.get('use_tls', True) and not use_starttls
+            
             # Send email
             await aiosmtplib.send(
                 msg,
@@ -986,7 +991,8 @@ class EmailService:
                 port=self.config['port'],
                 username=self.config['username'],
                 password=self.config['password'],
-                use_tls=True,
+                use_tls=use_direct_tls,
+                start_tls=use_starttls,
                 tls_context=context
             )
             
