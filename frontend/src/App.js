@@ -39,6 +39,11 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 // Fleet & Blog Pages
 const FleetGalleryPage = lazy(() => import('./pages/FleetGalleryPage'));
 const { BlogListPage, BlogPostPage } = require('./pages/BlogPage');
+// Legal Pages
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+// 404 Page
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -112,6 +117,8 @@ function App() {
           <Route path="/fleet" element={<FleetGalleryPage />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           
           <Route
             path="/customer"
@@ -237,6 +244,9 @@ function App() {
           path="/pilot-portal" 
           element={user && (user.roles.includes('pilot') || user.roles.includes('admin') || user.roles.includes('operator')) ? <PilotMobilePortal user={user} /> : <Navigate to="/login" />} 
         />
+        
+        {/* 404 Catch-all Route */}
+        <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
       

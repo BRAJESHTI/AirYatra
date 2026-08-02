@@ -678,3 +678,22 @@ All APIs prefixed with `/api/`
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)
 
+### Website Link & Button Audit (Aug 2, 2026 - Session 14)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Footer Social Links | 🟢 FIXED | Updated placeholder `#` links to actual URLs: twitter.com/airyatra, instagram.com/airyatra, linkedin.com/company/airyatra |
+| Footer Support Links | 🟢 FIXED | Help Center → #contact, Safety Guidelines → /about, Terms → /terms, Privacy → /privacy |
+| Terms of Service Page | 🟢 CREATED | `/terms` - Comprehensive legal terms page with 6 sections |
+| Privacy Policy Page | 🟢 CREATED | `/privacy` - GDPR-compliant privacy policy with data collection, security, and user rights sections |
+| 404 Not Found Page | 🟢 CREATED | Catch-all route for invalid URLs with branded 404 page and quick links |
+| All Navigation Links | 🟢 VERIFIED | Services, Fleet, Blog, About, Contact, Login, Book Now all working |
+| All Buttons | 🟢 VERIFIED | Hero CTAs, Service cards, Footer links, Exchange, Membership buttons functional |
+| Backend APIs | 🟢 VERIFIED | Fleet (6 aircraft), Blog (3 posts), Testimonials (5), Exchange (5 listings), Investor Interest APIs working |
+| Investor Form | 🟢 VERIFIED | Full Name, Email, Phone, Company, Investment Range fields with backend submission |
+
+### New Pages Added:
+- `/terms` - TermsPage.js
+- `/privacy` - PrivacyPage.js  
+- `/404` - NotFoundPage.js (catch-all route)
+
