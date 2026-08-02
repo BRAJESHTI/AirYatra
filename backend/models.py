@@ -65,7 +65,7 @@ class UserCreate(BaseModel):
     password: str
     full_name: str
     phone: str
-    roles: List[UserRole]
+    roles: Optional[List[UserRole]] = None  # Ignored server-side, always set to ["customer"]
     region: Optional[str] = None
 
 class UserLogin(BaseModel):

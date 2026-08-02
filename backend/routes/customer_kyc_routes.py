@@ -102,6 +102,18 @@ async def upload_kyc_document(
     # Get user_id from token (NOT from form data)
     user_id = current_user.get("id") or str(current_user.get("_id"))
     
+    # SECURITY FIX: Validate and sanitize document_type (prevent path traversal)
+    ALLOWED_DOC_TYPES = {"AADHAR", "PAN", "PASSPORT", "DL", "VOTER_ID", "BANK_ACCOUNT", 
+                         "PILOT_LICENSE", "MEDICAL_CERTIFICATE", "TYPE_RATING", 
+                         "INSTRUMENT_RATING", "ENGLISH_PROFICIENCY", "SECURITY_CLEARANCE", 
+                         "FRTO_LICENSE", "OTHER"}
+    
+    # Sanitize: uppercase, remove any path characters
+    safe_doc_type = re.sub(r'[^A-Z0-9_]', '', document_type.upper())[:30]
+    
+    if safe_doc_type not in ALLOWED_DOC_TYPES:
+        safe_doc_type = "OTHER"  # Fallback to OTHER for unknown types
+    
     # Read file content
     file_content = await file.read()
     
@@ -120,9 +132,9 @@ async def upload_kyc_document(
     detected_mime = result
     file_ext = ALLOWED_MIME_TYPES.get(detected_mime, '.bin')
     
-    # Generate secure unique filename (no user input in filename)
+    # Generate secure unique filename using sanitized document_type
     # Add .enc extension for encrypted files
-    unique_filename = f"{document_type.upper()}_{user_id}_{ObjectId()}{file_ext}.enc"
+    unique_filename = f"{safe_doc_type}_{user_id}_{ObjectId()}{file_ext}.enc"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
     # ENCRYPT file content before saving (AES-256)
@@ -135,17 +147,17 @@ async def upload_kyc_document(
     # Sanitize document number (remove special chars for security)
     safe_doc_number = re.sub(r'[^a-zA-Z0-9\s-]', '', document_number)[:50]
     
-    # Check if document type already exists for user
+    # Check if document type already exists for user (use sanitized type)
     existing = await db.customer_kyc_documents.find_one({
         "user_id": user_id,
-        "document_type": document_type.upper()
+        "document_type": safe_doc_type
     })
     
-    # Create document record
+    # Create document record (use sanitized document_type)
     doc_record = {
         "id": f"kyc_{ObjectId()}",
         "user_id": user_id,
-        "document_type": document_type.upper(),
+        "document_type": safe_doc_type,
         "document_number": safe_doc_number,
         "original_filename": sanitize_filename(file.filename),
         "stored_filename": unique_filename,

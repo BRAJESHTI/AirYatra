@@ -192,9 +192,9 @@ async def chat_with_advisor(
     """
     db = get_database()
     
-    # Only allow admin/ceo roles
+    # Only allow admin/ceo roles - NOT operator (external partners shouldn't see company-wide data)
     user_roles = current_user.get("roles", [])
-    if not any(role in user_roles for role in ["admin", "ceo", "operator"]):
+    if not any(role in user_roles for role in ["admin", "ceo"]):
         raise HTTPException(status_code=403, detail="Access denied. CEO/Admin role required.")
     
     if not EMERGENT_LLM_KEY:
@@ -274,9 +274,9 @@ async def chat_with_advisor_stream(
     """
     db = get_database()
     
-    # Only allow admin/ceo roles
+    # Only allow admin/ceo roles - NOT operator (external partners shouldn't see company-wide data)
     user_roles = current_user.get("roles", [])
-    if not any(role in user_roles for role in ["admin", "ceo", "operator"]):
+    if not any(role in user_roles for role in ["admin", "ceo"]):
         raise HTTPException(status_code=403, detail="Access denied. CEO/Admin role required.")
     
     if not EMERGENT_LLM_KEY:

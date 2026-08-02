@@ -29,6 +29,10 @@ async def register(request: Request, user_data: UserCreate):
     user_dict["created_at"] = datetime.utcnow().isoformat()
     user_dict["updated_at"] = datetime.utcnow().isoformat()
     
+    # SECURITY FIX: Force role to "customer" for self-registration
+    # Admin/operator/pilot roles can only be assigned via admin-authenticated endpoint
+    user_dict["roles"] = ["customer"]
+    
     # Create a copy for insertion to avoid MongoDB adding _id to original dict
     insert_dict = user_dict.copy()
     await db.users.insert_one(insert_dict)

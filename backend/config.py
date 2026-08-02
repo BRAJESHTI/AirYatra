@@ -6,10 +6,15 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+def _require_env(name: str) -> str:
+    """Fail fast if required environment variable is missing"""
+    raise ValueError(f"SECURITY ERROR: {name} environment variable is required but not set!")
+
 class Settings(BaseSettings):
     mongo_url: str = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
     db_name: str = os.getenv('DB_NAME', 'airyatra_db')
-    jwt_secret_key: str = os.getenv('JWT_SECRET_KEY', 'secret')
+    # SECURITY: JWT_SECRET_KEY is required - fail fast if not set
+    jwt_secret_key: str = os.getenv('JWT_SECRET_KEY') or _require_env('JWT_SECRET_KEY')
     jwt_algorithm: str = os.getenv('JWT_ALGORITHM', 'HS256')
     access_token_expire_minutes: int = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', 10080))
     aws_access_key_id: str = os.getenv('AWS_ACCESS_KEY_ID', '')
