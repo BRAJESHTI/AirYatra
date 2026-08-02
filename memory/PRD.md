@@ -944,3 +944,50 @@ Total modules implemented: 17
 - `/app/test_reports/iteration_19.json` - Testing agent verified all legal APIs, fixed route APIs, and frontend consent UI
 
 ---
+
+## HYBRID SMART PRICING & AI DISPATCH ENGINE - Phase 2
+
+### Latest Updates (Aug 2, 2026 - Session: Phase 2 AI Reverse Auction)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Auction Creation (Customer) | 🟢 DONE | POST /api/auctions/create - Customer creates auction with route, date, passengers, aircraft type. 3-30 minute auction window configurable. |
+| Pending Auctions (Operator) | 🟢 DONE | GET /api/auctions/operator/pending - Operators see active auctions to bid on, sorted by end time. Shows if already quoted. |
+| Quote Submission (Operator) | 🟢 DONE | POST /api/auctions/{id}/quote - Operators submit quotes with pricing breakdown (base, landing, handling, crew, fuel, discount). Auto-calculates 18% GST. |
+| Quote Update/Withdraw | 🟢 DONE | PUT /api/auctions/{id}/quote to update, DELETE to withdraw. Only pending quotes can be modified. |
+| Auction Details (Customer) | 🟢 DONE | GET /api/auctions/{id} - Customer sees all quotes sorted by price (lowest first). Operator sees only their quote. |
+| Quote Selection (Customer) | 🟢 DONE | POST /api/auctions/{id}/select-quote - Customer selects winning quote. Other quotes auto-rejected. Auction status → quote_selected. |
+| Auction Cancel | 🟢 DONE | POST /api/auctions/{id}/cancel - Customer cancels auction, all quotes expired. |
+| Admin Stats | 🟢 DONE | GET /api/auctions/admin/stats - Total auctions, active, completed, conversion rate, revenue stats. |
+| Auction Expiry System | 🟢 DONE | POST /api/auctions/system/expire-auctions - Cron endpoint to expire old auctions. |
+| Customer Auction UI | 🟢 DONE | /customer/auctions - Create auction form, view active auctions, countdown timer, quotes list, select quote. |
+| Operator Auction UI | 🟢 DONE | /operator/auctions - Live auctions feed, quote submission form with pricing breakdown. |
+| Footer Legal Links | 🟢 DONE | Added T&C, Privacy Policy, Cancellation Policy links to website footer (Legal/कानूनी section). |
+| Operator Notification Fix | 🟢 DONE | Fixed notify_operators_new_auction() to match both status="active" and is_active=true patterns. |
+
+### Backend Files Created/Modified
+- `/app/backend/routes/auction_routes.py` - NEW - 1060 lines, full auction CRUD, operator quotes, admin stats
+- `/app/backend/server.py` - Registered auction_routes
+
+### Frontend Files Created/Modified
+- `/app/frontend/src/components/auction/AuctionDashboard.js` - NEW - CustomerAuctions, OperatorAuctions, CreateAuctionForm, QuoteForm components
+- `/app/frontend/src/pages/CustomerDashboard.js` - Added "Live Auctions" nav item and route
+- `/app/frontend/src/pages/OperatorDashboard.js` - Added "Live Auctions" nav item and route
+- `/app/frontend/src/pages/LandingPage.js` - Added Legal section to footer with T&C, Privacy, Cancellation links
+
+### New DB Collections
+- `auctions` - Customer auction requests with status, timing, route details
+- `auction_quotes` - Operator quotes with pricing breakdown, status
+
+### Test Report
+- `/app/test_reports/iteration_20.json` - 25/25 pytest tests passed for auction backend
+
+### Auction Flow
+1. Customer creates auction (origin → destination, date, passengers, aircraft type, duration)
+2. System notifies operators (background task)
+3. Operators submit competitive quotes with pricing breakdown
+4. Customer sees all quotes sorted by price (lowest first)
+5. Customer selects winning quote before timer expires
+6. Selected quote proceeds to payment flow
+
+---

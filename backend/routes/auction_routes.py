@@ -169,9 +169,16 @@ async def notify_operators_new_auction(auction: dict):
     db = get_database()
     
     # Find operators who can serve this route/aircraft category
-    # For now, notify all active operators
+    # Match both status field patterns (status="active" or is_active=true)
     operators = await db.users.find(
-        {"roles": {"$in": ["operator"]}, "status": "active"},
+        {
+            "roles": {"$in": ["operator"]},
+            "$or": [
+                {"status": "active"},
+                {"status": {"$exists": False}, "is_active": True},
+                {"is_active": True}
+            ]
+        },
         {"_id": 0, "id": 1, "email": 1, "name": 1}
     ).to_list(100)
     
