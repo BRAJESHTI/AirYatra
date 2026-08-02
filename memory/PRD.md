@@ -597,11 +597,13 @@ All APIs prefixed with `/api/`
 | Feature | Status | Description |
 |---------|--------|-------------|
 | Login Shield AI™ | 🟢 DONE | Complete risk scoring engine with factors: failed attempts, new device, new IP, unusual time, rapid device switching, VPN detection. Risk levels: LOW (0-30), MEDIUM (31-60), HIGH (61-80), CRITICAL (81-100). |
+| IP Geolocation | 🟢 DONE | Location-based risk scoring using free ip-api.com API. Detects high-risk countries, VPN/proxy, datacenter IPs. Caches results for 24h. |
 | Risk-Based Actions | 🟢 DONE | LOW=allow, MEDIUM=force OTP, HIGH=alert admin+OTP, CRITICAL=block login+alert+email user |
 | Admin Security Alerts | 🟢 DONE | Auto-generated alerts for HIGH/CRITICAL risk logins, stored in `admin_alerts` collection |
 | Security Incidents | 🟢 DONE | CRITICAL risk attempts create security incidents requiring investigation |
-| Login Shield Dashboard | 🟢 DONE | Full admin UI showing stats, risk distribution, high-risk logins, alerts, incidents |
+| Login Shield Dashboard | 🟢 DONE | Full admin UI showing stats, risk distribution, high-risk logins with location data, alerts, incidents |
 | Session Manager Integration | 🟢 DONE | Integrated into Admin Dashboard, CEO Dashboard, HR Dashboard |
+| Real Admin Test | 🟢 DONE | Verified OTP login flow with actual admin account, tested all Login Shield APIs |
 
 ### Backend APIs Added (Login Shield)
 - `/api/auth/login-shield/stats` - GET security statistics (24h)
@@ -614,6 +616,7 @@ All APIs prefixed with `/api/`
 
 ### New Services Created
 - `/app/backend/services/login_shield_service.py` - Risk scoring engine, alert generation, incident management
+- `/app/backend/services/ip_geolocation_service.py` - NEW: IP location lookup using ip-api.com, caching, country risk scoring
 
 ### Frontend Components Added
 - `/app/frontend/src/components/admin/LoginShieldDashboard.js` - NEW: Full security monitoring dashboard

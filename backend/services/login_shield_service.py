@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, Tuple, List
 from database import get_database
+from services.ip_geolocation_service import ip_geolocation
 import secrets
 
 logger = logging.getLogger(__name__)
@@ -171,7 +172,25 @@ class LoginShieldAI:
                 "detail": "Possible VPN/Proxy detected"
             })
         
-        # 8. Positive factors (reduce risk)
+        # 8. IP Geolocation Risk Assessment
+        location_data = await ip_geolocation.get_location(ip_address)
+        
+        # Add location-based risk factors
+        for loc_factor in location_data.get("risk_factors", []):
+            total_score += loc_factor.get("score", 0)
+            risk_factors.append(loc_factor)
+        
+        # Check if new location for this user
+        is_new_location, _ = await ip_geolocation.is_new_location(user_id, ip_address)
+        if is_new_location and not location_data.get("is_private", False):
+            total_score += self.risk_weights["new_location"]
+            risk_factors.append({
+                "factor": "new_location",
+                "score": self.risk_weights["new_location"],
+                "detail": f"First login from {location_data.get('city', 'Unknown')}, {location_data.get('country', 'Unknown')}"
+            })
+        
+        # 9. Positive factors (reduce risk)
         
         # Check if trusted device
         trusted = await db.trusted_devices.find_one({
@@ -230,6 +249,17 @@ class LoginShieldAI:
             "action": action,
             "login_successful": login_successful,
             "assessed_at": now.isoformat(),
+            "location": {
+                "country": location_data.get("country", "Unknown"),
+                "country_code": location_data.get("country_code", ""),
+                "city": location_data.get("city", "Unknown"),
+                "region": location_data.get("region", ""),
+                "isp": location_data.get("isp", "Unknown"),
+                "is_proxy": location_data.get("is_proxy", False),
+                "is_hosting": location_data.get("is_hosting", False),
+                "lat": location_data.get("lat"),
+                "lon": location_data.get("lon"),
+            }
         }
         
         # Store assessment

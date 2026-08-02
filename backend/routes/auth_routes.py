@@ -4,7 +4,7 @@ from models import UserCreate, UserLogin, Token, User
 from auth import verify_password, get_password_hash, create_access_token
 from middleware import get_current_user, hash_token
 from security_middleware import limiter, RATE_LIMITS, AuditLogger
-from services.otp_service import otp_service
+from services.otp_service import otp_service, hash_device_fingerprint
 from services.email_service import EmailService
 from services.login_shield_service import login_shield
 import uuid
@@ -676,7 +676,7 @@ async def get_user_sessions(
     
     current_user_agent = request.headers.get("User-Agent", "")
     current_ip = request.client.host if request.client else "unknown"
-    current_device_hash = otp_service.hash_device_fingerprint(current_user_agent, current_ip, current_user["id"])
+    current_device_hash = hash_device_fingerprint(current_user_agent, current_ip, current_user["id"])
     
     sessions = await db.user_sessions.find(
         {"user_id": current_user["id"], "is_active": True},

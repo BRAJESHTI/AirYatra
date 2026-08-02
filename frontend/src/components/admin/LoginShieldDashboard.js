@@ -353,6 +353,13 @@ export default function LoginShieldDashboard() {
                           <Globe className="h-3 w-3" />
                           {login.ip_address}
                         </span>
+                        {login.location && (
+                          <span className="flex items-center gap-1">
+                            📍 {login.location.city}, {login.location.country}
+                            {login.location.is_proxy && <span className="text-yellow-400 ml-1">(VPN)</span>}
+                            {login.location.is_hosting && <span className="text-orange-400 ml-1">(Datacenter)</span>}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           {login.action?.type === 'block' ? (
                             <XCircle className="h-3 w-3 text-red-400" />
