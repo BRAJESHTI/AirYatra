@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock, Activity, Landmark, CircleDollarSign } from 'lucide-react';
+import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock, Activity, Landmark, CircleDollarSign, Target, Bot, Bell, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
 import api from '@/services/apiClient';
@@ -31,6 +31,12 @@ const GovernmentChallans = React.lazy(() => import('@/components/finance/Governm
 const ComplianceDashboard = React.lazy(() => import('@/components/finance/ComplianceDashboard'));
 const BankReconciliation = React.lazy(() => import('@/components/finance/BankReconciliation'));
 
+// Finance ERP Phase 4 Components
+const BudgetVsActual = React.lazy(() => import('@/components/finance/BudgetVsActual'));
+const AIFinanceAssistant = React.lazy(() => import('@/components/finance/AIFinanceAssistant'));
+const AutoReminders = React.lazy(() => import('@/components/finance/AutoReminders'));
+const BillRepository = React.lazy(() => import('@/components/finance/BillRepository'));
+
 // Organized Navigation Structure - 8 Main Categories (with Treasury ERP)
 const navGroups = [
   {
@@ -52,6 +58,17 @@ const navGroups = [
     items: [
       { id: 'compliance_dashboard', label: 'Compliance Dashboard', icon: Shield, highlight: true },
       { id: 'govt_challans', label: 'Govt Challans (GST/TDS)', icon: FileText, highlight: true },
+      { id: 'auto_reminders', label: 'Auto Reminders', icon: Clock, highlight: true },
+    ]
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics / विश्लेषण',
+    icon: BarChart3,
+    items: [
+      { id: 'budget_vs_actual', label: 'Budget vs Actual', icon: Target, highlight: true },
+      { id: 'ai_assistant', label: 'AI Finance Assistant', icon: Activity, highlight: true },
+      { id: 'bill_repository', label: 'Bill Repository', icon: FileText, highlight: true },
     ]
   },
   {
@@ -212,6 +229,30 @@ function FinanceDashboard({ user, onLogout }) {
         return (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
             <GovernmentChallans />
+          </React.Suspense>
+        );
+      case 'auto_reminders':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <AutoReminders />
+          </React.Suspense>
+        );
+      case 'budget_vs_actual':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <BudgetVsActual />
+          </React.Suspense>
+        );
+      case 'ai_assistant':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <AIFinanceAssistant />
+          </React.Suspense>
+        );
+      case 'bill_repository':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <BillRepository />
           </React.Suspense>
         );
       case 'all_settlements':
