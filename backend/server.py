@@ -128,6 +128,8 @@ from routes import finance_treasury_routes
 from routes import finance_advanced_routes
 # Finance ERP - Phase 4 (Budget, AI Assistant, Reminders, Bills)
 from routes import finance_phase4_routes
+# Finance ERP - Phase 5 (Audit, PDF, Analytics, Multi-Currency)
+from routes import finance_phase5_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -346,6 +348,9 @@ api_router.include_router(finance_advanced_routes.router)
 
 # Finance ERP - Phase 4 (Budget, AI Assistant, Reminders, Bills)
 api_router.include_router(finance_phase4_routes.router)
+
+# Finance ERP - Phase 5 (Audit, PDF, Analytics, Multi-Currency)
+api_router.include_router(finance_phase5_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
