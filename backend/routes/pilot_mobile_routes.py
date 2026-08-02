@@ -2,13 +2,142 @@
 Pilot Mobile Portal API
 PWA-optimized endpoints for pilot companion app
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from datetime import datetime, timezone, timedelta
 from database import get_database
 from middleware import get_current_user, require_roles
 from bson import ObjectId
+from services.email_service import email_service
 
 router = APIRouter(prefix="/pilot", tags=["Pilot Mobile Portal"])
+
+
+async def _send_duty_email(pilot_email: str, pilot_name: str, duty_type: str, duty_data: dict):
+    """Send duty check-in/check-out email to pilot"""
+    try:
+        if duty_type == "check_in":
+            subject = f"✅ Duty Started - {pilot_name} | AirYatra"
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+                    .container {{ max-width: 500px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+                    .header {{ background: linear-gradient(135deg, #22c55e, #16a34a); padding: 25px; text-align: center; }}
+                    .header h1 {{ margin: 0; font-size: 24px; }}
+                    .content {{ padding: 25px; }}
+                    .info-box {{ background: #1a1a2e; border-radius: 12px; padding: 15px; margin: 15px 0; }}
+                    .info-row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a4e; }}
+                    .info-row:last-child {{ border-bottom: none; }}
+                    .label {{ color: #94a3b8; }}
+                    .value {{ color: #ffffff; font-weight: 600; }}
+                    .footer {{ background: #0f0f1e; padding: 15px; text-align: center; font-size: 11px; color: #64748b; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>✅ Duty Check-In Successful</h1>
+                    </div>
+                    <div class="content">
+                        <p>Namaste <strong>{pilot_name}</strong>,</p>
+                        <p>Aapka duty period shuru ho gaya hai. Safe flying! 🚁</p>
+                        
+                        <div class="info-box">
+                            <div class="info-row">
+                                <span class="label">Check-In Time:</span>
+                                <span class="value">{duty_data.get('time', 'N/A')}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Date:</span>
+                                <span class="value">{duty_data.get('date', 'N/A')}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">FDTL Remaining:</span>
+                                <span class="value">{duty_data.get('fdtl_remaining', '14')}h</span>
+                            </div>
+                        </div>
+                        
+                        <p style="color: #f97316; font-size: 13px;">⚠️ Remember: Max Flight Duty Period is 14 hours</p>
+                    </div>
+                    <div class="footer">
+                        AirYatra Aviation Platform | Pilot Duty Management
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+        else:  # check_out
+            subject = f"🏁 Duty Completed - {pilot_name} | AirYatra"
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+                    .container {{ max-width: 500px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+                    .header {{ background: linear-gradient(135deg, #f97316, #ea580c); padding: 25px; text-align: center; }}
+                    .header h1 {{ margin: 0; font-size: 24px; }}
+                    .content {{ padding: 25px; }}
+                    .summary-box {{ background: linear-gradient(135deg, #1e3a5f, #1a1a2e); border-radius: 12px; padding: 20px; margin: 15px 0; text-align: center; }}
+                    .big-number {{ font-size: 48px; font-weight: bold; color: #f97316; }}
+                    .info-box {{ background: #1a1a2e; border-radius: 12px; padding: 15px; margin: 15px 0; }}
+                    .info-row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a4e; }}
+                    .info-row:last-child {{ border-bottom: none; }}
+                    .label {{ color: #94a3b8; }}
+                    .value {{ color: #ffffff; font-weight: 600; }}
+                    .footer {{ background: #0f0f1e; padding: 15px; text-align: center; font-size: 11px; color: #64748b; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🏁 Duty Completed</h1>
+                    </div>
+                    <div class="content">
+                        <p>Namaste <strong>{pilot_name}</strong>,</p>
+                        <p>Aapka duty period successfully complete ho gaya. Rest well! 😊</p>
+                        
+                        <div class="summary-box">
+                            <div class="big-number">{duty_data.get('duty_hours', '0')}h</div>
+                            <p style="margin: 5px 0 0; color: #94a3b8;">Total Duty Hours Today</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <div class="info-row">
+                                <span class="label">Check-In:</span>
+                                <span class="value">{duty_data.get('check_in_time', 'N/A')}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Check-Out:</span>
+                                <span class="value">{duty_data.get('check_out_time', 'N/A')}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">FDP Used Today:</span>
+                                <span class="value">{duty_data.get('fdp_used', '0')}h</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Rest Required:</span>
+                                <span class="value" style="color: #22c55e;">10 hours minimum</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        AirYatra Aviation Platform | Pilot Duty Management
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+        
+        await email_service.send_email(
+            to_email=pilot_email,
+            subject=subject,
+            html_body=html_body
+        )
+    except Exception as e:
+        print(f"Failed to send duty email: {e}")
 
 
 @router.get("/mobile/dashboard")
@@ -237,6 +366,7 @@ async def get_pilot_mobile_dashboard(
 
 @router.post("/duty/check-in")
 async def pilot_check_in(
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
     """Record pilot duty start"""
@@ -244,6 +374,10 @@ async def pilot_check_in(
     
     user_id = current_user.get("id") or str(current_user.get("_id"))
     now = datetime.now(timezone.utc)
+    
+    # Get current FDTL for remaining hours
+    fdtl = await db.pilot_fdtl.find_one({"pilot_id": user_id})
+    fdtl_remaining = 14 - (fdtl.get("fdp_used", 0) if fdtl else 0)
     
     # Update FDTL record
     await db.pilot_fdtl.update_one(
@@ -268,11 +402,28 @@ async def pilot_check_in(
         "created_at": now.isoformat()
     })
     
+    # Send duty email in background
+    pilot_email = current_user.get("email")
+    pilot_name = current_user.get("full_name", "Pilot")
+    if pilot_email:
+        background_tasks.add_task(
+            _send_duty_email,
+            pilot_email,
+            pilot_name,
+            "check_in",
+            {
+                "time": now.strftime("%H:%M IST"),
+                "date": now.strftime("%d %B %Y"),
+                "fdtl_remaining": round(fdtl_remaining, 1)
+            }
+        )
+    
     return {"message": "Checked in successfully", "timestamp": now.isoformat()}
 
 
 @router.post("/duty/check-out")
 async def pilot_check_out(
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
     """Record pilot duty end"""
@@ -285,10 +436,12 @@ async def pilot_check_out(
     fdtl = await db.pilot_fdtl.find_one({"pilot_id": user_id})
     
     duty_hours = 0
+    check_in_time = "N/A"
     if fdtl and fdtl.get("duty_start_time"):
         try:
             start = datetime.fromisoformat(fdtl["duty_start_time"].replace("Z", "+00:00"))
             duty_hours = (now - start).total_seconds() / 3600
+            check_in_time = start.strftime("%H:%M IST")
         except Exception:
             pass
     
@@ -318,6 +471,25 @@ async def pilot_check_out(
         "hours": round(duty_hours, 2),
         "created_at": now.isoformat()
     })
+    
+    # Send duty email in background
+    pilot_email = current_user.get("email")
+    pilot_name = current_user.get("full_name", "Pilot")
+    fdp_used = (fdtl.get("fdp_used", 0) if fdtl else 0) + duty_hours
+    
+    if pilot_email:
+        background_tasks.add_task(
+            _send_duty_email,
+            pilot_email,
+            pilot_name,
+            "check_out",
+            {
+                "duty_hours": round(duty_hours, 1),
+                "check_in_time": check_in_time,
+                "check_out_time": now.strftime("%H:%M IST"),
+                "fdp_used": round(fdp_used, 1)
+            }
+        )
     
     return {
         "message": "Checked out successfully",

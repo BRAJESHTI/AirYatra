@@ -1,7 +1,8 @@
-// Service Worker for AirYatra - Offline Support & Caching
-const CACHE_NAME = 'airyatra-v1';
-const STATIC_CACHE = 'airyatra-static-v1';
-const API_CACHE = 'airyatra-api-v1';
+// Service Worker for AirYatra - Offline Support, Push Notifications & Caching
+const CACHE_NAME = 'airyatra-v2';
+const STATIC_CACHE = 'airyatra-static-v2';
+const API_CACHE = 'airyatra-api-v2';
+const PILOT_CACHE = 'airyatra-pilot-v1';
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
@@ -9,7 +10,8 @@ const STATIC_ASSETS = [
   '/index.html',
   '/static/js/main.js',
   '/static/css/main.css',
-  '/manifest.json'
+  '/manifest.json',
+  '/pilot-portal'
 ];
 
 // API endpoints to cache
@@ -20,6 +22,13 @@ const CACHEABLE_API = [
   '/api/knowledge/categories',
   '/api/knowledge/faqs',
   '/api/settings/public'
+];
+
+// Pilot Portal specific APIs to cache for offline
+const PILOT_CACHEABLE_API = [
+  '/api/pilot/mobile/dashboard',
+  '/api/pilot/documents',
+  '/api/pilot/flight-logs'
 ];
 
 // Install event - cache static assets
@@ -57,6 +66,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Pilot Portal APIs - Cache for offline access
+  if (PILOT_CACHEABLE_API.some(path => url.pathname.includes(path))) {
+    event.respondWith(networkFirstWithPilotCache(request));
+    return;
+  }
+
   // API requests - Network first, cache fallback
   if (url.pathname.startsWith('/api/')) {
     if (CACHEABLE_API.some(path => url.pathname.startsWith(path))) {
@@ -68,6 +83,40 @@ self.addEventListener('fetch', (event) => {
   // Static assets - Cache first, network fallback
   event.respondWith(cacheFirstStrategy(request, STATIC_CACHE));
 });
+
+// Pilot-specific caching with longer TTL and offline support
+async function networkFirstWithPilotCache(request) {
+  const cache = await caches.open(PILOT_CACHE);
+  
+  try {
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Clone and cache response
+      const responseToCache = networkResponse.clone();
+      cache.put(request, responseToCache);
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    // Offline - serve from cache
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      console.log('Serving pilot data from offline cache');
+      return cachedResponse;
+    }
+    
+    // Return offline error response
+    return new Response(JSON.stringify({
+      offline: true,
+      message: 'You are offline. Showing cached data.',
+      cached_at: new Date().toISOString()
+    }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
 
 // Cache-first strategy (for static assets)
 async function cacheFirstStrategy(request, cacheName) {
@@ -132,4 +181,93 @@ self.addEventListener('message', (event) => {
       names.forEach((name) => caches.delete(name));
     });
   }
+  
+  // Cache pilot data on demand
+  if (event.data.type === 'CACHE_PILOT_DATA') {
+    cachePilotData(event.data.data);
+  }
+});
+
+// Cache pilot dashboard data manually
+async function cachePilotData(data) {
+  const cache = await caches.open(PILOT_CACHE);
+  const response = new Response(JSON.stringify(data), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  await cache.put('/api/pilot/mobile/dashboard', response);
+  console.log('Pilot dashboard data cached for offline');
+}
+
+// ==================== PUSH NOTIFICATIONS ====================
+
+// Handle push notifications
+self.addEventListener('push', (event) => {
+  let data = {
+    title: 'AirYatra Notification',
+    body: 'You have a new notification',
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    tag: 'airyatra-notification'
+  };
+  
+  try {
+    if (event.data) {
+      data = { ...data, ...event.data.json() };
+    }
+  } catch (e) {
+    console.error('Error parsing push data:', e);
+  }
+  
+  const options = {
+    body: data.body,
+    icon: data.icon || '/logo192.png',
+    badge: data.badge || '/logo192.png',
+    tag: data.tag || 'airyatra-notification',
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.url || '/pilot-portal',
+      ...data.data
+    },
+    actions: data.actions || [
+      { action: 'open', title: 'Open' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ],
+    requireInteraction: data.requireInteraction || false
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  const url = event.notification.data?.url || '/pilot-portal';
+  
+  if (event.action === 'dismiss') {
+    return;
+  }
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Focus existing window if available
+        for (const client of clientList) {
+          if (client.url.includes(url) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // Open new window
+        if (clients.openWindow) {
+          return clients.openWindow(url);
+        }
+      })
+  );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', (event) => {
+  console.log('Notification closed:', event.notification.tag);
 });

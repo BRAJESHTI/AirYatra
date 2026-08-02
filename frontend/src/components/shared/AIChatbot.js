@@ -143,12 +143,12 @@ How can I assist you today?
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50"
+        className="fixed bottom-20 right-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-40"
         title="Chat with AI Assistant"
       >
         <div className="relative">
-          <MessageCircle className="h-6 w-6" />
-          <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-yellow-300" />
+          <MessageCircle className="h-5 w-5" />
+          <Sparkles className="h-2.5 w-2.5 absolute -top-1 -right-1 text-yellow-300" />
         </div>
       </button>
     );

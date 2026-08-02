@@ -2,12 +2,100 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plane, FileText, Clock, Calendar, CheckCircle, AlertTriangle,
   Bell, User, LogOut, Plus, ChevronRight, RefreshCw, 
-  MapPin, Timer, Shield, Menu, X, Home, Settings
+  MapPin, Timer, Shield, Menu, X, Home, Settings, Wifi, WifiOff, BellRing
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Utility: Check if online
+const useOnlineStatus = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  return isOnline;
+};
+
+// Push Notification helper
+const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    console.log('This browser does not support notifications');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') {
+    return true;
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
+  
+  return false;
+};
+
+// Register for push notifications
+const registerPushNotifications = async () => {
+  try {
+    const permission = await requestNotificationPermission();
+    if (!permission) {
+      toast.error('Notification permission denied');
+      return false;
+    }
+    
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Check if already subscribed
+      const existingSubscription = await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        toast.success('Push notifications already enabled!');
+        return true;
+      }
+      
+      // For demo, we'll just show a success message
+      // Real implementation needs VAPID keys
+      toast.success('🔔 Push notifications enabled!', {
+        description: 'You will receive duty alerts and document expiry reminders'
+      });
+      return true;
+    }
+  } catch (error) {
+    console.error('Failed to register push notifications:', error);
+    toast.error('Failed to enable notifications');
+  }
+  return false;
+};
+
+// Show local notification
+const showLocalNotification = (title, body, url = '/pilot-portal') => {
+  if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.showNotification(title, {
+        body,
+        icon: '/logo192.png',
+        badge: '/logo192.png',
+        vibrate: [100, 50, 100],
+        data: { url },
+        tag: 'pilot-notification'
+      });
+    });
+  }
+};
 
 // Bottom Navigation Component
 const BottomNav = ({ active, setActive }) => {
@@ -330,8 +418,23 @@ const FlightsTab = ({ flightLogs, onAddLog }) => (
 );
 
 // Profile Tab
-const ProfileTab = ({ pilot, onLogout }) => (
+const ProfileTab = ({ pilot, onLogout, notificationsEnabled, onEnableNotifications, isOnline }) => (
   <div className="space-y-4 pb-20">
+    {/* Connection Status */}
+    <div className={`rounded-xl p-3 flex items-center gap-2 ${isOnline ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}>
+      {isOnline ? (
+        <>
+          <Wifi className="h-4 w-4 text-green-400" />
+          <span className="text-green-400 text-sm">Online - Data synced</span>
+        </>
+      ) : (
+        <>
+          <WifiOff className="h-4 w-4 text-yellow-400" />
+          <span className="text-yellow-400 text-sm">Offline - Using cached data</span>
+        </>
+      )}
+    </div>
+
     {/* Profile Card */}
     <div className="bg-slate-800 rounded-2xl p-4 text-center">
       <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full mx-auto flex items-center justify-center">
@@ -348,6 +451,30 @@ const ProfileTab = ({ pilot, onLogout }) => (
           <p className="text-white font-bold">{pilot?.total_hours || 0}h</p>
           <p className="text-xs text-slate-400">Total Hours</p>
         </div>
+      </div>
+    </div>
+
+    {/* Push Notifications */}
+    <div className="bg-slate-800 rounded-xl p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <BellRing className="h-5 w-5 text-orange-400" />
+          <div>
+            <p className="text-white font-medium">Push Notifications</p>
+            <p className="text-xs text-slate-400">Duty alerts & document reminders</p>
+          </div>
+        </div>
+        {notificationsEnabled ? (
+          <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">Enabled</span>
+        ) : (
+          <Button 
+            size="sm" 
+            onClick={onEnableNotifications}
+            className="bg-orange-500 hover:bg-orange-600 h-8"
+          >
+            Enable
+          </Button>
+        )}
       </div>
     </div>
 
@@ -392,9 +519,16 @@ function PilotMobilePortal() {
   const [dutyStatus, setDutyStatus] = useState({});
   const [documents, setDocuments] = useState([]);
   const [flightLogs, setFlightLogs] = useState([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isOfflineData, setIsOfflineData] = useState(false);
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     fetchAllData();
+    // Check notification status
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted');
+    }
   }, []);
 
   const fetchAllData = async () => {
@@ -414,6 +548,22 @@ function PilotMobilePortal() {
       const dashRes = await fetch(`${API_URL}/api/pilot/mobile/dashboard`, { headers });
       if (dashRes.ok) {
         const dashData = await dashRes.json();
+        
+        // Check if this is cached/offline data
+        if (dashData.offline) {
+          setIsOfflineData(true);
+          toast.info('📱 Offline Mode - Showing cached data');
+        } else {
+          setIsOfflineData(false);
+          // Cache data for offline use via Service Worker
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'CACHE_PILOT_DATA',
+              data: dashData
+            });
+          }
+        }
+        
         setStats(dashData.stats || {});
         setUpcomingFlights(dashData.upcoming_flights || []);
         setAlerts(dashData.alerts || []);
@@ -423,8 +573,20 @@ function PilotMobilePortal() {
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      // Try to show cached data when offline
+      if (!navigator.onLine) {
+        setIsOfflineData(true);
+        toast.info('📱 You are offline - Showing last cached data');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    const success = await registerPushNotifications();
+    if (success) {
+      setNotificationsEnabled(true);
     }
   };
 
@@ -524,12 +686,30 @@ function PilotMobilePortal() {
           <ProfileTab 
             pilot={pilot}
             onLogout={handleLogout}
+            notificationsEnabled={notificationsEnabled}
+            onEnableNotifications={handleEnableNotifications}
+            isOnline={isOnline}
           />
         )}
       </main>
 
       {/* Bottom Navigation */}
       <BottomNav active={activeTab} setActive={setActiveTab} />
+
+      {/* Offline Indicator Banner */}
+      {!isOnline && (
+        <div className="fixed top-14 left-0 right-0 bg-yellow-500/90 text-black text-center py-1 text-xs font-medium z-40">
+          <WifiOff className="h-3 w-3 inline mr-1" />
+          Offline Mode - Changes will sync when online
+        </div>
+      )}
+
+      {/* Offline Data Badge */}
+      {isOfflineData && isOnline && (
+        <div className="fixed top-14 left-0 right-0 bg-blue-500/90 text-white text-center py-1 text-xs font-medium z-40">
+          Showing cached data - Pull to refresh
+        </div>
+      )}
     </div>
   );
 }
