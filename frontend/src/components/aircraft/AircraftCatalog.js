@@ -11,10 +11,11 @@ import {
   CheckCircle, XCircle, AlertTriangle, Upload, RefreshCw,
   Loader2, IndianRupee, Calendar, Wrench, Star, Eye,
   Wifi, Wind, Baby, Dog, Accessibility, Coffee, Tv, Plug,
-  ChevronRight, Plus, Edit, Trash2
+  ChevronRight, Plus, Edit, Trash2, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import AircraftDocumentManager from './AircraftDocumentManager';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -453,7 +454,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
 
 // ============ AIRCRAFT CARD ============
 
-const AircraftCard = ({ aircraft, onEdit, isPublic = false }) => {
+const AircraftCard = ({ aircraft, onEdit, onManageDocs, isPublic = false }) => {
   const { basic_info, features, pricing, verification, verification_badge, expiry_alerts } = aircraft;
   
   return (
@@ -547,11 +548,14 @@ const AircraftCard = ({ aircraft, onEdit, isPublic = false }) => {
             <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit && onEdit(aircraft)}>
               <Edit className="h-4 w-4 mr-1" /> Edit
             </Button>
-            <Button size="sm" variant="outline" className="flex-1">
-              <Camera className="h-4 w-4 mr-1" /> Photos
-            </Button>
-            <Button size="sm" variant="outline" className="flex-1">
-              <FileText className="h-4 w-4 mr-1" /> Docs
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => onManageDocs && onManageDocs(aircraft)}
+              data-testid="manage-docs-btn"
+            >
+              <FileText className="h-4 w-4 mr-1" /> Docs & Photos
             </Button>
           </div>
         )}
@@ -573,6 +577,8 @@ export const OperatorFleetDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedAircraft, setSelectedAircraft] = useState(null);
+  const [showDocuments, setShowDocuments] = useState(false);
   
   const fetchFleet = useCallback(async () => {
     try {
@@ -593,6 +599,11 @@ export const OperatorFleetDashboard = () => {
   useEffect(() => {
     fetchFleet();
   }, [fetchFleet]);
+
+  const openDocuments = (aircraft) => {
+    setSelectedAircraft(aircraft);
+    setShowDocuments(true);
+  };
   
   if (loading) {
     return (
@@ -695,8 +706,40 @@ export const OperatorFleetDashboard = () => {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {fleet.map((aircraft) => (
-            <AircraftCard key={aircraft.id} aircraft={aircraft} />
+            <AircraftCard 
+              key={aircraft.id} 
+              aircraft={aircraft}
+              onManageDocs={() => openDocuments(aircraft)}
+            />
           ))}
+        </div>
+      )}
+
+      {/* Document Management Modal */}
+      {showDocuments && selectedAircraft && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="bg-slate-900 border-slate-700 w-full max-w-4xl my-8">
+            <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-slate-900 z-10">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-orange-400" />
+                  Aircraft Documents & Photos
+                </CardTitle>
+                <CardDescription>
+                  {selectedAircraft.basic_info.manufacturer} {selectedAircraft.basic_info.model} ({selectedAircraft.basic_info.registration_number})
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => { setShowDocuments(false); setSelectedAircraft(null); }}>
+                <X className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="max-h-[calc(100vh-200px)] overflow-y-auto">
+              <AircraftDocumentManager 
+                aircraft={selectedAircraft}
+                onUpdate={fetchFleet}
+              />
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

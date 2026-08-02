@@ -92,6 +92,9 @@ import DocumentExpiryDashboard from '@/components/admin/DocumentExpiryDashboard'
 import CommandCenter from '@/components/admin/CommandCenter';
 import LoginShieldDashboard from '@/components/admin/LoginShieldDashboard';
 import SessionManager from '@/components/auth/SessionManager';
+// AI Compliance Monitor & Document Verification
+import ComplianceDashboard from '@/components/admin/ComplianceDashboard';
+import AdminVerificationQueue from '@/components/admin/AdminVerificationQueue';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -236,8 +239,10 @@ const navGroups = [
     label: 'Document Master / दस्तावेज़ मास्टर',
     icon: Shield,
     items: [
+      { id: 'compliance_dashboard', label: 'AI Compliance Monitor / अनुपालन', icon: Shield, highlight: true },
+      { id: 'verification_queue', label: 'Verification Queue / सत्यापन', icon: CheckSquare, highlight: true },
       { id: 'document_types', label: 'Document Types / प्रकार', icon: FileText, highlight: true },
-      { id: 'verification_apis', label: 'Verification APIs / सत्यापन', icon: Shield, highlight: true },
+      { id: 'verification_apis', label: 'Verification APIs / API', icon: Shield, highlight: true },
       { id: 'document_expiry', label: 'Expiry Dashboard / समाप्ति', icon: AlertTriangle, highlight: true },
     ]
   },
@@ -467,6 +472,10 @@ function AdminDashboard({ user, onLogout }) {
         return <VerificationAPISettings />;
       case 'document_expiry':
         return <DocumentExpiryDashboard />;
+      case 'compliance_dashboard':
+        return <ComplianceDashboard />;
+      case 'verification_queue':
+        return <AdminVerificationQueue />;
       case 'command_center':
         return <CommandCenter user={user} />;
       default:

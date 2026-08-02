@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 23: Tested Document Vault UI (ComplianceDashboard, AdminVerificationQueue, AircraftDocumentManager) + backend endpoints /api/vault/upload, /api/admin/documents/*, /api/vault/verify. Backend pytest: 14/16 passing (2 legitimate defects). Frontend: both new admin tabs render correctly with data-testid; Approve/Reject modal opens but Approve action returns 422 due to missing document_id in payload.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/admin/documents/stats", "issue": "Route SHADOWED by /api/admin/documents/stats in document_master_routes.py (same prefix '/admin/documents'; registered first at server.py:308 vs admin_document_routes at :397). Response is document_master stats (document_types/verification_apis/verifications), NOT the new schema (by_status/by_category/recent_uploads_7d). The new endpoint is unreachable. Fix by giving admin_document_routes a distinct prefix (e.g., '/admin/document-vault') or by mounting it before document_master_routes.", "priority": "HIGH"},
+      {"endpoint": "POST /api/vault/verify/{document_id}", "issue": "DocumentVerification pydantic model requires 'document_id' in body, but AdminVerificationQueue.js sends only {verification_status, verified_by, verification_notes} → returns 422 'Field required'. Approve/Reject in the UI is entirely broken. Fix: drop document_id from model (path already carries it) or have UI include it in body.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/admin/documents/bulk-verify", "issue": "Uses List[str] + str as top-level function params without explicit Body(...) declarations. Works when list is sent as JSON body and status/notes as query, but is confusing and fragile. Prefer a single Pydantic BulkVerifyRequest model."},
+      {"endpoint": "GET /api/admin/documents/verification-queue", "issue": "Enrichment issues a users.find_one + operators.find_one per document (N+1 lookups). Fine at 100 docs; will need $lookup or in-memory dict at scale."},
+      {"endpoint": "POST /api/vault/upload", "issue": "File bytes are base64-encoded into MongoDB (document_files.content) — noted in code as 'demo, use object storage in production'. Large PDFs will bloat DB. /new-version already uses services.storage_service; /upload should too."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminVerificationQueue → DocumentVerificationModal", "issue": "Approve/Reject POST body is missing 'document_id' required by backend DocumentVerification model → 422 and toast 'Failed to verify document'. Reproduced on UI (screenshot).", "selector": "button:has-text('Approve') / :has-text('Reject')", "priority": "HIGH"},
+      {"component": "AdminVerificationQueue", "issue": "Verified tab uses status filter d.verification_status==='verified' but the /vault/verify endpoint stores whatever string is passed (e.g., 'approved' vs 'verified'). If any legacy doc has 'approved', it won't appear in the Approved tab. Consider normalizing statuses.", "selector": "[data-testid='verification-queue']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin → Verification Queue → Approve document", "issue": "Backend returns 422 because document_id missing in JSON body sent by DocumentVerificationModal.handleVerify().", "affected_selectors": ["button:has-text('Approve')", "button:has-text('Reject')"]}
+    ],
+    "design_issues": [
+      {"screen": "AdminDashboard header", "issues": ["A large red 'CRITICAL SECURITY ALERT / CRITICAL Risk Login Detected - hacker@test.com' banner overlays every admin tab (from LoginShield). Not caused by this iteration but visually competes with new ComplianceDashboard header — consider making the banner dismissable per-session."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin_documents.py",
+    "/app/test_reports/pytest/admin_docs_results.xml"
+  ],
+  "action_items": [
+    "Fix route collision: give admin_document_routes.py a unique prefix (e.g., /admin/document-vault) OR rename its /stats path OR mount it before document_master_routes in server.py.",
+    "Fix DocumentVerification contract: either remove document_id from the Pydantic model (rely on path param) in POST /vault/verify/{document_id}, OR update AdminVerificationQueue.js DocumentVerificationModal to include document_id in the JSON body.",
+    "Move /vault/upload file storage to services.storage_service (same pattern as /new-version) to avoid base64-in-Mongo bloat.",
+    "Consider consolidating bulk-verify params into a single Pydantic model for clarity."
+  ],
+  "critical_code_review_comments": [
+    "Two APIRouters share prefix='/admin/documents' (admin_document_routes + document_master_routes). Any overlapping path in future will silently shadow. Enforce unique prefixes or namespace document_master under /admin/document-master.",
+    "DocumentVerification model duplicates document_id even though the /vault/verify/{document_id} route already binds it — leads to a required-field 422 mismatch and is the direct cause of the Approve/Reject UI failure.",
+    "AdminVerificationQueue.js filters by verification_status === 'verified' but backend accepts arbitrary strings; enforce enum server-side."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_documents.py"
+  ],
+  "success_rate": {"backend": "87.5% (14/16)", "frontend": "Both new tabs render + fetch data; 1 broken action (Approve/Reject)"},
+  "seed_data_creation": "Uploaded 2 TEST_ documents under operator8fkf0x via /vault/upload; one bulk-verified to 'verified', one rejected via /vault/verify. Cleanup fixture attempts permanent delete via /vault/document/{id}?permanent=true (may 404 harmlessly if the route needs owner).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "JWT tokens minted via /app/backend/auth.create_access_token for admin@airyatra.com (601a4741-...) and operator8fkf0x@airyatra.com. testadmin@airyatra.com from the review request does NOT exist in the DB — login returns 'Incorrect email or password'. Real admin login still requires TOTP.",
+  "context_for_next_testing_agent": "Route collision under /admin/documents is a shared-prefix bug; verify BOTH routers still function after the fix (document_master /stats, /types, /verification-apis must still work). For the Approve/Reject fix, easiest path is to make DocumentVerification.document_id Optional[str] in models.py — that preserves the existing signature and unblocks the UI without a frontend change.",
+  "rca_of_the_issue": "1) Two FastAPI routers with identical prefix + endpoint (/admin/documents/stats) → FastAPI resolves by registration order, so admin_document_routes.stats is unreachable. 2) DocumentVerification Pydantic model has document_id as required, but the UI (AdminVerificationQueue.js) posts only {verification_status, verified_by, verification_notes} to /vault/verify/{document_id} because document_id is already in the URL — Pydantic returns 422 before the handler runs."
+}
