@@ -633,7 +633,7 @@ function LandingPage({ user }) {
       {/* Premium Footer */}
       <footer className="bg-slate-950 py-16 px-6 border-t border-slate-800">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
+          <div className="grid md:grid-cols-5 gap-8 mb-12">
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center space-x-2 mb-4">
@@ -676,8 +676,17 @@ function LandingPage({ user }) {
               <ul className="space-y-2">
                 <li><a href="#contact" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Help Center</a></li>
                 <li><Link to="/about" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Safety Guidelines</Link></li>
-                <li><Link to="/terms" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Terms of Service</Link></li>
-                <li><Link to="/privacy" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Privacy Policy</Link></li>
+                <li><a href="mailto:care@airyatra.co.in" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Contact Support</a></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="text-white font-semibold mb-4">Legal / कानूनी</h4>
+              <ul className="space-y-2">
+                <li><Link to="/legal/terms" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Terms & Conditions / नियम एवं शर्तें</Link></li>
+                <li><Link to="/legal/privacy" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Privacy Policy / गोपनीयता नीति</Link></li>
+                <li><Link to="/legal/cancellation" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Refund & Cancellation / धनवापसी और रद्दीकरण</Link></li>
               </ul>
             </div>
 
@@ -706,14 +715,26 @@ function LandingPage({ user }) {
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-500 text-sm">
-              © 2024 AirYatra. All rights reserved. India&#39;s Premier Aviation Platform.
-            </p>
-            <div className="flex items-center gap-4">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/100px-Visa_Inc._logo.svg.png" alt="Visa" className="h-6 opacity-60" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/100px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6 opacity-60" />
-              <span className="text-slate-600 text-xs">Secure Payments</span>
+          <div className="border-t border-slate-800 pt-8">
+            {/* Legal Links Row */}
+            <div className="flex flex-wrap justify-center gap-4 mb-4 text-xs">
+              <Link to="/legal/terms" className="text-slate-500 hover:text-orange-400 transition-colors">Terms & Conditions</Link>
+              <span className="text-slate-700">|</span>
+              <Link to="/legal/privacy" className="text-slate-500 hover:text-orange-400 transition-colors">Privacy Policy</Link>
+              <span className="text-slate-700">|</span>
+              <Link to="/legal/cancellation" className="text-slate-500 hover:text-orange-400 transition-colors">Refund & Cancellation Policy</Link>
+            </div>
+            
+            {/* Copyright Row */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-slate-500 text-sm">
+                © 2026 Lucuma Corporation Pvt. Ltd. (AirYatra). All rights reserved. India&#39;s Premier Aviation Platform.
+              </p>
+              <div className="flex items-center gap-4">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/100px-Visa_Inc._logo.svg.png" alt="Visa" className="h-6 opacity-60" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/100px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6 opacity-60" />
+                <span className="text-slate-600 text-xs">Secure Payments</span>
+              </div>
             </div>
           </div>
         </div>
