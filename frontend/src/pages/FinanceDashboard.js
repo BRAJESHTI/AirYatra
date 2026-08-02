@@ -49,6 +49,9 @@ const FinanceAnalyticsDashboard = React.lazy(() => import('@/components/finance/
 // Payment Reconciliation & Finance Reports
 const PaymentReconciliation = React.lazy(() => import('@/components/finance/PaymentReconciliation'));
 
+// Scheduled Reports & Settlement Sync
+const ScheduledReportsManager = React.lazy(() => import('@/components/finance/ScheduledReportsManager'));
+
 // Organized Navigation Structure - 8 Main Categories (with Treasury ERP)
 const navGroups = [
   {
@@ -91,6 +94,7 @@ const navGroups = [
     label: 'Advanced / उन्नत',
     icon: Settings,
     items: [
+      { id: 'scheduled_reports', label: 'Scheduled Reports', icon: Clock, highlight: true },
       { id: 'audit_trail', label: 'Audit Trail', icon: History, highlight: true },
       { id: 'multi_currency', label: 'Multi-Currency', icon: Globe, highlight: true },
       { id: 'pdf_invoice', label: 'PDF Invoice Export', icon: FileDown, highlight: true },
@@ -382,6 +386,12 @@ function FinanceDashboard({ user, onLogout }) {
         return (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
             <PaymentReconciliation />
+          </React.Suspense>
+        );
+      case 'scheduled_reports':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <ScheduledReportsManager />
           </React.Suspense>
         );
       default:

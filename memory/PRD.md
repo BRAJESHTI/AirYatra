@@ -876,3 +876,33 @@ Total modules implemented: 17
 - /app/frontend/src/components/finance/PaymentReconciliation.js (new - full UI with modals)
 - /app/frontend/src/pages/FinanceDashboard.js (updated - added "Payment Reconciliation" nav item)
 
+### Settlement Auto-Sync (Aug 2, 2026)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Stripe Settlement Sync | 🟢 DONE | Daily auto-sync of Stripe payouts and balance transactions. Fetches last 30 days on each run. Stores in `stripe_settlements` and `stripe_balance_transactions` collections. |
+| Razorpay Settlement Sync | 🟢 DONE | Daily auto-sync of Razorpay settlements with UTR numbers. Stores in `razorpay_settlements` collection. |
+| Manual Sync Trigger | 🟢 DONE | API to manually trigger sync for either/both gateways. POST /api/finance/scheduled/settlement-sync/trigger |
+| Sync Status Dashboard | 🟢 DONE | View sync logs, settlement counts, last sync times. GET /api/finance/scheduled/settlement-sync/status |
+
+### Scheduled Finance Reports (Aug 2, 2026)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Report Scheduling | 🟢 DONE | Create scheduled reports with daily/weekly/monthly frequency. Set specific send day (day of week for weekly, day of month for monthly). |
+| Multi-Recipient | 🟢 DONE | Configure multiple email recipients per scheduled report. |
+| Toggle Active/Pause | 🟢 DONE | Enable/disable scheduled reports without deleting. POST /api/finance/scheduled/reports/{id}/toggle |
+| Send Now | 🟢 DONE | Manually trigger a scheduled report to be sent immediately with PDF attachment. POST /api/finance/scheduled/reports/{id}/send-now |
+| Auto Email | 🟢 DONE | Scheduler job runs every 6 hours, checks for due reports, generates PDF, sends via email with attachment. |
+
+### Files Created (Scheduled Reports & Settlement Sync)
+- /app/backend/scheduler.py (updated - added 3 new jobs: stripe_settlement_sync, razorpay_settlement_sync, scheduled_finance_reports)
+- /app/backend/routes/finance_scheduled_routes.py (new - 10 API endpoints)
+- /app/backend/services/email_service.py (updated - added send_email_with_attachment helper)
+- /app/frontend/src/components/finance/ScheduledReportsManager.js (new - full UI with tabs for reports and sync status)
+
+### New Scheduler Jobs
+- `stripe_settlement_sync` - Daily Stripe payout/balance sync
+- `razorpay_settlement_sync` - Daily Razorpay settlement sync
+- `scheduled_finance_reports` - Every 6 hours, processes due reports
+

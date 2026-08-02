@@ -134,6 +134,8 @@ from routes import finance_phase5_routes
 from routes import finance_analytics_routes
 # Finance ERP - Payment Reconciliation & Reports
 from routes import finance_reconciliation_routes
+# Finance ERP - Scheduled Reports & Settlement Sync
+from routes import finance_scheduled_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -361,6 +363,9 @@ api_router.include_router(finance_analytics_routes.router)
 
 # Finance ERP - Payment Reconciliation & Reports
 api_router.include_router(finance_reconciliation_routes.router)
+
+# Finance ERP - Scheduled Reports & Settlement Sync
+api_router.include_router(finance_scheduled_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

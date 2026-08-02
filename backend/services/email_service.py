@@ -1328,6 +1328,31 @@ class EmailService:
             logger.error(f"Failed to send email to {to_email}: {str(e)}")
             return {"success": False, "error": str(e)}
     
+    async def send_email_with_attachment(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        attachment_content: bytes,
+        attachment_filename: str,
+        attachment_type: str = "application/pdf"
+    ) -> Dict[str, Any]:
+        """
+        Simplified method to send email with a single attachment.
+        Used by scheduled reports.
+        """
+        attachments = [{
+            "content": attachment_content,
+            "filename": attachment_filename
+        }]
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_content,
+            attachments=attachments
+        )
+    
     async def send_template_email(
         self,
         template_name: str,

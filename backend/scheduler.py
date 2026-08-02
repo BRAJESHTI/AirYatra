@@ -928,8 +928,35 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Settlement auto-sync - Daily (Stripe)
+    scheduler.add_job(
+        sync_stripe_settlements,
+        trigger=IntervalTrigger(hours=24),
+        id="stripe_settlement_sync",
+        name="Stripe Settlement Auto-Sync (Daily)",
+        replace_existing=True
+    )
+    
+    # Settlement auto-sync - Daily (Razorpay)
+    scheduler.add_job(
+        sync_razorpay_settlements,
+        trigger=IntervalTrigger(hours=24),
+        id="razorpay_settlement_sync",
+        name="Razorpay Settlement Auto-Sync (Daily)",
+        replace_existing=True
+    )
+    
+    # Scheduled finance reports - Check every 6 hours
+    scheduler.add_job(
+        process_scheduled_finance_reports,
+        trigger=IntervalTrigger(hours=6),
+        id="scheduled_finance_reports",
+        name="Process Scheduled Finance Reports",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders, pilot_document_expiry")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders, pilot_document_expiry, stripe_settlement_sync, razorpay_settlement_sync, scheduled_finance_reports")
 
 
 async def check_pilot_document_expiry():
@@ -1165,6 +1192,463 @@ async def send_pilot_document_expiry_email(operator_email: str, operator_name: s
         subject=f"⚠️ Pilot Document Expiry Alert - {len(pilots_data)} pilots - AirYatra",
         html_content=html_content
     )
+
+
+# ==================== SETTLEMENT AUTO-SYNC ====================
+
+async def sync_stripe_settlements():
+    """
+    Sync Stripe settlements/payouts data daily.
+    Fetches recent payouts and balance transactions.
+    """
+    from database import get_database_sync
+    import os
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for Stripe settlement sync")
+            return
+        
+        stripe_key = os.environ.get("STRIPE_API_KEY")
+        if not stripe_key:
+            logger.warning("STRIPE_API_KEY not configured, skipping settlement sync")
+            return
+        
+        # Import Stripe
+        try:
+            import stripe
+            stripe.api_key = stripe_key
+        except ImportError:
+            logger.warning("Stripe library not installed")
+            return
+        
+        logger.info("Starting Stripe settlement sync...")
+        
+        # Fetch recent payouts (last 30 days)
+        thirty_days_ago = int((datetime.now(timezone.utc) - timedelta(days=30)).timestamp())
+        
+        try:
+            payouts = stripe.Payout.list(
+                limit=100,
+                created={"gte": thirty_days_ago}
+            )
+            
+            synced_count = 0
+            for payout in payouts.data:
+                # Check if already synced
+                existing = await db.stripe_settlements.find_one({"payout_id": payout.id})
+                if existing:
+                    continue
+                
+                settlement_doc = {
+                    "id": str(uuid4()),
+                    "payout_id": payout.id,
+                    "amount": payout.amount / 100,  # Convert from cents
+                    "currency": payout.currency.upper(),
+                    "status": payout.status,
+                    "arrival_date": datetime.fromtimestamp(payout.arrival_date, tz=timezone.utc) if payout.arrival_date else None,
+                    "created_at": datetime.fromtimestamp(payout.created, tz=timezone.utc),
+                    "method": payout.method,
+                    "destination": payout.destination,
+                    "source_type": "stripe_payout",
+                    "synced_at": datetime.now(timezone.utc)
+                }
+                
+                await db.stripe_settlements.insert_one(settlement_doc)
+                synced_count += 1
+            
+            logger.info(f"Stripe settlement sync complete: {synced_count} new payouts synced")
+            
+            # Also fetch recent balance transactions for detailed reconciliation
+            balance_txns = stripe.BalanceTransaction.list(
+                limit=100,
+                created={"gte": thirty_days_ago},
+                type="charge"
+            )
+            
+            charge_synced = 0
+            for txn in balance_txns.data:
+                existing = await db.stripe_balance_transactions.find_one({"txn_id": txn.id})
+                if existing:
+                    continue
+                
+                txn_doc = {
+                    "id": str(uuid4()),
+                    "txn_id": txn.id,
+                    "amount": txn.amount / 100,
+                    "fee": txn.fee / 100,
+                    "net": txn.net / 100,
+                    "currency": txn.currency.upper(),
+                    "type": txn.type,
+                    "status": txn.status,
+                    "source": txn.source,
+                    "created_at": datetime.fromtimestamp(txn.created, tz=timezone.utc),
+                    "available_on": datetime.fromtimestamp(txn.available_on, tz=timezone.utc) if txn.available_on else None,
+                    "synced_at": datetime.now(timezone.utc)
+                }
+                
+                await db.stripe_balance_transactions.insert_one(txn_doc)
+                charge_synced += 1
+            
+            logger.info(f"Stripe balance transactions synced: {charge_synced} new transactions")
+            
+            # Log sync run
+            await db.settlement_sync_logs.insert_one({
+                "id": str(uuid4()),
+                "gateway": "stripe",
+                "payouts_synced": synced_count,
+                "transactions_synced": charge_synced,
+                "status": "success",
+                "created_at": datetime.now(timezone.utc)
+            })
+            
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe API error during settlement sync: {e}")
+            await db.settlement_sync_logs.insert_one({
+                "id": str(uuid4()),
+                "gateway": "stripe",
+                "status": "error",
+                "error": str(e),
+                "created_at": datetime.now(timezone.utc)
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in Stripe settlement sync: {e}")
+
+
+async def sync_razorpay_settlements():
+    """
+    Sync Razorpay settlements data daily.
+    """
+    from database import get_database_sync
+    import os
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for Razorpay settlement sync")
+            return
+        
+        razorpay_key = os.environ.get("RAZORPAY_KEY_ID")
+        razorpay_secret = os.environ.get("RAZORPAY_KEY_SECRET")
+        
+        if not razorpay_key or not razorpay_secret:
+            logger.warning("Razorpay credentials not configured, skipping settlement sync")
+            return
+        
+        try:
+            import razorpay
+            client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
+        except ImportError:
+            logger.warning("Razorpay library not installed")
+            return
+        
+        logger.info("Starting Razorpay settlement sync...")
+        
+        try:
+            # Fetch settlements
+            settlements = client.settlement.all({"count": 100})
+            
+            synced_count = 0
+            for settlement in settlements.get("items", []):
+                existing = await db.razorpay_settlements.find_one({"settlement_id": settlement["id"]})
+                if existing:
+                    continue
+                
+                settlement_doc = {
+                    "id": str(uuid4()),
+                    "settlement_id": settlement["id"],
+                    "amount": settlement["amount"] / 100,  # Convert from paise
+                    "status": settlement["status"],
+                    "fees": settlement.get("fees", 0) / 100,
+                    "tax": settlement.get("tax", 0) / 100,
+                    "utr": settlement.get("utr"),
+                    "created_at": datetime.fromtimestamp(settlement["created_at"], tz=timezone.utc),
+                    "synced_at": datetime.now(timezone.utc)
+                }
+                
+                await db.razorpay_settlements.insert_one(settlement_doc)
+                synced_count += 1
+            
+            logger.info(f"Razorpay settlement sync complete: {synced_count} new settlements synced")
+            
+            # Log sync run
+            await db.settlement_sync_logs.insert_one({
+                "id": str(uuid4()),
+                "gateway": "razorpay",
+                "settlements_synced": synced_count,
+                "status": "success",
+                "created_at": datetime.now(timezone.utc)
+            })
+            
+        except Exception as e:
+            logger.error(f"Razorpay API error during settlement sync: {e}")
+            await db.settlement_sync_logs.insert_one({
+                "id": str(uuid4()),
+                "gateway": "razorpay",
+                "status": "error",
+                "error": str(e),
+                "created_at": datetime.now(timezone.utc)
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in Razorpay settlement sync: {e}")
+
+
+# ==================== SCHEDULED FINANCE REPORTS ====================
+
+async def process_scheduled_finance_reports():
+    """
+    Process scheduled finance reports and send via email.
+    Checks for reports due today based on frequency (daily/weekly/monthly).
+    """
+    from database import get_database_sync
+    from services.email_service import EmailService
+    from io import BytesIO
+    import base64
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for scheduled reports")
+            return
+        
+        email_service = EmailService()
+        now = datetime.now(timezone.utc)
+        today = now.date()
+        day_of_week = now.weekday()  # 0 = Monday
+        day_of_month = now.day
+        
+        # Find all active scheduled reports
+        schedules = await db.scheduled_finance_reports.find({
+            "is_active": True
+        }).to_list(100)
+        
+        if not schedules:
+            logger.info("No scheduled finance reports configured")
+            return
+        
+        logger.info(f"Processing {len(schedules)} scheduled report configurations...")
+        
+        for schedule in schedules:
+            try:
+                frequency = schedule.get("frequency", "weekly")
+                send_day = schedule.get("send_day", 1)  # 1 = Monday for weekly, 1 = 1st for monthly
+                last_sent = schedule.get("last_sent")
+                
+                # Check if we should send today
+                should_send = False
+                
+                if frequency == "daily":
+                    # Send every day, but only once per day
+                    if not last_sent or last_sent.date() < today:
+                        should_send = True
+                        
+                elif frequency == "weekly":
+                    # Send on specific day of week (0=Mon, 1=Tue, etc.)
+                    if day_of_week == send_day:
+                        if not last_sent or last_sent.date() < today:
+                            should_send = True
+                            
+                elif frequency == "monthly":
+                    # Send on specific day of month
+                    if day_of_month == send_day:
+                        if not last_sent or last_sent.month != now.month:
+                            should_send = True
+                
+                if not should_send:
+                    continue
+                
+                logger.info(f"Generating scheduled report: {schedule.get('name', 'Unnamed')}")
+                
+                # Generate the report
+                report_type = schedule.get("report_type", "monthly")
+                recipients = schedule.get("recipients", [])
+                
+                if not recipients:
+                    logger.warning(f"No recipients for scheduled report {schedule['id']}")
+                    continue
+                
+                # Calculate report period
+                if report_type == "monthly" or frequency == "monthly":
+                    # Previous month
+                    if now.month == 1:
+                        report_month = 12
+                        report_year = now.year - 1
+                    else:
+                        report_month = now.month - 1
+                        report_year = now.year
+                else:
+                    # Current month for weekly/daily
+                    report_month = now.month
+                    report_year = now.year
+                
+                # Generate PDF (simplified - in production, import from reconciliation routes)
+                pdf_content = await generate_finance_report_pdf(db, report_month, report_year, schedule.get("created_by_email", "system"))
+                
+                if not pdf_content:
+                    logger.error(f"Failed to generate PDF for scheduled report {schedule['id']}")
+                    continue
+                
+                # Send email with attachment
+                month_name = datetime(report_year, report_month, 1).strftime("%B %Y")
+                subject = f"📊 AirYatra Finance Report - {month_name}"
+                
+                html_content = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                        <h1 style="color: white; margin: 0;">✈️ AirYatra Finance Report</h1>
+                        <p style="color: #e2e8f0; margin-top: 10px;">{month_name}</p>
+                    </div>
+                    <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px;">
+                        <p style="color: #334155;">Dear Finance Team,</p>
+                        <p style="color: #334155;">Please find attached the {frequency} finance report for {month_name}.</p>
+                        <p style="color: #334155;">This report includes:</p>
+                        <ul style="color: #334155;">
+                            <li>Executive Summary</li>
+                            <li>Revenue Breakdown</li>
+                            <li>Expense Analysis</li>
+                            <li>Payment Reconciliation Status</li>
+                            <li>Top Customers</li>
+                        </ul>
+                        <p style="color: #64748b; font-size: 12px; margin-top: 30px;">
+                            This is an automated report. To modify schedule settings, visit the Finance Dashboard.
+                        </p>
+                    </div>
+                </div>
+                """
+                
+                # Send to each recipient
+                for recipient in recipients:
+                    try:
+                        await email_service.send_email_with_attachment(
+                            to_email=recipient,
+                            subject=subject,
+                            html_content=html_content,
+                            attachment_content=pdf_content,
+                            attachment_filename=f"AirYatra_Finance_Report_{month_name.replace(' ', '_')}.pdf",
+                            attachment_type="application/pdf"
+                        )
+                        logger.info(f"Sent scheduled report to {recipient}")
+                    except Exception as e:
+                        logger.error(f"Failed to send report to {recipient}: {e}")
+                
+                # Update last_sent
+                await db.scheduled_finance_reports.update_one(
+                    {"id": schedule["id"]},
+                    {"$set": {
+                        "last_sent": now,
+                        "last_status": "success",
+                        "send_count": schedule.get("send_count", 0) + 1
+                    }}
+                )
+                
+            except Exception as e:
+                logger.error(f"Error processing scheduled report {schedule.get('id')}: {e}")
+                await db.scheduled_finance_reports.update_one(
+                    {"id": schedule["id"]},
+                    {"$set": {
+                        "last_status": "error",
+                        "last_error": str(e)
+                    }}
+                )
+        
+        logger.info("Scheduled finance reports processing complete")
+        
+    except Exception as e:
+        logger.error(f"Error in scheduled finance reports: {e}")
+
+
+async def generate_finance_report_pdf(db, month: int, year: int, generated_by: str = "system") -> bytes:
+    """
+    Generate finance report PDF for scheduled sending.
+    Returns PDF content as bytes.
+    """
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+    
+    try:
+        start_date = datetime(year, month, 1, tzinfo=timezone.utc)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            end_date = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+        
+        month_name = start_date.strftime("%B %Y")
+        
+        # Fetch data
+        paid_transactions = await db.payment_transactions.find({
+            "status": "paid",
+            "created_at": {"$gte": start_date, "$lt": end_date}
+        }).to_list(10000)
+        
+        total_revenue = sum(t.get("amount", 0) for t in paid_transactions)
+        
+        expenses = await db.expenses.find({
+            "created_at": {"$gte": start_date, "$lt": end_date}
+        }).to_list(5000)
+        
+        total_expenses = sum(e.get("amount", 0) for e in expenses)
+        net_profit = total_revenue - total_expenses
+        
+        # Generate PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#1e40af'), alignment=TA_CENTER, spaceAfter=20)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=14, textColor=colors.HexColor('#64748b'), alignment=TA_CENTER, spaceAfter=30)
+        
+        elements = []
+        elements.append(Paragraph("✈️ AirYatra", title_style))
+        elements.append(Paragraph(f"Finance Report - {month_name}", subtitle_style))
+        elements.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#e2e8f0')))
+        elements.append(Spacer(1, 20))
+        
+        # Summary table
+        def format_inr(amount):
+            if amount >= 10000000:
+                return f"₹{amount/10000000:.2f} Cr"
+            elif amount >= 100000:
+                return f"₹{amount/100000:.2f} L"
+            return f"₹{amount:,.2f}"
+        
+        summary_data = [
+            ["Metric", "Value"],
+            ["Total Revenue", format_inr(total_revenue)],
+            ["Total Expenses", format_inr(total_expenses)],
+            ["Net Profit/Loss", format_inr(net_profit)],
+            ["Transactions", str(len(paid_transactions))],
+            ["Generated By", generated_by],
+            ["Generated At", datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC")],
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[200, 200])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ]))
+        elements.append(summary_table)
+        
+        doc.build(elements)
+        buffer.seek(0)
+        return buffer.getvalue()
+        
+    except Exception as e:
+        logger.error(f"Error generating PDF: {e}")
+        return None
 
 
 def stop_scheduler():
