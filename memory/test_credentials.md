@@ -19,8 +19,23 @@
 | Email | airyatraadmin@gmail.com |
 | Password | ianpkrkgtyokjlbw (App Password) |
 
-### Google OAuth
-- Managed by Emergent (No keys required)
+### Google OAuth (Emergent-Managed)
+- Provider: Emergent Auth (auth.emergentagent.com)
+- Integration Type: Managed OAuth (No API keys required)
+- Status: ✅ ACTIVE
+- Flow: 
+  1. User clicks "Google से Login करें"
+  2. Redirect to https://auth.emergentagent.com/?redirect={callback}
+  3. Google sign-in handled by Emergent
+  4. Callback to /auth/google/callback#session_id=xxx
+  5. Frontend exchanges session_id for user data
+  6. Backend creates/updates user via POST /api/auth/google/emergent-callback
+- Backend Endpoint: POST /api/auth/google/emergent-callback
+- Settings Endpoint: GET /api/auth/google/settings
+- Notes: 
+  - Google users skip OTP/TOTP verification
+  - New users get "customer" role by default
+  - Profile picture synced from Google account
 
 ## Pending Integrations (Phase 9)
 

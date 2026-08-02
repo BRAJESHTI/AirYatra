@@ -1595,3 +1595,182 @@ async def regenerate_recovery_codes(current_user: dict = Depends(get_current_use
         )
     
     return result
+
+
+
+# ========== EMERGENT-MANAGED GOOGLE OAUTH ==========
+
+class EmergentAuthRequest(BaseModel):
+    """Request from frontend after Emergent OAuth callback"""
+    emergent_user: dict  # User data from Emergent auth service
+    device_info: Optional[dict] = None
+    session_token: str  # Emergent session token
+
+
+@router.post("/google/emergent-callback")
+async def emergent_google_callback(
+    request: EmergentAuthRequest,
+    response: Response,
+    fastapi_request: Request
+):
+    """
+    Handle Emergent-managed Google OAuth callback.
+    Creates/updates user and returns JWT token.
+    
+    Flow:
+    1. Frontend redirects to Emergent auth (auth.emergentagent.com)
+    2. User logs in with Google
+    3. Emergent redirects back with session_id in URL hash
+    4. Frontend exchanges session_id for user data
+    5. Frontend calls this endpoint with user data
+    6. We create/update user and return our JWT
+    """
+    db = get_database()
+    
+    try:
+        emergent_user = request.emergent_user
+        device_info = request.device_info or {}
+        
+        # Extract user info from Emergent response
+        google_email = emergent_user.get("email")
+        google_name = emergent_user.get("name", "")
+        google_picture = emergent_user.get("picture", "")
+        emergent_id = emergent_user.get("id")
+        
+        if not google_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No email in Emergent user data"
+            )
+        
+        now = datetime.now(timezone.utc).isoformat()
+        is_new_user = False
+        
+        # Check if user exists by email
+        existing_user = await db.users.find_one(
+            {"email": google_email},
+            {"_id": 0}
+        )
+        
+        if existing_user:
+            # Update existing user with Google info
+            await db.users.update_one(
+                {"email": google_email},
+                {
+                    "$set": {
+                        "google_id": emergent_id,
+                        "profile_picture": google_picture or existing_user.get("profile_picture"),
+                        "full_name": google_name or existing_user.get("full_name"),
+                        "last_login": now,
+                        "last_device_info": device_info,
+                        "auth_provider": "google_emergent",
+                        "updated_at": now
+                    }
+                }
+            )
+            user_id = existing_user.get("id")
+            roles = existing_user.get("roles", ["customer"])
+        else:
+            # Create new user
+            is_new_user = True
+            user_id = str(uuid.uuid4())
+            roles = ["customer"]  # Default role for Google sign-up
+            
+            new_user = {
+                "id": user_id,
+                "email": google_email,
+                "full_name": google_name,
+                "profile_picture": google_picture,
+                "google_id": emergent_id,
+                "auth_provider": "google_emergent",
+                "roles": roles,
+                "is_active": True,
+                "is_verified": True,  # Google email is pre-verified
+                "otp_enabled": False,  # No OTP for Google users
+                "totp_enabled": False,
+                "login_shield_enabled": False,
+                "created_at": now,
+                "updated_at": now,
+                "last_login": now,
+                "last_device_info": device_info
+            }
+            
+            await db.users.insert_one(new_user)
+        
+        # Get final user data
+        user = await db.users.find_one(
+            {"id": user_id},
+            {"_id": 0, "password_hash": 0}
+        )
+        
+        # Create JWT token
+        token_data = {
+            "sub": user_id,
+            "email": google_email,
+            "roles": roles
+        }
+        access_token = create_access_token(token_data)
+        
+        # Set httpOnly cookie
+        set_auth_cookie(response, access_token)
+        
+        # Store session in database
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": hash_token(access_token),
+            "emergent_session_token": request.session_token,
+            "auth_provider": "google_emergent",
+            "device_info": device_info,
+            "ip_address": fastapi_request.client.host if fastapi_request.client else None,
+            "created_at": now,
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+        })
+        
+        # Log audit event
+        await AuditLogger.log(
+            db=db,
+            action="google_oauth_login",
+            user_id=user_id,
+            resource_type="auth",
+            details={
+                "email": google_email,
+                "is_new_user": is_new_user,
+                "auth_provider": "google_emergent"
+            },
+            ip_address=fastapi_request.client.host if fastapi_request.client else None
+        )
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user,
+            "is_new_user": is_new_user,
+            "message": "Google login successful / Google लॉगिन सफल"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Emergent OAuth error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication failed"
+        )
+
+
+@router.get("/google/settings")
+async def get_google_auth_settings():
+    """
+    Get Google auth settings for frontend.
+    Returns whether Google auth is enabled and which method to use.
+    """
+    return {
+        "enabled": True,
+        "use_emergent_auth": True,
+        "provider": "emergent",
+        "features": {
+            "auto_login": True,
+            "profile_sync": True,
+            "otp_bypass": True  # Google users skip OTP
+        }
+    }
