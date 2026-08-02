@@ -546,33 +546,6 @@ function LandingPage({ user }) {
                 </Button>
               </Link>
             </div>
-
-            {/* Document Vault Card */}
-            <div className="glass p-8 rounded-2xl border border-slate-700 hover:border-orange-500/50 transition-all group">
-              <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-4 rounded-xl w-fit mb-6">
-                <Lock className="h-10 w-10 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3">{t('landing.documentVault')}</h3>
-              <p className="text-slate-400 mb-6">
-                {t('landing.vaultDesc')}
-              </p>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2 text-slate-300 text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-400" /> {t('landing.encryption')}
-                </li>
-                <li className="flex items-center gap-2 text-slate-300 text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-400" /> {t('landing.expiryReminders')}
-                </li>
-                <li className="flex items-center gap-2 text-slate-300 text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-400" /> {t('landing.secureSharing')}
-                </li>
-              </ul>
-              <Link to={user ? "/vault" : "/login"}>
-                <Button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:opacity-90" data-testid="explore-vault-btn">
-                  {user ? t('landing.openVault') : t('landing.loginToAccess')}
-                </Button>
-              </Link>
-            </div>
           </div>
         </div>
       </section>
