@@ -103,6 +103,8 @@ from routes import admin_payments_routes
 from routes import search_routes
 from routes import document_master_routes
 from routes import customer_kyc_routes
+from routes import kyc_verification_routes
+from routes import ai_advisor_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -263,6 +265,10 @@ api_router.include_router(admin_payments_routes.router)
 api_router.include_router(document_master_routes.router)
 # Customer KYC Documents
 api_router.include_router(customer_kyc_routes.router)
+# KYC Verification Service (Sandbox Mode)
+api_router.include_router(kyc_verification_routes.router)
+# AI Business Advisor
+api_router.include_router(ai_advisor_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

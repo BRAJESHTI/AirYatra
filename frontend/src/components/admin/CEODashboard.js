@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet, Mail, Send } from 'lucide-react';
+import { Crown, TrendingUp, Users, Plane, Building2, Gavel, PieChart as PieIcon, Loader2, RefreshCw, Tag, ClipboardCheck, Handshake, Download, Users2, CalendarCheck, Receipt, Wallet, Mail, Send, Bot, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -7,6 +7,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
 import api from '../../services/api';
+import AIBusinessAdvisor from '../shared/AIBusinessAdvisor';
 
 const fmtInr = (v) => {
   if (v >= 10000000) return `₹${(v / 10000000).toFixed(1)} Cr`;
@@ -34,6 +35,7 @@ const CEODashboard = () => {
   const [investorInfo, setInvestorInfo] = useState(null);
   const [savingInv, setSavingInv] = useState(false);
   const [sendingNow, setSendingNow] = useState(false);
+  const [showAIAdvisor, setShowAIAdvisor] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -239,6 +241,9 @@ const CEODashboard = () => {
       </div>
 
       <p className="text-slate-600 text-xs">Generated {new Date(data.generated_at).toLocaleString('en-IN')}</p>
+
+      {/* AI Business Advisor Chatbot */}
+      <AIBusinessAdvisor isOpen={showAIAdvisor} onToggle={() => setShowAIAdvisor(!showAIAdvisor)} />
     </div>
   );
 };
