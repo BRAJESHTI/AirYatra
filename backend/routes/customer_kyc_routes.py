@@ -2,17 +2,22 @@
 Customer KYC Document Routes
 Handles customer identity document upload and verification
 SECURED: All endpoints require authentication, owner/admin checks enforced
+ENCRYPTED: All KYC files are encrypted at rest using AES-256
 """
-from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Depends
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Depends, Request
+from fastapi.responses import Response
 from datetime import datetime, timezone
 from bson import ObjectId
 from database import get_database
 from routes.auth_routes import get_current_user
+from security_middleware import FileEncryption, AuditLogger
 import os
 import re
 
 router = APIRouter(prefix="/customer/kyc-documents", tags=["Customer KYC"])
+
+# Initialize file encryption
+file_encryptor = FileEncryption()
 
 # Helper function to require specific roles
 def require_roles(allowed_roles: list):
@@ -84,13 +89,14 @@ async def get_all_kyc_documents(
 
 @router.post("/upload")
 async def upload_kyc_document(
+    request: Request,
     file: UploadFile = File(...),
     document_type: str = Form(...),
     document_number: str = Form(...),
     expiry_date: str = Form(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Upload a KYC document - authenticated user only"""
+    """Upload a KYC document - authenticated user only. File is encrypted at rest (AES-256)."""
     db = get_database()
     
     # Get user_id from token (NOT from form data)
@@ -115,12 +121,16 @@ async def upload_kyc_document(
     file_ext = ALLOWED_MIME_TYPES.get(detected_mime, '.bin')
     
     # Generate secure unique filename (no user input in filename)
-    unique_filename = f"{document_type.upper()}_{user_id}_{ObjectId()}{file_ext}"
+    # Add .enc extension for encrypted files
+    unique_filename = f"{document_type.upper()}_{user_id}_{ObjectId()}{file_ext}.enc"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
-    # Save file securely
+    # ENCRYPT file content before saving (AES-256)
+    encrypted_content, encryption_metadata = file_encryptor.encrypt_file(file_content)
+    
+    # Save encrypted file
     with open(file_path, 'wb') as f:
-        f.write(file_content)
+        f.write(encrypted_content)
     
     # Sanitize document number (remove special chars for security)
     safe_doc_number = re.sub(r'[^a-zA-Z0-9\s-]', '', document_number)[:50]
@@ -139,8 +149,11 @@ async def upload_kyc_document(
         "document_number": safe_doc_number,
         "original_filename": sanitize_filename(file.filename),
         "stored_filename": unique_filename,
-        "file_size": len(file_content),
+        "file_size": len(file_content),  # Original size
+        "encrypted_size": len(encrypted_content),
         "mime_type": detected_mime,
+        "is_encrypted": True,
+        "encryption_algorithm": "AES-256",
         "expiry_date": expiry_date if expiry_date else None,
         "verification_status": "uploaded",
         "verification_notes": None,
@@ -166,7 +179,10 @@ async def upload_kyc_document(
                 "original_filename": sanitize_filename(file.filename),
                 "stored_filename": unique_filename,
                 "file_size": len(file_content),
+                "encrypted_size": len(encrypted_content),
                 "mime_type": detected_mime,
+                "is_encrypted": True,
+                "encryption_algorithm": "AES-256",
                 "expiry_date": expiry_date if expiry_date else None,
                 "verification_status": "uploaded",
                 "updated_at": datetime.now(timezone.utc)
@@ -176,6 +192,28 @@ async def upload_kyc_document(
     else:
         await db.customer_kyc_documents.insert_one(doc_record)
         doc_id = doc_record["id"]
+    
+    # Audit log: File encryption
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action=AuditLogger.ACTION_ENCRYPT,
+            category=AuditLogger.CATEGORY_FILE,
+            user_id=user_id,
+            user_email=current_user.get("email"),
+            resource_type="kyc_document",
+            resource_id=doc_id,
+            details={
+                "document_type": document_type.upper(),
+                "original_size": len(file_content),
+                "encrypted_size": len(encrypted_content)
+            },
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("User-Agent"),
+            status="success"
+        )
+    except Exception:
+        pass
     
     # Check if auto-verification is available
     doc_type_config = await db.document_types.find_one({
@@ -208,17 +246,19 @@ async def upload_kyc_document(
                 )
     
     return {
-        "message": "Document uploaded successfully",
+        "message": "Document uploaded and encrypted successfully",
         "document_id": doc_id,
-        "verification_status": verification_status
+        "verification_status": verification_status,
+        "is_encrypted": True
     }
 
 @router.get("/download/{doc_id}")
 async def download_kyc_document(
     doc_id: str,
+    request: Request,
     current_user: dict = Depends(get_current_user)
 ):
-    """Download KYC document - owner or admin only"""
+    """Download KYC document - owner or admin only. Decrypts file on the fly."""
     db = get_database()
     
     user_id = current_user.get("id") or str(current_user.get("_id"))
@@ -236,10 +276,54 @@ async def download_kyc_document(
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     
-    return FileResponse(
-        path=file_path,
-        filename=doc.get("original_filename", "document"),
-        media_type=doc.get("mime_type", "application/octet-stream")
+    # Read encrypted file
+    with open(file_path, 'rb') as f:
+        encrypted_content = f.read()
+    
+    # Decrypt file content
+    try:
+        if doc.get("is_encrypted", False):
+            decrypted_content = file_encryptor.decrypt_file(encrypted_content)
+        else:
+            # Legacy unencrypted files
+            decrypted_content = encrypted_content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="File decryption failed")
+    
+    # Audit log: File decryption/download
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action=AuditLogger.ACTION_DECRYPT,
+            category=AuditLogger.CATEGORY_FILE,
+            user_id=user_id,
+            user_email=current_user.get("email"),
+            user_roles=user_roles,
+            resource_type="kyc_document",
+            resource_id=doc_id,
+            details={
+                "document_type": doc.get("document_type"),
+                "owner_id": doc["user_id"],
+                "is_owner": doc["user_id"] == user_id
+            },
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("User-Agent"),
+            status="success",
+            risk_level="medium" if "admin" in user_roles and doc["user_id"] != user_id else "low"
+        )
+    except Exception:
+        pass
+    
+    # Return decrypted content as response
+    original_filename = doc.get("original_filename", "document")
+    media_type = doc.get("mime_type", "application/octet-stream")
+    
+    return Response(
+        content=decrypted_content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{original_filename}"'
+        }
     )
 
 @router.delete("/{doc_id}")

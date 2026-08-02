@@ -19,6 +19,11 @@ from ultra_performance_middleware import (
 )
 from db_optimization import optimize_database
 
+# Security Middleware (Rate Limiting, Audit Logging, Session, Encryption)
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from security_middleware import limiter, init_security_middleware
+
 # Import route modules
 from routes import auth_routes, booking_routes, quote_routes, fleet_routes
 from routes import document_routes, admin_routes, ai_routes, payment_routes, operator_routes
@@ -115,6 +120,10 @@ app = FastAPI(
     description="Helicopter and Air Charter Aggregator Platform",
     version="1.0.0"
 )
+
+# Security: Rate Limiting via slowapi
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware - SECURITY: Use specific origins, not '*' in production
 # Set CORS_ORIGINS in .env to restrict allowed origins
@@ -321,6 +330,15 @@ async def startup_event():
         logger.info(f"Database optimization complete: {result}")
     except Exception as e:
         logger.warning(f"Database optimization warning: {e}")
+    
+    # Initialize Security Middleware (Audit Logger, Session Manager, File Encryption)
+    try:
+        from database import get_database
+        db = get_database()
+        security_components = init_security_middleware(app, db)
+        logger.info(f"Security middleware initialized: {list(security_components.keys())}")
+    except Exception as e:
+        logger.warning(f"Security middleware init warning: {e}")
     
     start_scheduler()
     

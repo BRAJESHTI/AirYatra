@@ -5,12 +5,17 @@ from auth import decode_token
 from database import get_database
 from models import UserRole
 import logging
+import hashlib
 
 logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
+def hash_token(token: str) -> str:
+    """Create a hash of the token for storage/lookup"""
+    return hashlib.sha256(token.encode()).hexdigest()
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Get current authenticated user"""
+    """Get current authenticated user with token revocation check"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -28,6 +33,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise credentials_exception
     
     db = get_database()
+    
+    # SESSION INVALIDATION: Check if token is revoked (password changed, logout all devices)
+    token_hash = hash_token(token)
+    revoked = await db.revoked_tokens.find_one({"token_hash": token_hash})
+    if revoked:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired. Please login again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     
     if user is None:
@@ -42,6 +58,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is inactive"
         )
+    
+    # Attach token hash for potential session management
+    user["_current_token_hash"] = token_hash
     
     return user
 
