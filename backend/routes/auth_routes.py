@@ -1774,3 +1774,125 @@ async def get_google_auth_settings():
             "otp_bypass": True  # Google users skip OTP
         }
     }
+
+
+
+# ========== ROLE SELECTION FOR NEW USERS ==========
+
+class SetRoleRequest(BaseModel):
+    """Request to set user role after OAuth signup"""
+    role: str  # customer, operator
+
+
+@router.post("/set-role")
+async def set_user_role(
+    request: SetRoleRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Set role for new Google sign-up users.
+    Only works if user hasn't already selected a role (is_role_selected = false).
+    """
+    db = get_database()
+    
+    valid_roles = ["customer", "operator"]
+    if request.role not in valid_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role. Must be one of: {valid_roles}"
+        )
+    
+    user_id = current_user.get("id")
+    
+    # Check if role already selected
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Allow role change only for new users or if explicitly allowed
+    is_role_selected = user.get("is_role_selected", False)
+    if is_role_selected and user.get("auth_provider") != "google_emergent":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Role already selected. Contact support to change."
+        )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update user role
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "roles": [request.role],
+                "is_role_selected": True,
+                "role_selected_at": now,
+                "updated_at": now
+            }
+        }
+    )
+    
+    # Fetch updated user
+    updated_user = await db.users.find_one(
+        {"id": user_id},
+        {"_id": 0, "password_hash": 0}
+    )
+    
+    # Create operator profile if selected operator role
+    if request.role == "operator":
+        existing_operator = await db.operators.find_one({"user_id": user_id})
+        if not existing_operator:
+            await db.operators.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "email": user.get("email"),
+                "company_name": user.get("full_name", "") + "'s Aviation",
+                "status": "pending_verification",
+                "created_at": now,
+                "updated_at": now
+            })
+    
+    # Log audit event
+    await AuditLogger.log(
+        db=db,
+        action="role_selected",
+        user_id=user_id,
+        resource_type="user",
+        details={
+            "role": request.role,
+            "auth_provider": user.get("auth_provider", "email")
+        }
+    )
+    
+    return {
+        "success": True,
+        "user": updated_user,
+        "message": f"Role set to {request.role}",
+        "redirect": f"/{request.role}" if request.role == "operator" else "/customer"
+    }
+
+
+@router.get("/check-role-selection")
+async def check_role_selection(current_user: dict = Depends(get_current_user)):
+    """
+    Check if user needs to select a role (for new Google sign-ups)
+    """
+    db = get_database()
+    
+    user = await db.users.find_one(
+        {"id": current_user.get("id")},
+        {"_id": 0, "password_hash": 0}
+    )
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    is_google_user = user.get("auth_provider") == "google_emergent"
+    is_role_selected = user.get("is_role_selected", False)
+    
+    return {
+        "needs_role_selection": is_google_user and not is_role_selected,
+        "current_roles": user.get("roles", []),
+        "is_role_selected": is_role_selected,
+        "auth_provider": user.get("auth_provider")
+    }

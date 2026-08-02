@@ -8,6 +8,7 @@ export { default as PriceSummaryStep } from './PriceSummaryStep';
 // New Components
 export { PriceLockTimer, PriceLockBadge } from './PriceLockTimer';
 export { BookingTypeSelector, BookingTypePill } from './BookingTypeSelector';
+export { MultiCityRouteBuilder } from './MultiCityRouteBuilder';
 
 // Export configuration
 export {

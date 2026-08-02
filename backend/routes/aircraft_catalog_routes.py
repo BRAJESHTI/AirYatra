@@ -869,6 +869,186 @@ async def update_availability(
     return {"success": True, "status": status}
 
 
+# ============ SOFT DELETE / ARCHIVE ENDPOINTS ============
+
+@router.delete("/{aircraft_id}")
+async def soft_delete_aircraft(
+    aircraft_id: str,
+    current_user: dict = Depends(require_roles(["operator", "admin"]))
+):
+    """
+    Soft delete (archive) an aircraft - does NOT permanently delete.
+    Aircraft can be restored later. All bookings and history preserved.
+    """
+    db = get_database()
+    
+    aircraft = await db.aircraft_catalog.find_one({"id": aircraft_id})
+    if not aircraft:
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+    
+    # Check ownership (unless admin)
+    is_admin = "admin" in current_user.get("roles", [])
+    if not is_admin and aircraft["operator_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="You can only archive your own aircraft")
+    
+    # Check if already archived
+    if aircraft.get("is_archived", False):
+        raise HTTPException(status_code=400, detail="Aircraft is already archived")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Soft delete - set archived flag
+    await db.aircraft_catalog.update_one(
+        {"id": aircraft_id},
+        {
+            "$set": {
+                "is_archived": True,
+                "archived_at": now,
+                "archived_by": current_user["id"],
+                "is_published": False,  # Unpublish when archived
+                "availability_status": "archived",
+                "updated_at": now
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "message": "Aircraft archived successfully. You can restore it anytime from the archive.",
+        "message_hi": "विमान संग्रहीत हो गया। आप इसे कभी भी पुनर्स्थापित कर सकते हैं।",
+        "aircraft_id": aircraft_id
+    }
+
+
+@router.post("/{aircraft_id}/restore")
+async def restore_aircraft(
+    aircraft_id: str,
+    current_user: dict = Depends(require_roles(["operator", "admin"]))
+):
+    """
+    Restore a soft-deleted (archived) aircraft
+    """
+    db = get_database()
+    
+    aircraft = await db.aircraft_catalog.find_one({"id": aircraft_id})
+    if not aircraft:
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+    
+    # Check ownership (unless admin)
+    is_admin = "admin" in current_user.get("roles", [])
+    if not is_admin and aircraft["operator_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="You can only restore your own aircraft")
+    
+    # Check if actually archived
+    if not aircraft.get("is_archived", False):
+        raise HTTPException(status_code=400, detail="Aircraft is not archived")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Restore aircraft
+    await db.aircraft_catalog.update_one(
+        {"id": aircraft_id},
+        {
+            "$set": {
+                "is_archived": False,
+                "restored_at": now,
+                "restored_by": current_user["id"],
+                "availability_status": "available",
+                "updated_at": now
+            },
+            "$unset": {
+                "archived_at": "",
+                "archived_by": ""
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "message": "Aircraft restored successfully!",
+        "message_hi": "विमान सफलतापूर्वक पुनर्स्थापित हो गया!",
+        "aircraft_id": aircraft_id
+    }
+
+
+@router.get("/archived")
+async def get_archived_aircraft(
+    current_user: dict = Depends(require_roles(["operator", "admin"]))
+):
+    """
+    Get list of archived aircraft for the current operator
+    """
+    db = get_database()
+    
+    is_admin = "admin" in current_user.get("roles", [])
+    
+    query = {"is_archived": True}
+    if not is_admin:
+        query["operator_id"] = current_user["id"]
+    
+    aircraft_list = await db.aircraft_catalog.find(
+        query,
+        {"_id": 0}
+    ).sort("archived_at", -1).to_list(100)
+    
+    return {
+        "archived_aircraft": aircraft_list,
+        "count": len(aircraft_list)
+    }
+
+
+@router.delete("/{aircraft_id}/permanent")
+async def permanently_delete_aircraft(
+    aircraft_id: str,
+    confirm: bool = Query(default=False, description="Must be True to permanently delete"),
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """
+    PERMANENTLY delete an aircraft (Admin only).
+    WARNING: This cannot be undone!
+    """
+    db = get_database()
+    
+    if not confirm:
+        raise HTTPException(
+            status_code=400, 
+            detail="Must set confirm=true to permanently delete. This cannot be undone!"
+        )
+    
+    aircraft = await db.aircraft_catalog.find_one({"id": aircraft_id})
+    if not aircraft:
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+    
+    # Check if archived first (must archive before permanent delete)
+    if not aircraft.get("is_archived", False):
+        raise HTTPException(
+            status_code=400, 
+            detail="Aircraft must be archived first before permanent deletion"
+        )
+    
+    # Permanently delete
+    await db.aircraft_catalog.delete_one({"id": aircraft_id})
+    
+    # Log the permanent deletion
+    await db.audit_logs.insert_one({
+        "action": "aircraft_permanent_delete",
+        "user_id": current_user["id"],
+        "resource_type": "aircraft",
+        "resource_id": aircraft_id,
+        "details": {
+            "registration": aircraft.get("basic_info", {}).get("registration_number"),
+            "operator_id": aircraft.get("operator_id")
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True,
+        "message": "Aircraft permanently deleted",
+        "warning": "This action cannot be undone"
+    }
+
+
 # ============ CUSTOMER ENDPOINTS ============
 
 @router.get("/public/featured")

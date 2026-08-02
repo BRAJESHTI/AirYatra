@@ -11,7 +11,7 @@ import {
   CheckCircle, XCircle, AlertTriangle, Upload, RefreshCw,
   Loader2, IndianRupee, Calendar, Wrench, Star, Eye,
   Wifi, Wind, Baby, Dog, Accessibility, Coffee, Tv, Plug,
-  ChevronRight, Plus, Edit, Trash2, X
+  ChevronRight, Plus, Edit, Trash2, X, Archive, RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -875,7 +875,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
 
 // ============ AIRCRAFT CARD ============
 
-const AircraftCard = ({ aircraft, onEdit, onManageDocs, isPublic = false }) => {
+const AircraftCard = ({ aircraft, onEdit, onManageDocs, onArchive, isPublic = false }) => {
   const { basic_info, features, pricing, verification, verification_badge, expiry_alerts } = aircraft;
   
   return (
@@ -976,8 +976,19 @@ const AircraftCard = ({ aircraft, onEdit, onManageDocs, isPublic = false }) => {
               onClick={() => onManageDocs && onManageDocs(aircraft)}
               data-testid="manage-docs-btn"
             >
-              <FileText className="h-4 w-4 mr-1" /> Docs & Photos
+              <FileText className="h-4 w-4 mr-1" /> Docs
             </Button>
+            {onArchive && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                onClick={() => onArchive(aircraft)}
+                data-testid="archive-aircraft-btn"
+              >
+                <Archive className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
         
@@ -995,20 +1006,28 @@ const AircraftCard = ({ aircraft, onEdit, onManageDocs, isPublic = false }) => {
 
 export const OperatorFleetDashboard = () => {
   const [fleet, setFleet] = useState([]);
+  const [archivedFleet, setArchivedFleet] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   
   const fetchFleet = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/aircraft/my-fleet`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setFleet(response.data.aircraft || []);
-      setStats(response.data.stats);
+      const [fleetRes, archivedRes] = await Promise.all([
+        axios.get(`${API_URL}/api/aircraft/my-fleet`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/aircraft/archived`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: { archived_aircraft: [] } }))
+      ]);
+      setFleet(fleetRes.data.aircraft || []);
+      setArchivedFleet(archivedRes.data.archived_aircraft || []);
+      setStats(fleetRes.data.stats);
     } catch (error) {
       console.error('Failed to fetch fleet:', error);
       toast.error('Failed to load fleet');
@@ -1024,6 +1043,38 @@ export const OperatorFleetDashboard = () => {
   const openDocuments = (aircraft) => {
     setSelectedAircraft(aircraft);
     setShowDocuments(true);
+  };
+  
+  // Archive aircraft
+  const handleArchive = async (aircraft) => {
+    if (!window.confirm(`Archive ${aircraft.basic_info?.model || 'this aircraft'}? You can restore it anytime.`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/aircraft/${aircraft.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Aircraft archived successfully / विमान संग्रहीत हो गया');
+      fetchFleet();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to archive');
+    }
+  };
+  
+  // Restore aircraft
+  const handleRestore = async (aircraft) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/api/aircraft/${aircraft.id}/restore`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Aircraft restored successfully / विमान पुनर्स्थापित हो गया');
+      fetchFleet();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to restore');
+    }
   };
   
   if (loading) {
@@ -1048,6 +1099,18 @@ export const OperatorFleetDashboard = () => {
           </p>
         </div>
         <div className="flex gap-3">
+          {/* Archive Toggle */}
+          {archivedFleet.length > 0 && (
+            <Button 
+              variant={showArchived ? "default" : "outline"}
+              onClick={() => setShowArchived(!showArchived)} 
+              size="sm"
+              className={showArchived ? "bg-slate-700" : ""}
+            >
+              <Archive className="h-4 w-4 mr-2" /> 
+              Archived ({archivedFleet.length})
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchFleet} size="sm">
             <RefreshCw className="h-4 w-4 mr-2" /> Refresh
           </Button>
@@ -1113,26 +1176,91 @@ export const OperatorFleetDashboard = () => {
       )}
       
       {/* Fleet Grid */}
-      {fleet.length === 0 && !showCreateForm ? (
-        <Card className="bg-slate-900 border-slate-700">
-          <CardContent className="py-12 text-center">
-            <Plane className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Aircraft Yet</h3>
-            <p className="text-slate-400 mb-4">Add your first aircraft to start receiving bookings</p>
-            <Button onClick={() => setShowCreateForm(true)} className="bg-orange-500 hover:bg-orange-600">
-              <Plus className="h-4 w-4 mr-2" /> Add Aircraft
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {fleet.map((aircraft) => (
-            <AircraftCard 
-              key={aircraft.id} 
-              aircraft={aircraft}
-              onManageDocs={() => openDocuments(aircraft)}
-            />
-          ))}
+      {!showArchived && (
+        <>
+          {fleet.length === 0 && !showCreateForm ? (
+            <Card className="bg-slate-900 border-slate-700">
+              <CardContent className="py-12 text-center">
+                <Plane className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">No Aircraft Yet</h3>
+                <p className="text-slate-400 mb-4">Add your first aircraft to start receiving bookings</p>
+                <Button onClick={() => setShowCreateForm(true)} className="bg-orange-500 hover:bg-orange-600">
+                  <Plus className="h-4 w-4 mr-2" /> Add Aircraft
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {fleet.map((aircraft) => (
+                <AircraftCard 
+                  key={aircraft.id} 
+                  aircraft={aircraft}
+                  onManageDocs={() => openDocuments(aircraft)}
+                  onArchive={() => handleArchive(aircraft)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* Archived Fleet */}
+      {showArchived && (
+        <div className="space-y-4">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+            <h3 className="text-white font-semibold flex items-center gap-2 mb-2">
+              <Archive className="h-5 w-5 text-slate-400" />
+              Archived Aircraft / संग्रहीत विमान
+            </h3>
+            <p className="text-slate-400 text-sm">
+              These aircraft are hidden from customers but can be restored anytime.
+            </p>
+          </div>
+          
+          {archivedFleet.length === 0 ? (
+            <Card className="bg-slate-900 border-slate-700">
+              <CardContent className="py-8 text-center">
+                <Archive className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400">No archived aircraft</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archivedFleet.map((aircraft) => (
+                <Card key={aircraft.id} className="bg-slate-900/50 border-slate-700 opacity-75">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-12 w-12 bg-slate-800 rounded-lg flex items-center justify-center">
+                        <Plane className="h-6 w-6 text-slate-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-white font-medium">
+                          {aircraft.basic_info?.manufacturer} {aircraft.basic_info?.model}
+                        </h4>
+                        <p className="text-slate-500 text-sm">
+                          {aircraft.basic_info?.registration_number}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className="bg-slate-700 text-slate-400 mb-3">
+                      <Archive className="h-3 w-3 mr-1" /> Archived
+                    </Badge>
+                    <p className="text-slate-500 text-xs mb-3">
+                      Archived: {aircraft.archived_at ? new Date(aircraft.archived_at).toLocaleDateString() : 'N/A'}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full border-green-500/50 text-green-400 hover:bg-green-500/10"
+                      onClick={() => handleRestore(aircraft)}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" /> Restore Aircraft
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
