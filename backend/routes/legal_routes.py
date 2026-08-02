@@ -587,6 +587,7 @@ async def get_booking_consents(booking_type: Optional[str] = None):
 
 class ConsentRecord(BaseModel):
     booking_id: Optional[str] = None
+    booking_type: Optional[str] = None  # one_way, round_trip, village_landing, etc.
     consents: List[str]  # List of consent IDs that were accepted
     optional_consents: List[str] = []
     ip_address: Optional[str] = None
@@ -603,8 +604,19 @@ async def record_booking_consent(
     """
     db = get_database()
     
-    # Verify all mandatory consents are provided
-    mandatory_ids = [c["id"] for c in MANDATORY_CONSENTS if c.get("required")]
+    # Build list of mandatory consents based on booking_type
+    # This mirrors the logic in GET /api/legal/consents
+    mandatory_ids = []
+    for c in MANDATORY_CONSENTS:
+        if not c.get("required"):
+            continue
+        show_for = c.get("show_for")
+        # If show_for is None, consent is always required
+        # If show_for is defined, consent is only required if booking_type matches
+        if show_for is None or (consent.booking_type and consent.booking_type in show_for):
+            mandatory_ids.append(c["id"])
+    
+    # Check which mandatory consents are missing
     missing = [cid for cid in mandatory_ids if cid not in consent.consents]
     
     if missing:

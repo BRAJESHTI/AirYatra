@@ -906,3 +906,41 @@ Total modules implemented: 17
 - `razorpay_settlement_sync` - Daily Razorpay settlement sync
 - `scheduled_finance_reports` - Every 6 hours, processes due reports
 
+
+---
+
+## HYBRID SMART PRICING & AI DISPATCH ENGINE - Phase 1
+
+### Latest Updates (Aug 2, 2026 - Session: Phase 1 Smart Pricing & Legal)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Legal Content APIs | 🟢 DONE | Backend routes for Terms & Conditions, Privacy Policy, Cancellation Policy. Returns exact user-provided legal text (v1.0, effective 03.08.2026). GET /api/legal/terms-and-conditions, /privacy-policy, /cancellation-policy |
+| Booking Consents API | 🟢 DONE | GET /api/legal/consents returns mandatory (5 base + 1 conditional for village_landing) and optional (2) consent items. POST /api/legal/consents/record validates and stores consent acceptance with booking_type-aware validation. |
+| Fixed Route Pricing (Operator) | 🟢 DONE | POST /api/routes/fixed - Operators create fixed routes with aircraft, pricing breakdown (base, landing, operational, offer). Validates aircraft ownership, checks duplicate routes. |
+| Fixed Route Pricing (Customer Search) | 🟢 DONE | GET /api/routes/search?origin=X&destination=Y&date=Z&passengers=N - Customer searches available instant-bookable routes. Returns full price breakdown with GST or suggest_auction=true if no match. |
+| Fixed Route Admin APIs | 🟢 DONE | GET /api/routes/admin/all, POST /api/routes/admin/verify/{id}, PUT/GET /api/routes/admin/pricing-settings - Admin route management and platform pricing configuration. |
+| Legal Pages Frontend | 🟢 DONE | /legal/terms, /legal/privacy, /legal/cancellation - Dynamic pages fetching content from backend APIs. Tab navigation between policies, bilingual titles (English/Hindi). |
+| Mandatory Consent Checkboxes | 🟢 DONE | BookingPage step 4 shows 5 mandatory consent checkboxes. Submit button DISABLED until ALL 5 consents accepted. State tracks: terms_conditions, flight_conditions, platform_role, passenger_info, electronic_consent. |
+| Consent Data in Inquiry | 🟢 DONE | Inquiry submission includes consents_accepted object with all accepted consent IDs and timestamp. |
+| Village Landing Consent | 🟢 DONE | Conditional 6th consent (village_landing) shown only for village landing bookings. Backend validates based on booking_type. |
+
+### Backend Files Created/Modified
+- `/app/backend/routes/legal_routes.py` - Legal content constants (15K+ T&C, 5K+ Cancellation, 3K+ Privacy) and API endpoints
+- `/app/backend/routes/fixed_route_pricing_routes.py` - 605 lines, full Operator CRUD + Customer search + Admin management
+- `/app/backend/server.py` - Added imports and router registration for legal_routes and fixed_route_pricing_routes
+
+### Frontend Files Created/Modified
+- `/app/frontend/src/pages/LegalPage.js` - NEW - Dynamic legal content display with markdown-like rendering
+- `/app/frontend/src/pages/BookingPage.js` - Added 5 mandatory consent checkboxes, allConsentsAccepted gate, submit button disabled logic
+- `/app/frontend/src/App.js` - Added routes for /legal/terms, /legal/privacy, /legal/cancellation
+
+### New DB Collections
+- `fixed_routes` - Operator-defined route pricing
+- `consent_records` - User consent acceptance logs
+- `platform_settings` - Admin pricing settings (commission %, platform fee)
+
+### Test Report
+- `/app/test_reports/iteration_19.json` - Testing agent verified all legal APIs, fixed route APIs, and frontend consent UI
+
+---
