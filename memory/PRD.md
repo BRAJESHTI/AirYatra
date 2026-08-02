@@ -854,3 +854,25 @@ Total modules implemented: 17
 - /app/frontend/src/components/finance/FinanceAnalyticsDashboard.js (new)
 - /app/frontend/src/pages/FinanceDashboard.js (updated - added "Revenue & Recon" nav item)
 
+### Payment Reconciliation System (Aug 2, 2026)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Reconciliation Summary | 🟢 DONE | Dashboard showing total/matched/unmatched/disputed transactions, match rate percentage, amounts summary. API: GET /api/finance/reconciliation/summary |
+| Transaction List | 🟢 DONE | Paginated transaction list with filters (gateway, status), enriched with booking info. API: GET /api/finance/reconciliation/transactions |
+| Auto-Match | 🟢 DONE | Automatic matching of system transactions with gateway settlements (Stripe/Razorpay). Verifies amounts, flags mismatches as disputed. API: POST /api/finance/reconciliation/auto-match |
+| Manual Match | 🟢 DONE | Manual matching for edge cases with notes. API: POST /api/finance/reconciliation/manual-match |
+| Dispute Management | 🟢 DONE | Mark transactions as disputed with reason. API: POST /api/finance/reconciliation/dispute |
+
+### Finance Reports PDF (Aug 2, 2026)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Monthly Report PDF | 🟢 DONE | Professional PDF report with executive summary, revenue breakdown (by type, by gateway), expense breakdown, reconciliation status, top customers. Uses ReportLab. API: POST /api/finance/reconciliation/reports/monthly-pdf |
+| Quick Summary | 🟢 DONE | JSON preview before PDF generation with revenue, expenses, net, transactions, bookings. API: GET /api/finance/reconciliation/reports/quick-summary |
+
+### Files Created (Reconciliation & Reports)
+- /app/backend/routes/finance_reconciliation_routes.py (new - 9 API endpoints)
+- /app/frontend/src/components/finance/PaymentReconciliation.js (new - full UI with modals)
+- /app/frontend/src/pages/FinanceDashboard.js (updated - added "Payment Reconciliation" nav item)
+

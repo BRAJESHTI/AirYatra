@@ -46,6 +46,9 @@ const PDFInvoiceExport = React.lazy(() => import('@/components/finance/PDFInvoic
 // Finance Analytics Dashboard (Revenue Trends, Gateway Reconciliation)
 const FinanceAnalyticsDashboard = React.lazy(() => import('@/components/finance/FinanceAnalyticsDashboard'));
 
+// Payment Reconciliation & Finance Reports
+const PaymentReconciliation = React.lazy(() => import('@/components/finance/PaymentReconciliation'));
+
 // Organized Navigation Structure - 8 Main Categories (with Treasury ERP)
 const navGroups = [
   {
@@ -76,6 +79,7 @@ const navGroups = [
     icon: BarChart3,
     items: [
       { id: 'finance_analytics', label: 'Revenue & Recon', icon: TrendingUp, highlight: true },
+      { id: 'payment_reconciliation', label: 'Payment Reconciliation', icon: RefreshCw, highlight: true },
       { id: 'budget_vs_actual', label: 'Budget vs Actual', icon: Target, highlight: true },
       { id: 'ai_assistant', label: 'AI Finance Assistant', icon: Activity, highlight: true },
       { id: 'bill_repository', label: 'Bill Repository', icon: FileText, highlight: true },
@@ -372,6 +376,12 @@ function FinanceDashboard({ user, onLogout }) {
         return (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
             <FinanceAnalyticsDashboard />
+          </React.Suspense>
+        );
+      case 'payment_reconciliation':
+        return (
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin text-emerald-500" /></div>}>
+            <PaymentReconciliation />
           </React.Suspense>
         );
       default:

@@ -132,6 +132,8 @@ from routes import finance_phase4_routes
 from routes import finance_phase5_routes
 # Finance ERP - Dashboard Analytics (Revenue Trends, Gateway Reconciliation)
 from routes import finance_analytics_routes
+# Finance ERP - Payment Reconciliation & Reports
+from routes import finance_reconciliation_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -356,6 +358,9 @@ api_router.include_router(finance_phase5_routes.router)
 
 # Finance ERP - Dashboard Analytics (Revenue Trends, Gateway Reconciliation)
 api_router.include_router(finance_analytics_routes.router)
+
+# Finance ERP - Payment Reconciliation & Reports
+api_router.include_router(finance_reconciliation_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
