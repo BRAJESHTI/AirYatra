@@ -8,6 +8,7 @@ from services.otp_service import otp_service, hash_device_fingerprint
 from services.email_service import EmailService
 from services.login_shield_service import login_shield
 from services.totp_service import totp_service
+from services.account_lockout_service import account_lockout_service
 import uuid
 import os
 from datetime import datetime, timezone, timedelta
@@ -162,13 +163,48 @@ async def login(request: Request, credentials: UserLogin):
     Login user - Step 1: Validate credentials
     If OTP required, returns otp_required=True
     If device trusted or OTP disabled, returns token directly
+    
+    SECURITY: Account lockout after 5 failed attempts
     """
     db = get_database()
+    ip_address = request.client.host if request.client else "unknown"
+    
+    # Check if account is locked BEFORE attempting login
+    lockout_status = await account_lockout_service.check_lockout_status(credentials.email)
+    if lockout_status.get("locked"):
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail={
+                "error": "account_locked",
+                "message": f"Account is locked due to too many failed login attempts. Try again in {lockout_status.get('remaining_seconds', 0) // 60} minutes or use the unlock link sent to your email.",
+                "lockout_until": lockout_status.get("lockout_until"),
+                "remaining_seconds": lockout_status.get("remaining_seconds", 0)
+            }
+        )
     
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     
     # Audit logging for failed attempts
     if not user or not verify_password(credentials.password, user["password_hash"]):
+        # Record failed attempt
+        lockout_result = await account_lockout_service.record_failed_attempt(
+            email=credentials.email,
+            ip_address=ip_address
+        )
+        
+        # If account just got locked, send unlock email
+        if lockout_result.get("locked") and lockout_result.get("unlock_token"):
+            try:
+                # Send account locked email with unlock link
+                await email_service.send_account_locked_email(
+                    to_email=credentials.email,
+                    unlock_token=lockout_result["unlock_token"],
+                    lockout_minutes=30,
+                    ip_address=ip_address
+                )
+            except Exception as e:
+                print(f"Failed to send lockout email: {e}")
+        
         # Log failed login attempt
         try:
             audit = AuditLogger(db)
@@ -176,8 +212,12 @@ async def login(request: Request, credentials: UserLogin):
                 action=AuditLogger.ACTION_LOGIN_FAILED,
                 category=AuditLogger.CATEGORY_AUTH,
                 user_email=credentials.email,
-                details={"reason": "invalid_credentials"},
-                ip_address=request.client.host if request.client else None,
+                details={
+                    "reason": "invalid_credentials",
+                    "remaining_attempts": lockout_result.get("remaining_attempts", 0),
+                    "locked": lockout_result.get("locked", False)
+                },
+                ip_address=ip_address,
                 user_agent=request.headers.get("User-Agent"),
                 status="failure",
                 risk_level="medium"
@@ -185,9 +225,20 @@ async def login(request: Request, credentials: UserLogin):
         except Exception:
             pass
         
+        # Return appropriate error message
+        if lockout_result.get("locked"):
+            raise HTTPException(
+                status_code=status.HTTP_423_LOCKED,
+                detail={
+                    "error": "account_locked",
+                    "message": "Account locked due to too many failed attempts. Check your email for unlock instructions.",
+                    "lockout_until": lockout_result.get("lockout_until")
+                }
+            )
+        
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+            detail=f"Incorrect email or password. {lockout_result.get('remaining_attempts', 0)} attempts remaining."
         )
     
     if not user.get("is_active", False):
@@ -319,6 +370,9 @@ async def login(request: Request, credentials: UserLogin):
     
     # No OTP required - issue token directly
     access_token = create_access_token(data={"sub": user["id"], "roles": user["roles"]})
+    
+    # Reset lockout counter on successful login
+    await account_lockout_service.record_successful_login(user["email"])
     
     # Create session record
     try:
@@ -598,6 +652,110 @@ async def verify_login_totp(request: Request, data: TOTPLoginVerify):
         "user": user_response,
         "message": "Login successful with 2FA"
     }
+
+
+
+# ========== ACCOUNT LOCKOUT ENDPOINTS ==========
+
+class UnlockAccountRequest(BaseModel):
+    email: str
+    token: str
+
+
+@router.post("/unlock-account")
+async def unlock_account(request: Request, data: UnlockAccountRequest):
+    """
+    Unlock account using the token sent via email.
+    Called when user clicks the unlock link in their email.
+    """
+    success, message = await account_lockout_service.unlock_with_token(
+        email=data.email,
+        token=data.token
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+    
+    # Log the unlock
+    db = get_database()
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action="account_unlocked",
+            category=AuditLogger.CATEGORY_AUTH,
+            user_email=data.email,
+            details={"method": "email_token"},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("User-Agent"),
+            status="success"
+        )
+    except Exception:
+        pass
+    
+    return {
+        "success": True,
+        "message": message
+    }
+
+
+@router.get("/lockout-status")
+async def get_lockout_status(email: str):
+    """Check if an account is currently locked (public endpoint for login form)"""
+    status = await account_lockout_service.check_lockout_status(email)
+    return status
+
+
+@router.get("/admin/locked-accounts")
+async def get_locked_accounts(
+    limit: int = 50,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all currently locked accounts (Admin only)"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    accounts = await account_lockout_service.get_locked_accounts(limit)
+    return {"accounts": accounts, "total": len(accounts)}
+
+
+@router.post("/admin/unlock-account/{email}")
+async def admin_unlock_account(
+    email: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Force unlock an account (Admin only)"""
+    if "admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    success, message = await account_lockout_service.admin_unlock(
+        email=email,
+        admin_id=current_user["id"]
+    )
+    
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    
+    # Log admin action
+    db = get_database()
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action="admin_account_unlock",
+            category=AuditLogger.CATEGORY_AUTH,
+            user_id=current_user["id"],
+            user_email=current_user.get("email"),
+            details={"unlocked_email": email},
+            status="success",
+            risk_level="medium"
+        )
+    except Exception:
+        pass
+    
+    return {"success": True, "message": message}
+
 
 
 @router.post("/login/resend-otp")

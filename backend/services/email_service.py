@@ -1241,6 +1241,101 @@ EMAIL_TEMPLATES = {
 </html>
 """
     },
+    
+    # ===== ACCOUNT LOCKOUT TEMPLATES =====
+    "account_locked": {
+        "subject": "🔒 Account Locked - Security Alert | AirYatra",
+        "body": """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #dc2626, #b91c1c); padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .alert-box { background: #7f1d1d; border: 2px solid #dc2626; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .info-box { background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a4e; }
+        .info-row:last-child { border-bottom: none; }
+        .btn { display: inline-block; background: #22c55e; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 10px 5px; }
+        .btn-secondary { background: #3b82f6; }
+        .footer { background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+        .warning { color: #fbbf24; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size:60px;">🔒</div>
+            <h1>Account Temporarily Locked</h1>
+            <p style="margin:10px 0 0; opacity:0.9;">Security Protection Activated</p>
+        </div>
+        <div class="content">
+            <div class="alert-box">
+                <p style="margin:0; font-size:16px;">
+                    <strong>⚠️ Multiple Failed Login Attempts Detected</strong>
+                </p>
+                <p style="margin:10px 0 0; opacity:0.9;">
+                    Your AirYatra account has been temporarily locked after {{ max_attempts }} unsuccessful login attempts.
+                </p>
+            </div>
+            
+            <div class="info-box">
+                <h3 style="margin-top:0; color:#f97316;">📋 Lockout Details</h3>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Account Email:</span>
+                    <span style="font-weight:600;">{{ email }}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">IP Address:</span>
+                    <span style="font-weight:600;">{{ ip_address }}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Auto-Unlock In:</span>
+                    <span style="font-weight:600; color:#22c55e;">{{ lockout_minutes }} minutes</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Timestamp:</span>
+                    <span style="font-weight:600;">{{ timestamp }}</span>
+                </div>
+            </div>
+            
+            <p style="color:#94a3b8;">If this was you, simply wait {{ lockout_minutes }} minutes or click the button below to unlock immediately:</p>
+            
+            <p style="text-align:center; margin:25px 0;">
+                <a href="{{ unlock_url }}" class="btn">🔓 Unlock My Account</a>
+            </p>
+            
+            <div class="info-box" style="border: 1px solid #fbbf24;">
+                <p style="margin:0; color:#fbbf24;">
+                    <strong>⚠️ Wasn't You?</strong>
+                </p>
+                <p style="margin:10px 0 0; color:#94a3b8;">
+                    If you did not attempt these logins, someone may be trying to access your account. We recommend:
+                </p>
+                <ul style="color:#94a3b8; margin:10px 0 0; padding-left:20px;">
+                    <li>Change your password immediately after unlocking</li>
+                    <li>Enable Two-Factor Authentication (2FA)</li>
+                    <li>Review your recent login activity</li>
+                </ul>
+            </div>
+            
+            <p style="color:#64748b; font-size:12px; margin-top:20px;">
+                This unlock link expires in 60 minutes. If it expires, you can wait for auto-unlock or contact support.
+            </p>
+        </div>
+        <div class="footer">
+            <p><strong>AirYatra Security Team</strong></p>
+            <p>This is an automated security notification.</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    },
 }
 
 # ==================== EMAIL SERVICE CLASS ====================
@@ -1651,6 +1746,32 @@ class EmailService:
         }
         
         return await self.send_template_email("device_trusted", to_email, data)
+
+    async def send_account_locked_email(
+        self,
+        to_email: str,
+        unlock_token: str,
+        lockout_minutes: int = 30,
+        ip_address: str = "Unknown"
+    ) -> Dict[str, Any]:
+        """Send account locked notification with unlock link"""
+        from datetime import datetime
+        import os
+        
+        # Generate unlock URL
+        frontend_url = os.environ.get("FRONTEND_URL", "https://aviation-erp-2.preview.emergentagent.com")
+        unlock_url = f"{frontend_url}/unlock-account?email={to_email}&token={unlock_token}"
+        
+        data = {
+            "email": to_email,
+            "max_attempts": 5,
+            "lockout_minutes": lockout_minutes,
+            "ip_address": ip_address,
+            "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p IST"),
+            "unlock_url": unlock_url,
+        }
+        
+        return await self.send_template_email("account_locked", to_email, data)
 
 
     async def send_payment_receipt_with_pdf(

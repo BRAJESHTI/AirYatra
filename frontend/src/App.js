@@ -48,6 +48,8 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 // Command Center & AI Pricing
 const CommandCenterDashboard = lazy(() => import('./components/admin/CommandCenterDashboard'));
 const AIPricingAdvisor = lazy(() => import('./components/admin/AIPricingAdvisor'));
+// Account Unlock Page
+const UnlockAccountPage = lazy(() => import('./pages/UnlockAccountPage'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -266,6 +268,9 @@ function App() {
           path="/ai-pricing" 
           element={user && (user.roles.includes('admin') || user.roles.includes('operator') || user.roles.includes('sales')) ? <AIPricingAdvisor /> : <Navigate to="/login" />} 
         />
+        
+        {/* Account Unlock Page - Public (accessed via email link) */}
+        <Route path="/unlock-account" element={<UnlockAccountPage />} />
         
         {/* 404 Catch-all Route */}
         <Route path="*" element={<NotFoundPage />} />
