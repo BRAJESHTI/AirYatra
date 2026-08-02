@@ -32,6 +32,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if user_id is None:
         raise credentials_exception
     
+    # SEC-002 FIX: Block pending_2fa tokens from accessing protected resources
+    if payload.get("pending_2fa"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="2FA verification required. Please complete authentication.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     db = get_database()
     
     # SESSION INVALIDATION: Check if token is revoked (password changed, logout all devices)

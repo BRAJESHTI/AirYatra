@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { GoogleLoginButton } from '../components/auth/GoogleLogin';
 import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
 function LoginPage({ setUser }) {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
@@ -27,6 +29,9 @@ function LoginPage({ setUser }) {
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [otpMessage, setOtpMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [totpRequired, setTotpRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
+  const [tempToken, setTempToken] = useState('');
   const otpRefs = useRef([]);
   const navigate = useNavigate();
 
@@ -67,8 +72,14 @@ function LoginPage({ setUser }) {
           password: formData.password 
         });
         
-        // Check if OTP is required
-        if (response.data.otp_required) {
+        // Check if TOTP 2FA is required
+        if (response.data.totp_required) {
+          setTotpRequired(true);
+          setTempToken(response.data.temp_token);
+          toast.info('🔐 Google Authenticator code required');
+        }
+        // Check if Email OTP is required
+        else if (response.data.otp_required) {
           setOtpRequired(true);
           setOtpMessage(response.data.message || 'OTP sent to your email');
           toast.info(`🔐 ${response.data.message}`);
@@ -122,6 +133,42 @@ function LoginPage({ setUser }) {
       // Clear OTP fields on error
       setOtpCode(['', '', '', '', '', '']);
       otpRefs.current[0]?.focus();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle TOTP (Google Authenticator) verification
+  const handleTotpSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (totpCode.length !== 6) {
+      toast.error('Please enter complete 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login/verify-totp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          temp_token: tempToken,
+          code: totpCode
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Invalid code');
+      }
+      
+      completeLogin(data);
+      toast.success('✅ Login successful with 2FA!');
+    } catch (error) {
+      toast.error(error.message || 'Invalid authenticator code');
+      setTotpCode('');
     } finally {
       setLoading(false);
     }
@@ -208,17 +255,79 @@ function LoginPage({ setUser }) {
             <span className="text-3xl font-bold text-white">AirYatra</span>
           </Link>
           <h1 className="text-3xl font-bold text-white mb-2" data-testid="auth-title">
-            {otpRequired ? 'Verify OTP' : (isLogin ? 'Welcome Back' : 'Create Account')}
+            {totpRequired ? 'Authenticator Code' : (otpRequired ? 'Verify OTP' : (isLogin ? 'Welcome Back' : 'Create Account'))}
           </h1>
           <p className="text-slate-400">
-            {otpRequired 
-              ? otpMessage 
-              : (isLogin ? 'Login to access your account' : 'Sign up to start booking flights')}
+            {totpRequired
+              ? 'Enter code from Google Authenticator'
+              : (otpRequired 
+                ? otpMessage 
+                : (isLogin ? 'Login to access your account' : 'Sign up to start booking flights'))}
           </p>
         </div>
 
-        {/* OTP Verification Form */}
-        {otpRequired ? (
+        {/* TOTP (Google Authenticator) Verification Form */}
+        {totpRequired ? (
+          <form onSubmit={handleTotpSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="totp-form">
+            {/* TOTP Icon */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mx-auto flex items-center justify-center mb-4">
+                <Smartphone className="h-8 w-8 text-white" />
+              </div>
+              <p className="text-slate-400 text-sm">
+                Open Google Authenticator app and enter<br/>
+                the 6-digit code for <span className="text-white font-medium">AirYatra</span>
+              </p>
+            </div>
+
+            {/* TOTP Input */}
+            <div className="space-y-2">
+              <Input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                pattern="[0-9]*"
+                placeholder="000000"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-3xl tracking-[0.5em] font-mono bg-slate-800 border-slate-600 text-white h-16"
+                data-testid="totp-input"
+                autoFocus
+              />
+            </div>
+
+            {/* Submit TOTP */}
+            <Button
+              type="submit"
+              disabled={loading || totpCode.length !== 6}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white h-12"
+              data-testid="verify-totp-btn"
+            >
+              {loading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Verify Code
+                </>
+              )}
+            </Button>
+
+            {/* Back to Login */}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setTotpRequired(false);
+                setTotpCode('');
+                setTempToken('');
+              }}
+              className="w-full text-slate-400 hover:text-white"
+            >
+              Back to Login
+            </Button>
+          </form>
+        ) : otpRequired ? (
           <form onSubmit={handleOtpSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="otp-form">
             {/* OTP Icon */}
             <div className="text-center">

@@ -1,6 +1,7 @@
 """
 AirYatra Smart Document Vault Routes
 Encrypted document storage with version control
+SECURITY: All endpoints require authentication
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Form
 from typing import List, Optional
@@ -11,6 +12,7 @@ import secrets
 import base64
 import hashlib
 from database import get_database
+from middleware import get_current_user
 from models import (
     DocumentUploadModel, DocumentUpdateModel, DocumentShareCreate,
     FolderCreate, DocumentVerification, BulkDocumentAction,
@@ -39,12 +41,12 @@ def calculate_document_status(expiry_date: Optional[datetime]) -> str:
 
 @router.post("/upload")
 async def upload_document(
+    file: UploadFile = File(...),
     owner_id: str = Form(...),
     owner_type: str = Form(...),  # user, operator, corporate
     name: str = Form(...),
     category: str = Form(...),
     document_type: str = Form(...),
-    file: UploadFile = File(...),
     description: Optional[str] = Form(None),
     expiry_date: Optional[str] = Form(None),
     reference_number: Optional[str] = Form(None),
@@ -53,10 +55,22 @@ async def upload_document(
     tags: Optional[str] = Form(""),
     is_sensitive: bool = Form(False),
     reminder_days: int = Form(30),
-    folder_id: Optional[str] = Form(None)
+    folder_id: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user)
 ):
-    """Upload document to vault"""
+    """Upload document to vault - AUTHENTICATED"""
     db = get_database()
+    
+    # SECURITY: Verify owner authorization
+    # Users can only upload to their own vault unless they're admin
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = owner_id == current_user["id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to upload documents for this owner"
+        )
     
     # Read file content
     file_content = await file.read()
@@ -84,14 +98,14 @@ async def upload_document(
     if expiry_date:
         try:
             parsed_expiry = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
-        except:
+        except Exception:
             pass
     
     parsed_issued = None
     if issued_date:
         try:
             parsed_issued = datetime.fromisoformat(issued_date.replace('Z', '+00:00'))
-        except:
+        except Exception:
             pass
     
     document_doc = {
@@ -159,10 +173,21 @@ async def get_owner_documents(
     folder_id: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = 0,
-    limit: int = 50
+    limit: int = 50,
+    current_user: dict = Depends(get_current_user)
 ):
-    """Get all documents for an owner"""
+    """Get all documents for an owner - AUTHENTICATED"""
     db = get_database()
+    
+    # SECURITY: Verify authorization
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = owner_id == current_user["id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to access these documents"
+        )
     
     query = {"owner_id": owner_id}
     if category:
@@ -199,8 +224,11 @@ async def get_owner_documents(
     }
 
 @router.get("/document/{document_id}")
-async def get_document_details(document_id: str):
-    """Get document details by ID"""
+async def get_document_details(
+    document_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get document details by ID - AUTHENTICATED"""
     db = get_database()
     
     document = await db.documents_vault.find_one(
@@ -210,6 +238,22 @@ async def get_document_details(document_id: str):
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
+    
+    # SECURITY: Verify authorization
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    
+    # Check if user has shared access
+    shared_access = any(
+        share.get("user_id") == current_user["id"] 
+        for share in document.get("shared_with", [])
+    )
+    
+    if not is_admin and not is_owner and not shared_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to access this document"
+        )
     
     # Update last accessed
     await db.documents_vault.update_one(
@@ -225,9 +269,27 @@ async def get_document_details(document_id: str):
     }
 
 @router.put("/document/{document_id}")
-async def update_document(document_id: str, update: DocumentUpdateModel):
-    """Update document metadata"""
+async def update_document(
+    document_id: str, 
+    update: DocumentUpdateModel,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update document metadata - AUTHENTICATED"""
     db = get_database()
+    
+    # SECURITY: First check if document exists and user has access
+    document = await db.documents_vault.find_one({"document_id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to modify this document"
+        )
     
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     update_data["updated_at"] = datetime.utcnow()
@@ -249,15 +311,32 @@ async def update_document(document_id: str, update: DocumentUpdateModel):
     }
 
 @router.delete("/document/{document_id}")
-async def delete_document(document_id: str, permanent: bool = False):
-    """Delete or archive document"""
+async def delete_document(
+    document_id: str, 
+    permanent: bool = False,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete or archive document - AUTHENTICATED"""
     db = get_database()
+    
+    # SECURITY: First check if document exists and user has access
+    document = await db.documents_vault.find_one({"document_id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to delete this document"
+        )
     
     if permanent:
         # Get file_id first
-        doc = await db.documents_vault.find_one({"document_id": document_id})
-        if doc:
-            await db.document_files.delete_one({"file_id": doc["file_id"]})
+        if document.get("file_id"):
+            await db.document_files.delete_one({"file_id": document["file_id"]})
         
         result = await db.documents_vault.delete_one({"document_id": document_id})
     else:
@@ -275,8 +354,11 @@ async def delete_document(document_id: str, permanent: bool = False):
     }
 
 @router.get("/file/{file_id}")
-async def download_file(file_id: str):
-    """Download document file"""
+async def download_file(
+    file_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Download document file - AUTHENTICATED"""
     from fastapi.responses import Response
     
     db = get_database()
@@ -285,6 +367,24 @@ async def download_file(file_id: str):
     
     if not file_doc:
         raise HTTPException(status_code=404, detail="File not found")
+    
+    # SECURITY: Find the document and verify access
+    document = await db.documents_vault.find_one({"file_id": file_id})
+    if document:
+        is_admin = "admin" in current_user.get("roles", [])
+        is_owner = document.get("owner_id") == current_user["id"]
+        
+        # Check shared access
+        shared_access = any(
+            share.get("user_id") == current_user["id"] 
+            for share in document.get("shared_with", [])
+        )
+        
+        if not is_admin and not is_owner and not shared_access:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to download this file"
+            )
     
     # Increment download count
     await db.documents_vault.update_one(
@@ -313,15 +413,25 @@ async def upload_new_version(
     document_id: str,
     file: UploadFile = File(...),
     change_notes: Optional[str] = Form(None),
-    uploaded_by: str = Form(...)
+    current_user: dict = Depends(get_current_user)
 ):
-    """Upload new version of document"""
+    """Upload new version of document - AUTHENTICATED"""
     db = get_database()
     
     # Get current document
     document = await db.documents_vault.find_one({"document_id": document_id})
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
+    
+    # SECURITY: Verify authorization
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to upload new version"
+        )
     
     # Read file
     file_content = await file.read()
@@ -353,7 +463,7 @@ async def upload_new_version(
         "version": new_version,
         "file_url": file_url,
         "file_size": file_size,
-        "uploaded_by": uploaded_by,
+        "uploaded_by": current_user["id"],
         "uploaded_at": now,
         "change_notes": change_notes
     }

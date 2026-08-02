@@ -197,6 +197,9 @@ async def login(request: Request, credentials: UserLogin):
     # Determine if OTP is required (either by policy or by risk level)
     force_otp_by_risk = risk_assessment["action"]["force_otp"]
     
+    # SEC-002 FIX: Check if user has TOTP 2FA enabled
+    totp_enabled = user.get("totp_enabled", False)
+    
     requires_otp, reason = await otp_service.should_require_otp(
         user_id=user["id"],
         user_agent=user_agent,
@@ -208,6 +211,21 @@ async def login(request: Request, credentials: UserLogin):
     if force_otp_by_risk and not requires_otp:
         requires_otp = True
         reason = f"risk_level_{risk_assessment['level'].lower()}"
+    
+    # If TOTP is enabled, always require 2FA verification
+    if totp_enabled:
+        # Return special response indicating TOTP is required
+        return {
+            "totp_required": True,
+            "otp_required": False,
+            "temp_token": create_access_token(
+                data={"sub": user["id"], "roles": user["roles"], "pending_2fa": True},
+                expires_delta=timedelta(minutes=5)  # Short-lived token for 2FA
+            ),
+            "message": "Google Authenticator code required / Google Authenticator कोड डालें",
+            "risk_score": risk_assessment["score"],
+            "risk_level": risk_assessment["level"]
+        }
     
     if requires_otp:
         # Generate and send OTP
@@ -436,6 +454,116 @@ async def verify_login_otp(request: Request, data: OTPVerify):
         "user": user_response,
         "device_trusted": device_info is not None,
         "message": "Login successful"
+    }
+
+
+# ========== TOTP LOGIN VERIFICATION (SEC-002 FIX) ==========
+
+class TOTPLoginVerify(BaseModel):
+    """Request to verify TOTP code during login"""
+    temp_token: str  # The temporary token from login step 1
+    code: str  # 6-digit TOTP code
+
+
+@router.post("/login/verify-totp")
+@limiter.limit(RATE_LIMITS["login"])
+async def verify_login_totp(request: Request, data: TOTPLoginVerify):
+    """
+    Login Step 2 (TOTP): Verify Google Authenticator code and issue full token
+    This endpoint is called when user has TOTP 2FA enabled
+    """
+    from auth import decode_token
+    
+    db = get_database()
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("User-Agent", "")
+    
+    # Decode the temporary token
+    payload = decode_token(data.temp_token)
+    if not payload or not payload.get("pending_2fa"):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired temporary token. Please login again."
+        )
+    
+    user_id = payload.get("sub")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    # Verify the TOTP code
+    result = await totp_service.verify_code(user_id=user_id, code=data.code)
+    
+    if not result.get("success"):
+        # Log failed TOTP attempt
+        try:
+            audit = AuditLogger(db)
+            await audit.log(
+                action="totp_login_failed",
+                category=AuditLogger.CATEGORY_AUTH,
+                user_id=user_id,
+                user_email=user.get("email"),
+                details={"error": result.get("error")},
+                ip_address=ip_address,
+                user_agent=user_agent,
+                status="failure",
+                risk_level="high"
+            )
+        except Exception:
+            pass
+        
+        raise HTTPException(
+            status_code=401,
+            detail=result.get("error", "Invalid TOTP code")
+        )
+    
+    # TOTP verified - issue FULL access token (without pending_2fa flag)
+    access_token = create_access_token(data={"sub": user["id"], "roles": user["roles"]})
+    
+    # Create session record
+    try:
+        token_hash = hash_token(access_token)
+        device_hash = otp_service.hash_device_fingerprint(user_agent, ip_address, user["id"]) if user_agent else None
+        await db.user_sessions.insert_one({
+            "user_id": user["id"],
+            "token_hash": token_hash,
+            "device_hash": device_hash,
+            "ip_address": ip_address,
+            "user_agent": user_agent[:200] if user_agent else None,
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
+            "last_activity": datetime.now(timezone.utc),
+            "is_active": True,
+            "auth_method": "totp_2fa"
+        })
+    except Exception:
+        pass
+    
+    # Audit log: Successful TOTP login
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action="totp_login_success",
+            category=AuditLogger.CATEGORY_AUTH,
+            user_id=user["id"],
+            user_email=user.get("email"),
+            user_roles=user.get("roles", []),
+            details={"totp_verified": True, "is_recovery": result.get("is_recovery", False)},
+            ip_address=ip_address,
+            user_agent=user_agent,
+            status="success"
+        )
+    except Exception:
+        pass
+    
+    user_response = {k: v for k, v in user.items() if k != "password_hash"}
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user_response,
+        "message": "Login successful with 2FA"
     }
 
 

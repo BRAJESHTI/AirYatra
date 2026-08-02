@@ -654,6 +654,13 @@ All APIs prefixed with `/api/`
 |---------|--------|---------|
 | Google Authenticator 2FA | 🟢 DONE | TOTP-based 2FA using PyOTP. Backend: `totp_service.py` with setup, verify, disable, recovery codes. APIs: `/api/auth/2fa/setup`, `/api/auth/2fa/verify-setup`, `/api/auth/2fa/verify`, `/api/auth/2fa/disable`, `/api/auth/2fa/regenerate-recovery`. Frontend: `TwoFactorSetup.js` with QR code (qrcode.react), manual secret entry, recovery codes download. Replay protection included. |
 
+### Security Audit Fixes (Aug 2, 2026 - Session 12)
+
+| Issue | Severity | Status | Fix Details |
+|-------|----------|--------|-------------|
+| SEC-001: Document Vault No Auth | CRITICAL | 🟢 FIXED | Added `Depends(get_current_user)` to all `/api/vault/*` endpoints. Added owner authorization checks - users can only access their own documents unless admin. |
+| SEC-002: TOTP Not Enforced at Login | HIGH | 🟢 FIXED | Login now returns `totp_required: true` with short-lived `temp_token` (5 min) when user has TOTP enabled. New endpoint `/api/auth/login/verify-totp` issues full token after TOTP verification. Middleware blocks `pending_2fa` tokens from accessing protected resources. |
+
 ### Remaining MESL Tasks
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)
