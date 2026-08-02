@@ -33,6 +33,9 @@ const DocumentVault = lazy(() => import('./pages/DocumentVault'));
 const PaymentLinkPage = lazy(() => import('./pages/PaymentLinkPage'));
 // Pilot Mobile Portal (PWA)
 const PilotMobilePortal = lazy(() => import('./components/pilot/PilotMobilePortal'));
+// Services & About Pages
+const ServicesPage = lazy(() => import('./pages/ServicesPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -99,6 +102,10 @@ function App() {
           
           {/* Public Payment Link Page (no auth required) */}
           <Route path="/pay/:token" element={<PaymentLinkPage />} />
+          
+          {/* Public Pages - Services & About */}
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/about" element={<AboutPage />} />
           
           <Route
             path="/customer"

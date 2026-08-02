@@ -661,6 +661,19 @@ All APIs prefixed with `/api/`
 | SEC-001: Document Vault No Auth | CRITICAL | 🟢 FIXED | Added `Depends(get_current_user)` to all `/api/vault/*` endpoints. Added owner authorization checks - users can only access their own documents unless admin. |
 | SEC-002: TOTP Not Enforced at Login | HIGH | 🟢 FIXED | Login now returns `totp_required: true` with short-lived `temp_token` (5 min) when user has TOTP enabled. New endpoint `/api/auth/login/verify-totp` issues full token after TOTP verification. Middleware blocks `pending_2fa` tokens from accessing protected resources. |
 
+### Website Enhancement (Aug 2, 2026 - Session 13)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Hero Image Slider | 🟢 DONE | 5-slide carousel with auto-play (5s), left/right arrows, dot indicators. Images: Private Jet, Jet Excellence, Helicopter, Luxury Interior, In-Flight Dining |
+| Services Section | 🟢 DONE | 6 premium service cards: Private Jet Charter, Helicopter Services, Corporate Solutions, Aircraft Management, Emergency Services, Concierge Services |
+| About Section | 🟢 DONE | Company story, mission, values. Stats: 500+ flights, 50+ aircraft, 15+ cities, 100% safety |
+| Services Page | 🟢 DONE | Dedicated `/services` page with detailed service descriptions and pricing |
+| About Page | 🟢 DONE | Dedicated `/about` page with company story, timeline, certifications, team |
+| Contact Section | 🟢 DONE | Updated address and email in contact cards and footer |
+| Head Office Address | 🟢 UPDATED | Office No 7,8 Daynemic Granduer, D Wing, Ground Floor, Undri-Wadachi Road, Undri, Pune - 411060 |
+| Email | 🟢 UPDATED | airyatraadmin@gmail.com |
+
 ### Remaining MESL Tasks
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)
