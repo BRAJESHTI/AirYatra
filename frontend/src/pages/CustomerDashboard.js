@@ -19,6 +19,7 @@ import RouteSuggestions from '../components/customer/RouteSuggestions';
 import NotificationBell from '../components/shared/NotificationBell';
 import GlobalSearch from '../components/shared/GlobalSearch';
 import SwipeableCard from '../components/shared/SwipeableCard';
+import CustomerKYCUpload from '../components/customer/CustomerKYCUpload';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -65,6 +66,7 @@ const navGroups = [
     icon: User,
     items: [
       { id: 'profile', label: 'Profile / प्रोफाइल', icon: User, path: '/customer/profile' },
+      { id: 'kyc', label: 'KYC Documents / केवाईसी', icon: Shield, path: '/customer/kyc', highlight: true },
       { id: 'security', label: 'Security / सुरक्षा', icon: Shield, path: '/customer/security' },
       { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings, path: '/customer/settings' },
     ]
@@ -101,6 +103,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/stats')) setActiveTab('stats');
     else if (path.includes('/price-trends')) setActiveTab('price-trends');
     else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
+    else if (path.includes('/kyc')) setActiveTab('kyc');
     else setActiveTab('overview');
   }, [location]);
 
@@ -158,6 +161,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <MyWatchlist user={user} />;
       case 'profile':
         return <CustomerProfile user={user} />;
+      case 'kyc':
+        return <CustomerKYCUpload user={user} />;
       case 'messages':
         return <ChatWidget user={user} />;
       case 'refer':

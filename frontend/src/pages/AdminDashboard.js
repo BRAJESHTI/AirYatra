@@ -88,6 +88,8 @@ import AdminPaymentsDashboard from '@/components/admin/AdminPaymentsDashboard';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
 import VerificationAPISettings from '@/components/admin/VerificationAPISettings';
+import DocumentExpiryDashboard from '@/components/admin/DocumentExpiryDashboard';
+import CommandCenter from '@/components/admin/CommandCenter';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -97,6 +99,7 @@ const navGroups = [
     icon: LayoutDashboard,
     items: [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+      { id: 'command_center', label: 'Command Center / कमांड सेंटर', icon: Shield, highlight: true },
       { id: 'inquiries', label: 'New Inquiries', icon: Bell, highlight: true },
       { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, highlight: true },
       { id: 'exchange', label: 'Aviation Exchange', icon: Plane, highlight: true },
@@ -231,6 +234,7 @@ const navGroups = [
     items: [
       { id: 'document_types', label: 'Document Types / प्रकार', icon: FileText, highlight: true },
       { id: 'verification_apis', label: 'Verification APIs / सत्यापन', icon: Shield, highlight: true },
+      { id: 'document_expiry', label: 'Expiry Dashboard / समाप्ति', icon: AlertTriangle, highlight: true },
     ]
   },
   {
@@ -453,6 +457,10 @@ function AdminDashboard({ user, onLogout }) {
         return <DocumentTypeMaster />;
       case 'verification_apis':
         return <VerificationAPISettings />;
+      case 'document_expiry':
+        return <DocumentExpiryDashboard />;
+      case 'command_center':
+        return <CommandCenter user={user} />;
       default:
         return <AdminOverview data={dashboardData} onRefresh={loadDashboard} loading={loading} />;
     }

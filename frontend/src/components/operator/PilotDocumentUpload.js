@@ -27,18 +27,19 @@ function PilotDocumentUpload({ pilotId = null }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sendingAlert, setSendingAlert] = useState(null);
   const [allPilotsData, setAllPilotsData] = useState({});
+  const [masterDocTypes, setMasterDocTypes] = useState([]);
   
   // Upload form state
   const [file, setFile] = useState(null);
-  const [documentType, setDocumentType] = useState('license');
+  const [documentType, setDocumentType] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [issueDate, setIssueDate] = useState('');
   const [issuingAuthority, setIssuingAuthority] = useState('DGCA');
 
-  // Document types with required fields
-  const documentTypes = [
+  // Fallback document types (used if master config not available)
+  const fallbackDocTypes = [
     { value: 'license', label: 'Pilot License / पायलट लाइसेंस', requiresNumber: true, requiresExpiry: true },
     { value: 'medical', label: 'Medical Certificate / चिकित्सा प्रमाणपत्र', requiresNumber: true, requiresExpiry: true },
     { value: 'type_rating', label: 'Type Rating / टाइप रेटिंग', requiresNumber: true, requiresExpiry: true },
@@ -52,8 +53,21 @@ function PilotDocumentUpload({ pilotId = null }) {
     { value: 'other', label: 'Other / अन्य', requiresNumber: false, requiresExpiry: false }
   ];
 
+  // Computed document types - prefer master config
+  const documentTypes = masterDocTypes.length > 0 
+    ? masterDocTypes.map(t => ({
+        value: t.code.toLowerCase(),
+        label: `${t.name}${t.name_hi ? ` / ${t.name_hi}` : ''}`,
+        requiresNumber: (t.required_fields || []).includes('document_number'),
+        requiresExpiry: t.has_expiry,
+        code: t.code,
+        verificationApi: t.verification_api
+      }))
+    : fallbackDocTypes;
+
   useEffect(() => {
     loadPilots();
+    loadMasterDocTypes();
   }, []);
 
   useEffect(() => {
@@ -61,6 +75,25 @@ function PilotDocumentUpload({ pilotId = null }) {
       loadDocuments();
     }
   }, [selectedPilot]);
+
+  // Load master document types from admin config
+  const loadMasterDocTypes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/documents/types?category=pilot&active_only=true`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.document_types?.length > 0) {
+        setMasterDocTypes(json.document_types);
+        // Set default document type to first one
+        setDocumentType(json.document_types[0].code.toLowerCase());
+      }
+    } catch (error) {
+      console.log('Using fallback document types');
+      setDocumentType('license');
+    }
+  };
 
   const loadPilots = async () => {
     try {
