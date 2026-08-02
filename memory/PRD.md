@@ -1097,10 +1097,59 @@ Enterprise-level Aircraft Verification & Compliance System with:
 - `/app/test_reports/iteration_22.json` - Backend compliance APIs 100% pass
 - `/app/test_reports/iteration_23.json` - Found route collision & 422 bugs
 - `/app/test_reports/iteration_24.json` - 18/18 tests pass after fixes
+- `/app/test_reports/iteration_25.json` - Object storage + photo gallery tests
 
 ### Known Issues (Minor - Not Blocking)
-- File storage uses base64-in-MongoDB (demo mode) - production should use object storage
 - N+1 query in verification-queue enrichment (acceptable at current scale)
 - bulk-verify uses primitive params instead of Pydantic model
+- /new-version endpoint still uses base64 (needs update for object storage)
+
+---
+
+## PHASE 7: Real File Storage & Photo Gallery (Aug 2, 2026)
+
+### Overview
+Replaced base64-in-MongoDB storage with Emergent Object Storage. Added image thumbnails and photo gallery with lightbox preview.
+
+### Features Implemented
+
+| Feature | Status | Notes |
+|---------|--------|-------------|
+| **Emergent Object Storage** | 🟢 DONE | Primary storage for all document uploads via storage_service.py |
+| **Image Thumbnails** | 🟢 DONE | Auto-generated 300x300 thumbnails for images using PIL |
+| **Thumbnail API** | 🟢 DONE | GET /api/vault/thumbnail/{file_id} serves optimized thumbnails |
+| **Photo Gallery API** | 🟢 DONE | GET /api/vault/photos/{owner_id} returns all photos with thumbnails |
+| **Photo Gallery UI** | 🟢 DONE | Grid view with hover preview, upload progress bar |
+| **Lightbox Viewer** | 🟢 DONE | PhotoGalleryLightbox with keyboard navigation (arrows, ESC) |
+| **Base64 Fallback** | 🟢 DONE | Falls back to MongoDB if object storage fails |
+
+### Backend Changes
+- `/app/backend/routes/document_vault_routes.py`:
+  - `POST /api/vault/upload` - Now uses object storage + generates thumbnails
+  - `GET /api/vault/file/{file_id}` - Retrieves from object storage or base64 fallback
+  - `GET /api/vault/thumbnail/{file_id}` - New endpoint for thumbnails
+  - `GET /api/vault/image/{file_id}` - Inline image preview
+  - `GET /api/vault/photos/{owner_id}` - Gallery endpoint
+
+### Frontend Changes
+- `/app/frontend/src/components/aircraft/AircraftDocumentManager.js`:
+  - Added `PhotoGalleryLightbox` component with keyboard navigation
+  - Photos tab shows actual image thumbnails
+  - Hover preview with zoom button
+  - Upload progress indicator
+  - Cloud Storage badge for object storage uploads
+
+### Storage Schema
+```json
+{
+  "storage_type": "object_storage",
+  "storage_path": "airyatra/vault/{owner_id}/{file_id}/{filename}",
+  "thumbnail_url": "/api/vault/thumbnail/{file_id}",
+  "thumb_storage_path": "airyatra/vault/{owner_id}/{file_id}/thumb_{filename}"
+}
+```
+
+### Test Report
+- `/app/test_reports/iteration_25.json` - 14/16 pass (thumbnail_url bug found and fixed)
 
 ---

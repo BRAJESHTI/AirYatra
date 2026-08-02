@@ -105,22 +105,26 @@ async def upload_document(
         
         # Generate thumbnail for images
         thumbnail_url = None
+        thumb_storage_path = None
         if file_type.startswith("image/") and PIL_AVAILABLE:
             try:
                 img = Image.open(io.BytesIO(file_content))
-                img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                # Only generate thumbnail if image is larger than 300x300
+                if img.width > 300 or img.height > 300:
+                    img.thumbnail((300, 300), Image.Resampling.LANCZOS)
                 thumb_buffer = io.BytesIO()
                 img_format = "JPEG" if file_type == "image/jpeg" else "PNG"
                 img.save(thumb_buffer, format=img_format, quality=80, optimize=True)
                 thumb_content = thumb_buffer.getvalue()
                 
-                thumb_path = f"airyatra/vault/{owner_id}/{file_id}/thumb_{file.filename}"
+                thumb_storage_path = f"airyatra/vault/{owner_id}/{file_id}/thumb_{file.filename}"
                 thumb_result = await storage_service.put_object(
-                    path=thumb_path,
+                    path=thumb_storage_path,
                     data=thumb_content,
                     content_type=file_type
                 )
-                thumbnail_url = thumb_result.get("url")
+                # Use direct URL if available, otherwise use our API endpoint
+                thumbnail_url = thumb_result.get("url") or f"/api/vault/thumbnail/{file_id}"
             except Exception as e:
                 print(f"Thumbnail generation failed: {e}")
         
@@ -137,6 +141,7 @@ async def upload_document(
         file_url = f"/api/vault/file/{file_id}"
         storage_type = "mongodb_base64"
         thumbnail_url = None
+        thumb_storage_path = None
     
     now = datetime.utcnow()
     parsed_expiry = None
@@ -164,6 +169,7 @@ async def upload_document(
         "file_id": file_id,
         "file_url": file_url,
         "thumbnail_url": thumbnail_url,
+        "thumb_storage_path": thumb_storage_path,
         "storage_type": storage_type,
         "storage_path": storage_path if storage_type == "object_storage" else None,
         "file_name": file.filename,
@@ -528,6 +534,49 @@ async def get_image_preview(
         )
     
     raise HTTPException(status_code=404, detail="Image content not found")
+
+
+
+@router.get("/thumbnail/{file_id}")
+async def get_thumbnail(
+    file_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get thumbnail image for a document - AUTHENTICATED"""
+    db = get_database()
+    
+    document = await db.documents_vault.find_one({"file_id": file_id})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check if it's an image with thumbnail
+    if not document.get("thumb_storage_path"):
+        # No thumbnail, return the original image scaled down client-side
+        raise HTTPException(status_code=404, detail="No thumbnail available")
+    
+    # SECURITY: Verify access
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    shared_access = any(
+        share.get("user_id") == current_user["id"] 
+        for share in document.get("shared_with", [])
+    )
+    
+    if not is_admin and not is_owner and not shared_access:
+        raise HTTPException(status_code=403, detail="Not authorized to view this thumbnail")
+    
+    try:
+        content, content_type = await storage_service.get_object(document["thumb_storage_path"])
+        return Response(
+            content=content,
+            media_type=content_type or document.get("file_type", "image/png"),
+            headers={"Content-Disposition": f"inline; filename=thumb_{document.get('file_name', 'image')}"}
+        )
+    except Exception as e:
+        print(f"Thumbnail retrieval failed: {e}")
+        raise HTTPException(status_code=404, detail="Thumbnail not available")
+
 
 
 @router.get("/photos/{owner_id}")
