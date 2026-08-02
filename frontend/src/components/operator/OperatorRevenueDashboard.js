@@ -16,10 +16,15 @@ export default function OperatorRevenueDashboard({ user }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [flightAnalytics, setFlightAnalytics] = useState(null);
+  const [routeAnalytics, setRouteAnalytics] = useState([]);
+  const [aircraftAnalytics, setAircraftAnalytics] = useState([]);
+  const [selectedPeriod, setSelectedPeriod] = useState('month');
 
   useEffect(() => {
     loadRevenueData();
-  }, []);
+    loadFlightAnalytics();
+  }, [selectedPeriod]);
 
   const loadRevenueData = async () => {
     setLoading(true);
@@ -36,6 +41,41 @@ export default function OperatorRevenueDashboard({ user }) {
       console.error('Failed to load revenue data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFlightAnalytics = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Load flight revenue dashboard
+      const dashRes = await fetch(`${API_URL}/api/analytics/revenue/dashboard?period=${selectedPeriod}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (dashRes.ok) {
+        const dashData = await dashRes.json();
+        setFlightAnalytics(dashData);
+      }
+
+      // Load route-wise breakdown
+      const routeRes = await fetch(`${API_URL}/api/analytics/revenue/by-route?period=${selectedPeriod}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (routeRes.ok) {
+        const routeData = await routeRes.json();
+        setRouteAnalytics(routeData.routes || []);
+      }
+
+      // Load aircraft-wise breakdown
+      const aircraftRes = await fetch(`${API_URL}/api/analytics/revenue/by-aircraft?period=${selectedPeriod}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (aircraftRes.ok) {
+        const aircraftData = await aircraftRes.json();
+        setAircraftAnalytics(aircraftData.aircraft || []);
+      }
+    } catch (err) {
+      console.error('Failed to load flight analytics:', err);
     }
   };
 
@@ -177,9 +217,27 @@ export default function OperatorRevenueDashboard({ user }) {
         </Card>
       </div>
 
+      {/* Period Selector */}
+      <div className="flex gap-2">
+        {['day', 'week', 'month', 'year'].map(period => (
+          <Button 
+            key={period}
+            onClick={() => setSelectedPeriod(period)}
+            variant={selectedPeriod === period ? 'default' : 'outline'}
+            size="sm"
+            className={selectedPeriod === period 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-800'
+            }
+          >
+            {period.charAt(0).toUpperCase() + period.slice(1)}
+          </Button>
+        ))}
+      </div>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700 p-1">
+        <TabsList className="bg-slate-800 border-slate-700 p-1 flex-wrap h-auto gap-1">
           <TabsTrigger 
             value="overview" 
             className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
@@ -187,16 +245,28 @@ export default function OperatorRevenueDashboard({ user }) {
             Monthly Trend
           </TabsTrigger>
           <TabsTrigger 
+            value="routes" 
+            className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
+          >
+            By Route
+          </TabsTrigger>
+          <TabsTrigger 
+            value="aircraft" 
+            className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
+          >
+            By Aircraft
+          </TabsTrigger>
+          <TabsTrigger 
             value="commission" 
             className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
           >
-            Commission Breakdown
+            Commission
           </TabsTrigger>
           <TabsTrigger 
             value="payouts" 
             className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
           >
-            Payout History
+            Payouts
           </TabsTrigger>
         </TabsList>
 
@@ -232,6 +302,124 @@ export default function OperatorRevenueDashboard({ user }) {
                     <Plane className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No earnings data yet</p>
                     <p className="text-sm mt-1">Complete flights to see your revenue</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Route-wise Revenue */}
+        <TabsContent value="routes" className="mt-4">
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Plane className="h-5 w-5 text-orange-500" />
+                Revenue by Route
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Top performing routes by revenue ({selectedPeriod})
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {routeAnalytics.length > 0 ? (
+                <div className="space-y-3">
+                  {routeAnalytics.slice(0, 10).map((route, idx) => (
+                    <div key={idx} className="bg-slate-700/50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-orange-400 font-bold w-6">#{idx + 1}</span>
+                          <span className="text-white font-medium">{route.route}</span>
+                        </div>
+                        <span className="text-green-400 font-bold">{formatCurrency(route.total_revenue)}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-slate-400">
+                        <span>{route.total_bookings} bookings</span>
+                        <span>{route.total_passengers} passengers</span>
+                        <span>Avg: {formatCurrency(route.total_revenue / (route.total_bookings || 1))}</span>
+                      </div>
+                      {/* Revenue bar */}
+                      <div className="mt-2 h-2 bg-slate-600 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-orange-500 to-green-500 rounded-full"
+                          style={{ 
+                            width: `${(route.total_revenue / (routeAnalytics[0]?.total_revenue || 1)) * 100}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-slate-500">
+                  <div className="text-center">
+                    <Plane className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No route data for this period</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aircraft-wise Revenue */}
+        <TabsContent value="aircraft" className="mt-4">
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Plane className="h-5 w-5 text-blue-500" />
+                Revenue by Aircraft
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Aircraft performance breakdown ({selectedPeriod})
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {aircraftAnalytics.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {aircraftAnalytics.map((aircraft, idx) => (
+                    <div key={idx} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-white font-semibold">{aircraft.aircraft_type}</h4>
+                        <Badge className="bg-green-500/20 text-green-400">
+                          {formatCurrency(aircraft.total_revenue)}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between text-slate-400">
+                          <span>Total Bookings</span>
+                          <span className="text-white">{aircraft.total_bookings}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-400">
+                          <span>Flight Hours</span>
+                          <span className="text-white">{aircraft.total_flight_hours}h</span>
+                        </div>
+                        <div className="flex justify-between text-slate-400">
+                          <span>Revenue/Hour</span>
+                          <span className="text-orange-400 font-semibold">{formatCurrency(aircraft.revenue_per_hour)}</span>
+                        </div>
+                      </div>
+                      {/* Top Routes for this aircraft */}
+                      {aircraft.top_routes?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-600">
+                          <p className="text-xs text-slate-500 mb-2">Top Routes:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {aircraft.top_routes.slice(0, 3).map((r, rIdx) => (
+                              <span key={rIdx} className="text-xs bg-slate-600 text-slate-300 px-2 py-0.5 rounded">
+                                {r.route.split(' → ')[0]} → {r.route.split(' → ')[1]?.slice(0, 3)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-slate-500">
+                  <div className="text-center">
+                    <Plane className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No aircraft data for this period</p>
                   </div>
                 </div>
               )}

@@ -3,7 +3,7 @@ import {
   Plane, FileText, Clock, Calendar, CheckCircle, AlertTriangle,
   Bell, User, LogOut, Plus, ChevronRight, RefreshCw, 
   MapPin, Timer, Shield, Menu, X, Home, Settings, Wifi, WifiOff, BellRing,
-  Download, FileSpreadsheet
+  Download, FileSpreadsheet, Phone, AlertCircle, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -131,8 +131,411 @@ const BottomNav = ({ active, setActive }) => {
   );
 };
 
+// Emergency Contact Card Component
+const EmergencyContactCard = ({ contacts, onSOS }) => {
+  if (!contacts || contacts.length === 0) return null;
+
+  const groupedContacts = {
+    company: contacts.filter(c => c.category === 'company'),
+    aviation: contacts.filter(c => c.category === 'aviation'),
+    emergency: contacts.filter(c => c.category === 'emergency')
+  };
+
+  return (
+    <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-white font-semibold flex items-center gap-2">
+          <Phone className="h-4 w-4 text-red-400" />
+          Emergency Contacts
+        </h3>
+        <button 
+          onClick={onSOS}
+          className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full animate-pulse"
+          data-testid="sos-button"
+        >
+          🚨 SOS
+        </button>
+      </div>
+
+      {/* Company Contacts */}
+      {groupedContacts.company.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs text-slate-400 mb-2">AirYatra Operations</p>
+          {groupedContacts.company.map((contact, idx) => (
+            <a 
+              key={idx}
+              href={`tel:${contact.phone}`}
+              className="flex items-center gap-3 bg-slate-800/60 rounded-lg p-2 mb-1"
+            >
+              <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
+                <Phone className="h-4 w-4 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm">{contact.name}</p>
+                <p className="text-slate-400 text-xs">{contact.phone}</p>
+              </div>
+              {contact.primary && (
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">Primary</span>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Aviation Emergency */}
+      {groupedContacts.aviation.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs text-slate-400 mb-2">Aviation Emergency</p>
+          {groupedContacts.aviation.map((contact, idx) => (
+            <a 
+              key={idx}
+              href={`tel:${contact.phone}`}
+              className="flex items-center gap-3 bg-slate-800/60 rounded-lg p-2 mb-1"
+            >
+              <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <Plane className="h-4 w-4 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm">{contact.name}</p>
+                <p className="text-slate-400 text-xs">{contact.phone}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* General Emergency */}
+      {groupedContacts.emergency.length > 0 && (
+        <div>
+          <p className="text-xs text-slate-400 mb-2">Emergency Services</p>
+          <div className="flex gap-2">
+            {groupedContacts.emergency.slice(0, 3).map((contact, idx) => (
+              <a 
+                key={idx}
+                href={`tel:${contact.phone}`}
+                className="flex-1 bg-slate-800/60 rounded-lg p-2 text-center"
+              >
+                <p className="text-xl font-bold text-red-400">{contact.phone}</p>
+                <p className="text-xs text-slate-400">{contact.name}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Pilot Availability Calendar Component
+const AvailabilityCalendar = ({ onClose }) => {
+  const [calendar, setCalendar] = useState({});
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('available');
+  const [notes, setNotes] = useState('');
+  const [stats, setStats] = useState({ available: 0, unavailable: 0, assignments: 0 });
+
+  const statusColors = {
+    available: 'bg-green-500',
+    unavailable: 'bg-red-500',
+    leave: 'bg-yellow-500',
+    sick: 'bg-orange-500',
+    training: 'bg-blue-500',
+    standby: 'bg-purple-500'
+  };
+
+  const statusOptions = [
+    { value: 'available', label: 'Available', color: 'text-green-400' },
+    { value: 'unavailable', label: 'Unavailable', color: 'text-red-400' },
+    { value: 'leave', label: 'Leave', color: 'text-yellow-400' },
+    { value: 'sick', label: 'Sick', color: 'text-orange-400' },
+    { value: 'training', label: 'Training', color: 'text-blue-400' },
+    { value: 'standby', label: 'Standby', color: 'text-purple-400' }
+  ];
+
+  const fetchCalendar = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `${API_URL}/api/pilot/availability/calendar?month=${currentMonth}&year=${currentYear}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setCalendar(data.calendar || {});
+        setStats({
+          available: data.total_available || 0,
+          unavailable: data.total_unavailable || 0,
+          assignments: data.total_assignments || 0
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch availability');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendar();
+  }, [currentMonth, currentYear]);
+
+  const handleSetAvailability = async () => {
+    if (!selectedDate) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/pilot/availability/set`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          date: selectedDate,
+          status: selectedStatus,
+          notes: notes
+        })
+      });
+
+      if (res.ok) {
+        toast.success(`Marked ${selectedDate} as ${selectedStatus}`);
+        setSelectedDate(null);
+        setNotes('');
+        fetchCalendar();
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Failed to update');
+      }
+    } catch (error) {
+      toast.error('Failed to update availability');
+    }
+  };
+
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (month, year) => {
+    return new Date(year, month - 1, 1).getDay();
+  };
+
+  const renderCalendar = () => {
+    const daysInMonth = getDaysInMonth(currentMonth, currentYear);
+    const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
+    const days = [];
+    
+    // Empty cells for days before first day
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-10"></div>);
+    }
+
+    // Actual days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayData = calendar[dateStr] || { status: 'available' };
+      const isSelected = selectedDate === dateStr;
+      const hasAssignment = dayData.has_assignment;
+      const today = new Date().toISOString().split('T')[0];
+      const isToday = dateStr === today;
+      const isPast = dateStr < today;
+
+      days.push(
+        <button
+          key={day}
+          onClick={() => !isPast && setSelectedDate(dateStr)}
+          disabled={isPast}
+          className={`h-10 rounded-lg text-sm font-medium relative transition-all ${
+            isSelected ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-slate-900' : ''
+          } ${isPast ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-105'} ${
+            isToday ? 'border-2 border-orange-400' : ''
+          }`}
+          style={{ backgroundColor: isPast ? '#334155' : undefined }}
+        >
+          <div className={`w-full h-full rounded-lg flex items-center justify-center ${
+            !isPast ? (statusColors[dayData.status] || 'bg-green-500') + '/30' : ''
+          }`}>
+            <span className={`${isToday ? 'text-orange-400 font-bold' : 'text-white'}`}>{day}</span>
+          </div>
+          {hasAssignment && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-slate-900">
+              <Plane className="h-2 w-2 text-white absolute top-0.5 left-0.5" />
+            </div>
+          )}
+          <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
+            statusColors[dayData.status] || 'bg-green-500'
+          }`} />
+        </button>
+      );
+    }
+
+    return days;
+  };
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-end justify-center">
+      <div className="bg-slate-900 w-full max-w-lg rounded-t-2xl max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-slate-800 p-4 flex items-center justify-between sticky top-0">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-orange-400" />
+            <h3 className="text-white font-semibold">Availability Calendar</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between p-4 bg-slate-800/50">
+          <button 
+            onClick={() => {
+              if (currentMonth === 1) {
+                setCurrentMonth(12);
+                setCurrentYear(currentYear - 1);
+              } else {
+                setCurrentMonth(currentMonth - 1);
+              }
+            }}
+            className="p-2 text-slate-400 hover:text-white"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h4 className="text-white font-semibold">
+            {monthNames[currentMonth - 1]} {currentYear}
+          </h4>
+          <button 
+            onClick={() => {
+              if (currentMonth === 12) {
+                setCurrentMonth(1);
+                setCurrentYear(currentYear + 1);
+              } else {
+                setCurrentMonth(currentMonth + 1);
+              }
+            }}
+            className="p-2 text-slate-400 hover:text-white"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-2 px-4 py-2">
+          <div className="bg-green-500/10 rounded-lg p-2 text-center">
+            <p className="text-green-400 font-bold">{stats.available}</p>
+            <p className="text-xs text-slate-400">Available</p>
+          </div>
+          <div className="bg-red-500/10 rounded-lg p-2 text-center">
+            <p className="text-red-400 font-bold">{stats.unavailable}</p>
+            <p className="text-xs text-slate-400">Unavailable</p>
+          </div>
+          <div className="bg-orange-500/10 rounded-lg p-2 text-center">
+            <p className="text-orange-400 font-bold">{stats.assignments}</p>
+            <p className="text-xs text-slate-400">Flights</p>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <RefreshCw className="h-6 w-6 text-orange-400 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Week days header */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-center text-xs text-slate-400 py-1">{day}</div>
+                ))}
+              </div>
+              {/* Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {renderCalendar()}
+              </div>
+            </>
+          )}
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {statusOptions.map(opt => (
+              <div key={opt.value} className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${statusColors[opt.value]}`} />
+                <span className="text-xs text-slate-400">{opt.label}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-orange-500 rounded-full flex items-center justify-center">
+                <Plane className="h-2 w-2 text-white" />
+              </div>
+              <span className="text-xs text-slate-400">Has Flight</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Set Availability Form */}
+        {selectedDate && (
+          <div className="p-4 bg-slate-800 border-t border-slate-700">
+            <h4 className="text-white font-medium mb-3">Set Availability for {selectedDate}</h4>
+            
+            {/* Status Selector */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {statusOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSelectedStatus(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    selectedStatus === opt.value 
+                      ? `${statusColors[opt.value]} text-white` 
+                      : `bg-slate-700 ${opt.color}`
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Notes */}
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add notes (optional)"
+              className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm mb-3 border border-slate-600"
+            />
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setSelectedDate(null)}
+                variant="outline" 
+                className="flex-1 border-slate-600 text-white"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSetAvailability}
+                className="flex-1 bg-orange-600 hover:bg-orange-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Confirm
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Home Tab
-const HomeTab = ({ pilot, stats, upcomingFlights, alerts }) => (
+const HomeTab = ({ pilot, stats, upcomingFlights, alerts, emergencyContacts, onSOS }) => (
   <div className="space-y-4 pb-20">
     {/* Welcome Card */}
     <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-4">
@@ -156,6 +559,9 @@ const HomeTab = ({ pilot, stats, upcomingFlights, alerts }) => (
         <p className="text-xs text-slate-400">FDTL Left</p>
       </div>
     </div>
+
+    {/* Emergency Contact Card */}
+    <EmergencyContactCard contacts={emergencyContacts} onSOS={onSOS} />
 
     {/* Alerts */}
     {alerts?.length > 0 && (
@@ -949,7 +1355,7 @@ const FlightsTab = ({ flightLogs, upcomingFlights, onAddLog }) => {
 };
 
 // Profile Tab
-const ProfileTab = ({ pilot, onLogout, notificationsEnabled, onEnableNotifications, isOnline }) => (
+const ProfileTab = ({ pilot, onLogout, notificationsEnabled, onEnableNotifications, isOnline, onOpenAvailability }) => (
   <div className="space-y-4 pb-20">
     {/* Connection Status */}
     <div className={`rounded-xl p-3 flex items-center gap-2 ${isOnline ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}>
@@ -984,6 +1390,22 @@ const ProfileTab = ({ pilot, onLogout, notificationsEnabled, onEnableNotificatio
         </div>
       </div>
     </div>
+
+    {/* Availability Calendar Button */}
+    <button 
+      onClick={onOpenAvailability}
+      className="w-full bg-gradient-to-r from-orange-600 to-amber-600 rounded-xl p-4 flex items-center justify-between hover:opacity-90 transition-opacity"
+      data-testid="availability-calendar-btn"
+    >
+      <div className="flex items-center gap-3">
+        <Calendar className="h-5 w-5 text-white" />
+        <div className="text-left">
+          <span className="text-white font-medium block">Availability Calendar</span>
+          <span className="text-orange-100 text-xs">Mark your available dates</span>
+        </div>
+      </div>
+      <ChevronRight className="h-5 w-5 text-white" />
+    </button>
 
     {/* Push Notifications */}
     <div className="bg-slate-800 rounded-xl p-4">
@@ -1052,6 +1474,8 @@ function PilotMobilePortal() {
   const [flightLogs, setFlightLogs] = useState([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isOfflineData, setIsOfflineData] = useState(false);
+  const [emergencyContacts, setEmergencyContacts] = useState([]);
+  const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false);
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
@@ -1101,6 +1525,13 @@ function PilotMobilePortal() {
         setDutyStatus(dashData.duty_status || {});
         setDocuments(dashData.documents || []);
         setFlightLogs(dashData.flight_logs || []);
+      }
+
+      // Fetch emergency contacts
+      const contactsRes = await fetch(`${API_URL}/api/pilot/emergency-contacts`, { headers });
+      if (contactsRes.ok) {
+        const contactsData = await contactsRes.json();
+        setEmergencyContacts(contactsData.contacts || []);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -1158,6 +1589,38 @@ function PilotMobilePortal() {
     window.location.href = '/';
   };
 
+  const handleSOS = async () => {
+    if (!window.confirm('🚨 Are you sure you want to trigger SOS? This will alert the operations team immediately.')) {
+      return;
+    }
+    
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/api/pilot/emergency-contacts/sos`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'emergency',
+          message: 'SOS triggered from Pilot Portal',
+          location: navigator.geolocation ? 'Fetching...' : 'Unknown'
+        })
+      });
+      
+      if (res.ok) {
+        toast.success('🚨 SOS Alert Sent! Operations team has been notified.', {
+          duration: 10000
+        });
+      } else {
+        toast.error('Failed to send SOS. Please call emergency contacts directly.');
+      }
+    } catch (error) {
+      toast.error('Failed to send SOS. Please call emergency contacts directly.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -1192,6 +1655,8 @@ function PilotMobilePortal() {
             stats={stats} 
             upcomingFlights={upcomingFlights}
             alerts={alerts}
+            emergencyContacts={emergencyContacts}
+            onSOS={handleSOS}
           />
         )}
         {activeTab === 'duty' && (
@@ -1221,9 +1686,15 @@ function PilotMobilePortal() {
             notificationsEnabled={notificationsEnabled}
             onEnableNotifications={handleEnableNotifications}
             isOnline={isOnline}
+            onOpenAvailability={() => setShowAvailabilityCalendar(true)}
           />
         )}
       </main>
+
+      {/* Availability Calendar Modal */}
+      {showAvailabilityCalendar && (
+        <AvailabilityCalendar onClose={() => setShowAvailabilityCalendar(false)} />
+      )}
 
       {/* Bottom Navigation */}
       <BottomNav active={activeTab} setActive={setActiveTab} />

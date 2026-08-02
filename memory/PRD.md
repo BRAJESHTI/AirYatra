@@ -507,3 +507,46 @@ All APIs prefixed with `/api/`
 - /app/frontend/src/components/shared/KeyboardShortcutsPanel.js - NEW
 - /app/frontend/src/App.js - Added KeyboardShortcutsPanel globally
 
+
+### Latest Updates (Aug 2, 2026 - Session 6: Phase 1 Completion)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Emergency Contact Card | 🟢 DONE | Added to Pilot Portal home page. Shows grouped emergency contacts (Company, Aviation, Emergency Services). SOS button triggers alert to operations team. Uses /api/pilot/emergency-contacts endpoint. |
+| Pilot Availability Calendar | 🟢 DONE | Full calendar UI in Pilot Profile tab. Pilots can mark dates as Available, Unavailable, Leave, Sick, Training, Standby. Shows flight assignments overlay. Month navigation, stats display. Uses /api/pilot/availability/* endpoints. |
+| Flight Revenue Dashboard (Enhanced) | 🟢 DONE | Enhanced Operator Revenue Dashboard with new tabs: By Route (top performing routes), By Aircraft (revenue per aircraft type with RPH). Period selector (Day/Week/Month/Year). Uses /api/analytics/revenue/* endpoints. |
+
+### Backend APIs Added
+- `/api/pilot/availability/calendar` - GET monthly availability
+- `/api/pilot/availability/set` - POST set single date availability
+- `/api/pilot/availability/bulk-set` - POST bulk update
+- `/api/pilot/availability/clear/{date}` - DELETE reset availability
+- `/api/pilot/availability/all-pilots` - GET all pilots availability (Operator/Admin)
+- `/api/analytics/revenue/dashboard` - GET revenue summary with charts
+- `/api/analytics/revenue/by-route` - GET route-wise breakdown
+- `/api/analytics/revenue/by-aircraft` - GET aircraft-wise breakdown
+- `/api/analytics/revenue/summary` - GET quick revenue stats
+
+### Files Modified This Session
+- /app/frontend/src/components/pilot/PilotMobilePortal.js - Added EmergencyContactCard, AvailabilityCalendar components
+- /app/frontend/src/components/operator/OperatorRevenueDashboard.js - Added route/aircraft analytics tabs, period selector
+- /app/backend/routes/pilot_availability_routes.py - EXISTING (created in previous session)
+- /app/backend/routes/revenue_analytics_routes.py - EXISTING (created in previous session)
+
+---
+
+## PHASE 2: MANDATORY ENTERPRISE SECURITY LAYER (MESL v1.0)
+
+### Next Tasks (Upcoming)
+| Feature | Priority | Description |
+|---------|----------|-------------|
+| Email OTP Login | P0 | Send OTP to email on login for extra verification |
+| SMS OTP Login | P0 | Send OTP via SMS on login (Twilio/MSG91) |
+| First Login OTP | P1 | Force OTP on first ever login |
+| New Device Detection | P1 | Trigger OTP when login from unknown browser/device/IP |
+| Device Trust ("Trust this Device 30 Days") | P1 | Skip OTP for trusted devices |
+| Session Control | P1 | View active sessions, logout other devices |
+| Account Lockout | P1 | Lock after 5 failed password attempts |
+| OTP Expiry | P1 | OTP valid for 5 minutes only |
+| Login Shield AI™ | P2 | Risk scoring, anomaly detection, admin alerts |
+
