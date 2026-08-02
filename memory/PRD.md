@@ -827,3 +827,30 @@ Total modules implemented: 17
 - /app/frontend/src/components/finance/MultiCurrencySupport.js
 - /app/frontend/src/components/finance/PDFInvoiceExport.js
 
+### Security Hardening (SEC-003 Fixes - Aug 2, 2026)
+
+| Issue | Status | Fix Description |
+|-------|--------|-----------------|
+| X-Forwarded-For IP Spoofing | 🟢 FIXED | Implemented trusted proxy validation in `security_middleware.py`. Only trusts X-Forwarded-For when request comes from known private IP ranges (10.x, 172.16-31.x, 192.168.x). Prevents attackers from spoofing client IPs. |
+| JWT in localStorage (XSS risk) | 🟢 FIXED | Added httpOnly cookie support in `middleware.py` and `auth_routes.py`. Token can now be stored in secure httpOnly cookies (SAMESITE=lax, SECURE=true in prod). Backwards compatible - still accepts Authorization header for API clients. |
+| Logout endpoint missing | 🟢 FIXED | Added POST /api/auth/logout that clears httpOnly cookie and revokes current session token. |
+
+### Files Modified (Security)
+- /app/backend/security_middleware.py - `get_client_ip()` now validates trusted proxies
+- /app/backend/middleware.py - `get_token_from_request()` reads from cookie or header
+- /app/backend/routes/auth_routes.py - Added `set_auth_cookie()`, `clear_auth_cookie()`, `/logout` endpoint
+
+### Finance Analytics Dashboard (Aug 2, 2026)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Revenue Trends | 🟢 DONE | Monthly revenue visualization with period filter (3/6/12 months), advance vs balance breakdown, MoM growth rates, gateway breakdown. API: GET /api/finance/analytics/revenue-trends |
+| Gateway Reconciliation | 🟢 DONE | Payment gateway reconciliation dashboard showing collected vs settled vs pending amounts by gateway (Stripe, Razorpay, UPI, NEFT). Auto-alerts for high pending settlements. API: GET /api/finance/analytics/gateway-reconciliation |
+| Collection Summary | 🟢 DONE | Quick stats cards - Today, This Week, This Month, All Time revenue + Pending Balances count. API: GET /api/finance/analytics/collection-summary |
+| Top Customers | 🟢 DONE | Leaderboard of top customers by revenue with booking count and membership tier. API: GET /api/finance/analytics/top-customers |
+
+### Files Created (Analytics)
+- /app/backend/routes/finance_analytics_routes.py (new)
+- /app/frontend/src/components/finance/FinanceAnalyticsDashboard.js (new)
+- /app/frontend/src/pages/FinanceDashboard.js (updated - added "Revenue & Recon" nav item)
+

@@ -130,6 +130,8 @@ from routes import finance_advanced_routes
 from routes import finance_phase4_routes
 # Finance ERP - Phase 5 (Audit, PDF, Analytics, Multi-Currency)
 from routes import finance_phase5_routes
+# Finance ERP - Dashboard Analytics (Revenue Trends, Gateway Reconciliation)
+from routes import finance_analytics_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -351,6 +353,9 @@ api_router.include_router(finance_phase4_routes.router)
 
 # Finance ERP - Phase 5 (Audit, PDF, Analytics, Multi-Currency)
 api_router.include_router(finance_phase5_routes.router)
+
+# Finance ERP - Dashboard Analytics (Revenue Trends, Gateway Reconciliation)
+api_router.include_router(finance_analytics_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

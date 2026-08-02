@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Request
+from fastapi import APIRouter, HTTPException, Depends, status, Request, Response
 from database import get_database
 from models import UserCreate, UserLogin, Token, User
 from auth import verify_password, get_password_hash, create_access_token
@@ -9,12 +9,18 @@ from services.email_service import EmailService
 from services.login_shield_service import login_shield
 from services.totp_service import totp_service
 import uuid
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 email_service = EmailService()
+
+# Security settings
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "true").lower() == "true"  # Set to False for local HTTP dev
+COOKIE_SAMESITE = os.environ.get("COOKIE_SAMESITE", "lax")  # "strict", "lax", or "none"
+COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days in seconds
 
 
 class OTPRequest(BaseModel):
@@ -43,6 +49,33 @@ class TOTPVerifyRequest(BaseModel):
 class TOTPDisableRequest(BaseModel):
     """Request to disable 2FA"""
     password: str  # Current password for verification
+
+
+def set_auth_cookie(response: Response, token: str, max_age: int = COOKIE_MAX_AGE):
+    """
+    SEC-003 FIX: Set JWT in httpOnly cookie instead of returning in response body.
+    This prevents XSS attacks from stealing the token.
+    """
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,           # Cannot be accessed by JavaScript
+        secure=COOKIE_SECURE,    # HTTPS only in production
+        samesite=COOKIE_SAMESITE,  # CSRF protection
+        max_age=max_age,
+        path="/api"              # Only sent to API routes
+    )
+
+
+def clear_auth_cookie(response: Response):
+    """Clear the auth cookie on logout"""
+    response.delete_cookie(
+        key="access_token",
+        path="/api",
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE
+    )
 
 
 @router.post("/register", response_model=Token)
@@ -810,6 +843,59 @@ async def logout_all_devices(
         "message": "Logged out from all devices",
         "sessions_revoked": revoked_count
     }
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Logout current session - clears httpOnly cookie and revokes token
+    SEC-003 FIX: Proper session termination
+    """
+    db = get_database()
+    
+    current_token_hash = current_user.get("_current_token_hash")
+    
+    # Revoke current session
+    if current_token_hash:
+        await db.user_sessions.update_one(
+            {"token_hash": current_token_hash, "user_id": current_user["id"]},
+            {"$set": {
+                "is_active": False,
+                "revoked_at": datetime.now(timezone.utc),
+                "revoke_reason": "logout"
+            }}
+        )
+        await db.revoked_tokens.insert_one({
+            "token_hash": current_token_hash,
+            "revoked_at": datetime.now(timezone.utc),
+            "reason": "logout",
+            "user_id": current_user["id"],
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=30)
+        })
+    
+    # Clear the auth cookie
+    clear_auth_cookie(response)
+    
+    # Audit log
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action=AuditLogger.ACTION_LOGOUT,
+            category=AuditLogger.CATEGORY_AUTH,
+            user_id=current_user["id"],
+            user_email=current_user.get("email"),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("User-Agent"),
+            status="success"
+        )
+    except Exception:
+        pass
+    
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/sessions")

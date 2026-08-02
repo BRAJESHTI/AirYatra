@@ -36,7 +36,12 @@
 
 ---
 
-*Last Updated: December 2025*
+*Last Updated: August 2, 2026*
+
+## Test Finance User (No 2FA - API Testing)
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| CFO | testfinance@airyatra.com | Test123! | Created for backend API testing. Login Shield may trigger OTP, use direct JWT token generation for testing. |
 
 ## Loyalty Test Customer (created Aug 1, 2026)
 | Role | Email | Password | Notes |

@@ -1,6 +1,6 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import List
+from typing import List, Optional
 from auth import decode_token
 from database import get_database
 from models import UserRole
@@ -8,13 +8,40 @@ import logging
 import hashlib
 
 logger = logging.getLogger(__name__)
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)  # Don't auto-error so we can check cookies
 
 def hash_token(token: str) -> str:
     """Create a hash of the token for storage/lookup"""
     return hashlib.sha256(token.encode()).hexdigest()
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_token_from_request(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> str:
+    """
+    SEC-003 FIX: Extract token from either:
+    1. Authorization header (Bearer token) - for API clients
+    2. httpOnly cookie (access_token) - for browser clients
+    
+    This enables secure cookie-based auth while maintaining API compatibility
+    """
+    # First, try Authorization header
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    
+    # Second, try httpOnly cookie
+    cookie_token = request.cookies.get("access_token")
+    if cookie_token:
+        return cookie_token
+    
+    # No token found
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+async def get_current_user(token: str = Depends(get_token_from_request)):
     """Get current authenticated user with token revocation check"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -22,7 +49,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    token = credentials.credentials
     payload = decode_token(token)
     
     if payload is None:

@@ -26,17 +26,51 @@ from functools import wraps
 # =============================================================================
 
 def get_client_ip(request: Request) -> str:
-    """Get client IP from request, handling proxies"""
-    # Check X-Forwarded-For header first (for proxied requests)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    # Check X-Real-IP header
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
+    """
+    Get client IP from request, handling proxies securely.
+    SEC-003 FIX: Validate X-Forwarded-For to prevent IP spoofing
+    """
+    # Private/internal IP ranges that should be trusted as proxies
+    TRUSTED_PROXIES = [
+        "10.",      # Class A private
+        "172.16.", "172.17.", "172.18.", "172.19.", "172.20.",
+        "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
+        "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",  # Class B private
+        "192.168.",  # Class C private
+        "127.",      # Loopback
+        "::1",       # IPv6 loopback
+        "fc00:",     # IPv6 private
+        "fe80:",     # IPv6 link-local
+    ]
+    
+    def is_trusted_proxy(ip: str) -> bool:
+        """Check if IP is from a trusted proxy/internal network"""
+        if not ip:
+            return False
+        return any(ip.startswith(prefix) for prefix in TRUSTED_PROXIES)
+    
+    # Get direct client IP
+    direct_ip = request.client.host if request.client else None
+    
+    # Only trust X-Forwarded-For if request comes from trusted proxy
+    if direct_ip and is_trusted_proxy(direct_ip):
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            # Take the leftmost non-trusted IP (actual client)
+            ips = [ip.strip() for ip in forwarded.split(",")]
+            for ip in ips:
+                if ip and not is_trusted_proxy(ip):
+                    return ip
+            # If all are trusted, return the first one
+            return ips[0] if ips else direct_ip
+        
+        # Check X-Real-IP header
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip and not is_trusted_proxy(real_ip):
+            return real_ip
+    
     # Fall back to direct client IP
-    return request.client.host if request.client else "unknown"
+    return direct_ip or "unknown"
 
 # Create limiter instance
 limiter = Limiter(key_func=get_client_ip)
