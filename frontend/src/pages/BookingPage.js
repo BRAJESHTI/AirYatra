@@ -4,7 +4,8 @@ import {
   Plane, Calendar, Users, Clock, CreditCard, Shield, User, Phone, 
   MapPin, ChevronLeft, ChevronRight, Check, AlertCircle, 
   Briefcase, Target, Navigation, Calculator, Send, Loader2,
-  UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign, Gift, Tag
+  UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign, Gift, Tag,
+  FileText, Scale, AlertTriangle, PenTool, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,6 +157,23 @@ function BookingPage({ user }) {
   const [applyingCode, setApplyingCode] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
+  
+  // Mandatory Legal Consents State (5 required checkboxes)
+  const [consents, setConsents] = useState({
+    terms_conditions: false,      // T&C, Privacy, Cancellation Policy
+    flight_conditions: false,     // Weather, DGCA, Safety
+    platform_role: false,         // AirYatra is marketplace
+    passenger_info: false,        // Info accuracy confirmation
+    electronic_consent: false,    // E-signature & OTP consent
+  });
+  
+  // Check if all mandatory consents are accepted
+  const allConsentsAccepted = Object.values(consents).every(v => v === true);
+  
+  // Toggle consent checkbox
+  const toggleConsent = (key) => {
+    setConsents(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Use imported steps from config (titles localized)
   const steps = bookingSteps.map(s => ({ ...s, title: t(`booking.steps.${s.id}`) }));
@@ -779,6 +797,17 @@ function BookingPage({ user }) {
         } : null,
         wallet_used: useWallet ? Math.min(walletBalance, getFinalPrice().total + (useWallet && walletBalance > 0 ? Math.min(walletBalance, priceEstimate?.total || 0) : 0)) : 0,
         final_price: getFinalPrice().total,
+        
+        // Legal Consents Data (Mandatory)
+        consents_accepted: {
+          terms_conditions: consents.terms_conditions,
+          flight_conditions: consents.flight_conditions,
+          platform_role: consents.platform_role,
+          passenger_info: consents.passenger_info,
+          electronic_consent: consents.electronic_consent,
+          accepted_at: new Date().toISOString(),
+          version: 'v1.0'
+        },
         
         // Permission workflow
         permission_required: permissionRequired,
@@ -1602,16 +1631,222 @@ function BookingPage({ user }) {
         />
       </div>
 
+      {/* =============== MANDATORY LEGAL CONSENTS =============== */}
+      <div className="bg-slate-800/50 rounded-xl p-5 border border-amber-500/30 mt-6">
+        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <Scale className="h-5 w-5 text-amber-400" />
+          Mandatory Consents / अनिवार्य सहमतियाँ
+          <span className="text-red-500 text-sm ml-auto">* Required / आवश्यक</span>
+        </h3>
+        
+        <div className="space-y-4">
+          {/* Consent 1: Terms & Conditions */}
+          <div 
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              consents.terms_conditions 
+                ? 'bg-green-500/10 border-green-500/50' 
+                : 'bg-slate-900/50 border-slate-700 hover:border-amber-500/50'
+            }`}
+            onClick={() => toggleConsent('terms_conditions')}
+          >
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="consent-terms"
+                checked={consents.terms_conditions}
+                onCheckedChange={() => toggleConsent('terms_conditions')}
+                className="mt-1 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+              />
+              <div className="flex-1">
+                <label htmlFor="consent-terms" className="text-white text-sm font-medium cursor-pointer">
+                  <FileText className="h-4 w-4 inline mr-2 text-amber-400" />
+                  Terms & Conditions / नियम एवं शर्तें
+                </label>
+                <p className="text-slate-400 text-xs mt-1">
+                  I confirm that I have carefully read and understood the AirYatra{' '}
+                  <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline hover:text-orange-300" onClick={(e) => e.stopPropagation()}>
+                    Terms & Conditions <ExternalLink className="h-3 w-3 inline" />
+                  </a>, {' '}
+                  <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline hover:text-orange-300" onClick={(e) => e.stopPropagation()}>
+                    Privacy Policy <ExternalLink className="h-3 w-3 inline" />
+                  </a>, and {' '}
+                  <a href="/legal/cancellation" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline hover:text-orange-300" onClick={(e) => e.stopPropagation()}>
+                    Cancellation Policy <ExternalLink className="h-3 w-3 inline" />
+                  </a>.
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  मैं पुष्टि करता/करती हूं कि मैंने AirYatra के नियम एवं शर्तें, गोपनीयता नीति और रद्दीकरण नीति को ध्यान से पढ़ और समझ लिया है।
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Consent 2: Flight Conditions */}
+          <div 
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              consents.flight_conditions 
+                ? 'bg-green-500/10 border-green-500/50' 
+                : 'bg-slate-900/50 border-slate-700 hover:border-amber-500/50'
+            }`}
+            onClick={() => toggleConsent('flight_conditions')}
+          >
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="consent-flight"
+                checked={consents.flight_conditions}
+                onCheckedChange={() => toggleConsent('flight_conditions')}
+                className="mt-1 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+              />
+              <div className="flex-1">
+                <label htmlFor="consent-flight" className="text-white text-sm font-medium cursor-pointer">
+                  <AlertTriangle className="h-4 w-4 inline mr-2 text-yellow-400" />
+                  Operator & Flight Conditions / ऑपरेटर व उड़ान शर्तें
+                </label>
+                <p className="text-slate-400 text-xs mt-1">
+                  I understand that helicopter and charter flights are subject to weather conditions, DGCA regulations, operational safety, aircraft availability and applicable government permissions.
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  मैं समझता/समझती हूं कि हेलीकॉप्टर और चार्टर उड़ानें मौसम की स्थिति, DGCA नियमों, परिचालन सुरक्षा, विमान उपलब्धता और लागू सरकारी अनुमतियों के अधीन हैं।
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Consent 3: Platform Role */}
+          <div 
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              consents.platform_role 
+                ? 'bg-green-500/10 border-green-500/50' 
+                : 'bg-slate-900/50 border-slate-700 hover:border-amber-500/50'
+            }`}
+            onClick={() => toggleConsent('platform_role')}
+          >
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="consent-platform"
+                checked={consents.platform_role}
+                onCheckedChange={() => toggleConsent('platform_role')}
+                className="mt-1 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+              />
+              <div className="flex-1">
+                <label htmlFor="consent-platform" className="text-white text-sm font-medium cursor-pointer">
+                  <Building2 className="h-4 w-4 inline mr-2 text-blue-400" />
+                  Platform Role / प्लेटफ़ॉर्म की भूमिका
+                </label>
+                <p className="text-slate-400 text-xs mt-1">
+                  I understand that AirYatra operates as an online aviation marketplace and technology platform connecting customers with verified operators unless specifically stated otherwise.
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  मैं समझता/समझती हूं कि AirYatra एक ऑनलाइन एविएशन मार्केटप्लेस और टेक्नोलॉजी प्लेटफॉर्म है जो ग्राहकों को सत्यापित ऑपरेटरों से जोड़ता है।
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Consent 4: Passenger Information */}
+          <div 
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              consents.passenger_info 
+                ? 'bg-green-500/10 border-green-500/50' 
+                : 'bg-slate-900/50 border-slate-700 hover:border-amber-500/50'
+            }`}
+            onClick={() => toggleConsent('passenger_info')}
+          >
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="consent-info"
+                checked={consents.passenger_info}
+                onCheckedChange={() => toggleConsent('passenger_info')}
+                className="mt-1 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+              />
+              <div className="flex-1">
+                <label htmlFor="consent-info" className="text-white text-sm font-medium cursor-pointer">
+                  <User className="h-4 w-4 inline mr-2 text-green-400" />
+                  Information Accuracy / जानकारी की सत्यता
+                </label>
+                <p className="text-slate-400 text-xs mt-1">
+                  I confirm that all passenger information, travel details and documents provided by me are true and accurate.
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  मैं पुष्टि करता/करती हूं कि मेरे द्वारा दी गई सभी यात्री जानकारी, यात्रा विवरण और दस्तावेज सत्य और सटीक हैं।
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Consent 5: Electronic/E-Signature */}
+          <div 
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              consents.electronic_consent 
+                ? 'bg-green-500/10 border-green-500/50' 
+                : 'bg-slate-900/50 border-slate-700 hover:border-amber-500/50'
+            }`}
+            onClick={() => toggleConsent('electronic_consent')}
+          >
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="consent-esign"
+                checked={consents.electronic_consent}
+                onCheckedChange={() => toggleConsent('electronic_consent')}
+                className="mt-1 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+              />
+              <div className="flex-1">
+                <label htmlFor="consent-esign" className="text-white text-sm font-medium cursor-pointer">
+                  <PenTool className="h-4 w-4 inline mr-2 text-purple-400" />
+                  Electronic Consent / इलेक्ट्रॉनिक सहमति
+                </label>
+                <p className="text-slate-400 text-xs mt-1">
+                  I consent to electronic records, digital signatures, OTP authentication and online agreements in accordance with applicable Indian laws (IT Act 2000).
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  मैं इलेक्ट्रॉनिक रिकॉर्ड, डिजिटल हस्ताक्षर, OTP प्रमाणीकरण और ऑनलाइन समझौतों के लिए भारतीय कानूनों (IT Act 2000) के अनुसार सहमति देता/देती हूं।
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Consent Progress */}
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">
+              Accepted / स्वीकृत: {Object.values(consents).filter(v => v).length} / 5
+            </span>
+            {allConsentsAccepted ? (
+              <span className="text-green-400 flex items-center gap-1">
+                <Check className="h-4 w-4" /> All Consents Accepted / सभी सहमतियाँ स्वीकृत
+              </span>
+            ) : (
+              <span className="text-amber-400 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" /> Please accept all consents / कृपया सभी सहमतियाँ स्वीकार करें
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* =============== END MANDATORY CONSENTS =============== */}
+
       {/* Submit Inquiry */}
       <Button
         onClick={handleSubmitInquiry}
-        disabled={submitting || !priceEstimate}
-        className={`w-full py-6 text-lg ${permissionRequired ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+        disabled={submitting || !priceEstimate || !allConsentsAccepted}
+        data-testid="submit-inquiry-btn"
+        className={`w-full py-6 text-lg ${
+          !allConsentsAccepted 
+            ? 'bg-slate-600 cursor-not-allowed' 
+            : permissionRequired 
+              ? 'bg-yellow-500 hover:bg-yellow-600' 
+              : 'bg-orange-500 hover:bg-orange-600'
+        }`}
       >
         {submitting ? (
           <>
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             {t('bookingForm.submitting')}
+          </>
+        ) : !allConsentsAccepted ? (
+          <>
+            <AlertCircle className="h-5 w-5 mr-2" />
+            Accept All Consents to Continue / आगे बढ़ने के लिए सभी सहमतियाँ स्वीकार करें
           </>
         ) : (
           <>

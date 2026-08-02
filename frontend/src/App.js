@@ -42,6 +42,7 @@ const { BlogListPage, BlogPostPage } = require('./pages/BlogPage');
 // Legal Pages
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 // 404 Page
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 // Command Center & AI Pricing
@@ -122,6 +123,12 @@ function App() {
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          
+          {/* Dynamic Legal Pages - Fetches from Backend API */}
+          <Route path="/legal/terms" element={<LegalPage />} />
+          <Route path="/legal/privacy" element={<LegalPage />} />
+          <Route path="/legal/cancellation" element={<LegalPage />} />
+          <Route path="/legal/:type" element={<LegalPage />} />
           
           <Route
             path="/customer"
