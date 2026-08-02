@@ -634,6 +634,13 @@ All APIs prefixed with `/api/`
 | Operator Dashboard | ❌ Not added | ❌ Not added |
 | Pilot Portal | ❌ Not added | ❌ Not added |
 
+### Latest Updates (Aug 2, 2026 - Session 9: Security Alerts + Command Palette)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| In-App Security Notifications | 🟢 DONE | CRITICAL risk logins trigger notifications to Admin/CEO/HR. NotificationBell.js updated with: red alert banner, Security tab filter, beep sound for critical alerts. No email sent - in-app only. |
+| Command Palette Security Index | 🟢 DONE | GlobalSearch.js updated: Login Shield AI™ and Session Manager added to QUICK_ACTIONS. Security category added (red color). Admins can press Ctrl+K → type "shield" or "session" to navigate directly. |
+
 ### Remaining MESL Tasks
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)

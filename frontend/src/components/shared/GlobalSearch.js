@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Command, X, Plane, Users, Building2, FileText, DollarSign, 
-  ChevronRight, Clock, ArrowRight, Hash, Star, Loader2 } from 'lucide-react';
+  ChevronRight, Clock, ArrowRight, Hash, Star, Loader2, Shield, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -13,7 +13,8 @@ const CATEGORIES = {
   invoices: { icon: FileText, label: 'Invoices', color: 'text-orange-400 bg-orange-500/20', path: '/admin/invoices' },
   aircraft: { icon: Plane, label: 'Aircraft', color: 'text-cyan-400 bg-cyan-500/20', path: '/admin/fleet' },
   pilots: { icon: Users, label: 'Pilots', color: 'text-yellow-400 bg-yellow-500/20', path: '/operator/pilots' },
-  inquiries: { icon: FileText, label: 'Inquiries', color: 'text-pink-400 bg-pink-500/20', path: '/admin/inquiries' }
+  inquiries: { icon: FileText, label: 'Inquiries', color: 'text-pink-400 bg-pink-500/20', path: '/admin/inquiries' },
+  security: { icon: Shield, label: 'Security', color: 'text-red-400 bg-red-500/20', path: '/admin' }
 };
 
 // Quick actions for common tasks
@@ -23,7 +24,9 @@ const QUICK_ACTIONS = [
   { id: 'operator-dashboard', label: 'Operator Dashboard', icon: Building2, path: '/operator' },
   { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Star, path: '/admin' },
   { id: 'customer-dashboard', label: 'Customer Dashboard', icon: Users, path: '/customer' },
-  { id: 'fleet-management', label: 'Fleet Management', icon: Plane, path: '/operator/fleet' }
+  { id: 'fleet-management', label: 'Fleet Management', icon: Plane, path: '/operator/fleet' },
+  { id: 'login-shield', label: 'Login Shield AI™ / Security', icon: Shield, path: '/admin?tab=login_shield', category: 'security' },
+  { id: 'session-manager', label: 'Session Manager / Active Sessions', icon: Key, path: '/admin?tab=session_manager', category: 'security' }
 ];
 
 function GlobalSearch({ user }) {

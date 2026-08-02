@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, X, Check, CheckCheck, MessageSquare, Plane, Calendar, AlertTriangle, 
-  Settings, Users, FileText, Shield, Trash2, Clock, Filter } from 'lucide-react';
+  Settings, Users, FileText, Shield, Trash2, Clock, Filter, AlertCircle } from 'lucide-react';
 import { notificationAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+
+// Security Alert Sound - Base64 encoded beep sound
+const ALERT_SOUND_URL = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Onp+fm5eTiH16dnR0eH+Ij5WZmpqYlI+LhoJ+e3t8gISJjpKVl5iXlZKPi4eCfnt6e36ChoqOkZSWl5eVko+Lh4N/fHt7fYGFiY2RlJaXl5WTkIyIhIB9e3t8gIOHi4+SlZeXl5WSkY2JhYF+fHx9gYWJjZGUlpeXlpOQjImFgX58fH2Bg4eMkJOWl5eWlJGNioaCf3x8fYCEiIyQk5aXl5aUkY6KhoJ/fXx9gISIjJCTlpeXlpSRjouHg398fX2AhImNkZSWl5eWk5COi4eDf3x9fYGFiY2Rk5aXl5aTkI2Kh4N/fX19gYWJjZGUlpeWlZKPjIiFgn9+fX6Bg4eLj5KVl5eVk5CPjImFgn9+fn+Dh4uPkpWXl5WTkI6LiIR/';
 
 function NotificationBell({ user }) {
   const [notifications, setNotifications] = useState([]);
@@ -10,22 +13,118 @@ function NotificationBell({ user }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [criticalAlerts, setCriticalAlerts] = useState([]);
+  const [showCriticalBanner, setShowCriticalBanner] = useState(false);
   const dropdownRef = useRef(null);
+  const audioRef = useRef(null);
+  const lastAlertIdRef = useRef(null);
   const navigate = useNavigate();
 
   const tabs = [
     { id: 'all', label: 'All', icon: Bell },
     { id: 'booking', label: 'Bookings', icon: Plane },
     { id: 'system', label: 'System', icon: Settings },
-    { id: 'alert', label: 'Alerts', icon: AlertTriangle }
+    { id: 'alert', label: 'Alerts', icon: AlertTriangle },
+    { id: 'security', label: '🔴 Security', icon: Shield }
   ];
+
+  // Play alert sound for critical notifications
+  const playAlertSound = useCallback(() => {
+    try {
+      // Create audio context for beep
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Create oscillator for "wip wip" sound
+      const playBeep = (startTime, frequency, duration) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.5, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+      
+      // Play "wip wip" pattern (two beeps)
+      const now = audioContext.currentTime;
+      playBeep(now, 880, 0.15);        // First wip (A5)
+      playBeep(now + 0.2, 880, 0.15);  // Second wip (A5)
+      playBeep(now + 0.5, 1760, 0.15); // Higher pitch (A6)
+      playBeep(now + 0.7, 1760, 0.15); // Higher pitch (A6)
+      
+    } catch (error) {
+      console.log('Could not play alert sound:', error);
+    }
+  }, []);
+
+  // Check for critical security alerts
+  const checkCriticalAlerts = useCallback(async () => {
+    if (!user) return;
+    
+    const userRoles = user.roles || [];
+    const isSecurityAdmin = userRoles.some(r => ['admin', 'ceo', 'hr'].includes(r));
+    
+    if (!isSecurityAdmin) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/login-shield/alerts?unread_only=true&limit=10`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const newCriticalAlerts = (data.alerts || []).filter(a => 
+          a.severity === 'critical' || a.severity === 'high'
+        );
+        
+        // Check if there are new alerts
+        if (newCriticalAlerts.length > 0) {
+          const newestAlert = newCriticalAlerts[0];
+          
+          // Play sound only for new alerts
+          if (lastAlertIdRef.current !== newestAlert.id) {
+            lastAlertIdRef.current = newestAlert.id;
+            playAlertSound();
+            setShowCriticalBanner(true);
+            
+            // Auto-hide banner after 10 seconds
+            setTimeout(() => setShowCriticalBanner(false), 10000);
+          }
+          
+          setCriticalAlerts(newCriticalAlerts);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check critical alerts');
+    }
+  }, [user, playAlertSound]);
 
   useEffect(() => {
     loadNotifications();
+    checkCriticalAlerts();
+    
     // Poll for new notifications every 30 seconds
-    const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(() => {
+      loadNotifications();
+      checkCriticalAlerts();
+    }, 30000);
+    
+    // Check critical alerts more frequently (every 10 seconds)
+    const criticalInterval = setInterval(checkCriticalAlerts, 10000);
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(criticalInterval);
+    };
+  }, [checkCriticalAlerts]);
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -117,11 +216,15 @@ function NotificationBell({ user }) {
       case 'system': return Settings;
       case 'user_activity': return Users;
       case 'compliance': return Shield;
+      case 'security_alert': return AlertCircle;
       default: return Bell;
     }
   };
 
-  const getNotificationColor = (type) => {
+  const getNotificationColor = (type, severity) => {
+    if (type === 'security_alert' || severity === 'critical') {
+      return 'text-red-500 bg-red-500/30 border border-red-500/50 animate-pulse';
+    }
     switch (type) {
       case 'alert':
       case 'document_expiry': return 'text-red-400 bg-red-500/20';
@@ -142,6 +245,9 @@ function NotificationBell({ user }) {
     }
     if (['system', 'settings'].includes(type)) {
       return 'system';
+    }
+    if (['security_alert'].includes(type)) {
+      return 'security';
     }
     return 'all';
   };
@@ -176,16 +282,58 @@ function NotificationBell({ user }) {
 
   return (
     <div className="relative" ref={dropdownRef} data-testid="notification-bell">
+      {/* Critical Security Alert Banner - Shows on top of screen */}
+      {showCriticalBanner && criticalAlerts.length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-3 shadow-lg animate-pulse">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-full">
+                <AlertCircle className="h-6 w-6 animate-bounce" />
+              </div>
+              <div>
+                <p className="font-bold text-lg">🚨 CRITICAL SECURITY ALERT</p>
+                <p className="text-sm opacity-90">
+                  {criticalAlerts[0]?.title || 'Suspicious login detected'} - 
+                  {criticalAlerts[0]?.details?.user_email || 'Unknown user'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  setIsOpen(true);
+                  setActiveTab('security');
+                  setShowCriticalBanner(false);
+                }}
+                className="px-4 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-red-100 transition-colors"
+              >
+                View Details
+              </button>
+              <button 
+                onClick={() => setShowCriticalBanner(false)}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bell Icon with Badge */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-300 hover:text-white transition-colors rounded-lg hover:bg-slate-700/50"
+        className={`relative p-2 text-slate-300 hover:text-white transition-colors rounded-lg hover:bg-slate-700/50 ${
+          criticalAlerts.length > 0 ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-slate-900' : ''
+        }`}
         data-testid="notification-bell-button"
       >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-            {unreadCount > 99 ? '99+' : unreadCount}
+        <Bell className={`h-5 w-5 ${criticalAlerts.length > 0 ? 'text-red-400 animate-bounce' : ''}`} />
+        {(unreadCount > 0 || criticalAlerts.length > 0) && (
+          <span className={`absolute -top-0.5 -right-0.5 w-5 h-5 ${
+            criticalAlerts.length > 0 ? 'bg-red-600' : 'bg-orange-500'
+          } text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse`}>
+            {criticalAlerts.length > 0 ? '!' : (unreadCount > 99 ? '99+' : unreadCount)}
           </span>
         )}
       </button>
@@ -260,6 +408,60 @@ function NotificationBell({ user }) {
 
           {/* Notifications List */}
           <div className="max-h-80 overflow-y-auto">
+            {/* Security Tab - Show Critical Alerts */}
+            {activeTab === 'security' && criticalAlerts.length > 0 && (
+              <div className="bg-red-500/10 border-b border-red-500/30">
+                <div className="px-4 py-2 bg-red-500/20">
+                  <p className="text-red-400 font-semibold text-sm flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 animate-pulse" />
+                    Critical Security Alerts ({criticalAlerts.length})
+                  </p>
+                </div>
+                {criticalAlerts.map((alert, idx) => (
+                  <div key={idx} className="px-4 py-3 border-b border-red-500/20 hover:bg-red-500/10">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-red-500/30 rounded-lg">
+                        <Shield className="h-5 w-5 text-red-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-semibold text-sm">{alert.title}</p>
+                        <p className="text-red-300 text-xs mt-1">{alert.message}</p>
+                        {alert.details && (
+                          <div className="mt-2 p-2 bg-slate-800/50 rounded text-xs space-y-1">
+                            <p className="text-slate-300">
+                              <span className="text-slate-500">User:</span> {alert.details.user_email}
+                            </p>
+                            <p className="text-slate-300">
+                              <span className="text-slate-500">IP:</span> {alert.details.ip_address}
+                            </p>
+                            <p className="text-slate-300">
+                              <span className="text-slate-500">Risk Score:</span> 
+                              <span className="text-red-400 font-bold ml-1">{alert.details.risk_score}/100</span>
+                            </p>
+                            {alert.details.risk_factors && alert.details.risk_factors.length > 0 && (
+                              <div className="mt-1">
+                                <span className="text-slate-500">Factors:</span>
+                                <ul className="mt-1 space-y-0.5">
+                                  {alert.details.risk_factors.slice(0, 3).map((f, i) => (
+                                    <li key={i} className="text-red-300 flex items-center gap-1">
+                                      <span className="text-red-500">•</span> {f}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-slate-500 text-[10px] mt-2">
+                          {formatTime(alert.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {loading ? (
               <div className="p-8 text-center">
                 <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -274,8 +476,9 @@ function NotificationBell({ user }) {
             ) : (
               filteredNotifications.slice(0, 15).map((notification) => {
                 const Icon = getNotificationIcon(notification.type);
-                const colorClass = getNotificationColor(notification.type);
+                const colorClass = getNotificationColor(notification.type, notification.severity);
                 const isUnread = !notification.read;
+                const isCritical = notification.type === 'security_alert' || notification.severity === 'critical';
                 
                 return (
                   <div
@@ -283,12 +486,12 @@ function NotificationBell({ user }) {
                     onClick={() => handleNotificationClick(notification)}
                     className={`px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-all cursor-pointer ${
                       isUnread ? 'bg-slate-800/30' : ''
-                    }`}
+                    } ${isCritical ? 'bg-red-500/10 border-l-4 border-l-red-500' : ''}`}
                   >
                     <div className="flex gap-3">
                       {/* Icon */}
-                      <div className={`p-2 rounded-lg shrink-0 ${colorClass.split(' ')[1]}`}>
-                        <Icon className={`h-4 w-4 ${colorClass.split(' ')[0]}`} />
+                      <div className={`p-2 rounded-lg shrink-0 ${colorClass}`}>
+                        <Icon className={`h-4 w-4 ${isCritical ? 'text-red-400' : colorClass.split(' ')[0]}`} />
                       </div>
                       
                       {/* Content */}

@@ -308,19 +308,28 @@ class LoginShieldAI:
         return actions.get(risk_level, actions["LOW"])
     
     async def _generate_alerts(self, assessment: Dict, db) -> List[Dict]:
-        """Generate admin alerts for high-risk logins"""
+        """Generate admin alerts and in-app notifications for high-risk logins"""
         alerts = []
         
         if assessment["level"] in ["HIGH", "CRITICAL"]:
+            # Get location info
+            location = assessment.get("location", {})
+            location_str = f"{location.get('city', 'Unknown')}, {location.get('country', 'Unknown')}"
+            
             alert = {
                 "id": f"alert_{secrets.token_hex(8)}",
                 "type": "security_alert",
                 "severity": assessment["level"].lower(),
                 "title": f"🚨 {assessment['level']} Risk Login Detected",
-                "message": f"Suspicious login attempt for {assessment['email']}",
+                "message": f"Suspicious login attempt for {assessment['email']} from {location_str}",
                 "details": {
                     "user_email": assessment["email"],
+                    "user_name": assessment.get("user_name", assessment["email"].split("@")[0]),
                     "ip_address": assessment["ip_address"],
+                    "location_city": location.get("city", "Unknown"),
+                    "location_country": location.get("country", "Unknown"),
+                    "isp": location.get("isp", "Unknown"),
+                    "is_vpn": location.get("is_proxy", False) or location.get("is_hosting", False),
                     "risk_score": assessment["score"],
                     "risk_factors": [f["detail"] for f in assessment["factors"] if f["score"] > 0],
                     "action_taken": assessment["action"]["type"]
@@ -331,6 +340,30 @@ class LoginShieldAI:
             
             await db.admin_alerts.insert_one(alert)
             alerts.append(alert)
+            
+            # Create in-app notifications for Admin, CEO, HR
+            admin_roles = ["admin", "ceo", "hr"]
+            admin_users = await db.users.find(
+                {"roles": {"$in": admin_roles}, "is_active": True},
+                {"_id": 0, "id": 1, "email": 1, "full_name": 1, "roles": 1}
+            ).to_list(100)
+            
+            for admin in admin_users:
+                notification = {
+                    "id": f"notif_{secrets.token_hex(8)}",
+                    "user_id": admin["id"],
+                    "type": "security_alert",
+                    "severity": assessment["level"].lower(),
+                    "title": f"🚨 SECURITY: {assessment['level']} Risk Login",
+                    "message": f"User: {assessment['email']}\nIP: {assessment['ip_address']}\nLocation: {location_str}\nRisk Score: {assessment['score']}/100",
+                    "details": alert["details"],
+                    "read": False,
+                    "channel": "in_app",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                await db.notifications.insert_one(notification)
+            
+            logger.info(f"Security notifications sent to {len(admin_users)} admins for {assessment['level']} risk login")
             
             # If CRITICAL, also create a security incident
             if assessment["level"] == "CRITICAL":
