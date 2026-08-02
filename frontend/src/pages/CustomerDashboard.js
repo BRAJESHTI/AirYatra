@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import LoginActivityLog from '../components/auth/LoginActivityLog';
 import TwoFactorSetup from '../components/auth/TwoFactorSetup';
 import { CustomerAuctions } from '../components/auction/AuctionDashboard';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
+import { AircraftComparison } from '../components/aircraft/AircraftComparison';
 
 // Organized Navigation Structure - 4 Main Categories
 const navGroups = [
@@ -34,6 +35,7 @@ const navGroups = [
     items: [
       { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
       { id: 'trips', label: 'My Trips / मेरी यात्राएं', icon: MapPin, path: '/customer/trips', highlight: true },
+      { id: 'compare', label: 'Compare Aircraft / तुलना करें', icon: Scale, path: '/customer/compare', highlight: true },
       { id: 'stats', label: 'My Stats / मेरे आंकड़े', icon: PieChart, path: '/customer/stats', highlight: true },
       { id: 'price-trends', label: 'Price Trends / कीमत रुझान', icon: TrendingUp, path: '/customer/price-trends', highlight: true },
       { id: 'route-suggestions', label: 'Route Ideas / मार्ग सुझाव', icon: Sparkles, path: '/customer/route-suggestions', highlight: true },
@@ -190,6 +192,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <RouteSuggestions user={user} />;
       case 'auctions':
         return <CustomerAuctions />;
+      case 'compare':
+        return <AircraftComparison onClose={() => setActiveTab('overview')} />;
       default:
         return (
           <div className="max-w-6xl mx-auto">

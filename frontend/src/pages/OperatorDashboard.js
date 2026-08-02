@@ -271,7 +271,7 @@ function OperatorDashboard({ user, onLogout }) {
               <Route path="fleet-analytics" element={<OperatorFleetAnalytics operator={operator} />} />
               <Route path="pilot-duty" element={<PilotDutyTracker />} />
               <Route path="maintenance-calendar" element={<FleetMaintenanceCalendar />} />
-              <Route path="fleet" element={<FleetManagement operator={operator} />} />
+              <Route path="fleet" element={<OperatorFleetDashboard />} />
               <Route path="aircraft-catalog" element={<OperatorFleetDashboard />} />
               <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
               <Route path="auctions" element={<OperatorAuctions />} />

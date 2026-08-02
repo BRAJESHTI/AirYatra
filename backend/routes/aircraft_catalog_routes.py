@@ -889,6 +889,8 @@ async def get_featured_aircraft(
         {
             "_id": 0,
             "documents": 0,
+            "operator_email": 0,  # Hide PII from public endpoint
+            "operator_id": 0,     # Hide operator ID from public
             "crew.licence_number": 0,
             "crew.medical_validity": 0
         }
