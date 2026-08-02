@@ -7,6 +7,7 @@ from security_middleware import limiter, RATE_LIMITS, AuditLogger
 from services.otp_service import otp_service, hash_device_fingerprint
 from services.email_service import EmailService
 from services.login_shield_service import login_shield
+from services.totp_service import totp_service
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
@@ -26,6 +27,23 @@ class OTPVerify(BaseModel):
     email: str
     otp_code: str
     trust_device: Optional[bool] = False
+
+
+# ========== TOTP 2FA Models ==========
+class TOTPSetupRequest(BaseModel):
+    """Request to start 2FA setup"""
+    pass  # User ID comes from authenticated token
+
+
+class TOTPVerifyRequest(BaseModel):
+    """Request to verify TOTP code"""
+    code: str  # 6-digit code from authenticator app
+
+
+class TOTPDisableRequest(BaseModel):
+    """Request to disable 2FA"""
+    password: str  # Current password for verification
+
 
 @router.post("/register", response_model=Token)
 @limiter.limit(RATE_LIMITS["register"])
@@ -1068,3 +1086,140 @@ def _format_location(location: dict) -> str:
     parts = [p for p in [city, region, country] if p]
     return ", ".join(parts) if parts else "Unknown Location"
 
+
+
+# ========== TOTP TWO-FACTOR AUTHENTICATION (Google Authenticator) ==========
+
+@router.get("/2fa/status")
+async def get_2fa_status(current_user: dict = Depends(get_current_user)):
+    """
+    Get 2FA status for current user
+    Returns: enabled, setup_pending, recovery_codes_remaining
+    """
+    status = await totp_service.get_2fa_status(current_user["id"])
+    return status
+
+
+@router.post("/2fa/setup")
+async def setup_2fa(current_user: dict = Depends(get_current_user)):
+    """
+    Start 2FA setup - generates QR code and recovery codes
+    User must scan QR in Google Authenticator and verify with a code
+    """
+    result = await totp_service.setup_2fa(
+        user_id=current_user["id"],
+        user_email=current_user["email"]
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("error", "Failed to setup 2FA")
+        )
+    
+    return result
+
+
+@router.post("/2fa/verify-setup")
+async def verify_2fa_setup(
+    request: TOTPVerifyRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Verify TOTP code to complete 2FA setup
+    Must be called after /2fa/setup with a valid 6-digit code
+    """
+    # Validate code format
+    if not request.code or len(request.code) != 6 or not request.code.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid code format. Must be 6 digits."
+        )
+    
+    result = await totp_service.verify_setup(
+        user_id=current_user["id"],
+        code=request.code
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("error", "Verification failed")
+        )
+    
+    return result
+
+
+@router.post("/2fa/verify")
+async def verify_2fa_code(
+    request: TOTPVerifyRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Verify TOTP code during login or sensitive operations
+    Also accepts recovery codes
+    """
+    result = await totp_service.verify_code(
+        user_id=current_user["id"],
+        code=request.code
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=result.get("error", "Invalid code")
+        )
+    
+    return result
+
+
+@router.post("/2fa/disable")
+async def disable_2fa(
+    request: TOTPDisableRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Disable 2FA for current user
+    Requires password verification for security
+    """
+    db = get_database()
+    user = await db.users.find_one({"id": current_user["id"]})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify password
+    if not verify_password(request.password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password / गलत पासवर्ड"
+        )
+    
+    result = await totp_service.disable_2fa(
+        user_id=current_user["id"],
+        password_verified=True
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("error", "Failed to disable 2FA")
+        )
+    
+    return result
+
+
+@router.post("/2fa/regenerate-recovery")
+async def regenerate_recovery_codes(current_user: dict = Depends(get_current_user)):
+    """
+    Generate new recovery codes (invalidates old ones)
+    """
+    result = await totp_service.regenerate_recovery_codes(current_user["id"])
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("error", "Failed to regenerate codes")
+        )
+    
+    return result

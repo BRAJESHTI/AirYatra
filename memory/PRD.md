@@ -648,6 +648,12 @@ All APIs prefixed with `/api/`
 | Password Strength Meter | 🟢 DONE | Real-time strength indicator during registration. Shows requirements checklist (8+ chars, uppercase, lowercase, number, special char). Visual progress bar with Weak/Fair/Good/Strong labels (Hinglish). Eye icon for show/hide password. Component: `PasswordStrengthMeter.js` |
 | Login Activity Log | 🟢 DONE | Backend API: `GET /api/auth/login-activity`. Shows recent logins with device, browser, OS, IP, location, risk level. Frontend component: `LoginActivityLog.js`. Integrated in Customer Dashboard security tab. Parses user-agent for device/browser info. |
 
+### Latest Updates (Aug 2, 2026 - Session 11: Two-Factor Authentication)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Google Authenticator 2FA | 🟢 DONE | TOTP-based 2FA using PyOTP. Backend: `totp_service.py` with setup, verify, disable, recovery codes. APIs: `/api/auth/2fa/setup`, `/api/auth/2fa/verify-setup`, `/api/auth/2fa/verify`, `/api/auth/2fa/disable`, `/api/auth/2fa/regenerate-recovery`. Frontend: `TwoFactorSetup.js` with QR code (qrcode.react), manual secret entry, recovery codes download. Replay protection included. |
+
 ### Remaining MESL Tasks
 - P1: SMS OTP Integration (Twilio/MSG91)
 - P1: Account Lockout (5 failed attempts)

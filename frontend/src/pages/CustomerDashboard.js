@@ -21,6 +21,7 @@ import GlobalSearch from '../components/shared/GlobalSearch';
 import SwipeableCard from '../components/shared/SwipeableCard';
 import CustomerKYCUpload from '../components/customer/CustomerKYCUpload';
 import LoginActivityLog from '../components/auth/LoginActivityLog';
+import TwoFactorSetup from '../components/auth/TwoFactorSetup';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 
 // Organized Navigation Structure - 4 Main Categories
@@ -165,7 +166,12 @@ function CustomerDashboard({ user, onLogout }) {
       case 'kyc':
         return <CustomerKYCUpload user={user} />;
       case 'security':
-        return <LoginActivityLog user={user} />;
+        return (
+          <div className="space-y-6">
+            <TwoFactorSetup user={user} />
+            <LoginActivityLog user={user} />
+          </div>
+        );
       case 'messages':
         return <ChatWidget user={user} />;
       case 'refer':
