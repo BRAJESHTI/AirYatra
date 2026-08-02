@@ -156,14 +156,44 @@ const MultiCityRouteMap = ({
   // Gradient colors for polylines (different color per leg)
   const legColors = ['#22c55e', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899', '#14b8a6', '#eab308', '#ef4444'];
 
+  // Show placeholder map when no coordinates yet
   if (legs.length === 0 || coordinates.length === 0) {
     return (
-      <div className={`bg-slate-800/50 rounded-xl border border-slate-700 p-6 ${className}`}>
-        <div className="flex items-center justify-center h-48 text-slate-400">
-          <div className="text-center">
-            <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Add destinations to see route map</p>
-            <p className="text-sm text-slate-500 mt-1">रूट देखने के लिए गंतव्य जोड़ें</p>
+      <div className={`bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden ${className}`}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b border-slate-700">
+          <div className="flex items-center gap-2">
+            <Navigation className="h-5 w-5 text-orange-400" />
+            <span className="text-white font-medium">Route Map / रूट मैप</span>
+            <Badge className="bg-slate-600 text-slate-300 ml-2">
+              Select destinations
+            </Badge>
+          </div>
+        </div>
+        
+        {/* Placeholder Map (India centered) */}
+        <div className="relative h-48">
+          <MapContainer
+            center={[20.5937, 78.9629]} // India center
+            zoom={4}
+            className="h-full w-full"
+            scrollWheelZoom={false}
+            zoomControl={false}
+            dragging={false}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; OpenStreetMap'
+            />
+          </MapContainer>
+          
+          {/* Overlay message */}
+          <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
+            <div className="text-center">
+              <MapPin className="h-10 w-10 mx-auto mb-2 text-orange-400 opacity-70" />
+              <p className="text-white font-medium">Add destinations to see route</p>
+              <p className="text-slate-400 text-sm mt-1">रूट देखने के लिए गंतव्य जोड़ें</p>
+            </div>
           </div>
         </div>
       </div>

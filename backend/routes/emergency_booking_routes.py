@@ -335,18 +335,42 @@ async def create_emergency_booking(
         }
     )
     
-    return {
-        "success": True,
-        "emergency_booking_id": emergency_id,
-        "emergency_number": emergency_number,
-        "priority_score": final_priority,
-        "operators_notified": notified_count,
-        "broadcast_radius_km": urgency_config["broadcast_radius_km"],
-        "response_deadline_minutes": urgency_config["max_response_minutes"],
-        "surcharge_percent": urgency_config["surcharge_percent"],
-        "message": f"Emergency broadcast sent to {notified_count} operators. Responses expected within {urgency_config['max_response_minutes']} minutes.",
-        "message_hi": f"आपातकालीन प्रसारण {notified_count} ऑपरेटरों को भेजा गया। {urgency_config['max_response_minutes']} मिनट में जवाब अपेक्षित।"
-    }
+    # Prepare response based on whether operators were found
+    if notified_count > 0:
+        return {
+            "success": True,
+            "emergency_booking_id": emergency_id,
+            "emergency_number": emergency_number,
+            "priority_score": final_priority,
+            "operators_notified": notified_count,
+            "broadcast_radius_km": urgency_config["broadcast_radius_km"],
+            "response_deadline_minutes": urgency_config["max_response_minutes"],
+            "surcharge_percent": urgency_config["surcharge_percent"],
+            "status": "awaiting_responses",
+            "message": f"Emergency broadcast sent to {notified_count} operators. Responses expected within {urgency_config['max_response_minutes']} minutes.",
+            "message_hi": f"आपातकालीन प्रसारण {notified_count} ऑपरेटरों को भेजा गया। {urgency_config['max_response_minutes']} मिनट में जवाब अपेक्षित।"
+        }
+    else:
+        # No operators found - provide helpful guidance
+        return {
+            "success": True,
+            "emergency_booking_id": emergency_id,
+            "emergency_number": emergency_number,
+            "priority_score": final_priority,
+            "operators_notified": 0,
+            "broadcast_radius_km": urgency_config["broadcast_radius_km"],
+            "response_deadline_minutes": urgency_config["max_response_minutes"],
+            "surcharge_percent": urgency_config["surcharge_percent"],
+            "status": "no_operators_found",
+            "no_operators_found": True,
+            "message": f"No operators available within {urgency_config['broadcast_radius_km']} km radius. Try increasing urgency level for wider reach or contact admin directly.",
+            "message_hi": f"{urgency_config['broadcast_radius_km']} किमी दायरे में कोई ऑपरेटर उपलब्ध नहीं। अधिक दायरे के लिए आवश्यकता स्तर बढ़ाएं या सीधे एडमिन से संपर्क करें।",
+            "suggestions": [
+                "Increase urgency level to 'Critical' for 500km radius",
+                "Contact AirYatra helpline: 1800-XXX-XXXX",
+                "Admin will be notified to manually assign operators"
+            ]
+        }
 
 
 @router.post("/respond")
@@ -369,6 +393,13 @@ async def respond_to_emergency(
     
     if emergency["status"] not in ["broadcasting", "awaiting_responses"]:
         raise HTTPException(status_code=400, detail="Emergency booking is no longer accepting responses")
+    
+    # Validation: aircraft_id required when can_fulfill is True
+    if response.can_fulfill and not response.aircraft_id:
+        raise HTTPException(
+            status_code=400, 
+            detail="aircraft_id is required when can_fulfill is True / जब आप पूर्ति कर सकते हैं तो aircraft_id आवश्यक है"
+        )
     
     # Validate aircraft belongs to operator
     if response.can_fulfill and response.aircraft_id:

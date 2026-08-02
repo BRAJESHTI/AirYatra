@@ -2125,7 +2125,21 @@ function BookingPage({ user }) {
       
       {/* Emergency Booking Modal (NEW) */}
       {showEmergencyForm && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            // Close on backdrop click
+            if (e.target === e.currentTarget) {
+              setShowEmergencyForm(false);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowEmergencyForm(false);
+            }
+          }}
+          tabIndex={0}
+        >
           <div className="bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
             <EmergencyBookingForm
               user={user}

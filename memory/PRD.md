@@ -1220,3 +1220,68 @@ Implemented enterprise-grade account lockout security after 5 failed login attem
 - Raised /login rate limit from 5/min to 10/min to allow 423 pre-check to work
 
 ---
+
+## Phase P0: Emergency Booking, Aircraft Comparison & Map View (Aug 2, 2026)
+
+### Features Implemented
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Emergency Booking Priority** | ✅ DONE | Priority queue system with instant operator notification |
+| **Aircraft Comparison Modal** | ✅ DONE | Compare 2-3 aircraft side-by-side during booking |
+| **Multi-City Route Map** | ✅ DONE | Interactive Leaflet map with route visualization |
+
+### Emergency Booking System
+- **Backend**: `/app/backend/routes/emergency_booking_routes.py` (600+ lines)
+- **Endpoints**:
+  - `GET /api/emergency/config` - Urgency levels and reasons config
+  - `POST /api/emergency/create` - Create emergency booking (customer)
+  - `POST /api/emergency/respond` - Operator responds (operator role)
+  - `GET /api/emergency/my-requests` - Customer's emergency bookings
+  - `GET /api/emergency/operator/pending` - Pending requests for operator
+  - `GET /api/emergency/queue` - Admin priority queue view
+- **Priority Scoring**: Urgency level × time factor
+- **Notifications**: SMS/Email to operators within radius (100-500km based on urgency)
+- **Surcharges**: Critical +50%, High +25%, Medium +10%
+
+### Aircraft Comparison Modal
+- **Component**: `/app/frontend/src/components/booking/AircraftCompareModal.js`
+- **Features**:
+  - Select 2-3 aircraft for comparison
+  - Safety score (TCAS, autopilot, emergency equipment)
+  - Amenity score (WiFi, leather seats, meals)
+  - Value score (price per seat)
+  - Overall score with "Best Match" badge
+  - Estimated price based on distance
+- **Keyboard**: ESC to close, backdrop click to dismiss
+
+### Multi-City Route Map
+- **Component**: `/app/frontend/src/components/booking/MultiCityRouteMap.js`
+- **Library**: react-leaflet + Leaflet (free, no API key)
+- **Features**:
+  - OpenStreetMap tiles
+  - Custom colored markers (Start=Green, Stops=Orange, End=Red)
+  - Polylines between destinations
+  - Auto-fit bounds
+  - Expandable map view
+  - Route summary with distances
+  - Placeholder map when no routes selected
+
+### Frontend Integration
+- **BookingPage.js**: Added Emergency Booking button, Compare Aircraft button
+- **MultiCityRouteBuilder.js**: Integrated map toggle button
+- **BookingTypeSelector**: 9 booking types (one_way, round_trip, multi_city, etc.)
+
+### Test Results
+- Backend: 100% pass (iteration_28)
+- Frontend: 85% pass (modal improvements applied)
+
+### Upcoming Tasks (P1)
+- **Auction Alerts**: Send SMS/WhatsApp to operators for new auctions
+- **Discount Validation**: Ensure discount <= subtotal in price breakup
+- **Timezone Consistency**: Fix datetime naive vs aware across backend
+
+### Future Tasks (P3)
+- **WhatsApp API CRM Integration**: Full chat CRM with message templates
+
+---

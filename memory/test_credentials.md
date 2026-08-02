@@ -77,3 +77,8 @@
 - Customer with unpaid test inquiry: loyaltytest@airyatra.com / Loyalty@123 → inquiry `test-stripe-inquiry-1` (NOW PAID after iteration_16 E2E; seed a fresh unpaid inquiry for re-testing)
 - Stripe TEST card: 4242 4242 4242 4242, exp 12/34, CVC 123
 - Key: STRIPE_API_KEY=sk_test_emergent (backend/.env)
+
+## Emergency Booking Test (Aug 2, 2026)
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Customer | emergencytest@airyatra.com | Emergency@123 | Created for Emergency Booking P0 testing. Use direct JWT token for API testing (OTP still triggers). |
