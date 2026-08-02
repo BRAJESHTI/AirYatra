@@ -144,6 +144,8 @@ from routes import auction_routes
 # Aircraft Catalog & Price Breakup - Phase 3-5
 from routes import aircraft_catalog_routes
 from routes import price_breakup_routes
+# AI Compliance Monitor
+from routes import compliance_monitor_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -385,6 +387,9 @@ api_router.include_router(auction_routes.router)
 # Aircraft Catalog & Price Breakup - Phase 3-5
 api_router.include_router(aircraft_catalog_routes.router)
 api_router.include_router(price_breakup_routes.router)
+
+# AI Compliance Monitor
+api_router.include_router(compliance_monitor_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

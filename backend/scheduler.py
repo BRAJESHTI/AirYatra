@@ -955,8 +955,17 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # AI Compliance Monitor - Daily check at 6 AM
+    scheduler.add_job(
+        run_daily_compliance_monitor,
+        trigger=IntervalTrigger(hours=24),
+        id="daily_compliance_monitor",
+        name="Daily Aircraft Compliance Check",
+        replace_existing=True
+    )
+    
     scheduler.start()
-    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders, pilot_document_expiry, stripe_settlement_sync, razorpay_settlement_sync, scheduled_finance_reports")
+    logger.info("Background scheduler started with jobs: auto_reassign_leads, send_notifications, cleanup_sessions, daily_reports, voucher_expiry_alerts, auction_ending_reminders, monthly_board_report, monthly_payroll_run, attendance_nudge, erp_weekly_digest, auto_balance_reminders, pilot_document_expiry, stripe_settlement_sync, razorpay_settlement_sync, scheduled_finance_reports, daily_compliance_monitor")
 
 
 async def check_pilot_document_expiry():
@@ -1656,3 +1665,76 @@ def stop_scheduler():
     if scheduler.running:
         scheduler.shutdown()
         logger.info("Background scheduler stopped")
+
+
+async def run_daily_compliance_monitor():
+    """
+    Daily compliance check for aircraft documents.
+    Auto-hides aircraft with expired critical documents.
+    Runs daily at 6 AM.
+    """
+    from database import get_database_sync
+    
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for compliance monitor")
+            return
+        
+        logger.info("Starting daily compliance monitor check")
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Find aircraft with expired documents
+        expired_insurance = await db.aircraft_catalog.find({
+            "is_published": True,
+            "documents.insurance_expiry": {"$lt": today}
+        }).to_list(500)
+        
+        expired_maintenance = await db.aircraft_catalog.find({
+            "is_published": True,
+            "documents.next_maintenance_due": {"$lt": today}
+        }).to_list(500)
+        
+        # Combine unique aircraft IDs
+        expired_aircraft_ids = set()
+        for a in expired_insurance:
+            expired_aircraft_ids.add(a["id"])
+        for a in expired_maintenance:
+            expired_aircraft_ids.add(a["id"])
+        
+        # Auto-hide aircraft with expired critical documents
+        hidden_count = 0
+        for aircraft_id in expired_aircraft_ids:
+            result = await db.aircraft_catalog.update_one(
+                {"id": aircraft_id, "is_published": True},
+                {
+                    "$set": {
+                        "is_published": False,
+                        "auto_hidden_reason": "Document expired (automated compliance check)",
+                        "auto_hidden_at": datetime.now(timezone.utc).isoformat()
+                    }
+                }
+            )
+            if result.modified_count > 0:
+                hidden_count += 1
+        
+        # Store compliance report
+        report = {
+            "id": str(uuid4()),
+            "run_date": today,
+            "run_at": datetime.now(timezone.utc).isoformat(),
+            "type": "scheduled",
+            "total_alerts": len(expired_aircraft_ids),
+            "alerts_by_type": {
+                "insurance_expired": len(expired_insurance),
+                "maintenance_overdue": len(expired_maintenance)
+            },
+            "aircraft_auto_hidden": hidden_count
+        }
+        await db.compliance_reports.insert_one(report)
+        
+        logger.info(f"Compliance monitor completed: {len(expired_aircraft_ids)} alerts, {hidden_count} aircraft hidden")
+        
+    except Exception as e:
+        logger.error(f"Error in daily compliance monitor: {e}")
