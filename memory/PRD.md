@@ -1278,8 +1278,13 @@ Implemented enterprise-grade account lockout security after 5 failed login attem
 
 ### Upcoming Tasks (P1)
 - **Auction Alerts**: Send SMS/WhatsApp to operators for new auctions
-- **Discount Validation**: Ensure discount <= subtotal in price breakup
-- **Timezone Consistency**: Fix datetime naive vs aware across backend
+- **Discount Validation**: ✅ DONE - Ensure discount <= subtotal in price breakup
+- **Timezone Consistency**: ✅ DONE - Fix datetime naive vs aware across backend
+
+### Completed Improvements (Aug 2, 2026 - Session 2)
+1. **Timezone Consistency** - Fixed 10+ files using `datetime.now(timezone.utc)`
+2. **Discount Validation** - Added validation with bilingual error messages
+3. **Map Drag-Drop** - Added @dnd-kit to MultiCityRouteBuilder for leg reordering
 
 ### Future Tasks (P3)
 - **WhatsApp API CRM Integration**: Full chat CRM with message templates

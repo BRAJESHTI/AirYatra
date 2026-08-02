@@ -3,7 +3,7 @@ from database import get_database
 from middleware import get_current_user, require_roles
 from models import UserRole
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -58,10 +58,10 @@ async def approve_landing_permission(permission_id: str, data: dict, user: dict 
             "approval_status": "approved",
             "approved_by": user["id"],
             "approved_by_name": user["full_name"],
-            "approved_at": datetime.utcnow().isoformat(),
+            "approved_at": datetime.now(timezone.utc).isoformat(),
             "approval_notes": notes,
             "expiry_date": expiry_date,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
@@ -74,7 +74,7 @@ async def approve_landing_permission(permission_id: str, data: dict, user: dict 
         "entity_type": "landing_permission",
         "entity_id": permission_id,
         "changes": {"status": "approved", "notes": notes},
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     
@@ -100,9 +100,9 @@ async def reject_landing_permission(permission_id: str, data: dict, user: dict =
             "approval_status": "rejected",
             "rejected_by": user["id"],
             "rejected_by_name": user["full_name"],
-            "rejected_at": datetime.utcnow().isoformat(),
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
             "rejection_reason": reason,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
@@ -115,7 +115,7 @@ async def reject_landing_permission(permission_id: str, data: dict, user: dict =
         "entity_type": "landing_permission",
         "entity_id": permission_id,
         "changes": {"status": "rejected", "reason": reason},
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     

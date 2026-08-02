@@ -86,7 +86,7 @@ def calculate_days_remaining(expiry_date: str) -> int:
     """Calculate days remaining until expiry"""
     try:
         expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
-        today = datetime.now().date()
+        today = datetime.now(timezone.utc).date()
         return (expiry - today).days
     except (ValueError, TypeError):
         return 999  # Unknown expiry
@@ -217,7 +217,7 @@ async def run_daily_compliance_check(
     """
     db = get_database()
     
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     alerts = []
     actions_taken = []
     
@@ -377,8 +377,8 @@ async def get_compliance_alerts(
     """
     db = get_database()
     
-    today = datetime.now().strftime("%Y-%m-%d")
-    threshold_date = (datetime.now() + timedelta(days=days_threshold)).strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    threshold_date = (datetime.now(timezone.utc) + timedelta(days=days_threshold)).strftime("%Y-%m-%d")
     
     alerts = []
     
@@ -582,7 +582,7 @@ async def get_compliance_dashboard(
     published = await db.aircraft_catalog.count_documents({"is_published": True})
     
     # Expiring documents (next 30 days)
-    threshold = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    threshold = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
     insurance_expiring = await db.aircraft_catalog.count_documents({
         "documents.insurance_expiry": {"$lte": threshold}
     })
@@ -653,7 +653,7 @@ async def scheduled_compliance_check():
     print(f"[COMPLIANCE SCHEDULER] Running daily check at {datetime.now()}")
     
     # Count expiring documents
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
     expired_insurance = await db.aircraft_catalog.count_documents({
         "is_published": True,

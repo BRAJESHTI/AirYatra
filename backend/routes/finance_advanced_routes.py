@@ -88,7 +88,7 @@ async def create_challan(challan: ChallanCreate):
     
     challan_doc = {
         "id": str(uuid.uuid4()),
-        "challan_number": f"CHL-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
+        "challan_number": f"CHL-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
         "challan_type": challan.challan_type,
         "period": challan.period,
         "due_date": challan.due_date,

@@ -213,7 +213,7 @@ async def create_auction(
     
     # Validate travel date is in future
     travel_date = datetime.strptime(request.travel_date, "%Y-%m-%d")
-    if travel_date.date() < datetime.now().date():
+    if travel_date.date() < datetime.now(timezone.utc).date():
         raise HTTPException(status_code=400, detail="Travel date must be in the future")
     
     # Check for existing active auctions for same route/date by this user
@@ -238,7 +238,7 @@ async def create_auction(
     # Create auction document
     auction = {
         "id": str(uuid.uuid4()),
-        "auction_number": f"AUC-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
+        "auction_number": f"AUC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
         
         # Customer Info
         "customer_id": current_user["id"],

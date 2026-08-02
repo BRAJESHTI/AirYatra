@@ -8,6 +8,180 @@ import { Card, CardContent } from '@/components/ui/card';
 import LandingPointSelector from '../shared/LandingPointSelector';
 import MultiCityRouteMap from './MultiCityRouteMap';
 
+// DnD Kit imports for drag-drop reordering
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+/**
+ * Sortable Leg Card Component
+ * Enables drag-drop reordering of route legs
+ */
+const SortableLegCard = ({
+  leg,
+  index,
+  legs,
+  minLegs,
+  perLegDiscount,
+  selectedDate,
+  aircraftType,
+  updateLegPoint,
+  removeLeg
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: leg.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
+  };
+
+  return (
+    <Card 
+      ref={setNodeRef}
+      style={style}
+      className={`bg-slate-800/50 border-slate-700 ${
+        index === 0 ? 'border-l-4 border-l-green-500' : 
+        index === legs.length - 1 ? 'border-l-4 border-l-red-500' : ''
+      } ${isDragging ? 'shadow-2xl ring-2 ring-orange-500' : ''}`}
+    >
+      <CardContent className="p-4">
+        {/* Leg Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            {/* Drag Handle */}
+            <button
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-700 rounded touch-none"
+              data-testid={`drag-handle-leg-${index + 1}`}
+            >
+              <GripVertical className="h-5 w-5 text-slate-500" />
+            </button>
+            
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
+              index === 0 ? 'bg-green-500/20 text-green-400' :
+              index === legs.length - 1 ? 'bg-red-500/20 text-red-400' :
+              'bg-orange-500/20 text-orange-400'
+            }`}>
+              {index + 1}
+            </div>
+            <span className="text-white font-medium">
+              Leg {index + 1} / पड़ाव {index + 1}
+              {index === 0 && <span className="text-green-400 text-xs ml-2">(Start)</span>}
+              {index === legs.length - 1 && <span className="text-red-400 text-xs ml-2">(End)</span>}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Per-leg discount badge */}
+            {index > 0 && perLegDiscount > 0 && (
+              <Badge className="bg-green-500/20 text-green-400 text-xs">
+                {Math.min(index * perLegDiscount, 25)}% off
+              </Badge>
+            )}
+            {/* Remove button */}
+            {legs.length > minLegs && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeLeg(index)}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* From/To Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* From Point */}
+          <div>
+            <Label className="text-slate-400 text-sm mb-2 block flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-green-400" />
+              From / से {index === 0 && <span className="text-red-400">*</span>}
+            </Label>
+            {index > 0 && legs[index - 1]?.to ? (
+              // Auto-filled from previous leg's destination
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+                <p className="text-white text-sm">{legs[index - 1].to?.landing_point_name}</p>
+                <p className="text-slate-400 text-xs">Auto-linked from Leg {index}</p>
+              </div>
+            ) : (
+              <LandingPointSelector
+                label="Select pickup"
+                type="pickup"
+                selectedDate={selectedDate}
+                aircraftType={aircraftType}
+                onSelect={(data) => updateLegPoint(index, 'from', data)}
+                selectedPoint={leg.from}
+                compact={true}
+              />
+            )}
+          </div>
+          
+          {/* To Point */}
+          <div>
+            <Label className="text-slate-400 text-sm mb-2 block flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-red-400" />
+              To / तक <span className="text-red-400">*</span>
+            </Label>
+            <LandingPointSelector
+              label="Select destination"
+              type="drop"
+              selectedDate={selectedDate}
+              aircraftType={aircraftType}
+              onSelect={(data) => updateLegPoint(index, 'to', data)}
+              selectedPoint={leg.to}
+              compact={true}
+            />
+          </div>
+        </div>
+        
+        {/* Leg Stats */}
+        {leg.distance > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-700 flex items-center justify-between text-sm">
+            <div className="flex items-center gap-4 text-slate-400">
+              <span className="flex items-center gap-1">
+                <Navigation className="h-3 w-3" />
+                {leg.distance} km
+              </span>
+              <span className="flex items-center gap-1">
+                <ArrowRight className="h-3 w-3" />
+                ~{Math.round(leg.distance / 200 * 60)} min
+              </span>
+            </div>
+            <span className="text-orange-400 font-medium">
+              ₹{leg.price?.toLocaleString('en-IN') || 0}
+            </span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 /**
  * Multi-City Route Builder Component
  * Allows customers to add 3+ destinations for multi_city booking type
@@ -35,6 +209,52 @@ export const MultiCityRouteBuilder = ({
   const [totalDiscount, setTotalDiscount] = useState(0);
   const [showMap, setShowMap] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
+  
+  // DnD Kit sensors for drag-drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
+  // Handle drag end - reorder legs
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      setLegs((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        const newLegs = arrayMove(items, oldIndex, newIndex);
+        
+        // Recalculate auto-chain after reorder
+        return recalculateChain(newLegs);
+      });
+    }
+  };
+  
+  // Recalculate auto-chain (next leg's from = previous leg's to)
+  const recalculateChain = (legsArray) => {
+    return legsArray.map((leg, index) => {
+      if (index === 0) return leg;
+      
+      const prevLeg = legsArray[index - 1];
+      if (prevLeg.to && leg.from !== prevLeg.to) {
+        return {
+          ...leg,
+          from: prevLeg.to,
+          distance: calculateDistance(prevLeg.to, leg.to)
+        };
+      }
+      return leg;
+    });
+  };
   
   // Calculate distance between two points (Haversine formula)
   const calculateDistance = (from, to) => {
@@ -195,120 +415,40 @@ export const MultiCityRouteBuilder = ({
         />
       )}
       
-      {/* Route Legs */}
-      <div className="space-y-3">
-        {legs.map((leg, index) => (
-          <Card 
-            key={leg.id} 
-            className={`bg-slate-800/50 border-slate-700 ${
-              index === 0 ? 'border-l-4 border-l-green-500' : 
-              index === legs.length - 1 ? 'border-l-4 border-l-red-500' : ''
-            }`}
-          >
-            <CardContent className="p-4">
-              {/* Leg Header */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    index === 0 ? 'bg-green-500/20 text-green-400' :
-                    index === legs.length - 1 ? 'bg-red-500/20 text-red-400' :
-                    'bg-orange-500/20 text-orange-400'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <span className="text-white font-medium">
-                    Leg {index + 1} / पड़ाव {index + 1}
-                    {index === 0 && <span className="text-green-400 text-xs ml-2">(Start)</span>}
-                    {index === legs.length - 1 && <span className="text-red-400 text-xs ml-2">(End)</span>}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {/* Per-leg discount badge */}
-                  {index > 0 && perLegDiscount > 0 && (
-                    <Badge className="bg-green-500/20 text-green-400 text-xs">
-                      {Math.min(index * perLegDiscount, 25)}% off
-                    </Badge>
-                  )}
-                  {/* Remove button */}
-                  {legs.length > minLegs && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeLeg(index)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              
-              {/* From/To Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* From Point */}
-                <div>
-                  <Label className="text-slate-400 text-sm mb-2 block flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-green-400" />
-                    From / से {index === 0 && <span className="text-red-400">*</span>}
-                  </Label>
-                  {index > 0 && legs[index - 1]?.to ? (
-                    // Auto-filled from previous leg's destination
-                    <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                      <p className="text-white text-sm">{legs[index - 1].to?.landing_point_name}</p>
-                      <p className="text-slate-400 text-xs">Auto-linked from Leg {index}</p>
-                    </div>
-                  ) : (
-                    <LandingPointSelector
-                      label="Select pickup"
-                      type="pickup"
-                      selectedDate={selectedDate}
-                      aircraftType={aircraftType}
-                      onSelect={(data) => updateLegPoint(index, 'from', data)}
-                      selectedPoint={leg.from}
-                      compact={true}
-                    />
-                  )}
-                </div>
-                
-                {/* To Point */}
-                <div>
-                  <Label className="text-slate-400 text-sm mb-2 block flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-red-400" />
-                    To / तक <span className="text-red-400">*</span>
-                  </Label>
-                  <LandingPointSelector
-                    label="Select destination"
-                    type="drop"
-                    selectedDate={selectedDate}
-                    aircraftType={aircraftType}
-                    onSelect={(data) => updateLegPoint(index, 'to', data)}
-                    selectedPoint={leg.to}
-                    compact={true}
-                  />
-                </div>
-              </div>
-              
-              {/* Leg Stats */}
-              {leg.distance > 0 && (
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-slate-400">
-                      <Navigation className="h-3 w-3 inline mr-1" />
-                      {leg.distance} km
-                    </span>
-                    <span className="text-slate-400">
-                      ~{Math.ceil(leg.distance / 200 * 60)} min
-                    </span>
-                  </div>
-                  <span className="text-green-400 font-semibold">
-                    ₹{leg.price.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+      {/* Drag-Drop Hint */}
+      <div className="flex items-center gap-2 text-slate-500 text-xs">
+        <GripVertical className="h-4 w-4" />
+        <span>Drag legs to reorder your route / रूट क्रम बदलने के लिए खींचें</span>
       </div>
+      
+      {/* Route Legs with Drag-Drop */}
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext 
+          items={legs.map(leg => leg.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-3">
+            {legs.map((leg, index) => (
+              <SortableLegCard
+                key={leg.id}
+                leg={leg}
+                index={index}
+                legs={legs}
+                minLegs={minLegs}
+                perLegDiscount={perLegDiscount}
+                selectedDate={selectedDate}
+                aircraftType={aircraftType}
+                updateLegPoint={updateLegPoint}
+                removeLeg={removeLeg}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
       
       {/* Add Leg Button */}
       {legs.length < maxLegs && (

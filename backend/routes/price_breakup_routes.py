@@ -93,6 +93,14 @@ def calculate_customer_breakup(
     # Base components
     subtotal = base_price + landing_charges + handling_charges + crew_charges + fuel_surcharge + other_charges
     
+    # VALIDATION: Discount cannot exceed subtotal
+    if discount > subtotal:
+        raise ValueError(f"Discount (₹{discount}) cannot exceed subtotal (₹{subtotal}). Maximum allowed discount is ₹{subtotal}.")
+    
+    # VALIDATION: Discount cannot be negative
+    if discount < 0:
+        raise ValueError("Discount cannot be negative.")
+    
     # Platform fee (commission on base + fixed fee)
     platform_commission = round(base_price * (settings["platform_commission_percent"] / 100), 2)
     platform_fixed_fee = settings["platform_fixed_fee"]
@@ -248,16 +256,45 @@ async def get_customer_price_breakup(
     """
     settings = await get_platform_settings()
     
-    breakup = calculate_customer_breakup(
-        base_price=request.base_price,
-        landing_charges=request.landing_charges,
-        handling_charges=request.handling_charges,
-        crew_charges=request.crew_charges,
-        fuel_surcharge=request.fuel_surcharge,
-        other_charges=request.other_charges,
-        discount=request.discount,
-        settings=settings
-    )
+    # Calculate subtotal first to validate discount
+    subtotal = (request.base_price + request.landing_charges + request.handling_charges + 
+                request.crew_charges + request.fuel_surcharge + request.other_charges)
+    
+    # Validate discount
+    if request.discount > subtotal:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "invalid_discount",
+                "message": f"Discount (₹{request.discount:,.2f}) cannot exceed subtotal (₹{subtotal:,.2f})",
+                "message_hi": f"छूट (₹{request.discount:,.2f}) उप-योग (₹{subtotal:,.2f}) से अधिक नहीं हो सकती",
+                "max_discount": subtotal
+            }
+        )
+    
+    if request.discount < 0:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "invalid_discount",
+                "message": "Discount cannot be negative",
+                "message_hi": "छूट ऋणात्मक नहीं हो सकती"
+            }
+        )
+    
+    try:
+        breakup = calculate_customer_breakup(
+            base_price=request.base_price,
+            landing_charges=request.landing_charges,
+            handling_charges=request.handling_charges,
+            crew_charges=request.crew_charges,
+            fuel_surcharge=request.fuel_surcharge,
+            other_charges=request.other_charges,
+            discount=request.discount,
+            settings=settings
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     return breakup
 

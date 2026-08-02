@@ -103,7 +103,7 @@ async def get_admin_dashboard(user: dict = Depends(require_roles([UserRole.ADMIN
     db = get_database()
     
     # Get current date ranges
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today_start = datetime(now.year, now.month, now.day)
     month_start = datetime(now.year, now.month, 1)
     year_start = datetime(now.year, 1, 1)
@@ -261,9 +261,9 @@ async def verify_operator(operator_id: str, data: dict, user: dict = Depends(req
         "verification_status": status,
         "status": "active" if status == "approved" else "pending",
         "verified_by": user["id"],
-        "verified_at": datetime.utcnow().isoformat(),
+        "verified_at": datetime.now(timezone.utc).isoformat(),
         "verification_notes": notes,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.operators.update_one(
@@ -281,7 +281,7 @@ async def verify_operator(operator_id: str, data: dict, user: dict = Depends(req
         "entity_id": operator_id,
         "changes": update_data,
         "ip_address": None,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     
@@ -310,11 +310,11 @@ async def seed_demo_operators(user: dict = Depends(require_roles([UserRole.ADMIN
             "base_longitude": 72.8777,
             "status": "active",
             "verification_status": "verified",
-            "verified_at": datetime.utcnow().isoformat(),
+            "verified_at": datetime.now(timezone.utc).isoformat(),
             "total_aircraft": 3,
             "rating": 4.8,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
         },
         {
             "id": str(uuid.uuid4()),
@@ -329,11 +329,11 @@ async def seed_demo_operators(user: dict = Depends(require_roles([UserRole.ADMIN
             "base_longitude": 73.8567,
             "status": "active",
             "verification_status": "verified",
-            "verified_at": datetime.utcnow().isoformat(),
+            "verified_at": datetime.now(timezone.utc).isoformat(),
             "total_aircraft": 2,
             "rating": 4.5,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
         },
         {
             "id": str(uuid.uuid4()),
@@ -348,11 +348,11 @@ async def seed_demo_operators(user: dict = Depends(require_roles([UserRole.ADMIN
             "base_longitude": 77.1025,
             "status": "active",
             "verification_status": "verified",
-            "verified_at": datetime.utcnow().isoformat(),
+            "verified_at": datetime.now(timezone.utc).isoformat(),
             "total_aircraft": 5,
             "rating": 4.9,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }
     ]
     
@@ -379,7 +379,7 @@ async def update_operator_location(operator_id: str, data: dict, user: dict = De
         "base_latitude": data.get("base_latitude"),
         "base_longitude": data.get("base_longitude"),
         "base_state": data.get("base_state", operator.get("base_state")),
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.operators.update_one(
@@ -442,10 +442,10 @@ async def reassign_booking(booking_id: str, data: dict, user: dict = Depends(req
         {"$set": {
             "operator_id": new_operator_id,
             "reassigned_by": user["id"],
-            "reassigned_at": datetime.utcnow().isoformat(),
+            "reassigned_at": datetime.now(timezone.utc).isoformat(),
             "reassignment_reason": reason,
             "previous_operator_id": old_operator_id,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
@@ -462,7 +462,7 @@ async def reassign_booking(booking_id: str, data: dict, user: dict = Depends(req
             "new_operator_id": new_operator_id,
             "reason": reason
         },
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     
@@ -488,9 +488,9 @@ async def force_assign_operator(booking_id: str, data: dict, user: dict = Depend
             "aircraft_id": aircraft_id,
             "status": "confirmed",
             "force_assigned_by": user["id"],
-            "force_assigned_at": datetime.utcnow().isoformat(),
+            "force_assigned_at": datetime.now(timezone.utc).isoformat(),
             "override_reason": override_reason,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
@@ -504,7 +504,7 @@ async def force_assign_operator(booking_id: str, data: dict, user: dict = Depend
         "entity_id": booking_id,
         "changes": data,
         "is_critical": True,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     
@@ -657,7 +657,7 @@ async def update_commission_settings(
         "default_operator_rate": operator_rate,
         "platform_fee": platform_fee,
         "gst_rate": gst_rate,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "updated_by": current_user["id"]
     }
     
@@ -676,7 +676,7 @@ async def update_commission_settings(
         "entity_type": "settings",
         "entity_id": "commission_settings",
         "changes": settings_data,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     
@@ -705,7 +705,7 @@ async def update_operator_commission(
         {"id": operator_id},
         {"$set": {
             "commission_rate": rate,
-            "commission_updated_at": datetime.utcnow().isoformat(),
+            "commission_updated_at": datetime.now(timezone.utc).isoformat(),
             "commission_updated_by": current_user["id"]
         }}
     )
@@ -719,7 +719,7 @@ async def update_operator_commission(
         "entity_type": "operator",
         "entity_id": operator_id,
         "changes": {"commission_rate": rate, "operator_name": operator.get("company_name")},
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     

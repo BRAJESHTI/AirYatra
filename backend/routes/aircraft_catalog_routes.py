@@ -1298,8 +1298,8 @@ async def get_aircraft_stats(
     published = await db.aircraft_catalog.count_documents({"is_published": True})
     
     # Expiring documents
-    today = datetime.now().strftime("%Y-%m-%d")
-    thirty_days = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    thirty_days = (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
     
     insurance_expiring = await db.aircraft_catalog.count_documents({
         "documents.insurance_expiry": {"$lte": thirty_days, "$gte": today}
@@ -1343,8 +1343,8 @@ async def get_expiring_documents(
     """
     db = get_database()
     
-    cutoff_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
-    today = datetime.now().strftime("%Y-%m-%d")
+    cutoff_date = (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
     # Insurance expiring
     insurance_expiring = await db.aircraft_catalog.find(

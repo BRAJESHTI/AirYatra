@@ -524,7 +524,7 @@ async def create_bill(bill: BillCreate):
     
     bill_doc = {
         "id": str(uuid.uuid4()),
-        "bill_number": f"BILL-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
+        "bill_number": f"BILL-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
         "vendor_id": bill.vendor_id,
         "vendor_name": bill.vendor_name,
         "invoice_number": bill.invoice_number,

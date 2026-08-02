@@ -37,7 +37,7 @@ def generate_qr_code(data: str) -> str:
 
 def generate_pass_number():
     """Generate unique boarding pass number"""
-    return f"BP{datetime.now().strftime('%Y%m%d')}{str(uuid4())[:6].upper()}"
+    return f"BP{datetime.now(timezone.utc).strftime('%Y%m%d')}{str(uuid4())[:6].upper()}"
 
 # API Endpoints
 @router.post("/generate")
