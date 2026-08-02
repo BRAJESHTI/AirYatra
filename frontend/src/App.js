@@ -31,6 +31,8 @@ const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage'));
 const CorporateDashboard = lazy(() => import('./pages/CorporateDashboard'));
 const DocumentVault = lazy(() => import('./pages/DocumentVault'));
 const PaymentLinkPage = lazy(() => import('./pages/PaymentLinkPage'));
+// Pilot Mobile Portal (PWA)
+const PilotMobilePortal = lazy(() => import('./components/pilot/PilotMobilePortal'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -212,6 +214,11 @@ function App() {
         <Route 
           path="/vault" 
           element={user ? <DocumentVault user={user} /> : <Navigate to="/login" />} 
+        />
+        {/* Pilot Mobile Portal (PWA) - Accessible by pilots and admins */}
+        <Route 
+          path="/pilot-portal" 
+          element={user && (user.roles.includes('pilot') || user.roles.includes('admin') || user.roles.includes('operator')) ? <PilotMobilePortal user={user} /> : <Navigate to="/login" />} 
         />
         </Routes>
       </Suspense>

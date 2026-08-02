@@ -105,6 +105,7 @@ from routes import document_master_routes
 from routes import customer_kyc_routes
 from routes import kyc_verification_routes
 from routes import ai_advisor_routes
+from routes import pilot_mobile_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -281,6 +282,9 @@ api_router.include_router(predictive_maintenance_routes.router)
 api_router.include_router(hangar_management_routes.router)
 api_router.include_router(admin_analytics_routes.router)
 api_router.include_router(operations_map_routes.router)
+
+# Pilot Mobile Portal (PWA)
+api_router.include_router(pilot_mobile_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
