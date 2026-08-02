@@ -36,6 +36,9 @@ const PilotMobilePortal = lazy(() => import('./components/pilot/PilotMobilePorta
 // Services & About Pages
 const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+// Fleet & Blog Pages
+const FleetGalleryPage = lazy(() => import('./pages/FleetGalleryPage'));
+const { BlogListPage, BlogPostPage } = require('./pages/BlogPage');
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -106,6 +109,9 @@ function App() {
           {/* Public Pages - Services & About */}
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/fleet" element={<FleetGalleryPage />} />
+          <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
           
           <Route
             path="/customer"

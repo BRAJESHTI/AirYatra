@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/shared/LanguageSwitcher';
+import TestimonialsSlider from '../components/landing/TestimonialsSlider';
+import InvestorInterestSection from '../components/landing/InvestorInterestSection';
 
 // Hero Slider Images
 const HERO_SLIDES = [
@@ -100,11 +102,10 @@ function LandingPage({ user }) {
           {/* Navigation Links */}
           <div className="hidden lg:flex items-center space-x-8">
             <a href="#services" className="text-slate-300 hover:text-orange-500 transition-colors">Services</a>
-            <a href="#about" className="text-slate-300 hover:text-orange-500 transition-colors">About Us</a>
+            <Link to="/fleet" className="text-slate-300 hover:text-orange-500 transition-colors">Fleet</Link>
+            <Link to="/blog" className="text-slate-300 hover:text-orange-500 transition-colors">Blog</Link>
+            <a href="#about" className="text-slate-300 hover:text-orange-500 transition-colors">About</a>
             <a href="#contact" className="text-slate-300 hover:text-orange-500 transition-colors">Contact</a>
-            <Link to="/exchange" className="text-orange-400 hover:text-orange-300">
-              Aviation Exchange
-            </Link>
           </div>
           
           <div className="flex items-center space-x-3">
@@ -575,6 +576,12 @@ function LandingPage({ user }) {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <TestimonialsSlider />
+
+      {/* Investor Interest Section */}
+      <InvestorInterestSection />
 
       {/* CTA Section */}
       <section className="py-20 px-6 bg-gradient-to-br from-orange-500 to-orange-600" data-testid="cta-section">

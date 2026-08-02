@@ -298,6 +298,10 @@ api_router.include_router(pilot_availability_routes.router)
 # Revenue Analytics
 api_router.include_router(revenue_analytics_routes.router)
 
+# Content & Blog Routes
+from routes import content_routes
+api_router.include_router(content_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 
