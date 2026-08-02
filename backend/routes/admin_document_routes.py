@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from database import get_database
 from middleware import require_roles
 
-router = APIRouter(prefix="/admin/documents", tags=["Admin Document Verification"])
+router = APIRouter(prefix="/admin/document-vault", tags=["Admin Document Verification"])
 
 
 @router.get("/verification-queue")

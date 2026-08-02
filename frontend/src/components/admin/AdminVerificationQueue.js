@@ -175,7 +175,7 @@ const AdminVerificationQueue = () => {
       // Fetch all documents from all operators (admin view)
       // We'll use a special endpoint or aggregate from multiple sources
       const response = await axios.get(
-        `${API_URL}/api/admin/documents/verification-queue`,
+        `${API_URL}/api/admin/document-vault/verification-queue`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

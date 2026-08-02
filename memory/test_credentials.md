@@ -43,6 +43,11 @@
 |------|-------|----------|-------|
 | CFO | testfinance@airyatra.com | Test123! | Created for backend API testing. Login Shield may trigger OTP, use direct JWT token generation for testing. |
 
+## Test Admin (No 2FA - API Testing, Aug 2, 2026)
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Admin | testadmin@airyatra.com | TestAdmin123! | Created for testing admin APIs without TOTP. otp_enabled=false, totp_enabled=false. Use for Document Vault, Compliance Dashboard testing. |
+
 ## Loyalty Test Customer (created Aug 1, 2026)
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|

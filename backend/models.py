@@ -738,7 +738,7 @@ class FolderCreate(BaseModel):
     icon: str = "folder"
 
 class DocumentVerification(BaseModel):
-    document_id: str
+    document_id: Optional[str] = None  # Optional since it's in the URL path
     verification_status: str
     verified_by: str
     verification_notes: Optional[str] = None

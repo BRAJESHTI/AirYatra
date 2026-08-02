@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 24 (backend-only retest): Verified the 2 HIGH-priority fixes from iteration_23. Updated /app/backend/tests/test_admin_documents.py to target the new admin prefix /admin/document-vault and to explicitly assert /vault/verify accepts a body WITHOUT document_id. 18/18 tests pass. Both admin_document_routes and document_master_routes /stats endpoints are now reachable independently, and the AdminVerificationQueue Approve/Reject payload no longer 422s.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/document-vault/bulk-verify", "issue": "Still uses List[str] + str + Optional[str] as raw function params (mix of body + query). Works but fragile — carry-over from iter23. Consider consolidating into a single Pydantic BulkVerifyRequest."},
+      {"endpoint": "GET /api/admin/document-vault/verification-queue", "issue": "N+1 users.find_one + operators.find_one per document during owner enrichment. Fine at current scale; use $lookup or a batched dict for larger queues."},
+      {"endpoint": "POST /api/vault/upload", "issue": "File bytes still base64-encoded into document_files.content instead of services.storage_service (same as /new-version). Not part of this iteration's fix but still open."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin_documents.py",
+    "/app/test_reports/pytest/admin_docs_iter24.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix confirmed: admin_document_routes now mounts at /admin/document-vault, eliminating the shadowing bug against document_master_routes /admin/documents/stats. Both routers coexist and both /stats endpoints return their intended schemas.",
+    "Fix confirmed: DocumentVerification.document_id is now Optional, so POST /api/vault/verify/{document_id} accepts the exact JSON payload the UI sends ({verification_status, verified_by, verification_notes}) and returns 200. Backward-compatible when the client also includes document_id in the body.",
+    "Minor: /admin/document-vault/bulk-verify still exposes primitive body params without an explicit Pydantic model — cosmetic, not blocking."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_documents.py"
+  ],
+  "success_rate": {"backend": "100% (18/18)", "frontend": "N/A (backend-only retest per review request)"},
+  "seed_data_creation": "Uploaded 3 TEST_ documents under operator8fkf0x@airyatra.com via /vault/upload during the run; cleaned up by the module-scope cleanup fixture (best-effort permanent delete).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "JWTs minted via /app/backend/auth.create_access_token for admin@airyatra.com (id=601a4741-f347-4ce8-845e-6cbd91bf9a78) and operator8fkf0x@airyatra.com (id=88e05bf4-57fc-43b3-82cb-18252892026b). Same accounts as iter22/23.",
+  "context_for_next_testing_agent": "iter23 HIGH-priority defects are fully resolved and covered by regression tests: (a) test_stats_admin_new_schema hits /admin/document-vault/stats and asserts by_status/by_category; (b) test_document_master_stats_still_works asserts the original /admin/documents/stats still returns the document_master shape (document_types/verification_apis/verifications); (c) test_vault_verify_without_document_id_in_body posts the exact UI payload and expects 200. Frontend Approve/Reject UI change was not manually re-tested here (backend-only scope) — main agent can self-verify in the AdminVerificationQueue tab; the underlying API contract is now correct.",
+  "rca_of_the_issue": "Root causes from iter23 are addressed at the correct layer: (1) route shadowing eliminated by giving admin_document_routes a distinct prefix (/admin/document-vault) rather than relying on registration order; (2) Pydantic contract mismatch eliminated by making DocumentVerification.document_id Optional, so the path parameter is the single source of truth while the body remains permissive for existing callers."
+}

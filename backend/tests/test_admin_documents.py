@@ -89,32 +89,33 @@ class TestVaultUpload:
         assert r.status_code == 403, r.text
 
 
-# ============ /admin/documents/* ============
+# ============ /admin/document-vault/* (NEW prefix - iter24 fix) ============
+ADMIN_VAULT = "/admin/document-vault"
+
+
 class TestAdminVerificationQueue:
     def test_queue_requires_admin(self):
-        r = requests.get(f"{API}/admin/documents/verification-queue", headers=_auth(OPERATOR))
+        r = requests.get(f"{API}{ADMIN_VAULT}/verification-queue", headers=_auth(OPERATOR))
         assert r.status_code in (401, 403), r.text
 
     def test_queue_admin_ok(self):
-        r = requests.get(f"{API}/admin/documents/verification-queue", headers=_auth(ADMIN))
+        r = requests.get(f"{API}{ADMIN_VAULT}/verification-queue", headers=_auth(ADMIN))
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["success"] is True
         assert isinstance(body["documents"], list)
         assert body["total"] == len(body["documents"])
-        # Verify our uploaded doc is present with owner enrichment
         matches = [d for d in body["documents"] if d.get("document_id") in STATE["doc_ids"]]
         assert matches, "Uploaded test document not present in verification queue"
         doc = matches[0]
         assert doc.get("verification_status") == "pending"
-        assert "_id" not in doc, "MongoDB _id leaked in response"
-        assert "file_hash" not in doc, "file_hash leaked (should be projected out)"
-        # Owner enrichment fields must be present when operator record exists
+        assert "_id" not in doc
+        assert "file_hash" not in doc
         assert "owner_name" in doc or "operator_name" in doc or "owner_email" in doc
 
     def test_queue_status_filter(self):
         r = requests.get(
-            f"{API}/admin/documents/verification-queue",
+            f"{API}{ADMIN_VAULT}/verification-queue",
             params={"status": "pending", "limit": 50},
             headers=_auth(ADMIN),
         )
@@ -125,55 +126,66 @@ class TestAdminVerificationQueue:
 
     def test_queue_limit_cap(self):
         r = requests.get(
-            f"{API}/admin/documents/verification-queue",
+            f"{API}{ADMIN_VAULT}/verification-queue",
             params={"limit": 501},
             headers=_auth(ADMIN),
         )
-        assert r.status_code == 422, r.text  # Query(le=500) enforced
+        assert r.status_code == 422, r.text
 
-    def test_stats_admin(self):
-        r = requests.get(f"{API}/admin/documents/stats", headers=_auth(ADMIN))
+    def test_stats_admin_new_schema(self):
+        """RETEST: /admin/document-vault/stats returns by_status/by_category (not shadowed by document_master)."""
+        r = requests.get(f"{API}{ADMIN_VAULT}/stats", headers=_auth(ADMIN))
         assert r.status_code == 200, r.text
         stats = r.json()["stats"]
-        assert "by_status" in stats and "by_category" in stats
+        assert "by_status" in stats and "by_category" in stats, f"Wrong schema (route shadowed?): {stats}"
         assert set(stats["by_status"].keys()) >= {"pending", "verified", "rejected"}
-        assert stats["by_status"]["pending"] >= 1  # our uploaded doc
+        assert stats["by_status"]["pending"] >= 1
         assert stats["total"] == sum(stats["by_status"].values())
         assert isinstance(stats["recent_uploads_7d"], int)
 
     def test_stats_forbidden_for_operator(self):
-        r = requests.get(f"{API}/admin/documents/stats", headers=_auth(OPERATOR))
+        r = requests.get(f"{API}{ADMIN_VAULT}/stats", headers=_auth(OPERATOR))
         assert r.status_code in (401, 403)
+
+    def test_document_master_stats_still_works(self):
+        """VERIFY: Original /admin/documents/stats (document_master route) is not broken by prefix change."""
+        r = requests.get(f"{API}/admin/documents/stats", headers=_auth(ADMIN))
+        assert r.status_code == 200, r.text
+        body = r.json()
+        # document_master schema is different — accept any 200 with success-ish shape
+        # But it should NOT be the new vault schema
+        stats = body.get("stats", body)
+        # Document master returns e.g., document_types / verification_apis / verifications
+        # Not by_status/by_category
+        has_master_shape = any(k in body for k in ("document_types", "verification_apis", "verifications")) or \
+                           any(k in stats for k in ("document_types", "verification_apis", "verifications"))
+        assert has_master_shape, f"document_master /stats missing expected keys, got: {body}"
 
     def test_operator_documents_endpoint(self):
         r = requests.get(
-            f"{API}/admin/documents/operator/{OPERATOR['id']}",
+            f"{API}{ADMIN_VAULT}/operator/{OPERATOR['id']}",
             headers=_auth(ADMIN),
         )
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["success"] is True
         assert isinstance(body["documents"], list)
-        # our doc should show up
         doc_ids = [d.get("document_id") for d in body["documents"]]
         assert any(did in STATE["doc_ids"] for did in doc_ids)
 
     def test_bulk_verify_invalid_status(self):
-        # Bulk-verify expects JSON body (List[str], str, Optional[str]) via query-esque bindings.
-        # FastAPI treats non-Body list & primitive params as body when there's a body param mix — send as query.
         r = requests.post(
-            f"{API}/admin/documents/bulk-verify",
+            f"{API}{ADMIN_VAULT}/bulk-verify",
             params={"verification_status": "banana"},
             json=STATE["doc_ids"],
             headers=_auth(ADMIN),
         )
-        # 400 if reached handler; 422 if binding rejected
         assert r.status_code in (400, 422), r.text
 
     def test_bulk_verify_approves_document(self):
         assert STATE["doc_ids"], "No doc uploaded to verify"
         r = requests.post(
-            f"{API}/admin/documents/bulk-verify",
+            f"{API}{ADMIN_VAULT}/bulk-verify",
             params={"verification_status": "verified", "notes": "TEST auto-approve"},
             json=STATE["doc_ids"],
             headers=_auth(ADMIN),
@@ -183,9 +195,8 @@ class TestAdminVerificationQueue:
         assert body["success"] is True
         assert body["modified_count"] >= 1
 
-        # Verify persistence via queue with status=verified
         r2 = requests.get(
-            f"{API}/admin/documents/verification-queue",
+            f"{API}{ADMIN_VAULT}/verification-queue",
             params={"status": "verified"},
             headers=_auth(ADMIN),
         )
@@ -196,8 +207,8 @@ class TestAdminVerificationQueue:
 
 # ============ /vault/verify (used by UI reject/approve modal) ============
 class TestVaultVerify:
-    def test_vault_verify_updates_status(self):
-        # Upload a fresh doc then reject via /vault/verify
+    def test_vault_verify_without_document_id_in_body(self):
+        """RETEST: POST /vault/verify/{document_id} must accept body WITHOUT document_id (matches UI payload)."""
         files = {"file": ("t.pdf", b"reject-me", "application/pdf")}
         data = {
             "owner_id": OPERATOR["id"], "owner_type": "operator",
@@ -208,23 +219,45 @@ class TestVaultVerify:
         doc_id = up.json()["document"]["document_id"]
         STATE["doc_ids"].append(doc_id)
 
+        # Exact payload the AdminVerificationQueue UI sends — NO document_id key
         payload = {
             "verification_status": "rejected",
             "verified_by": ADMIN["id"],
             "verification_notes": "TEST reject reason",
         }
         r = requests.post(f"{API}/vault/verify/{doc_id}", json=payload, headers=_auth(ADMIN))
-        assert r.status_code == 200, r.text
+        assert r.status_code == 200, f"Expected 200 (fix), got {r.status_code}: {r.text}"
         assert r.json()["success"] is True
 
         # Confirm via queue
         r2 = requests.get(
-            f"{API}/admin/documents/verification-queue",
+            f"{API}/admin/document-vault/verification-queue",
             params={"status": "rejected"},
             headers=_auth(ADMIN),
         )
         rejected_ids = [d["document_id"] for d in r2.json()["documents"]]
         assert doc_id in rejected_ids
+
+    def test_vault_verify_with_document_id_in_body_still_works(self):
+        """Backward compat: body may include document_id (Optional)."""
+        files = {"file": ("t.pdf", b"approve-me", "application/pdf")}
+        data = {
+            "owner_id": OPERATOR["id"], "owner_type": "operator",
+            "name": "TEST_approve_compat", "category": "insurance", "document_type": "insurance_policy",
+        }
+        up = requests.post(f"{API}/vault/upload", data=data, files=files, headers=_auth(OPERATOR))
+        assert up.status_code == 200
+        doc_id = up.json()["document"]["document_id"]
+        STATE["doc_ids"].append(doc_id)
+
+        payload = {
+            "document_id": doc_id,
+            "verification_status": "verified",
+            "verified_by": ADMIN["id"],
+            "verification_notes": "TEST approve with id",
+        }
+        r = requests.post(f"{API}/vault/verify/{doc_id}", json=payload, headers=_auth(ADMIN))
+        assert r.status_code == 200, r.text
 
 
 # ============ Compliance dashboard-related endpoints used by ComplianceDashboard UI ============
