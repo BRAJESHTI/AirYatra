@@ -263,7 +263,8 @@ async def verify_login_otp(request: Request, data: OTPVerify):
     
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        # Return generic error to prevent account enumeration
+        raise HTTPException(status_code=401, detail="Invalid OTP or credentials")
     
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("User-Agent", "")

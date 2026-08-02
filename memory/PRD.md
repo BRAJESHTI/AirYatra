@@ -550,3 +550,48 @@ All APIs prefixed with `/api/`
 | OTP Expiry | P1 | OTP valid for 5 minutes only |
 | Login Shield AI™ | P2 | Risk scoring, anomaly detection, admin alerts |
 
+
+### Latest Updates (Aug 2, 2026 - Session 7: MESL v1.0 Security)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Email OTP Login | 🟢 DONE | OTP sent to email on login. 6-digit code, 5-min expiry, 3 max attempts. Cooldown prevents spam (60s). |
+| Device Trust ("30 Days") | 🟢 DONE | Users can check "Trust this device" to skip OTP for 30 days. Device fingerprint stored in `trusted_devices` collection. |
+| Session Manager | 🟢 DONE | View all active sessions with device info, IP, last activity. Logout individual sessions or all devices. |
+| Trusted Devices Management | 🟢 DONE | View/revoke trusted devices. Trust current device from security settings. |
+| Security Settings UI | 🟢 DONE | Toggle OTP on/off, view security overview (sessions count, trusted devices count). |
+| Security Audit Fixes | 🟢 DONE | Fixed: OTP not in email subject, generic error for account enumeration, constant-time OTP comparison. |
+
+### Backend APIs Added (Security)
+- `/api/auth/login` - Now returns `otp_required: true` when OTP needed
+- `/api/auth/login/verify-otp` - POST verify OTP and get token
+- `/api/auth/login/resend-otp` - POST resend OTP (rate limited)
+- `/api/auth/sessions` - GET all active sessions
+- `/api/auth/sessions/{id}` - DELETE revoke specific session
+- `/api/auth/logout-all-devices` - POST logout from all devices
+- `/api/auth/trusted-devices` - GET/DELETE manage trusted devices
+- `/api/auth/trust-current-device` - POST trust current device
+- `/api/auth/security-settings` - GET/PUT security settings
+
+### New Services Created
+- `/app/backend/services/otp_service.py` - OTP generation, verification, device trust management
+- Email templates: `otp_login`, `new_device_login`, `device_trusted`
+
+### Frontend Components Added
+- `/app/frontend/src/pages/LoginPage.js` - Enhanced with OTP verification UI
+- `/app/frontend/src/components/auth/SessionManager.js` - NEW: Session & device management UI
+- `/app/frontend/src/services/authService.js` - Added OTP and session APIs
+
+### Security Audit Results (Aug 2, 2026)
+- Status: CONDITIONAL PASS - NEEDS ATTENTION
+- SEC-001 (MEDIUM): Device trust fingerprint is IP+UA based - recommend cookie-based token (documented limitation)
+- SEC-002 (LOW): Fixed - Generic error for account enumeration
+- SEC-003 (LOW): X-Forwarded-For handling - proxy-dependent
+- SEC-004 (LOW): Fixed - OTP not shown in email subject
+- Additional hardening applied: constant-time OTP comparison using hmac.compare_digest
+
+### Remaining MESL Tasks
+- P1: SMS OTP Integration (Twilio/MSG91)
+- P1: Account Lockout (5 failed attempts)
+- P2: Login Shield AI™ (Risk scoring)
+

@@ -919,7 +919,7 @@ EMAIL_TEMPLATES = {
     
     # ===== OTP/SECURITY TEMPLATES =====
     "otp_login": {
-        "subject": "🔐 Your AirYatra Login OTP - {{ otp_code }}",
+        "subject": "🔐 AirYatra Login Verification Code",
         "body": """
 <!DOCTYPE html>
 <html>

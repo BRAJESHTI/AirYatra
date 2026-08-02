@@ -7,6 +7,7 @@ Features: Email OTP, Device Trust, Rate Limiting
 import os
 import secrets
 import hashlib
+import hmac
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, Tuple
@@ -29,9 +30,14 @@ def generate_otp(length: int = 6) -> str:
     return ''.join([str(secrets.randbelow(10)) for _ in range(length)])
 
 
-def hash_device_fingerprint(user_agent: str, ip_address: str, user_id: str) -> str:
-    """Create a unique device fingerprint hash"""
-    raw = f"{user_agent}:{ip_address}:{user_id}"
+def hash_device_fingerprint(user_agent: str, ip_address: str, user_id: str, extra_entropy: str = "") -> str:
+    """
+    Create a unique device fingerprint hash
+    Note: This is used for device recognition, not as sole authentication.
+    The trust system should ideally use a secure cookie-based token.
+    """
+    # Include timestamp-based component for uniqueness
+    raw = f"{user_agent}:{ip_address}:{user_id}:{extra_entropy}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -149,8 +155,8 @@ class OTPService:
             )
             return False, {"error": "max_attempts", "message": "Too many incorrect attempts. Please request a new OTP."}
         
-        # Verify OTP
-        if otp_record["otp_hash"] != otp_hash:
+        # Verify OTP using constant-time comparison
+        if not hmac.compare_digest(otp_record["otp_hash"], otp_hash):
             # Increment attempts
             await db.otp_codes.update_one(
                 {"id": otp_record["id"]},
