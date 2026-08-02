@@ -139,6 +139,8 @@ from routes import finance_scheduled_routes
 # Smart Pricing & Legal - Phase 1
 from routes import fixed_route_pricing_routes
 from routes import legal_routes
+# AI Reverse Auction - Phase 2
+from routes import auction_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -373,6 +375,9 @@ api_router.include_router(finance_scheduled_routes.router)
 # Smart Pricing & Legal - Phase 1
 api_router.include_router(fixed_route_pricing_routes.router)
 api_router.include_router(legal_routes.router)
+
+# AI Reverse Auction - Phase 2
+api_router.include_router(auction_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
