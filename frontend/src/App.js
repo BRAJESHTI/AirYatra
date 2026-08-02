@@ -44,6 +44,9 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 // 404 Page
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+// Command Center & AI Pricing
+const CommandCenterDashboard = lazy(() => import('./components/admin/CommandCenterDashboard'));
+const AIPricingAdvisor = lazy(() => import('./components/admin/AIPricingAdvisor'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -243,6 +246,18 @@ function App() {
         <Route 
           path="/pilot-portal" 
           element={user && (user.roles.includes('pilot') || user.roles.includes('admin') || user.roles.includes('operator')) ? <PilotMobilePortal user={user} /> : <Navigate to="/login" />} 
+        />
+        
+        {/* Command Center - Admin Only */}
+        <Route 
+          path="/command-center" 
+          element={user && (user.roles.includes('admin') || user.roles.includes('super_admin')) ? <CommandCenterDashboard /> : <Navigate to="/login" />} 
+        />
+        
+        {/* AI Pricing Advisor - Admin & Operators */}
+        <Route 
+          path="/ai-pricing" 
+          element={user && (user.roles.includes('admin') || user.roles.includes('operator') || user.roles.includes('sales')) ? <AIPricingAdvisor /> : <Navigate to="/login" />} 
         />
         
         {/* 404 Catch-all Route */}

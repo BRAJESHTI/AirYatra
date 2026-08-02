@@ -109,6 +109,11 @@ from routes import pilot_mobile_routes
 from routes import pilot_chat_routes
 from routes import pilot_availability_routes
 from routes import revenue_analytics_routes
+# New Features: Notification Center, Command Center, AI Pricing
+from routes import notification_center_routes
+from routes import command_center_routes
+from routes import ai_pricing_routes
+from routes import content_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -301,6 +306,11 @@ api_router.include_router(revenue_analytics_routes.router)
 # Content & Blog Routes
 from routes import content_routes
 api_router.include_router(content_routes.router)
+
+# New Features: Notification Center, Command Center, AI Pricing
+api_router.include_router(notification_center_routes.router)
+api_router.include_router(command_center_routes.router)
+api_router.include_router(ai_pricing_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

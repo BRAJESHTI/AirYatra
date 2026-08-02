@@ -682,18 +682,35 @@ All APIs prefixed with `/api/`
 
 | Feature | Status | Details |
 |---------|--------|---------|
-| Footer Social Links | 🟢 FIXED | Updated placeholder `#` links to actual URLs: twitter.com/airyatra, instagram.com/airyatra, linkedin.com/company/airyatra |
+| Footer Social Links | 🟢 FIXED | Facebook, Instagram (official), Twitter/X (official), LinkedIn (official) |
 | Footer Support Links | 🟢 FIXED | Help Center → #contact, Safety Guidelines → /about, Terms → /terms, Privacy → /privacy |
 | Terms of Service Page | 🟢 CREATED | `/terms` - Comprehensive legal terms page with 6 sections |
-| Privacy Policy Page | 🟢 CREATED | `/privacy` - GDPR-compliant privacy policy with data collection, security, and user rights sections |
-| 404 Not Found Page | 🟢 CREATED | Catch-all route for invalid URLs with branded 404 page and quick links |
-| All Navigation Links | 🟢 VERIFIED | Services, Fleet, Blog, About, Contact, Login, Book Now all working |
-| All Buttons | 🟢 VERIFIED | Hero CTAs, Service cards, Footer links, Exchange, Membership buttons functional |
-| Backend APIs | 🟢 VERIFIED | Fleet (6 aircraft), Blog (3 posts), Testimonials (5), Exchange (5 listings), Investor Interest APIs working |
-| Investor Form | 🟢 VERIFIED | Full Name, Email, Phone, Company, Investment Range fields with backend submission |
+| Privacy Policy Page | 🟢 CREATED | `/privacy` - GDPR-compliant privacy policy |
+| 404 Not Found Page | 🟢 CREATED | Catch-all route for invalid URLs |
+| Document Vault | 🟢 REMOVED | Removed from landing page (internal feature for Operator/Employee dashboards) |
 
-### New Pages Added:
-- `/terms` - TermsPage.js
-- `/privacy` - PrivacyPage.js  
-- `/404` - NotFoundPage.js (catch-all route)
+### New Enterprise Features (Aug 2, 2026 - Session 14)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Global Notification Center | 🟢 IMPLEMENTED | `/api/notifications/*` - Email, SMS, WhatsApp, Push, Approvals all in one place |
+| Command Center (24×7) | 🟢 IMPLEMENTED | `/command-center` - Live Flights, Pending Approvals, SOS Alerts, AI Warnings, System Health |
+| AI Pricing Advisor | 🟢 IMPLEMENTED | `/ai-pricing` - Route-based pricing suggestions with seasonal/demand factors |
+
+### API Endpoints Added:
+- `GET /api/command-center/dashboard` - Full command center data
+- `GET /api/command-center/system-health` - System health status
+- `GET /api/command-center/live-flights` - Active flights
+- `GET /api/command-center/pending-approvals` - Approval queue
+- `POST /api/command-center/sos-alert` - Create SOS alert
+- `POST /api/ai-pricing/suggest` - Get AI pricing suggestion
+- `GET /api/ai-pricing/popular-routes` - Popular routes list
+- `GET /api/notifications/stats` - Notification statistics
+- `GET /api/notifications/user/{user_id}` - User notifications
+- `POST /api/notifications/create` - Create notification
+
+### Frontend Components Added:
+- `CommandCenterDashboard.js` - 24×7 monitoring dashboard
+- `AIPricingAdvisor.js` - AI pricing interface with Hindi support
+- `GlobalNotificationCenter.js` - Unified notification panel
 

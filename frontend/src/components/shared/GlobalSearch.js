@@ -21,6 +21,8 @@ const CATEGORIES = {
 const QUICK_ACTIONS = [
   { id: 'new-booking', label: 'Create New Booking', icon: Plane, shortcut: 'N', path: '/booking' },
   { id: 'view-inquiries', label: 'View All Inquiries', icon: FileText, path: '/admin/inquiries' },
+  { id: 'command-center', label: 'Command Center (24×7 Monitoring)', icon: Shield, path: '/command-center', category: 'admin' },
+  { id: 'ai-pricing', label: 'AI Pricing Advisor', icon: DollarSign, path: '/ai-pricing', category: 'admin' },
   { id: 'operator-dashboard', label: 'Operator Dashboard', icon: Building2, path: '/operator' },
   { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Star, path: '/admin' },
   { id: 'customer-dashboard', label: 'Customer Dashboard', icon: Users, path: '/customer' },
