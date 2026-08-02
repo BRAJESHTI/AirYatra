@@ -114,6 +114,8 @@ from routes import notification_center_routes
 from routes import command_center_routes
 from routes import ai_pricing_routes
 from routes import content_routes
+# Razorpay Payment Gateway
+from routes import razorpay_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -311,6 +313,9 @@ api_router.include_router(content_routes.router)
 api_router.include_router(notification_center_routes.router)
 api_router.include_router(command_center_routes.router)
 api_router.include_router(ai_pricing_routes.router)
+
+# Razorpay Payment Gateway
+api_router.include_router(razorpay_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
