@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plane, Mail, Lock, User, Phone } from 'lucide-react';
+import { Plane, Mail, Lock, User, Phone, Shield, Smartphone, CheckCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { authAPI } from '../services/api';
 import { toast } from 'sonner';
 import { GoogleLoginButton } from '../components/auth/GoogleLogin';
@@ -16,10 +17,24 @@ function LoginPage({ setUser }) {
     full_name: '',
     phone: '',
     roles: ['customer'],
-    user_type: 'customer' // Add user type selector
+    user_type: 'customer'
   });
   const [loading, setLoading] = useState(false);
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [trustDevice, setTrustDevice] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [otpMessage, setOtpMessage] = useState('');
+  const otpRefs = useRef([]);
   const navigate = useNavigate();
+
+  // OTP cooldown timer
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
 
   const handleGoogleSuccess = (data) => {
     setUser(data.user);
@@ -36,32 +51,144 @@ function LoginPage({ setUser }) {
     setLoading(true);
 
     try {
-      // Ensure roles array is properly set
       const submitData = {
         email: formData.email,
         password: formData.password,
         full_name: formData.full_name,
         phone: formData.phone,
-        roles: formData.roles // Use the roles array that's updated by user_type selector
+        roles: formData.roles
       };
 
-      const response = isLogin
-        ? await authAPI.login({ email: formData.email, password: formData.password })
-        : await authAPI.register(submitData);
-
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      setUser(response.data.user);
-
-      toast.success(isLogin ? 'Login successful!' : 'Registration successful!');
-      
-      // Navigate based on role
-      const role = response.data.user.roles[0];
-      navigate(`/${role}`);
+      if (isLogin) {
+        const response = await authAPI.login({ 
+          email: formData.email, 
+          password: formData.password 
+        });
+        
+        // Check if OTP is required
+        if (response.data.otp_required) {
+          setOtpRequired(true);
+          setOtpMessage(response.data.message || 'OTP sent to your email');
+          toast.info(`🔐 ${response.data.message}`);
+          
+          if (response.data.cooldown) {
+            setOtpCooldown(response.data.remaining_seconds || 60);
+          }
+        } else {
+          // Direct login (trusted device or OTP disabled)
+          completeLogin(response.data);
+        }
+      } else {
+        // Registration
+        const response = await authAPI.register(submitData);
+        completeLogin(response.data);
+        toast.success('Registration successful!');
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Authentication failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    const otp = otpCode.join('');
+    
+    if (otp.length !== 6) {
+      toast.error('Please enter complete 6-digit OTP');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authAPI.verifyOTP({
+        email: formData.email,
+        otp_code: otp,
+        trust_device: trustDevice
+      });
+      
+      completeLogin(response.data);
+      
+      if (trustDevice) {
+        toast.success('✅ Login successful! Device trusted for 30 days');
+      } else {
+        toast.success('✅ Login successful!');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Invalid OTP');
+      // Clear OTP fields on error
+      setOtpCode(['', '', '', '', '', '']);
+      otpRefs.current[0]?.focus();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0) return;
+    
+    setLoading(true);
+    try {
+      const response = await authAPI.resendOTP({
+        email: formData.email,
+        password: formData.password
+      });
+      
+      if (response.data.cooldown) {
+        setOtpCooldown(response.data.remaining_seconds || 60);
+        toast.warning(response.data.message);
+      } else {
+        toast.success('🔐 New OTP sent to your email');
+        setOtpCode(['', '', '', '', '', '']);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to resend OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const completeLogin = (data) => {
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setUser(data.user);
+    
+    const role = data.user.roles[0];
+    navigate(`/${role}`);
+  };
+
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) {
+      // Handle paste
+      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
+      const newOtp = [...otpCode];
+      digits.forEach((digit, i) => {
+        if (index + i < 6) {
+          newOtp[index + i] = digit;
+        }
+      });
+      setOtpCode(newOtp);
+      const nextIndex = Math.min(index + digits.length, 5);
+      otpRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...otpCode];
+    newOtp[index] = value;
+    setOtpCode(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
     }
   };
 
@@ -79,34 +206,129 @@ function LoginPage({ setUser }) {
             <span className="text-3xl font-bold text-white">AirYatra</span>
           </Link>
           <h1 className="text-3xl font-bold text-white mb-2" data-testid="auth-title">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {otpRequired ? 'Verify OTP' : (isLogin ? 'Welcome Back' : 'Create Account')}
           </h1>
           <p className="text-slate-400">
-            {isLogin ? 'Login to access your account' : 'Sign up to start booking flights'}
+            {otpRequired 
+              ? otpMessage 
+              : (isLogin ? 'Login to access your account' : 'Sign up to start booking flights')}
           </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="auth-form">
-          {!isLogin && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="user_type" className="text-white">I am a *</Label>
-                <select
-                  id="user_type"
-                  name="user_type"
-                  value={formData.user_type}
-                  onChange={(e) => {
-                    const type = e.target.value;
-                    setFormData({ ...formData, user_type: type, roles: [type] });
-                  }}
-                  className="w-full h-10 px-3 rounded-md bg-slate-900 border-slate-700 text-white"
-                  data-testid="user-type-select"
-                >
-                  <option value="customer">Customer (Book Flights)</option>
-                  <option value="operator">Operator (Provide Services)</option>
-                </select>
+        {/* OTP Verification Form */}
+        {otpRequired ? (
+          <form onSubmit={handleOtpSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="otp-form">
+            {/* OTP Icon */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full mx-auto flex items-center justify-center mb-4">
+                <Shield className="h-8 w-8 text-white" />
               </div>
+              <p className="text-slate-400 text-sm">
+                Enter the 6-digit code sent to<br/>
+                <span className="text-white font-medium">{formData.email}</span>
+              </p>
+            </div>
+
+            {/* OTP Input Fields */}
+            <div className="flex justify-center gap-2">
+              {otpCode.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (otpRefs.current[index] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                  className="w-12 h-14 text-center text-2xl font-bold bg-slate-800 border-2 border-slate-600 rounded-lg text-white focus:border-orange-500 focus:outline-none transition-colors"
+                  data-testid={`otp-input-${index}`}
+                  autoFocus={index === 0}
+                />
+              ))}
+            </div>
+
+            {/* Trust Device Checkbox */}
+            <div className="flex items-center space-x-3 bg-slate-800/50 p-4 rounded-lg">
+              <Checkbox
+                id="trustDevice"
+                checked={trustDevice}
+                onCheckedChange={setTrustDevice}
+                className="border-orange-500 data-[state=checked]:bg-orange-500"
+              />
+              <label htmlFor="trustDevice" className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <Smartphone className="h-4 w-4 text-orange-400" />
+                Trust this device for 30 days
+              </label>
+            </div>
+
+            {/* Submit OTP */}
+            <Button
+              type="submit"
+              disabled={loading || otpCode.join('').length !== 6}
+              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white h-12"
+              data-testid="verify-otp-btn"
+            >
+              {loading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Verify & Login
+                </>
+              )}
+            </Button>
+
+            {/* Resend OTP */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={otpCooldown > 0 || loading}
+                className={`text-sm ${otpCooldown > 0 ? 'text-slate-500' : 'text-orange-400 hover:text-orange-300'}`}
+              >
+                {otpCooldown > 0 
+                  ? `Resend OTP in ${otpCooldown}s` 
+                  : "Didn't receive code? Resend OTP"}
+              </button>
+            </div>
+
+            {/* Back to Login */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setOtpRequired(false);
+                  setOtpCode(['', '', '', '', '', '']);
+                }}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ← Back to Login
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Regular Login/Register Form */
+          <form onSubmit={handleSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="auth-form">
+            {!isLogin && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="user_type" className="text-white">I am a *</Label>
+                  <select
+                    id="user_type"
+                    name="user_type"
+                    value={formData.user_type}
+                    onChange={(e) => {
+                      const type = e.target.value;
+                      setFormData({ ...formData, user_type: type, roles: [type] });
+                    }}
+                    className="w-full h-10 px-3 rounded-md bg-slate-900 border-slate-700 text-white"
+                    data-testid="user-type-select"
+                  >
+                    <option value="customer">Customer (Book Flights)</option>
+                    <option value="operator">Operator (Provide Services)</option>
+                  </select>
+                </div>
 
               <div className="space-y-2">
                 <Label htmlFor="full_name" className="text-white">Full Name</Label>
@@ -216,6 +438,7 @@ function LoginPage({ setUser }) {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

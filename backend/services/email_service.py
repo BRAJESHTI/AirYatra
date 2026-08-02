@@ -916,6 +916,189 @@ EMAIL_TEMPLATES = {
 </html>
 """
     },
+    
+    # ===== OTP/SECURITY TEMPLATES =====
+    "otp_login": {
+        "subject": "🔐 Your AirYatra Login OTP - {{ otp_code }}",
+        "body": """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 30px; text-align: center; }
+        .header-icon { font-size: 50px; }
+        .content { padding: 30px; text-align: center; }
+        .otp-box { background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 16px; padding: 25px; margin: 25px 0; }
+        .otp-code { font-size: 42px; font-weight: bold; letter-spacing: 8px; font-family: 'Courier New', monospace; }
+        .expiry { background: #1a1a2e; border-radius: 8px; padding: 12px; margin: 20px 0; font-size: 14px; color: #fbbf24; }
+        .warning { background: #7f1d1d; border: 1px solid #ef4444; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: left; }
+        .warning-title { color: #ef4444; font-weight: 600; margin-bottom: 8px; }
+        .footer { background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">🔐</div>
+            <h1 style="margin:10px 0 0;">Login Verification</h1>
+            <p style="margin:5px 0 0; opacity:0.9;">AirYatra Security</p>
+        </div>
+        <div class="content">
+            <p>Namaste <strong>{{ user_name }}</strong>,</p>
+            <p>Aapke AirYatra account mein login ke liye OTP hai:</p>
+            
+            <div class="otp-box">
+                <div class="otp-code">{{ otp_code }}</div>
+            </div>
+            
+            <div class="expiry">
+                ⏱️ This OTP will expire in <strong>{{ expiry_minutes }} minutes</strong>
+            </div>
+            
+            <div class="warning">
+                <div class="warning-title">⚠️ Security Notice</div>
+                <p style="margin:0; font-size:13px; color:#fca5a5;">
+                    • Never share this OTP with anyone<br>
+                    • AirYatra will never call and ask for OTP<br>
+                    • If you didn't request this, ignore this email
+                </p>
+            </div>
+            
+            <p style="color:#94a3b8; font-size:13px;">
+                Login attempt from: {{ device_info }}<br>
+                IP: {{ ip_address }}<br>
+                Time: {{ timestamp }}
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra - Enterprise Aviation Security</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    },
+    
+    "new_device_login": {
+        "subject": "🚨 New Device Login Detected - AirYatra Security Alert",
+        "body": """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #ef4444, #dc2626); padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .device-box { background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #fbbf24; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a4e; }
+        .info-row:last-child { border-bottom: none; }
+        .btn { display: inline-block; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 5px; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-secondary { background: #3b82f6; color: white; }
+        .footer { background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size:50px;">🚨</div>
+            <h1 style="margin:10px 0 0;">New Login Detected</h1>
+        </div>
+        <div class="content">
+            <p>Namaste <strong>{{ user_name }}</strong>,</p>
+            <p>Aapke AirYatra account mein ek <strong>naye device</strong> se login hua hai:</p>
+            
+            <div class="device-box">
+                <h4 style="margin:0 0 15px; color:#fbbf24;">📱 Device Details</h4>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Device:</span>
+                    <span style="font-weight:600;">{{ device_name }}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Location:</span>
+                    <span style="font-weight:600;">{{ location }}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">IP Address:</span>
+                    <span style="font-weight:600;">{{ ip_address }}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:#94a3b8;">Time:</span>
+                    <span style="font-weight:600;">{{ timestamp }}</span>
+                </div>
+            </div>
+            
+            <p style="text-align:center;">
+                <span style="color:#22c55e;">✅ If this was you, no action needed.</span>
+            </p>
+            
+            <p style="text-align:center; margin-top:20px;">
+                <a href="{{ secure_account_url }}" class="btn btn-danger">🔒 Secure My Account</a>
+                <a href="{{ sessions_url }}" class="btn btn-secondary">View All Sessions</a>
+            </p>
+            
+            <p style="color:#ef4444; font-size:13px; background:#450a0a; padding:15px; border-radius:8px; margin-top:20px;">
+                ⚠️ <strong>Wasn't you?</strong> Click "Secure My Account" immediately to logout from all devices and change your password.
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra Security Team</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    },
+    
+    "device_trusted": {
+        "subject": "✅ Device Trusted - AirYatra Security",
+        "body": """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #22c55e, #16a34a); padding: 30px; text-align: center; }
+        .content { padding: 30px; text-align: center; }
+        .device-box { background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 20px 0; }
+        .footer { background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size:50px;">✅</div>
+            <h1 style="margin:10px 0 0;">Device Trusted</h1>
+        </div>
+        <div class="content">
+            <p>Namaste <strong>{{ user_name }}</strong>,</p>
+            <p>Aapne ye device trust kar diya hai. Ab is device se login karne pe OTP nahi maanga jayega.</p>
+            
+            <div class="device-box">
+                <h4 style="margin:0 0 10px; color:#22c55e;">📱 {{ device_name }}</h4>
+                <p style="color:#94a3b8; margin:0;">Trusted for {{ trust_days }} days</p>
+                <p style="color:#94a3b8; margin:5px 0 0;">Expires: {{ expires_at }}</p>
+            </div>
+            
+            <p style="color:#94a3b8; font-size:13px;">
+                You can manage trusted devices from your account settings anytime.
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra Security</p>
+            <p>© 2025 AirYatra Aviation Pvt. Ltd.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    },
 }
 
 # ==================== EMAIL SERVICE CLASS ====================
@@ -1235,6 +1418,72 @@ class EmailService:
             )
         
         return results
+    
+    # ===== OTP / SECURITY EMAIL METHODS =====
+    
+    async def send_otp_email(
+        self,
+        to_email: str,
+        user_name: str,
+        otp_code: str,
+        expiry_minutes: int = 5,
+        device_info: str = "Unknown",
+        ip_address: str = "Unknown"
+    ) -> Dict[str, Any]:
+        """Send OTP email for login verification"""
+        from datetime import datetime
+        
+        data = {
+            "user_name": user_name,
+            "otp_code": otp_code,
+            "expiry_minutes": expiry_minutes,
+            "device_info": device_info,
+            "ip_address": ip_address,
+            "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p IST"),
+        }
+        
+        return await self.send_template_email("otp_login", to_email, data)
+    
+    async def send_new_device_alert(
+        self,
+        to_email: str,
+        user_name: str,
+        device_name: str,
+        ip_address: str,
+        location: str = "Unknown"
+    ) -> Dict[str, Any]:
+        """Send alert when login from new device"""
+        from datetime import datetime
+        
+        data = {
+            "user_name": user_name,
+            "device_name": device_name,
+            "ip_address": ip_address,
+            "location": location,
+            "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p IST"),
+            "secure_account_url": "https://airyatra.co.in/account/security",
+            "sessions_url": "https://airyatra.co.in/account/sessions",
+        }
+        
+        return await self.send_template_email("new_device_login", to_email, data)
+    
+    async def send_device_trusted_email(
+        self,
+        to_email: str,
+        user_name: str,
+        device_name: str,
+        trust_days: int,
+        expires_at: str
+    ) -> Dict[str, Any]:
+        """Send confirmation when device is trusted"""
+        data = {
+            "user_name": user_name,
+            "device_name": device_name,
+            "trust_days": trust_days,
+            "expires_at": expires_at,
+        }
+        
+        return await self.send_template_email("device_trusted", to_email, data)
 
 
     async def send_payment_receipt_with_pdf(

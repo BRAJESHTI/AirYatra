@@ -10,6 +10,23 @@ export const authAPI = {
     localStorage.removeItem('token');
     return Promise.resolve();
   },
+  // OTP Authentication
+  verifyOTP: (data) => api.post('/auth/login/verify-otp', data),
+  resendOTP: (data) => api.post('/auth/login/resend-otp', data),
+  // Session Management
+  getSessions: () => api.get('/auth/sessions'),
+  revokeSession: (sessionId) => api.delete(`/auth/sessions/${sessionId}`),
+  logoutAllDevices: () => api.post('/auth/logout-all-devices'),
+  // Trusted Devices
+  getTrustedDevices: () => api.get('/auth/trusted-devices'),
+  trustCurrentDevice: () => api.post('/auth/trust-current-device'),
+  revokeTrustedDevice: (deviceId) => api.delete(`/auth/trusted-devices/${deviceId}`),
+  revokeAllTrustedDevices: () => api.delete('/auth/trusted-devices'),
+  // Security Settings
+  getSecuritySettings: () => api.get('/auth/security-settings'),
+  updateSecuritySettings: (data) => api.put('/auth/security-settings', data),
+  // Password
+  changePassword: (data) => api.put('/auth/change-password', data),
 };
 
 // Google Auth API
