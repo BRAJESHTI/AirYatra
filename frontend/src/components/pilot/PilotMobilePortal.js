@@ -316,106 +316,489 @@ const DutyTab = ({ dutyStatus, onCheckIn, onCheckOut }) => {
 };
 
 // Documents Tab
-const DocumentsTab = ({ documents, onRefresh }) => (
-  <div className="space-y-4 pb-20">
-    <div className="flex items-center justify-between">
-      <h3 className="text-white font-semibold">My Documents</h3>
-      <Button onClick={onRefresh} variant="ghost" size="sm">
-        <RefreshCw className="h-4 w-4" />
-      </Button>
-    </div>
+const DocumentsTab = ({ documents, onRefresh, onUploadDocument }) => {
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    document_type: 'license',
+    document_number: '',
+    expiry_date: '',
+    issuer: '',
+    file: null
+  });
 
-    <div className="space-y-3">
-      {documents?.map((doc, idx) => {
-        const isExpiringSoon = doc.days_until_expiry <= 30;
-        const isExpired = doc.days_until_expiry <= 0;
-        
-        return (
-          <div 
-            key={idx}
-            className={`bg-slate-800 rounded-xl p-4 border-l-4 ${
-              isExpired ? 'border-red-500' :
-              isExpiringSoon ? 'border-yellow-500' :
-              'border-green-500'
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-white font-medium">{doc.document_type}</p>
-                <p className="text-slate-400 text-sm">{doc.document_number}</p>
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File too large. Maximum 5MB allowed.');
+        return;
+      }
+      setUploadForm({ ...uploadForm, file });
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadForm.document_number || !uploadForm.expiry_date || !uploadForm.file) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('document_type', uploadForm.document_type);
+      formData.append('document_number', uploadForm.document_number);
+      formData.append('expiry_date', uploadForm.expiry_date);
+      formData.append('file', uploadForm.file);
+      if (uploadForm.issuer) formData.append('issuer', uploadForm.issuer);
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/pilot/documents/upload-file`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (res.ok) {
+        toast.success('Document uploaded successfully!');
+        setShowUpload(false);
+        setUploadForm({
+          document_type: 'license',
+          document_number: '',
+          expiry_date: '',
+          issuer: '',
+          file: null
+        });
+        onRefresh();
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Upload failed');
+      }
+    } catch (error) {
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 pb-20">
+      <div className="flex items-center justify-between">
+        <h3 className="text-white font-semibold">My Documents</h3>
+        <Button onClick={onRefresh} variant="ghost" size="sm">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {documents?.map((doc, idx) => {
+          const isExpiringSoon = doc.days_until_expiry <= 30;
+          const isExpired = doc.days_until_expiry <= 0;
+          
+          return (
+            <div 
+              key={idx}
+              className={`bg-slate-800 rounded-xl p-4 border-l-4 ${
+                isExpired ? 'border-red-500' :
+                isExpiringSoon ? 'border-yellow-500' :
+                'border-green-500'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-white font-medium">{doc.document_type}</p>
+                  <p className="text-slate-400 text-sm">{doc.document_number}</p>
+                </div>
+                {isExpired ? (
+                  <span className="px-2 py-1 bg-red-600 rounded text-xs text-white">EXPIRED</span>
+                ) : isExpiringSoon ? (
+                  <span className="px-2 py-1 bg-yellow-600 rounded text-xs text-white">
+                    {doc.days_until_expiry}d left
+                  </span>
+                ) : (
+                  <span className="px-2 py-1 bg-green-600/20 text-green-400 rounded text-xs">
+                    Valid
+                  </span>
+                )}
               </div>
-              {isExpired ? (
-                <span className="px-2 py-1 bg-red-600 rounded text-xs text-white">EXPIRED</span>
-              ) : isExpiringSoon ? (
-                <span className="px-2 py-1 bg-yellow-600 rounded text-xs text-white">
-                  {doc.days_until_expiry}d left
+              <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
+                <span>Expires: {doc.expiry_date}</span>
+                <span className={doc.verification_status === 'verified' ? 'text-green-400' : 'text-yellow-400'}>
+                  {doc.verification_status}
                 </span>
-              ) : (
-                <span className="px-2 py-1 bg-green-600/20 text-green-400 rounded text-xs">
-                  Valid
-                </span>
-              )}
+              </div>
             </div>
-            <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
-              <span>Expires: {doc.expiry_date}</span>
-              <span className={doc.verification_status === 'verified' ? 'text-green-400' : 'text-yellow-400'}>
-                {doc.verification_status}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
 
-    <Button className="w-full bg-orange-600 hover:bg-orange-700">
-      <Plus className="h-4 w-4 mr-2" />
-      Upload New Document
-    </Button>
-  </div>
-);
-
-// Flight Logs Tab
-const FlightsTab = ({ flightLogs, onAddLog }) => (
-  <div className="space-y-4 pb-20">
-    <div className="flex items-center justify-between">
-      <h3 className="text-white font-semibold">Flight Logs</h3>
-      <Button onClick={onAddLog} size="sm" className="bg-orange-600 hover:bg-orange-700">
-        <Plus className="h-4 w-4 mr-1" />
-        Add Log
+      {/* Upload Document Button */}
+      <Button 
+        onClick={() => setShowUpload(!showUpload)}
+        className="w-full bg-orange-600 hover:bg-orange-700"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        {showUpload ? 'Cancel' : 'Upload New Document'}
       </Button>
-    </div>
 
-    <div className="space-y-3">
-      {flightLogs?.map((log, idx) => (
-        <div key={idx} className="bg-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-orange-400 font-mono">{log.flight_id}</span>
-            <span className="text-xs text-slate-400">{log.date}</span>
+      {/* Upload Form */}
+      {showUpload && (
+        <div className="bg-slate-800 rounded-xl p-4 space-y-4 animate-in slide-in-from-bottom">
+          <h4 className="text-white font-semibold">Upload Document</h4>
+          
+          <div>
+            <label className="text-slate-400 text-sm">Document Type *</label>
+            <select
+              value={uploadForm.document_type}
+              onChange={(e) => setUploadForm({ ...uploadForm, document_type: e.target.value })}
+              className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 mt-1 border border-slate-600"
+            >
+              <option value="license">Pilot License (CPL/ATPL)</option>
+              <option value="medical">Medical Certificate</option>
+              <option value="type_rating">Type Rating</option>
+              <option value="insurance">Insurance</option>
+              <option value="passport">Passport</option>
+              <option value="aadhar">Aadhaar Card</option>
+              <option value="pan">PAN Card</option>
+              <option value="other">Other</option>
+            </select>
           </div>
-          <div className="flex items-center gap-2 text-white mb-2">
-            <span>{log.from}</span>
-            <ChevronRight className="h-4 w-4 text-slate-500" />
-            <span>{log.to}</span>
+
+          <div>
+            <label className="text-slate-400 text-sm">Document Number *</label>
+            <input
+              type="text"
+              value={uploadForm.document_number}
+              onChange={(e) => setUploadForm({ ...uploadForm, document_number: e.target.value })}
+              placeholder="e.g., CPL-2024-0001"
+              className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 mt-1 border border-slate-600"
+            />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <p className="text-slate-400">Aircraft</p>
-              <p className="text-white">{log.aircraft}</p>
+
+          <div>
+            <label className="text-slate-400 text-sm">Expiry Date *</label>
+            <input
+              type="date"
+              value={uploadForm.expiry_date}
+              onChange={(e) => setUploadForm({ ...uploadForm, expiry_date: e.target.value })}
+              className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 mt-1 border border-slate-600"
+            />
+          </div>
+
+          <div>
+            <label className="text-slate-400 text-sm">Issuing Authority</label>
+            <input
+              type="text"
+              value={uploadForm.issuer}
+              onChange={(e) => setUploadForm({ ...uploadForm, issuer: e.target.value })}
+              placeholder="e.g., DGCA India"
+              className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 mt-1 border border-slate-600"
+            />
+          </div>
+
+          <div>
+            <label className="text-slate-400 text-sm">File (PDF, JPG, PNG - Max 5MB) *</label>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleFileChange}
+              className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 mt-1 border border-slate-600 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-orange-600 file:text-white"
+            />
+            {uploadForm.file && (
+              <p className="text-xs text-green-400 mt-1">Selected: {uploadForm.file.name}</p>
+            )}
+          </div>
+
+          <Button 
+            onClick={handleUpload}
+            disabled={uploading}
+            className="w-full bg-green-600 hover:bg-green-700"
+          >
+            {uploading ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                Upload Document
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Flight Logs Tab with Pre-Flight Checklist
+const FlightsTab = ({ flightLogs, upcomingFlights, onAddLog }) => {
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [checklist, setChecklist] = useState([]);
+  const [itemsChecked, setItemsChecked] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedFlight, setSelectedFlight] = useState(null);
+  const [passengerCount, setPassengerCount] = useState(1);
+  const [notes, setNotes] = useState('');
+
+  const loadChecklist = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/pilot/preflight/checklist`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChecklist(data.checklist || []);
+      }
+    } catch (error) {
+      console.error('Failed to load checklist');
+    }
+  };
+
+  const handleStartPreflight = (flight) => {
+    setSelectedFlight(flight);
+    setItemsChecked({});
+    setNotes('');
+    loadChecklist();
+    setShowChecklist(true);
+  };
+
+  const toggleItem = (itemId) => {
+    setItemsChecked(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  const handleSubmitPreflight = async () => {
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/pilot/preflight/submit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          flight_id: selectedFlight?.flight_id,
+          aircraft_registration: selectedFlight?.aircraft || 'VT-AYR',
+          items_checked: itemsChecked,
+          passenger_count: passengerCount,
+          notes
+        })
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success(`Pre-flight check complete! ${data.completion_percentage}% items verified`);
+        if (data.ready_for_takeoff) {
+          toast.success('✅ Aircraft ready for takeoff!');
+        }
+        setShowChecklist(false);
+      } else {
+        if (data.detail?.missing_items) {
+          toast.error(`Missing critical items: ${data.detail.missing_items.slice(0, 2).join(', ')}...`);
+        } else {
+          toast.error(data.detail || 'Submission failed');
+        }
+      }
+    } catch (error) {
+      toast.error('Failed to submit pre-flight check');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const checkedCount = Object.values(itemsChecked).filter(Boolean).length;
+  const totalItems = checklist.reduce((acc, cat) => acc + cat.items.length, 0);
+
+  return (
+    <div className="space-y-4 pb-20">
+      {/* Upcoming Flights with Pre-Flight Button */}
+      {upcomingFlights?.length > 0 && (
+        <div className="bg-slate-800/50 rounded-xl p-4">
+          <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+            <Plane className="h-4 w-4 text-orange-400" />
+            Pre-Flight Check Required
+          </h3>
+          <div className="space-y-2">
+            {upcomingFlights.slice(0, 2).map((flight, idx) => (
+              <div key={idx} className="bg-slate-700/50 rounded-lg p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-white text-sm">{flight.from} → {flight.to}</p>
+                  <p className="text-xs text-slate-400">{flight.date} at {flight.departure_time}</p>
+                </div>
+                <Button 
+                  onClick={() => handleStartPreflight(flight)}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Pre-Check
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Flight Logs Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-white font-semibold">Flight Logs</h3>
+        <Button onClick={onAddLog} size="sm" className="bg-orange-600 hover:bg-orange-700">
+          <Plus className="h-4 w-4 mr-1" />
+          Add Log
+        </Button>
+      </div>
+
+      {/* Flight Logs */}
+      <div className="space-y-3">
+        {flightLogs?.map((log, idx) => (
+          <div key={idx} className="bg-slate-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-orange-400 font-mono">{log.flight_id}</span>
+              <span className="text-xs text-slate-400">{log.date}</span>
             </div>
-            <div>
-              <p className="text-slate-400">Duration</p>
-              <p className="text-white">{log.duration}h</p>
+            <div className="flex items-center gap-2 text-white mb-2">
+              <span>{log.from}</span>
+              <ChevronRight className="h-4 w-4 text-slate-500" />
+              <span>{log.to}</span>
             </div>
-            <div>
-              <p className="text-slate-400">Type</p>
-              <p className="text-white">{log.flight_type}</p>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <p className="text-slate-400">Aircraft</p>
+                <p className="text-white">{log.aircraft}</p>
+              </div>
+              <div>
+                <p className="text-slate-400">Duration</p>
+                <p className="text-white">{log.duration}h</p>
+              </div>
+              <div>
+                <p className="text-slate-400">Type</p>
+                <p className="text-white">{log.flight_type}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pre-Flight Checklist Modal */}
+      {showChecklist && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end justify-center">
+          <div className="bg-slate-900 w-full max-w-lg rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-slate-800 p-4 flex items-center justify-between sticky top-0">
+              <div>
+                <h3 className="text-white font-semibold">Pre-Flight Checklist</h3>
+                <p className="text-xs text-slate-400">
+                  {selectedFlight?.from} → {selectedFlight?.to} | {checkedCount}/{totalItems} items
+                </p>
+              </div>
+              <button onClick={() => setShowChecklist(false)} className="text-slate-400">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="px-4 py-2 bg-slate-800/50">
+              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-orange-500 to-green-500 transition-all"
+                  style={{ width: `${totalItems > 0 ? (checkedCount / totalItems) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Checklist Items */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {checklist.map((category, catIdx) => (
+                <div key={catIdx}>
+                  <h4 className="text-orange-400 font-semibold text-sm mb-2">{category.category}</h4>
+                  <div className="space-y-2">
+                    {category.items.map((item, itemIdx) => (
+                      <button
+                        key={itemIdx}
+                        onClick={() => toggleItem(item.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                          itemsChecked[item.id]
+                            ? 'bg-green-600/20 border-green-500'
+                            : 'bg-slate-800 border-slate-700'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                          itemsChecked[item.id]
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-slate-500'
+                        }`}>
+                          {itemsChecked[item.id] && <CheckCircle className="h-3 w-3 text-white" />}
+                        </div>
+                        <span className={`text-sm flex-1 text-left ${
+                          itemsChecked[item.id] ? 'text-green-400' : 'text-white'
+                        }`}>
+                          {item.label}
+                          {item.critical && <span className="text-red-400 ml-1">*</span>}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Additional Info */}
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="text-slate-400 text-sm">Passengers</label>
+                  <input
+                    type="number"
+                    value={passengerCount}
+                    onChange={(e) => setPassengerCount(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 mt-1 border border-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 text-sm">Notes (optional)</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any observations or remarks..."
+                    className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 mt-1 border border-slate-700 h-20 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="p-4 bg-slate-800 sticky bottom-0">
+              <Button
+                onClick={handleSubmitPreflight}
+                disabled={submitting}
+                className="w-full bg-green-600 hover:bg-green-700 h-12"
+              >
+                {submitting ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Complete Pre-Flight Check
+              </Button>
+              <p className="text-xs text-slate-500 text-center mt-2">
+                * Critical items must be checked before takeoff
+              </p>
             </div>
           </div>
         </div>
-      ))}
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // Profile Tab
 const ProfileTab = ({ pilot, onLogout, notificationsEnabled, onEnableNotifications, isOnline }) => (
@@ -679,6 +1062,7 @@ function PilotMobilePortal() {
         {activeTab === 'flights' && (
           <FlightsTab 
             flightLogs={flightLogs}
+            upcomingFlights={upcomingFlights}
             onAddLog={() => toast.info('Feature coming soon!')}
           />
         )}

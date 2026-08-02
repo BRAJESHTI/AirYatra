@@ -1348,6 +1348,140 @@ class EmailService:
             attachments=attachments
         )
 
+    async def send_booking_confirmation(
+        self,
+        to_email: str,
+        booking_data: dict
+    ) -> Dict[str, Any]:
+        """Send booking confirmation email with PDF receipt attachment"""
+        from services.pdf_service import pdf_service
+        
+        customer_name = booking_data.get('customer_name', booking_data.get('name', 'Customer'))
+        booking_id = booking_data.get('booking_id', booking_data.get('id', 'N/A'))
+        route = f"{booking_data.get('from_location', booking_data.get('origin', 'N/A'))} → {booking_data.get('to_location', booking_data.get('destination', 'N/A'))}"
+        travel_date = booking_data.get('travel_date', booking_data.get('departure_date', 'N/A'))
+        total_amount = booking_data.get('total_amount', booking_data.get('amount', 0))
+        
+        subject = f"✈️ Booking Confirmed #{booking_id} | AirYatra"
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+                .header {{ background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 28px; color: white; }}
+                .header p {{ margin: 10px 0 0; color: rgba(255,255,255,0.9); }}
+                .content {{ padding: 30px; }}
+                .booking-id {{ background: #1a1a2e; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 25px; }}
+                .booking-id .label {{ color: #64748b; font-size: 12px; }}
+                .booking-id .value {{ color: #f97316; font-size: 24px; font-weight: bold; }}
+                .flight-card {{ background: #1a1a2e; border-radius: 12px; padding: 20px; margin-bottom: 20px; }}
+                .route {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }}
+                .city {{ text-align: center; }}
+                .city .name {{ font-size: 20px; font-weight: bold; color: white; }}
+                .city .label {{ font-size: 11px; color: #64748b; }}
+                .arrow {{ color: #f97316; font-size: 24px; }}
+                .detail-row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a4e; }}
+                .detail-row:last-child {{ border-bottom: none; }}
+                .detail-label {{ color: #64748b; }}
+                .detail-value {{ color: white; font-weight: 600; }}
+                .total {{ background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }}
+                .total .label {{ color: rgba(255,255,255,0.8); font-size: 14px; }}
+                .total .amount {{ font-size: 32px; font-weight: bold; color: white; }}
+                .cta-button {{ display: block; background: #22c55e; color: white; text-align: center; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }}
+                .footer {{ background: #0f0f1e; padding: 20px; text-align: center; }}
+                .footer p {{ margin: 5px 0; color: #64748b; font-size: 12px; }}
+                .attachment-note {{ background: #1e3a5f; border-radius: 8px; padding: 15px; margin-top: 20px; text-align: center; }}
+                .attachment-note p {{ color: #94a3b8; margin: 0; font-size: 13px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Booking Confirmed! 🎉</h1>
+                    <p>Your AirYatra flight is booked</p>
+                </div>
+                
+                <div class="content">
+                    <p>Namaste <strong>{customer_name}</strong>,</p>
+                    <p>Thank you for booking with AirYatra! Your flight has been confirmed.</p>
+                    
+                    <div class="booking-id">
+                        <div class="label">BOOKING ID</div>
+                        <div class="value">{booking_id}</div>
+                    </div>
+                    
+                    <div class="flight-card">
+                        <div class="route">
+                            <div class="city">
+                                <div class="name">{booking_data.get('from_location', booking_data.get('origin', 'N/A'))}</div>
+                                <div class="label">DEPARTURE</div>
+                            </div>
+                            <div class="arrow">✈️</div>
+                            <div class="city">
+                                <div class="name">{booking_data.get('to_location', booking_data.get('destination', 'N/A'))}</div>
+                                <div class="label">ARRIVAL</div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <span class="detail-label">Date</span>
+                            <span class="detail-value">{travel_date}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Aircraft</span>
+                            <span class="detail-value">{booking_data.get('aircraft_type', 'Helicopter')}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Passengers</span>
+                            <span class="detail-value">{booking_data.get('passengers', booking_data.get('passenger_count', 1))}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="total">
+                        <div class="label">TOTAL AMOUNT</div>
+                        <div class="amount">₹{total_amount:,.2f}</div>
+                    </div>
+                    
+                    <div class="attachment-note">
+                        <p>📎 Your detailed receipt is attached to this email as a PDF</p>
+                    </div>
+                    
+                    <p style="color: #94a3b8; font-size: 13px; margin-top: 20px;">
+                        <strong>Important:</strong><br>
+                        • Please arrive at the helipad 30 minutes before departure<br>
+                        • Carry a valid government-issued photo ID<br>
+                        • Baggage limit: 7kg per passenger
+                    </p>
+                </div>
+                
+                <div class="footer">
+                    <p>Questions? Contact us at support@airyatra.com</p>
+                    <p>AirYatra Aviation Pvt Ltd</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Generate PDF receipt
+        pdf_bytes = pdf_service.generate_booking_receipt(booking_data)
+        
+        attachments = [{
+            "filename": f"AirYatra_Booking_{booking_id}.pdf",
+            "content": pdf_bytes,
+        }]
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            attachments=attachments
+        )
+
 
 # Singleton instance
 email_service = EmailService()

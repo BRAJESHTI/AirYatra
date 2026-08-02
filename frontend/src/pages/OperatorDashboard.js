@@ -29,6 +29,7 @@ import OperatorFleetAnalytics from '../components/operator/OperatorFleetAnalytic
 import PilotDutyTracker from '../components/operator/PilotDutyTracker';
 import FleetMaintenanceCalendar from '../components/operator/FleetMaintenanceCalendar';
 import PilotAssignmentCalendar from '../components/operator/PilotAssignmentCalendar';
+import CrewSchedulingBoard from '../components/operator/CrewSchedulingBoard';
 import MaintenanceCostTracker from '../components/operator/MaintenanceCostTracker';
 import PilotDocumentUpload from '../components/operator/PilotDocumentUpload';
 
@@ -66,6 +67,7 @@ const navGroups = [
       { id: 'cost-tracker', label: 'Cost Tracker / लागत', icon: DollarSign, path: '/operator/cost-tracker', highlight: true },
       { id: 'pilots', label: 'Pilots / पायलट', icon: Users, path: '/operator/pilots' },
       { id: 'pilot-assignment', label: 'Pilot Assignment / असाइनमेंट', icon: UserPlus, path: '/operator/pilot-assignment', highlight: true },
+      { id: 'crew-scheduling', label: 'Crew Scheduling / शेड्यूलिंग', icon: Calendar, path: '/operator/crew-scheduling', highlight: true },
       { id: 'pilot-documents', label: 'Pilot Documents / दस्तावेज़', icon: FileText, path: '/operator/pilot-documents', highlight: true },
     ]
   },
@@ -277,6 +279,7 @@ function OperatorDashboard({ user, onLogout }) {
               <Route path="pricing" element={<OperatorPricingConfig />} />
               <Route path="profile" element={<OperatorProfile operator={operator} onOperatorUpdate={setOperator} />} />
               <Route path="pilot-assignment" element={<PilotAssignmentCalendar />} />
+              <Route path="crew-scheduling" element={<CrewSchedulingBoard />} />
               <Route path="cost-tracker" element={<MaintenanceCostTracker />} />
               <Route path="pilot-documents" element={<PilotDocumentUpload />} />
             </Routes>

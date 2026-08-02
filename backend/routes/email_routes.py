@@ -252,3 +252,112 @@ async def get_email_status(
         "templates_available": len(email_service.templates),
         "template_types": list(set([t.split("_")[0] for t in email_service.templates.keys()]))
     }
+
+
+
+@router.post("/booking/{booking_id}/send-confirmation")
+async def send_booking_confirmation_email(
+    booking_id: str,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OPERATOR]))
+):
+    """Send or resend booking confirmation email with PDF receipt"""
+    db = get_database()
+    
+    # Get booking
+    booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get customer details
+    customer_id = booking.get("customer_id") or booking.get("user_id")
+    customer = None
+    if customer_id:
+        customer = await db.users.find_one({"id": customer_id}, {"_id": 0, "email": 1, "full_name": 1, "phone": 1})
+    
+    # Fallback to booking email
+    customer_email = (customer or {}).get("email") or booking.get("customer_email") or booking.get("email")
+    customer_name = (customer or {}).get("full_name") or booking.get("customer_name") or booking.get("name", "Customer")
+    
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="No email address found for this booking")
+    
+    booking_data = {
+        **booking,
+        "customer_name": customer_name,
+        "customer_email": customer_email,
+        "customer_phone": (customer or {}).get("phone", booking.get("phone", "")),
+        "booking_id": booking.get("id", booking_id),
+        "total_amount": booking.get("total_amount", booking.get("amount", 0)),
+        "payment_status": booking.get("payment_status", "pending")
+    }
+    
+    # Send email in background
+    background_tasks.add_task(
+        email_service.send_booking_confirmation,
+        to_email=customer_email,
+        booking_data=booking_data
+    )
+    
+    return {
+        "message": f"Booking confirmation email queued for {customer_email}",
+        "booking_id": booking_id,
+        "recipient": customer_email
+    }
+
+
+@router.get("/booking/{booking_id}/receipt")
+async def download_booking_receipt(
+    booking_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Download booking receipt as PDF"""
+    from fastapi.responses import Response
+    from services.pdf_service import pdf_service
+    
+    db = get_database()
+    
+    # Get booking
+    booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Check access - must be admin, operator, or the booking customer
+    user_id = user.get("id")
+    user_roles = user.get("roles", [])
+    is_owner = booking.get("customer_id") == user_id or booking.get("user_id") == user_id
+    is_admin = "admin" in user_roles or "super_admin" in user_roles or "operator" in user_roles
+    
+    if not is_owner and not is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get customer details
+    customer_id = booking.get("customer_id") or booking.get("user_id")
+    customer = None
+    if customer_id:
+        customer = await db.users.find_one({"id": customer_id}, {"_id": 0, "email": 1, "full_name": 1, "phone": 1})
+    
+    booking_data = {
+        **booking,
+        "customer_name": (customer or {}).get("full_name") or booking.get("customer_name") or booking.get("name", "Customer"),
+        "customer_email": (customer or {}).get("email") or booking.get("customer_email") or booking.get("email", ""),
+        "customer_phone": (customer or {}).get("phone") or booking.get("phone", ""),
+        "booking_id": booking.get("id", booking_id),
+    }
+    
+    # Generate PDF
+    pdf_bytes = pdf_service.generate_booking_receipt(booking_data)
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=AirYatra_Booking_{booking_id}.pdf"
+        }
+    )

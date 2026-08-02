@@ -531,3 +531,344 @@ async def get_pilot_flight_logs(
     ).sort("date", -1).limit(limit).to_list(limit)
     
     return {"flight_logs": logs}
+
+
+
+# ==================== DOCUMENT UPLOAD ====================
+
+@router.post("/documents/upload")
+async def upload_pilot_document(
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload pilot document (license, medical, rating certificates)"""
+    from fastapi import File, UploadFile, Form
+    
+    # This endpoint requires form data - we'll create a separate one
+    pass
+
+
+from fastapi import File, UploadFile, Form
+from typing import Optional
+import base64
+import os
+
+
+@router.post("/documents/upload-file")
+async def upload_pilot_document_file(
+    document_type: str = Form(...),
+    document_number: str = Form(...),
+    expiry_date: str = Form(...),
+    file: UploadFile = File(...),
+    issuer: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upload pilot document with file
+    
+    Document types: license, medical, type_rating, insurance, passport, other
+    """
+    db = get_database()
+    
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    
+    # Validate document type
+    valid_types = ["license", "medical", "type_rating", "insurance", "passport", "aadhar", "pan", "other"]
+    if document_type.lower() not in valid_types:
+        raise HTTPException(status_code=400, detail=f"Invalid document type. Must be one of: {', '.join(valid_types)}")
+    
+    # Validate file type
+    allowed_extensions = [".pdf", ".jpg", ".jpeg", ".png"]
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}")
+    
+    # Validate file size (max 5MB)
+    file_content = await file.read()
+    if len(file_content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum 5MB allowed.")
+    
+    # Parse expiry date
+    try:
+        expiry = datetime.strptime(expiry_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Store file as base64 (for simplicity, in production use cloud storage)
+    file_base64 = base64.b64encode(file_content).decode('utf-8')
+    
+    # Create document record
+    doc_id = f"doc_{ObjectId()}"
+    document = {
+        "id": doc_id,
+        "pilot_id": user_id,
+        "document_type": document_type.lower(),
+        "document_number": document_number,
+        "expiry_date": expiry.isoformat(),
+        "file_name": file.filename,
+        "file_type": file.content_type,
+        "file_size": len(file_content),
+        "file_data": file_base64,
+        "issuer": issuer,
+        "notes": notes,
+        "verification_status": "pending",  # pending, verified, rejected
+        "uploaded_at": now.isoformat(),
+        "created_at": now.isoformat()
+    }
+    
+    # Check if document already exists (update if so)
+    existing = await db.pilot_documents.find_one({
+        "pilot_id": user_id,
+        "document_type": document_type.lower(),
+        "document_number": document_number
+    })
+    
+    if existing:
+        await db.pilot_documents.update_one(
+            {"id": existing["id"]},
+            {"$set": {
+                "expiry_date": expiry.isoformat(),
+                "file_name": file.filename,
+                "file_type": file.content_type,
+                "file_size": len(file_content),
+                "file_data": file_base64,
+                "issuer": issuer,
+                "notes": notes,
+                "verification_status": "pending",
+                "uploaded_at": now.isoformat(),
+                "updated_at": now.isoformat()
+            }}
+        )
+        return {
+            "message": "Document updated successfully",
+            "document_id": existing["id"],
+            "status": "pending_verification"
+        }
+    else:
+        await db.pilot_documents.insert_one(document)
+        return {
+            "message": "Document uploaded successfully",
+            "document_id": doc_id,
+            "status": "pending_verification"
+        }
+
+
+@router.get("/documents/{doc_id}/download")
+async def download_pilot_document(
+    doc_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Download a pilot document"""
+    from fastapi.responses import Response
+    
+    db = get_database()
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    user_roles = current_user.get("roles", [])
+    
+    # Get document
+    document = await db.pilot_documents.find_one({"id": doc_id}, {"_id": 0})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check access - must be owner or admin/operator
+    is_owner = document.get("pilot_id") == user_id
+    is_admin = any(r in user_roles for r in ["admin", "super_admin", "operator"])
+    
+    if not is_owner and not is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Decode file
+    file_data = base64.b64decode(document.get("file_data", ""))
+    
+    return Response(
+        content=file_data,
+        media_type=document.get("file_type", "application/octet-stream"),
+        headers={
+            "Content-Disposition": f"attachment; filename={document.get('file_name', 'document')}"
+        }
+    )
+
+
+
+
+# ==================== FLIGHT PRE-CHECK ====================
+
+PREFLIGHT_CHECKLIST = [
+    {"category": "Weather", "items": [
+        {"id": "weather_briefing", "label": "Weather briefing obtained", "critical": True},
+        {"id": "weather_suitable", "label": "Weather conditions suitable for flight", "critical": True},
+        {"id": "notams_checked", "label": "NOTAMs checked", "critical": True},
+    ]},
+    {"category": "Aircraft", "items": [
+        {"id": "fuel_check", "label": "Fuel quantity checked and adequate", "critical": True},
+        {"id": "oil_level", "label": "Oil level within limits", "critical": True},
+        {"id": "exterior_inspection", "label": "Exterior walk-around completed", "critical": True},
+        {"id": "documents_onboard", "label": "Aircraft documents on board", "critical": True},
+        {"id": "avionics_check", "label": "Avionics functional check completed", "critical": False},
+        {"id": "emergency_equipment", "label": "Emergency equipment checked", "critical": True},
+    ]},
+    {"category": "Pilot", "items": [
+        {"id": "license_valid", "label": "License and medical valid", "critical": True},
+        {"id": "fdtl_compliance", "label": "FDTL limits checked", "critical": True},
+        {"id": "fit_to_fly", "label": "Pilot fit to fly (IMSAFE)", "critical": True},
+    ]},
+    {"category": "Passengers", "items": [
+        {"id": "passenger_briefing", "label": "Safety briefing completed", "critical": True},
+        {"id": "weight_balance", "label": "Weight & balance within limits", "critical": True},
+        {"id": "baggage_secured", "label": "Baggage secured", "critical": False},
+        {"id": "seatbelts_checked", "label": "Seatbelts fastened", "critical": True},
+    ]},
+    {"category": "Communications", "items": [
+        {"id": "radio_check", "label": "Radio communication check", "critical": True},
+        {"id": "atc_clearance", "label": "ATC clearance obtained (if required)", "critical": False},
+        {"id": "flight_plan_filed", "label": "Flight plan filed (if required)", "critical": False},
+    ]},
+]
+
+
+@router.get("/preflight/checklist")
+async def get_preflight_checklist(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get the standard pre-flight checklist"""
+    return {
+        "checklist": PREFLIGHT_CHECKLIST,
+        "total_items": sum(len(cat["items"]) for cat in PREFLIGHT_CHECKLIST),
+        "critical_items": sum(
+            sum(1 for item in cat["items"] if item["critical"]) 
+            for cat in PREFLIGHT_CHECKLIST
+        )
+    }
+
+
+@router.post("/preflight/submit")
+async def submit_preflight_check(
+    data: dict,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Submit pre-flight checklist
+    
+    data: {
+        "flight_id": str (optional),
+        "aircraft_registration": str,
+        "items_checked": {"weather_briefing": true, "fuel_check": true, ...},
+        "notes": str (optional),
+        "passenger_count": int
+    }
+    """
+    db = get_database()
+    
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    pilot_name = current_user.get("full_name", "Pilot")
+    now = datetime.now(timezone.utc)
+    
+    items_checked = data.get("items_checked", {})
+    
+    # Validate all critical items are checked
+    missing_critical = []
+    for category in PREFLIGHT_CHECKLIST:
+        for item in category["items"]:
+            if item["critical"] and not items_checked.get(item["id"]):
+                missing_critical.append(f"{category['category']}: {item['label']}")
+    
+    if missing_critical:
+        raise HTTPException(
+            status_code=400, 
+            detail={
+                "message": "Cannot proceed - critical items not checked",
+                "missing_items": missing_critical
+            }
+        )
+    
+    # Calculate completion percentage
+    total_items = sum(len(cat["items"]) for cat in PREFLIGHT_CHECKLIST)
+    checked_count = sum(1 for v in items_checked.values() if v)
+    completion_pct = round((checked_count / total_items) * 100, 1)
+    
+    # Create preflight record
+    preflight_id = f"precheck_{ObjectId()}"
+    preflight_record = {
+        "id": preflight_id,
+        "pilot_id": user_id,
+        "pilot_name": pilot_name,
+        "flight_id": data.get("flight_id"),
+        "aircraft_registration": data.get("aircraft_registration", "Unknown"),
+        "items_checked": items_checked,
+        "checked_count": checked_count,
+        "total_items": total_items,
+        "completion_percentage": completion_pct,
+        "passenger_count": data.get("passenger_count", 0),
+        "notes": data.get("notes", ""),
+        "status": "approved" if completion_pct >= 80 else "review_required",
+        "submitted_at": now.isoformat(),
+        "created_at": now.isoformat()
+    }
+    
+    await db.preflight_checks.insert_one(preflight_record)
+    
+    # Update flight assignment if flight_id provided
+    if data.get("flight_id"):
+        await db.pilot_assignments.update_one(
+            {"flight_id": data["flight_id"], "pilot_id": user_id},
+            {"$set": {
+                "preflight_completed": True,
+                "preflight_id": preflight_id,
+                "preflight_at": now.isoformat()
+            }}
+        )
+    
+    return {
+        "message": "Pre-flight check submitted successfully",
+        "preflight_id": preflight_id,
+        "status": preflight_record["status"],
+        "completion_percentage": completion_pct,
+        "ready_for_takeoff": completion_pct >= 80
+    }
+
+
+@router.get("/preflight/history")
+async def get_preflight_history(
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get pilot's pre-flight check history"""
+    db = get_database()
+    
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    
+    records = await db.preflight_checks.find(
+        {"pilot_id": user_id},
+        {"_id": 0}
+    ).sort("submitted_at", -1).limit(limit).to_list(limit)
+    
+    return {"preflight_history": records}
+
+@router.delete("/documents/{doc_id}")
+async def delete_pilot_document(
+    doc_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a pilot document"""
+    db = get_database()
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    
+    # Get document
+    document = await db.pilot_documents.find_one({"id": doc_id})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check ownership
+    if document.get("pilot_id") != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Delete
+    await db.pilot_documents.delete_one({"id": doc_id})
+    
+    return {"message": "Document deleted successfully"}

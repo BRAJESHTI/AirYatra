@@ -373,7 +373,27 @@ async def _apply_payment_success(db, txn: dict):
     # Send booking confirmation for advance payments only (existing behavior)
     if booking and txn.get("payment_type") != "balance":
         try:
-            customer = await db.users.find_one({"id": txn["customer_id"]}, {"_id": 0, "email": 1, "phone": 1})
+            customer = await db.users.find_one({"id": txn["customer_id"]}, {"_id": 0, "email": 1, "phone": 1, "full_name": 1})
+            
+            # Send booking confirmation email with PDF receipt
+            if customer and customer.get("email"):
+                from services.email_service import email_service
+                booking_data = {
+                    **booking,
+                    "customer_name": customer.get("full_name", "Customer"),
+                    "customer_email": customer.get("email"),
+                    "customer_phone": customer.get("phone", ""),
+                    "total_amount": txn.get("amount", booking.get("total_amount", 0)),
+                    "payment_status": "paid",
+                    "booking_id": booking.get("id", txn.get("booking_id"))
+                }
+                await email_service.send_booking_confirmation(
+                    to_email=customer["email"],
+                    booking_data=booking_data
+                )
+                print(f"Booking confirmation email with PDF sent to {customer['email']}")
+            
+            # Also send SMS notification
             from services.notification_service import notification_service
             await notification_service.send_booking_confirmation(
                 booking=booking,
