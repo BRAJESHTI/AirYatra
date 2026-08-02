@@ -116,6 +116,12 @@ from routes import ai_pricing_routes
 from routes import content_routes
 # Razorpay Payment Gateway
 from routes import razorpay_routes
+# AI Sales Advisor
+from routes import ai_sales_routes
+# AI Report Generator
+from routes import ai_reports_routes
+# Favorites/Bookmarks
+from routes import favorites_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -316,6 +322,15 @@ api_router.include_router(ai_pricing_routes.router)
 
 # Razorpay Payment Gateway
 api_router.include_router(razorpay_routes.router)
+
+# AI Sales Advisor
+api_router.include_router(ai_sales_routes.router)
+
+# AI Report Generator
+api_router.include_router(ai_reports_routes.router)
+
+# Favorites/Bookmarks
+api_router.include_router(favorites_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
