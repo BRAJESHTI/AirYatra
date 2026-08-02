@@ -991,3 +991,66 @@ Total modules implemented: 17
 6. Selected quote proceeds to payment flow
 
 ---
+
+## HYBRID SMART PRICING - Phase 3-5
+
+### Latest Updates (Aug 2, 2026 - Session: Phase 3-5 Aircraft Catalog, Price Breakup, Price Lock)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **PHASE 3: Aircraft Catalog & Verification** | | |
+| Aircraft Creation | 🟢 DONE | POST /api/aircraft/create - Operator creates aircraft with basic_info (type, manufacturer, model, registration), features (seats, amenities), pricing |
+| My Fleet Dashboard | 🟢 DONE | GET /api/aircraft/my-fleet - Operator sees all aircraft with stats (total, verified, pending, published) |
+| Aircraft Documents | 🟢 DONE | PUT /api/aircraft/{id}/documents - Upload registration, insurance, maintenance certificates |
+| Aircraft Photos | 🟢 DONE | PUT /api/aircraft/{id}/photos - Upload front, rear, cockpit, cabin, interior photos |
+| Crew Management | 🟢 DONE | POST /api/aircraft/{id}/crew - Add pilot, co-pilot, crew with licence and medical info |
+| Availability Status | 🟢 DONE | PUT /api/aircraft/{id}/availability - Set available, busy, maintenance, reserved, blocked |
+| Admin Verification Queue | 🟢 DONE | GET /api/aircraft/admin/verification-queue - Admin sees pending aircraft for review |
+| Admin Verify Aircraft | 🟢 DONE | PUT /api/admin/{id}/verify - Set verification status (pending→under_review→verified→premium_verified or suspended) |
+| Expiring Documents Alert | 🟢 DONE | GET /api/aircraft/admin/expiring-documents - Admin sees insurance/maintenance expiring in 30/60/90 days |
+| Verification Badge | 🟢 DONE | "✅ Verified by AirYatra" badge for verified/premium_verified aircraft |
+| Public Search | 🟢 DONE | GET /api/aircraft/public/search - Customer searches verified, published aircraft |
+| **PHASE 4: Transparent Price Breakup** | | |
+| Customer Breakup | 🟢 DONE | POST /api/pricing/customer/breakup - Shows Base Fare, Landing, Handling, Crew, Fuel, Platform Fee (10% + ₹500), GST (18%) |
+| Quote Breakup | 🟢 DONE | GET /api/pricing/customer/quote/{id}/breakup - Price breakdown for auction quote |
+| Operator Settlement Preview | 🟢 DONE | POST /api/pricing/operator/settlement-preview - Shows quote, deductions (commission, TDS 2%), net payout |
+| Quote Settlement | 🟢 DONE | GET /api/pricing/operator/quote/{id}/settlement - Settlement for submitted quote |
+| **PHASE 5: Price Lock Timer** | | |
+| Create Price Lock | 🟢 DONE | POST /api/pricing/lock - Lock price for 5-30 minutes (default 15) |
+| Get Lock Status | 🟢 DONE | GET /api/pricing/lock/{id} - Check lock status with time remaining |
+| Validate Lock | 🟢 DONE | GET /api/pricing/lock/{id}/validate - Validate lock is still active |
+| Use Lock | 🟢 DONE | POST /api/pricing/lock/{id}/use - Mark lock as used after payment |
+| Lock Timer UI | 🟢 DONE | PriceLockTimer component with countdown, expired state, locked total display |
+
+### Backend Files Created
+- `/app/backend/routes/aircraft_catalog_routes.py` - 893 lines, Aircraft CRUD, verification workflow, admin endpoints
+- `/app/backend/routes/price_breakup_routes.py` - 450 lines, Customer/Operator breakup, price lock system
+
+### Frontend Files Created
+- `/app/frontend/src/components/aircraft/AircraftCatalog.js` - OperatorFleetDashboard, CreateAircraftForm, AircraftCard, VerificationBadge
+- `/app/frontend/src/components/pricing/PriceBreakup.js` - CustomerPriceBreakup, OperatorSettlementView, PriceLockTimer
+
+### New DB Collections
+- `aircraft_catalog` - Full aircraft data with verification, documents, photos, crew, pricing
+- `verification_logs` - Admin verification action history
+- `price_locks` - Price lock records with timing and status
+- `platform_settings` - Configurable platform fees and rates
+
+### Pricing Formula
+- Platform Commission: 10% of base fare
+- Platform Fixed Fee: ₹500
+- GST: 18% on (subtotal + platform_fee)
+- TDS (Operator): 2% of total quote
+- Net Payout: Quote - Commission - Fixed Fee - TDS
+
+### Verification Levels
+- 🔴 Pending - Initial state
+- 🟡 Under Review - Admin reviewing
+- 🟢 Verified - Documents verified
+- 🔵 Premium Verified - Full verification + premium status
+- ⚫ Suspended - Temporarily blocked
+
+### Test Report
+- `/app/test_reports/iteration_21.json` - 25/25 pytest tests passed
+
+---
