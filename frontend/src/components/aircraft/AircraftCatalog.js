@@ -90,6 +90,7 @@ const ExpiryAlert = ({ status, daysRemaining, documentType }) => {
 
 const CreateAircraftForm = ({ onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState(0);
   const [formData, setFormData] = useState({
     // Basic Info
     aircraft_type: 'helicopter',
@@ -99,20 +100,65 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
     registration_number: '',
     serial_number: '',
     
-    // Features
+    // Technical Specs (NEW)
+    engine_type: 'turbine',
+    engine_model: '',
+    cruise_speed_kmh: '',
+    max_range_km: '',
+    max_altitude_ft: '',
+    fuel_capacity_liters: '',
+    
+    // Features & Amenities
     total_seats: 4,
     vip_seats: 0,
     cabin_size: 'medium',
     air_conditioning: true,
+    heating: true,
+    pressurized_cabin: false,
+    noise_cancelling: false,
     wifi: false,
+    wifi_type: '',
     entertainment_system: false,
     charging_ports: true,
+    usb_ports: true,
+    power_outlets: false,
+    
+    // Food & Beverages
     refreshments: false,
-    food_service: false,
+    hot_beverages: false,
+    meals_available: false,
+    vegetarian_options: true,
+    special_diet_options: false,
+    
+    // Facilities
     lavatory: false,
     baggage_capacity_kg: 50,
     pet_friendly: false,
     wheelchair_accessible: false,
+    leather_seats: false,
+    reclining_seats: true,
+    
+    // Safety Equipment (NEW)
+    first_aid_kit: true,
+    fire_extinguisher: true,
+    elt: true,
+    life_jackets: false,
+    oxygen_kit: false,
+    oxygen_kit_type: '',
+    tcas: false,
+    tcas_version: '',
+    terrain_awareness: false,
+    weather_radar: false,
+    autopilot: false,
+    parachute_system: false,
+    parachute_type: '',
+    medical_equipment: false,
+    defibrillator: false,
+    
+    // Crew Configuration (NEW)
+    pilot_count: 1,
+    copilot_required: false,
+    cabin_crew_count: 0,
     
     // Pricing
     hourly_price: '',
@@ -120,6 +166,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
     daily_price: '',
     landing_charges: '',
     crew_charges: '',
+    minimum_booking_hours: '',
     
     // Description
     description: '',
@@ -139,22 +186,61 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           model: formData.model,
           year_of_manufacture: parseInt(formData.year_of_manufacture),
           registration_number: formData.registration_number.toUpperCase(),
-          serial_number: formData.serial_number
+          serial_number: formData.serial_number,
+          engine_type: formData.engine_type,
+          engine_model: formData.engine_model || null,
+          cruise_speed_kmh: parseInt(formData.cruise_speed_kmh) || null,
+          max_range_km: parseInt(formData.max_range_km) || null,
+          max_altitude_ft: parseInt(formData.max_altitude_ft) || null,
+          fuel_capacity_liters: parseInt(formData.fuel_capacity_liters) || null
         },
         features: {
           total_seats: parseInt(formData.total_seats),
           vip_seats: parseInt(formData.vip_seats),
           cabin_size: formData.cabin_size,
           air_conditioning: formData.air_conditioning,
+          heating: formData.heating,
+          pressurized_cabin: formData.pressurized_cabin,
+          noise_cancelling: formData.noise_cancelling,
           wifi: formData.wifi,
+          wifi_type: formData.wifi_type || null,
           entertainment_system: formData.entertainment_system,
           charging_ports: formData.charging_ports,
+          usb_ports: formData.usb_ports,
+          power_outlets: formData.power_outlets,
           refreshments: formData.refreshments,
-          food_service: formData.food_service,
+          hot_beverages: formData.hot_beverages,
+          meals_available: formData.meals_available,
+          vegetarian_options: formData.vegetarian_options,
+          special_diet_options: formData.special_diet_options,
           lavatory: formData.lavatory,
           baggage_capacity_kg: parseInt(formData.baggage_capacity_kg) || null,
           pet_friendly: formData.pet_friendly,
-          wheelchair_accessible: formData.wheelchair_accessible
+          wheelchair_accessible: formData.wheelchair_accessible,
+          leather_seats: formData.leather_seats,
+          reclining_seats: formData.reclining_seats
+        },
+        safety_equipment: {
+          first_aid_kit: formData.first_aid_kit,
+          fire_extinguisher: formData.fire_extinguisher,
+          elt: formData.elt,
+          life_jackets: formData.life_jackets,
+          oxygen_kit: formData.oxygen_kit,
+          oxygen_kit_type: formData.oxygen_kit_type || null,
+          tcas: formData.tcas,
+          tcas_version: formData.tcas_version || null,
+          terrain_awareness: formData.terrain_awareness,
+          weather_radar: formData.weather_radar,
+          autopilot: formData.autopilot,
+          parachute_system: formData.parachute_system,
+          parachute_type: formData.parachute_type || null,
+          medical_equipment: formData.medical_equipment,
+          defibrillator: formData.defibrillator
+        },
+        crew_configuration: {
+          pilot_count: parseInt(formData.pilot_count),
+          copilot_required: formData.copilot_required,
+          cabin_crew_count: parseInt(formData.cabin_crew_count)
         },
         pricing: {
           hourly_price: parseFloat(formData.hourly_price) || null,
@@ -162,6 +248,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           daily_price: parseFloat(formData.daily_price) || null,
           landing_charges: parseFloat(formData.landing_charges) || null,
           crew_charges: parseFloat(formData.crew_charges) || null,
+          minimum_booking_hours: parseFloat(formData.minimum_booking_hours) || null,
           currency: 'INR'
         },
         description: formData.description,
@@ -181,267 +268,601 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
     }
   };
   
+  const sections = [
+    { title: 'Basic Info', icon: Plane },
+    { title: 'Technical Specs', icon: Settings },
+    { title: 'Amenities', icon: Star },
+    { title: 'Safety', icon: Shield },
+    { title: 'Crew & Pricing', icon: Users }
+  ];
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Section A: Basic Info */}
-      <div className="space-y-4">
-        <h3 className="text-white font-semibold flex items-center gap-2">
-          <Plane className="h-5 w-5 text-orange-400" />
-          Basic Information / मूल जानकारी
-        </h3>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div>
-            <Label className="text-white">Aircraft Type *</Label>
-            <select
-              value={formData.aircraft_type}
-              onChange={(e) => setFormData({ ...formData, aircraft_type: e.target.value })}
-              className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
-              required
-            >
-              <option value="helicopter">Helicopter</option>
-              <option value="light_jet">Light Jet</option>
-              <option value="mid_jet">Mid Jet</option>
-              <option value="heavy_jet">Heavy Jet</option>
-              <option value="turboprop">Turboprop</option>
-            </select>
-          </div>
-          <div>
-            <Label className="text-white">Manufacturer *</Label>
-            <Input
-              value={formData.manufacturer}
-              onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-              placeholder="Bell, Airbus, Cessna..."
-              className="bg-slate-800 border-slate-600 text-white"
-              required
-            />
-          </div>
-          <div>
-            <Label className="text-white">Model *</Label>
-            <Input
-              value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              placeholder="407, H145, Citation XLS..."
-              className="bg-slate-800 border-slate-600 text-white"
-              required
-            />
-          </div>
-          <div>
-            <Label className="text-white">Registration Number *</Label>
-            <Input
-              value={formData.registration_number}
-              onChange={(e) => setFormData({ ...formData, registration_number: e.target.value.toUpperCase() })}
-              placeholder="VT-XXX"
-              className="bg-slate-800 border-slate-600 text-white"
-              required
-            />
-          </div>
-          <div>
-            <Label className="text-white">Year of Manufacture *</Label>
-            <Input
-              type="number"
-              value={formData.year_of_manufacture}
-              onChange={(e) => setFormData({ ...formData, year_of_manufacture: e.target.value })}
-              min="1980"
-              max={new Date().getFullYear()}
-              className="bg-slate-800 border-slate-600 text-white"
-              required
-            />
-          </div>
-          <div>
-            <Label className="text-white">Serial Number</Label>
-            <Input
-              value={formData.serial_number}
-              onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-        </div>
+      {/* Section Navigation */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {sections.map((section, idx) => (
+          <Button
+            key={idx}
+            type="button"
+            variant={activeSection === idx ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveSection(idx)}
+            className={activeSection === idx ? 'bg-orange-500' : ''}
+          >
+            <section.icon className="h-4 w-4 mr-1" />
+            {section.title}
+          </Button>
+        ))}
       </div>
       
-      {/* Section B: Features */}
-      <div className="space-y-4">
-        <h3 className="text-white font-semibold flex items-center gap-2">
-          <Star className="h-5 w-5 text-orange-400" />
-          Features & Amenities / सुविधाएं
-        </h3>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <Label className="text-white">Total Seats *</Label>
-            <Input
-              type="number"
-              value={formData.total_seats}
-              onChange={(e) => setFormData({ ...formData, total_seats: e.target.value })}
-              min="1"
-              max="50"
-              className="bg-slate-800 border-slate-600 text-white"
-              required
-            />
-          </div>
-          <div>
-            <Label className="text-white">VIP Seats</Label>
-            <Input
-              type="number"
-              value={formData.vip_seats}
-              onChange={(e) => setFormData({ ...formData, vip_seats: e.target.value })}
-              min="0"
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-white">Cabin Size</Label>
-            <select
-              value={formData.cabin_size}
-              onChange={(e) => setFormData({ ...formData, cabin_size: e.target.value })}
-              className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
-            >
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-            </select>
-          </div>
-          <div>
-            <Label className="text-white">Baggage (kg)</Label>
-            <Input
-              type="number"
-              value={formData.baggage_capacity_kg}
-              onChange={(e) => setFormData({ ...formData, baggage_capacity_kg: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-        </div>
-        
-        {/* Amenities Checkboxes */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { key: 'air_conditioning', label: 'Air Conditioning', icon: Wind },
-            { key: 'wifi', label: 'WiFi', icon: Wifi },
-            { key: 'entertainment_system', label: 'Entertainment', icon: Tv },
-            { key: 'charging_ports', label: 'Charging Ports', icon: Plug },
-            { key: 'refreshments', label: 'Refreshments', icon: Coffee },
-            { key: 'lavatory', label: 'Lavatory', icon: Coffee },
-            { key: 'pet_friendly', label: 'Pet Friendly', icon: Dog },
-            { key: 'wheelchair_accessible', label: 'Wheelchair Access', icon: Accessibility }
-          ].map(({ key, label, icon: Icon }) => (
-            <div 
-              key={key}
-              className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
-                formData[key] ? 'bg-green-500/20 border border-green-500/50' : 'bg-slate-800 border border-slate-700'
-              }`}
-              onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
-            >
-              <Checkbox checked={formData[key]} />
-              <Icon className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-white">{label}</span>
+      {/* Section 0: Basic Info */}
+      {activeSection === 0 && (
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Plane className="h-5 w-5 text-orange-400" />
+            Basic Information / मूल जानकारी
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-white">Aircraft Type *</Label>
+              <select
+                value={formData.aircraft_type}
+                onChange={(e) => setFormData({ ...formData, aircraft_type: e.target.value })}
+                className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
+                required
+              >
+                <option value="helicopter">Helicopter / हेलीकॉप्टर</option>
+                <option value="light_jet">Light Jet / लाइट जेट</option>
+                <option value="mid_jet">Mid Jet / मिड जेट</option>
+                <option value="heavy_jet">Heavy Jet / हैवी जेट</option>
+                <option value="turboprop">Turboprop / टर्बोप्रॉप</option>
+              </select>
             </div>
-          ))}
+            <div>
+              <Label className="text-white">Manufacturer *</Label>
+              <Input
+                value={formData.manufacturer}
+                onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                placeholder="Bell, Airbus, Cessna..."
+                className="bg-slate-800 border-slate-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-white">Model *</Label>
+              <Input
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                placeholder="407, H145, Citation XLS..."
+                className="bg-slate-800 border-slate-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-white">Registration Number *</Label>
+              <Input
+                value={formData.registration_number}
+                onChange={(e) => setFormData({ ...formData, registration_number: e.target.value.toUpperCase() })}
+                placeholder="VT-XXX"
+                className="bg-slate-800 border-slate-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-white">Year of Manufacture *</Label>
+              <Input
+                type="number"
+                value={formData.year_of_manufacture}
+                onChange={(e) => setFormData({ ...formData, year_of_manufacture: e.target.value })}
+                min="1980"
+                max={new Date().getFullYear()}
+                className="bg-slate-800 border-slate-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-white">Serial Number</Label>
+              <Input
+                value={formData.serial_number}
+                onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
       
-      {/* Section C: Pricing */}
-      <div className="space-y-4">
-        <h3 className="text-white font-semibold flex items-center gap-2">
-          <IndianRupee className="h-5 w-5 text-orange-400" />
-          Pricing / मूल्य निर्धारण
-        </h3>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div>
-            <Label className="text-white">Hourly Price (₹)</Label>
-            <Input
-              type="number"
-              value={formData.hourly_price}
-              onChange={(e) => setFormData({ ...formData, hourly_price: e.target.value })}
-              placeholder="150000"
-              className="bg-slate-800 border-slate-600 text-white"
-            />
+      {/* Section 1: Technical Specs */}
+      {activeSection === 1 && (
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Settings className="h-5 w-5 text-orange-400" />
+            Technical Specifications / तकनीकी विवरण
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-white">Engine Type *</Label>
+              <select
+                value={formData.engine_type}
+                onChange={(e) => setFormData({ ...formData, engine_type: e.target.value })}
+                className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
+              >
+                <option value="turbine">Turbine / टर्बाइन</option>
+                <option value="twin_turbine">Twin Turbine / ट्विन टर्बाइन</option>
+                <option value="piston">Piston / पिस्टन</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-white">Engine Model</Label>
+              <Input
+                value={formData.engine_model}
+                onChange={(e) => setFormData({ ...formData, engine_model: e.target.value })}
+                placeholder="PT6A, Rolls-Royce..."
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Cruise Speed (km/h)</Label>
+              <Input
+                type="number"
+                value={formData.cruise_speed_kmh}
+                onChange={(e) => setFormData({ ...formData, cruise_speed_kmh: e.target.value })}
+                placeholder="250"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Max Range (km)</Label>
+              <Input
+                type="number"
+                value={formData.max_range_km}
+                onChange={(e) => setFormData({ ...formData, max_range_km: e.target.value })}
+                placeholder="600"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Max Altitude (ft)</Label>
+              <Input
+                type="number"
+                value={formData.max_altitude_ft}
+                onChange={(e) => setFormData({ ...formData, max_altitude_ft: e.target.value })}
+                placeholder="20000"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Fuel Capacity (L)</Label>
+              <Input
+                type="number"
+                value={formData.fuel_capacity_liters}
+                onChange={(e) => setFormData({ ...formData, fuel_capacity_liters: e.target.value })}
+                placeholder="500"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
           </div>
-          <div>
-            <Label className="text-white">One-Way Price (₹)</Label>
-            <Input
-              type="number"
-              value={formData.one_way_price}
-              onChange={(e) => setFormData({ ...formData, one_way_price: e.target.value })}
-              placeholder="85000"
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-white">Daily Price (₹)</Label>
-            <Input
-              type="number"
-              value={formData.daily_price}
-              onChange={(e) => setFormData({ ...formData, daily_price: e.target.value })}
-              placeholder="500000"
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-white">Landing Charges (₹)</Label>
-            <Input
-              type="number"
-              value={formData.landing_charges}
-              onChange={(e) => setFormData({ ...formData, landing_charges: e.target.value })}
-              placeholder="5000"
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-white">Crew Charges (₹)</Label>
-            <Input
-              type="number"
-              value={formData.crew_charges}
-              onChange={(e) => setFormData({ ...formData, crew_charges: e.target.value })}
-              placeholder="8000"
-              className="bg-slate-800 border-slate-600 text-white"
-            />
+          
+          {/* Capacity */}
+          <h4 className="text-white font-medium mt-4">Capacity / क्षमता</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-white">Total Seats *</Label>
+              <Input
+                type="number"
+                value={formData.total_seats}
+                onChange={(e) => setFormData({ ...formData, total_seats: e.target.value })}
+                min="1"
+                max="50"
+                className="bg-slate-800 border-slate-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-white">VIP Seats</Label>
+              <Input
+                type="number"
+                value={formData.vip_seats}
+                onChange={(e) => setFormData({ ...formData, vip_seats: e.target.value })}
+                min="0"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Cabin Size</Label>
+              <select
+                value={formData.cabin_size}
+                onChange={(e) => setFormData({ ...formData, cabin_size: e.target.value })}
+                className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
+              >
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-white">Baggage (kg)</Label>
+              <Input
+                type="number"
+                value={formData.baggage_capacity_kg}
+                onChange={(e) => setFormData({ ...formData, baggage_capacity_kg: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
-      {/* Section D: Description */}
-      <div className="space-y-4">
-        <h3 className="text-white font-semibold flex items-center gap-2">
-          <FileText className="h-5 w-5 text-orange-400" />
-          Description / विवरण
-        </h3>
-        
-        <div>
-          <Label className="text-white">Aircraft Description</Label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Describe your aircraft, its features, and ideal use cases..."
-            className="w-full h-24 bg-slate-800 border border-slate-600 rounded-md text-white p-3"
-          />
+      {/* Section 2: Amenities */}
+      {activeSection === 2 && (
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Star className="h-5 w-5 text-orange-400" />
+            Amenities & Comfort / सुविधाएं
+          </h3>
+          
+          {/* Connectivity */}
+          <h4 className="text-slate-300 text-sm font-medium">Connectivity / कनेक्टिविटी</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { key: 'wifi', label: 'WiFi', icon: Wifi },
+              { key: 'entertainment_system', label: 'Entertainment', icon: Tv },
+              { key: 'charging_ports', label: 'USB Charging', icon: Plug },
+              { key: 'power_outlets', label: '220V Outlets', icon: Plug }
+            ].map(({ key, label, icon: Icon }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-green-500/20 border border-green-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <Icon className="h-4 w-4 text-slate-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Comfort */}
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Comfort / आराम</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { key: 'air_conditioning', label: 'AC', icon: Wind },
+              { key: 'pressurized_cabin', label: 'Pressurized', icon: Shield },
+              { key: 'leather_seats', label: 'Leather Seats', icon: Star },
+              { key: 'noise_cancelling', label: 'Noise Cancel', icon: Wind }
+            ].map(({ key, label, icon: Icon }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-green-500/20 border border-green-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <Icon className="h-4 w-4 text-slate-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Food & Beverages */}
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Food & Beverages / भोजन</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { key: 'refreshments', label: 'Refreshments', icon: Coffee },
+              { key: 'hot_beverages', label: 'Tea/Coffee', icon: Coffee },
+              { key: 'meals_available', label: 'Full Meals', icon: Coffee },
+              { key: 'vegetarian_options', label: 'Veg Options', icon: CheckCircle }
+            ].map(({ key, label, icon: Icon }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-green-500/20 border border-green-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <Icon className="h-4 w-4 text-slate-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Facilities */}
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Facilities / सुविधाएं</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { key: 'lavatory', label: 'Lavatory', icon: Coffee },
+              { key: 'pet_friendly', label: 'Pet Friendly', icon: Dog },
+              { key: 'wheelchair_accessible', label: 'Wheelchair', icon: Accessibility }
+            ].map(({ key, label, icon: Icon }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-green-500/20 border border-green-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <Icon className="h-4 w-4 text-slate-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        <div>
-          <Label className="text-white">Highlights (comma-separated)</Label>
-          <Input
-            value={formData.highlights}
-            onChange={(e) => setFormData({ ...formData, highlights: e.target.value })}
-            placeholder="Luxury interior, Noise-cancelling cabin, VIP configuration"
-            className="bg-slate-800 border-slate-600 text-white"
-          />
-        </div>
-      </div>
+      )}
       
-      {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-slate-700">
-        <Button
-          type="submit"
-          disabled={loading}
-          className="flex-1 bg-orange-500 hover:bg-orange-600"
-          data-testid="create-aircraft-submit"
-        >
-          {loading ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>
-          ) : (
-            <><Plus className="h-4 w-4 mr-2" /> Add Aircraft</>
+      {/* Section 3: Safety */}
+      {activeSection === 3 && (
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Shield className="h-5 w-5 text-orange-400" />
+            Safety Equipment / सुरक्षा उपकरण
+          </h3>
+          
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-sm text-orange-200">
+            <AlertTriangle className="h-4 w-4 inline mr-2" />
+            Higher safety equipment = Better &quot;Verified by AirYatra&quot; badge &amp; customer trust
+          </div>
+          
+          {/* Core Safety */}
+          <h4 className="text-slate-300 text-sm font-medium">Core Safety / मूल सुरक्षा</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { key: 'first_aid_kit', label: 'First Aid Kit' },
+              { key: 'fire_extinguisher', label: 'Fire Extinguisher' },
+              { key: 'elt', label: 'ELT (Locator)' },
+              { key: 'life_jackets', label: 'Life Jackets' }
+            ].map(({ key, label }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-green-500/20 border border-green-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <Shield className="h-4 w-4 text-slate-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Advanced Safety Systems */}
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Advanced Systems / उन्नत प्रणाली</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { key: 'tcas', label: 'TCAS (Collision Avoidance)' },
+              { key: 'terrain_awareness', label: 'TAWS/GPWS' },
+              { key: 'weather_radar', label: 'Weather Radar' },
+              { key: 'autopilot', label: 'Autopilot' },
+              { key: 'oxygen_kit', label: 'Oxygen Kit (>10,000ft)' },
+              { key: 'parachute_system', label: 'Parachute System (BRS)' }
+            ].map(({ key, label }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-blue-500/20 border border-blue-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <Shield className="h-4 w-4 text-blue-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* TCAS Version */}
+          {formData.tcas && (
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              <div>
+                <Label className="text-white">TCAS Version</Label>
+                <select
+                  value={formData.tcas_version}
+                  onChange={(e) => setFormData({ ...formData, tcas_version: e.target.value })}
+                  className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
+                >
+                  <option value="">Select...</option>
+                  <option value="TCAS I">TCAS I</option>
+                  <option value="TCAS II">TCAS II</option>
+                  <option value="ACAS X">ACAS X</option>
+                </select>
+              </div>
+            </div>
           )}
-        </Button>
+          
+          {/* Medical Equipment */}
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Medical (Air Ambulance) / चिकित्सा</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { key: 'medical_equipment', label: 'Medical Equipment' },
+              { key: 'defibrillator', label: 'Defibrillator (AED)' }
+            ].map(({ key, label }) => (
+              <div 
+                key={key}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+                  formData[key] ? 'bg-red-500/20 border border-red-500/50' : 'bg-slate-800 border border-slate-700'
+                }`}
+                onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
+              >
+                <Checkbox checked={formData[key]} />
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-white">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Section 4: Crew & Pricing */}
+      {activeSection === 4 && (
+        <div className="space-y-4">
+          {/* Crew Configuration */}
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5 text-orange-400" />
+            Crew Configuration / क्रू विन्यास
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-white">Pilot Count *</Label>
+              <Input
+                type="number"
+                value={formData.pilot_count}
+                onChange={(e) => setFormData({ ...formData, pilot_count: e.target.value })}
+                min="1"
+                max="3"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Checkbox 
+                checked={formData.copilot_required}
+                onCheckedChange={(checked) => setFormData({ ...formData, copilot_required: checked })}
+              />
+              <Label className="text-white">Co-Pilot Required</Label>
+            </div>
+            <div>
+              <Label className="text-white">Cabin Crew Count</Label>
+              <Input
+                type="number"
+                value={formData.cabin_crew_count}
+                onChange={(e) => setFormData({ ...formData, cabin_crew_count: e.target.value })}
+                min="0"
+                max="5"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+          </div>
+          
+          {/* Pricing */}
+          <h3 className="text-white font-semibold flex items-center gap-2 mt-6">
+            <IndianRupee className="h-5 w-5 text-orange-400" />
+            Pricing / मूल्य निर्धारण
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-white">Hourly Price (₹)</Label>
+              <Input
+                type="number"
+                value={formData.hourly_price}
+                onChange={(e) => setFormData({ ...formData, hourly_price: e.target.value })}
+                placeholder="150000"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">One-Way Price (₹)</Label>
+              <Input
+                type="number"
+                value={formData.one_way_price}
+                onChange={(e) => setFormData({ ...formData, one_way_price: e.target.value })}
+                placeholder="85000"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Daily Price (₹)</Label>
+              <Input
+                type="number"
+                value={formData.daily_price}
+                onChange={(e) => setFormData({ ...formData, daily_price: e.target.value })}
+                placeholder="500000"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Landing Charges (₹)</Label>
+              <Input
+                type="number"
+                value={formData.landing_charges}
+                onChange={(e) => setFormData({ ...formData, landing_charges: e.target.value })}
+                placeholder="5000"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Crew Charges (₹)</Label>
+              <Input
+                type="number"
+                value={formData.crew_charges}
+                onChange={(e) => setFormData({ ...formData, crew_charges: e.target.value })}
+                placeholder="8000"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white">Min Booking Hours</Label>
+              <Input
+                type="number"
+                value={formData.minimum_booking_hours}
+                onChange={(e) => setFormData({ ...formData, minimum_booking_hours: e.target.value })}
+                placeholder="2"
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+          </div>
+          
+          {/* Description */}
+          <h3 className="text-white font-semibold flex items-center gap-2 mt-6">
+            <FileText className="h-5 w-5 text-orange-400" />
+            Description / विवरण
+          </h3>
+          
+          <div>
+            <Label className="text-white">Aircraft Description</Label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe your aircraft, its features, and ideal use cases..."
+              className="w-full h-24 bg-slate-800 border border-slate-600 rounded-md text-white p-3"
+            />
+          </div>
+          
+          <div>
+            <Label className="text-white">Highlights (comma-separated)</Label>
+            <Input
+              value={formData.highlights}
+              onChange={(e) => setFormData({ ...formData, highlights: e.target.value })}
+              placeholder="Luxury interior, Noise-cancelling cabin, VIP configuration"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Navigation & Submit */}
+      <div className="flex gap-3 pt-4 border-t border-slate-700">
+        {activeSection > 0 && (
+          <Button type="button" variant="outline" onClick={() => setActiveSection(activeSection - 1)}>
+            ← Previous
+          </Button>
+        )}
+        {activeSection < sections.length - 1 && (
+          <Button type="button" className="bg-slate-700" onClick={() => setActiveSection(activeSection + 1)}>
+            Next →
+          </Button>
+        )}
+        {activeSection === sections.length - 1 && (
+          <Button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-orange-500 hover:bg-orange-600"
+            data-testid="create-aircraft-submit"
+          >
+            {loading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>
+            ) : (
+              <><Plus className="h-4 w-4 mr-2" /> Add Aircraft</>
+            )}
+          </Button>
+        )}
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel

@@ -36,12 +36,20 @@ router = APIRouter(prefix="/aircraft", tags=["Aircraft Catalog"])
 
 class AircraftBasicInfo(BaseModel):
     """Section C - Basic Aircraft Info"""
-    aircraft_type: str  # helicopter, light_jet, mid_jet, heavy_jet
+    aircraft_type: str  # helicopter, light_jet, mid_jet, heavy_jet, turboprop
     manufacturer: str  # Bell, Airbus, Cessna, etc.
     model: str  # 407, H145, Citation XLS
     year_of_manufacture: int
     registration_number: str  # VT-XXX
     serial_number: Optional[str] = None
+    
+    # NEW: Technical Specifications / तकनीकी विवरण
+    engine_type: Optional[str] = None  # turbine, piston, twin_turbine
+    engine_model: Optional[str] = None  # PT6A, Rolls-Royce etc.
+    cruise_speed_kmh: Optional[int] = None  # Cruise speed in km/h
+    max_range_km: Optional[int] = None  # Maximum range in km
+    max_altitude_ft: Optional[int] = None  # Service ceiling in feet
+    fuel_capacity_liters: Optional[int] = None  # Fuel tank capacity
 
 
 class AircraftDocuments(BaseModel):
@@ -58,53 +66,138 @@ class AircraftDocuments(BaseModel):
 
 class CrewMember(BaseModel):
     """Flight Crew Info"""
-    role: str  # pilot, co_pilot, crew
+    role: str  # pilot, co_pilot, cabin_crew, flight_engineer
     name: str
     licence_number: Optional[str] = None
+    licence_type: Optional[str] = None  # ATPL, CPL, PPL
     experience_hours: Optional[int] = None
     medical_validity: Optional[str] = None  # YYYY-MM-DD
+    type_rating: Optional[str] = None  # Aircraft type rated for
+    languages: Optional[List[str]] = None  # Spoken languages
     status: str = "active"  # active, inactive, expired
 
 
+class CrewConfiguration(BaseModel):
+    """Aircraft Crew Configuration / क्रू विन्यास"""
+    pilot_count: int = 1  # Number of pilots required
+    copilot_required: bool = False  # Whether co-pilot is mandatory
+    cabin_crew_count: int = 0  # Number of cabin crew
+    flight_engineer_required: bool = False  # For complex aircraft
+    min_pilot_experience_hours: Optional[int] = None  # Minimum PIC hours
+    crew_rest_facility: bool = False  # For long-range flights
+
+
 class AircraftPricing(BaseModel):
-    """Section D - Commercial Details"""
+    """Section D - Commercial Details / व्यावसायिक विवरण"""
+    # Base Pricing
     one_way_price: Optional[float] = None
-    return_price: Optional[float] = None
+    return_price: Optional[float] = None  # Round trip discount
     hourly_price: Optional[float] = None
     daily_price: Optional[float] = None
+    multi_day_price_per_day: Optional[float] = None  # Discounted for 3+ days
+    
+    # Additional Charges
     night_halt_charges: Optional[float] = None
     waiting_charges_per_hour: Optional[float] = None
     landing_charges: Optional[float] = None
     helipad_charges: Optional[float] = None
     crew_charges: Optional[float] = None
+    
+    # NEW: Booking Type Specific Pricing / बुकिंग प्रकार
+    multi_city_per_leg_discount: Optional[float] = None  # % discount per leg
+    group_booking_discount: Optional[float] = None  # For 5+ pax
+    emergency_surcharge_percent: Optional[float] = None  # Urgent bookings
+    event_package_price: Optional[float] = None  # Wedding/Corporate events
+    
+    # Fuel
+    fuel_included: bool = True
+    fuel_surcharge_percent: Optional[float] = None  # If fuel prices spike
+    
+    # Taxes
     currency: str = "INR"
+    gst_included: bool = False  # Is GST included in prices?
+    
+    # Minimum Booking
+    minimum_booking_hours: Optional[float] = None  # e.g., 2 hours min
+    minimum_booking_amount: Optional[float] = None  # e.g., ₹50,000 min
 
 
 class AircraftFeatures(BaseModel):
-    """Section E - Aircraft Features & Amenities"""
+    """Section E - Aircraft Features & Amenities / सुविधाएं"""
     total_seats: int = 4
     vip_seats: int = 0
     cabin_size: Optional[str] = None  # small, medium, large
+    cabin_height_cm: Optional[int] = None  # Interior cabin height
+    cabin_width_cm: Optional[int] = None  # Interior cabin width
+    
+    # Climate & Comfort
     air_conditioning: bool = True
+    heating: bool = True
+    pressurized_cabin: bool = False  # For jets
+    noise_cancelling: bool = False
+    
+    # Connectivity & Entertainment
     wifi: bool = False
+    wifi_type: Optional[str] = None  # satellite, air-to-ground
     entertainment_system: bool = False
+    individual_screens: bool = False
     charging_ports: bool = True
+    usb_ports: bool = True
+    power_outlets: bool = False  # 220V outlets
+    
+    # Food & Beverages / भोजन
     refreshments: bool = False
-    food_service: bool = False
+    hot_beverages: bool = False  # Tea/Coffee
+    cold_beverages: bool = False
+    snacks: bool = False
+    meals_available: bool = False  # Full meal service
+    catering_partner: Optional[str] = None  # Catering company name
+    vegetarian_options: bool = True
+    special_diet_options: bool = False  # Jain, Halal, Vegan
+    
+    # Facilities
     lavatory: bool = False
+    lavatory_type: Optional[str] = None  # enclosed, curtain, none
     baggage_capacity_kg: Optional[int] = None
+    baggage_compartment: Optional[str] = None  # internal, external, both
+    
+    # Accessibility
     pet_friendly: bool = False
+    pet_cabin_allowed: bool = False  # Pets in cabin vs cargo
     wheelchair_accessible: bool = False
+    child_seat_compatible: bool = True
+    
+    # Luxury Features
+    leather_seats: bool = False
+    reclining_seats: bool = True
+    conference_table: bool = False  # For business jets
+    sleeping_arrangement: bool = False  # For long-range jets
 
 
 class SafetyEquipment(BaseModel):
-    """Section C - Safety Equipment"""
+    """Section C - Safety Equipment / सुरक्षा उपकरण"""
     first_aid_kit: bool = True
     fire_extinguisher: bool = True
     elt: bool = True  # Emergency Locator Transmitter
     life_jackets: bool = False
-    oxygen_kit: bool = False
-    medical_equipment: bool = False  # For air ambulance
+    
+    # NEW: Advanced Safety Systems / उन्नत सुरक्षा प्रणाली
+    oxygen_kit: bool = False  # Required for flights >10,000 ft
+    oxygen_kit_type: Optional[str] = None  # portable, fixed, diluter_demand
+    tcas: bool = False  # Traffic Collision Avoidance System
+    tcas_version: Optional[str] = None  # TCAS I, TCAS II, ACAS X
+    terrain_awareness: bool = False  # TAWS/GPWS
+    weather_radar: bool = False
+    autopilot: bool = False
+    
+    # Single-engine specific
+    parachute_system: bool = False  # Ballistic Recovery System (BRS)
+    parachute_type: Optional[str] = None  # CAPS, BRS, Galaxy GRS
+    
+    # Air Ambulance / Medical
+    medical_equipment: bool = False
+    defibrillator: bool = False
+    stretcher_compatible: bool = False
 
 
 class AircraftPhotos(BaseModel):
@@ -131,6 +224,8 @@ class CreateAircraftRequest(BaseModel):
     pricing: AircraftPricing
     # Safety Equipment
     safety_equipment: Optional[SafetyEquipment] = None
+    # Crew Configuration / क्रू विन्यास
+    crew_configuration: Optional[CrewConfiguration] = None
     # Description
     description: Optional[str] = None
     highlights: Optional[List[str]] = None
@@ -148,6 +243,66 @@ class UpdateVerificationRequest(BaseModel):
 
 # ============ CONSTANTS ============
 
+# Booking Types / बुकिंग प्रकार
+BOOKING_TYPES = {
+    "one_way": {
+        "label": "One Way / एकतरफा",
+        "description": "Single journey from A to B",
+        "icon": "arrow_right"
+    },
+    "round_trip": {
+        "label": "Round Trip / वापसी यात्रा",
+        "description": "Return journey A to B to A",
+        "discount_hint": "Save 5-10% on round trips",
+        "icon": "refresh"
+    },
+    "multi_city": {
+        "label": "Multi-City / बहु-शहर",
+        "description": "Multiple destinations in one trip",
+        "discount_hint": "Per-leg discounts available",
+        "icon": "route"
+    },
+    "hourly_charter": {
+        "label": "Hourly Charter / प्रति घंटा",
+        "description": "Book by the hour",
+        "min_hours": 1,
+        "icon": "clock"
+    },
+    "daily_charter": {
+        "label": "Daily Charter / दैनिक",
+        "description": "Full day aircraft at your disposal",
+        "icon": "calendar_today"
+    },
+    "multi_day": {
+        "label": "Multi-Day / बहु-दिवसीय",
+        "description": "3+ days charter with discounts",
+        "discount_hint": "10-15% off for 3+ days",
+        "min_days": 3,
+        "icon": "date_range"
+    },
+    "group_booking": {
+        "label": "Group Booking / समूह बुकिंग",
+        "description": "5+ passengers, special rates",
+        "discount_hint": "Group discounts available",
+        "min_passengers": 5,
+        "icon": "groups"
+    },
+    "emergency": {
+        "label": "Emergency / आपातकालीन",
+        "description": "Urgent medical or time-critical",
+        "surcharge_hint": "Priority booking surcharge may apply",
+        "priority": True,
+        "icon": "emergency"
+    },
+    "event_based": {
+        "label": "Event Package / इवेंट पैकेज",
+        "description": "Weddings, Corporate events, Film shoots",
+        "custom_quote": True,
+        "icon": "celebration"
+    }
+}
+
+# Verification Status
 VERIFICATION_STATUS = {
     "pending": {"label": "Pending", "emoji": "🔴", "color": "red"},
     "under_review": {"label": "Under Review", "emoji": "🟡", "color": "yellow"},
@@ -224,6 +379,94 @@ def get_verification_badge(status: str) -> dict:
     }
 
 
+def calculate_safety_score(safety_equipment: dict) -> dict:
+    """Calculate aircraft safety score for comparison"""
+    score = 0
+    max_score = 100
+    
+    # Core safety (40 points)
+    if safety_equipment.get("first_aid_kit"): score += 5
+    if safety_equipment.get("fire_extinguisher"): score += 5
+    if safety_equipment.get("elt"): score += 10
+    if safety_equipment.get("life_jackets"): score += 10
+    if safety_equipment.get("oxygen_kit"): score += 10
+    
+    # Advanced systems (40 points)
+    if safety_equipment.get("tcas"): score += 15
+    if safety_equipment.get("terrain_awareness"): score += 10
+    if safety_equipment.get("weather_radar"): score += 10
+    if safety_equipment.get("autopilot"): score += 5
+    
+    # Emergency systems (20 points)
+    if safety_equipment.get("parachute_system"): score += 15
+    if safety_equipment.get("defibrillator"): score += 5
+    
+    rating = "Excellent" if score >= 80 else "Good" if score >= 60 else "Standard" if score >= 40 else "Basic"
+    
+    return {
+        "score": score,
+        "max_score": max_score,
+        "percentage": round((score / max_score) * 100),
+        "rating": rating,
+        "has_tcas": safety_equipment.get("tcas", False),
+        "has_oxygen": safety_equipment.get("oxygen_kit", False),
+        "has_parachute": safety_equipment.get("parachute_system", False)
+    }
+
+
+def calculate_amenity_score(features: dict) -> dict:
+    """Calculate amenity/comfort score for comparison"""
+    score = 0
+    max_score = 100
+    
+    # Connectivity (25 points)
+    if features.get("wifi"): score += 15
+    if features.get("entertainment_system"): score += 5
+    if features.get("charging_ports"): score += 3
+    if features.get("power_outlets"): score += 2
+    
+    # Comfort (35 points)
+    if features.get("air_conditioning"): score += 10
+    if features.get("pressurized_cabin"): score += 10
+    if features.get("leather_seats"): score += 5
+    if features.get("reclining_seats"): score += 5
+    if features.get("noise_cancelling"): score += 5
+    
+    # Food & Beverage (25 points)
+    if features.get("meals_available"): score += 15
+    if features.get("hot_beverages"): score += 5
+    if features.get("refreshments"): score += 5
+    
+    # Facilities (15 points)
+    if features.get("lavatory"): score += 10
+    if features.get("conference_table"): score += 5
+    
+    rating = "Luxury" if score >= 80 else "Premium" if score >= 60 else "Comfortable" if score >= 40 else "Basic"
+    
+    return {
+        "score": score,
+        "max_score": max_score,
+        "percentage": round((score / max_score) * 100),
+        "rating": rating,
+        "has_wifi": features.get("wifi", False),
+        "has_meals": features.get("meals_available", False),
+        "has_lavatory": features.get("lavatory", False)
+    }
+
+
+# ============ BOOKING TYPES ENDPOINT ============
+
+@router.get("/booking-types")
+async def get_booking_types():
+    """
+    Get all available booking types with details
+    """
+    return {
+        "booking_types": BOOKING_TYPES,
+        "count": len(BOOKING_TYPES)
+    }
+
+
 # ============ OPERATOR ENDPOINTS ============
 
 @router.post("/create")
@@ -267,7 +510,27 @@ async def create_aircraft(
             "elt": True,
             "life_jackets": False,
             "oxygen_kit": False,
-            "medical_equipment": False
+            "oxygen_kit_type": None,
+            "tcas": False,
+            "tcas_version": None,
+            "terrain_awareness": False,
+            "weather_radar": False,
+            "autopilot": False,
+            "parachute_system": False,
+            "parachute_type": None,
+            "medical_equipment": False,
+            "defibrillator": False,
+            "stretcher_compatible": False
+        },
+        
+        # Crew Configuration / क्रू विन्यास
+        "crew_configuration": request.crew_configuration.dict() if request.crew_configuration else {
+            "pilot_count": 1,
+            "copilot_required": False,
+            "cabin_crew_count": 0,
+            "flight_engineer_required": False,
+            "min_pilot_experience_hours": None,
+            "crew_rest_facility": False
         },
         
         # Documents (initially empty)
@@ -294,7 +557,7 @@ async def create_aircraft(
             "vip_cabin": None
         },
         
-        # Crew (initially empty)
+        # Crew Members (initially empty)
         "crew": [],
         
         # Description
@@ -323,7 +586,7 @@ async def create_aircraft(
         # Metadata
         "created_at": now,
         "updated_at": now,
-        "version": "1.0"
+        "version": "2.0"
     }
     
     await db.aircraft_catalog.insert_one(aircraft)
@@ -608,6 +871,43 @@ async def update_availability(
 
 # ============ CUSTOMER ENDPOINTS ============
 
+@router.get("/public/featured")
+async def get_featured_aircraft(
+    limit: int = Query(default=6, le=12)
+):
+    """
+    Get featured verified aircraft for homepage/search
+    """
+    db = get_database()
+    
+    aircraft_list = await db.aircraft_catalog.find(
+        {
+            "is_published": True,
+            "verification.status": {"$in": ["verified", "premium_verified"]},
+            "availability_status": "available"
+        },
+        {
+            "_id": 0,
+            "documents": 0,
+            "crew.licence_number": 0,
+            "crew.medical_validity": 0
+        }
+    ).sort([("verification.status", 1), ("created_at", -1)]).to_list(limit)
+    
+    # Enrich with scores and badges
+    for aircraft in aircraft_list:
+        aircraft["verification_badge"] = get_verification_badge(
+            aircraft.get("verification", {}).get("status", "pending")
+        )
+        aircraft["safety_score"] = calculate_safety_score(aircraft.get("safety_equipment", {}))
+        aircraft["amenity_score"] = calculate_amenity_score(aircraft.get("features", {}))
+    
+    return {
+        "aircraft": aircraft_list,
+        "count": len(aircraft_list)
+    }
+
+
 @router.get("/public/search")
 async def search_aircraft(
     aircraft_type: Optional[str] = None,
@@ -889,4 +1189,172 @@ async def get_expiring_documents(
         "insurance_expiring": insurance_expiring,
         "maintenance_due": maintenance_due,
         "total_alerts": len(insurance_expiring) + len(maintenance_due)
+    }
+
+
+
+# ============ AI SMART COMPARISON ENDPOINTS ============
+
+@router.post("/compare")
+async def compare_aircraft(
+    aircraft_ids: List[str],
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    AI Smart Comparison - Compare multiple aircraft side-by-side
+    Used by customers to make informed decisions
+    """
+    db = get_database()
+    
+    if len(aircraft_ids) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 aircraft to compare")
+    
+    if len(aircraft_ids) > 4:
+        raise HTTPException(status_code=400, detail="Maximum 4 aircraft can be compared at once")
+    
+    # Fetch all aircraft
+    aircraft_list = await db.aircraft_catalog.find(
+        {
+            "id": {"$in": aircraft_ids},
+            "$or": [
+                {"is_published": True},
+                {"operator_id": current_user["id"]}  # Operator can compare own
+            ]
+        },
+        {"_id": 0}
+    ).to_list(4)
+    
+    if len(aircraft_list) < 2:
+        raise HTTPException(status_code=404, detail="Not enough aircraft found for comparison")
+    
+    comparison_data = []
+    
+    for aircraft in aircraft_list:
+        basic = aircraft.get("basic_info", {})
+        features = aircraft.get("features", {})
+        pricing = aircraft.get("pricing", {})
+        safety = aircraft.get("safety_equipment", {})
+        crew_config = aircraft.get("crew_configuration", {})
+        verification = aircraft.get("verification", {})
+        
+        # Calculate scores
+        safety_score = calculate_safety_score(safety)
+        amenity_score = calculate_amenity_score(features)
+        
+        comparison_data.append({
+            "id": aircraft["id"],
+            "name": f"{basic.get('manufacturer', '')} {basic.get('model', '')}",
+            "registration": basic.get("registration_number"),
+            "type": AIRCRAFT_TYPES.get(basic.get("aircraft_type"), basic.get("aircraft_type")),
+            "year": basic.get("year_of_manufacture"),
+            "photo": aircraft.get("photos", {}).get("front"),
+            
+            # Technical Specs
+            "specs": {
+                "engine_type": basic.get("engine_type", "N/A"),
+                "cruise_speed": f"{basic.get('cruise_speed_kmh', 'N/A')} km/h" if basic.get('cruise_speed_kmh') else "N/A",
+                "range": f"{basic.get('max_range_km', 'N/A')} km" if basic.get('max_range_km') else "N/A",
+                "max_altitude": f"{basic.get('max_altitude_ft', 'N/A'):,} ft" if basic.get('max_altitude_ft') else "N/A"
+            },
+            
+            # Capacity
+            "capacity": {
+                "total_seats": features.get("total_seats", 0),
+                "vip_seats": features.get("vip_seats", 0),
+                "baggage_kg": features.get("baggage_capacity_kg", "N/A"),
+                "cabin_size": features.get("cabin_size", "N/A")
+            },
+            
+            # Crew
+            "crew": {
+                "pilots": crew_config.get("pilot_count", 1),
+                "copilot_required": crew_config.get("copilot_required", False),
+                "cabin_crew": crew_config.get("cabin_crew_count", 0)
+            },
+            
+            # Safety Score
+            "safety": {
+                "score": safety_score["percentage"],
+                "rating": safety_score["rating"],
+                "tcas": safety_score["has_tcas"],
+                "oxygen_kit": safety_score["has_oxygen"],
+                "parachute": safety_score["has_parachute"]
+            },
+            
+            # Amenities Score
+            "amenities": {
+                "score": amenity_score["percentage"],
+                "rating": amenity_score["rating"],
+                "wifi": amenity_score["has_wifi"],
+                "meals": amenity_score["has_meals"],
+                "lavatory": amenity_score["has_lavatory"]
+            },
+            
+            # Key Features (Quick glance)
+            "key_features": {
+                "wifi": features.get("wifi", False),
+                "ac": features.get("air_conditioning", False),
+                "entertainment": features.get("entertainment_system", False),
+                "meals": features.get("meals_available", False),
+                "lavatory": features.get("lavatory", False),
+                "pet_friendly": features.get("pet_friendly", False),
+                "wheelchair": features.get("wheelchair_accessible", False),
+                "leather_seats": features.get("leather_seats", False),
+                "charging": features.get("charging_ports", False)
+            },
+            
+            # Pricing (HIDE commission from customer view)
+            "pricing": {
+                "hourly": pricing.get("hourly_price"),
+                "one_way": pricing.get("one_way_price"),
+                "daily": pricing.get("daily_price"),
+                "currency": pricing.get("currency", "INR"),
+                "formatted_hourly": f"₹{pricing.get('hourly_price', 0):,.0f}/hr" if pricing.get('hourly_price') else "Quote",
+                "formatted_daily": f"₹{pricing.get('daily_price', 0):,.0f}/day" if pricing.get('daily_price') else "Quote"
+            },
+            
+            # Verification Status
+            "verification": {
+                "status": verification.get("status", "pending"),
+                "is_verified": verification.get("status") in ["verified", "premium_verified"],
+                "badge": get_verification_badge(verification.get("status", "pending"))
+            },
+            
+            # Availability
+            "availability": aircraft.get("availability_status", "unknown")
+        })
+    
+    # Find best in each category
+    best_safety = max(comparison_data, key=lambda x: x["safety"]["score"])
+    best_amenities = max(comparison_data, key=lambda x: x["amenities"]["score"])
+    best_value = min(comparison_data, key=lambda x: x["pricing"]["hourly"] or float('inf'))
+    
+    return {
+        "comparison": comparison_data,
+        "count": len(comparison_data),
+        "highlights": {
+            "best_safety": {
+                "id": best_safety["id"],
+                "name": best_safety["name"],
+                "score": best_safety["safety"]["score"]
+            },
+            "best_amenities": {
+                "id": best_amenities["id"],
+                "name": best_amenities["name"],
+                "score": best_amenities["amenities"]["score"]
+            },
+            "best_value": {
+                "id": best_value["id"],
+                "name": best_value["name"],
+                "price": best_value["pricing"]["formatted_hourly"]
+            }
+        },
+        "comparison_categories": [
+            {"key": "specs", "label": "Technical Specifications / तकनीकी विवरण"},
+            {"key": "capacity", "label": "Capacity / क्षमता"},
+            {"key": "crew", "label": "Crew / क्रू"},
+            {"key": "safety", "label": "Safety / सुरक्षा"},
+            {"key": "amenities", "label": "Amenities / सुविधाएं"},
+            {"key": "pricing", "label": "Pricing / मूल्य"}
+        ]
     }
