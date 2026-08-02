@@ -270,6 +270,18 @@ api_router.include_router(kyc_verification_routes.router)
 # AI Business Advisor
 api_router.include_router(ai_advisor_routes.router)
 
+# Analytics Routes
+from routes import route_intelligence_routes
+from routes import predictive_maintenance_routes
+from routes import hangar_management_routes
+from routes import admin_analytics_routes
+from routes import operations_map_routes
+api_router.include_router(route_intelligence_routes.router)
+api_router.include_router(predictive_maintenance_routes.router)
+api_router.include_router(hangar_management_routes.router)
+api_router.include_router(admin_analytics_routes.router)
+api_router.include_router(operations_map_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 
