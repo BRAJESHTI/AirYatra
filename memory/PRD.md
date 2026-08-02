@@ -1153,3 +1153,63 @@ Replaced base64-in-MongoDB storage with Emergent Object Storage. Added image thu
 - `/app/test_reports/iteration_25.json` - 14/16 pass (thumbnail_url bug found and fixed)
 
 ---
+
+## PHASE 8: Account Lockout Security & Code Refactoring (Aug 2, 2026)
+
+### Overview
+Implemented enterprise-grade account lockout security after 5 failed login attempts, and refactored large CRM components into smaller reusable modules.
+
+### P0 Features Implemented
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Account Lockout (5 attempts)** | 🟢 DONE | AccountLockoutService tracks failed attempts per email, locks for 30 min |
+| **Email Unlock Link** | 🟢 DONE | Secure unlock token sent via email, 60 min expiry |
+| **Admin Locked Accounts** | 🟢 DONE | GET /api/auth/admin/locked-accounts lists all locked users |
+| **Admin Force Unlock** | 🟢 DONE | POST /api/auth/admin/unlock-account/{email} admin override |
+| **Unlock Account Page** | 🟢 DONE | /unlock-account frontend page handles email token unlock |
+| **PDF Document Viewer** | 🟢 DONE | PDFDocumentViewer.js with zoom, download, fullscreen |
+
+### Backend Files Created/Modified
+- `/app/backend/services/account_lockout_service.py` - 280 lines, full lockout logic
+- `/app/backend/routes/auth_routes.py` - Added lockout integration to /login + new endpoints
+- `/app/backend/services/email_service.py` - Added account_locked email template
+- `/app/backend/security_middleware.py` - Raised login rate limit to 10/min (above lockout threshold)
+
+### Frontend Files Created
+- `/app/frontend/src/pages/UnlockAccountPage.js` - Email unlock link handler
+- `/app/frontend/src/components/documents/PDFDocumentViewer.js` - PDF preview with zoom
+- `/app/frontend/src/App.js` - Added /unlock-account route
+
+### P2 Code Refactoring Completed
+
+| Component | Before | After | Notes |
+|-----------|--------|-------|-------|
+| **CRM Dashboard** | 1107 lines | Modular | Split into CRMStatsCards, CRMLeadsList, CRMLeadModal |
+
+### Refactored CRM Components
+- `/app/frontend/src/components/crm/CRMStatsCards.js` - Dashboard stats cards
+- `/app/frontend/src/components/crm/CRMLeadsList.js` - Leads table with filters
+- `/app/frontend/src/components/crm/CRMLeadModal.js` - Lead create/edit modal
+- `/app/frontend/src/components/crm/index.js` - Exports + shared configs
+
+### Account Lockout Flow
+```
+1. User attempts login → failed
+2. record_failed_attempt() increments counter
+3. After 5 failures → account locked for 30 minutes
+4. Email sent with unlock link (/unlock-account?email=x&token=y)
+5. User clicks link → POST /api/auth/unlock-account → account unlocked
+6. OR Admin uses /api/auth/admin/unlock-account/{email}
+7. OR Wait 30 minutes for auto-unlock
+```
+
+### Test Reports
+- `/app/test_reports/iteration_26.json` - 12/13 pass, 1 skipped (rate limit interaction)
+- `/app/backend/tests/test_account_lockout.py` - 13 test cases
+
+### Bug Fixes
+- Fixed timezone-naive vs aware datetime comparison in unlock_with_token (CRITICAL)
+- Raised /login rate limit from 5/min to 10/min to allow 423 pre-check to work
+
+---

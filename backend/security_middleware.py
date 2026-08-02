@@ -77,7 +77,7 @@ limiter = Limiter(key_func=get_client_ip)
 
 # Rate limit configurations
 RATE_LIMITS = {
-    "login": "5/minute",           # 5 login attempts per minute per IP
+    "login": "10/minute",           # 10 login attempts per minute per IP (above 5-attempt lockout threshold)
     "password_reset": "3/minute",   # 3 password reset requests per minute
     "register": "3/minute",         # 3 registration attempts per minute
     "api_general": "100/minute",    # 100 general API calls per minute
