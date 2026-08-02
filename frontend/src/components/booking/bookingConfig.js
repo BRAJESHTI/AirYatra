@@ -7,7 +7,124 @@ export const aircraftTypes = [
   { value: 'chartered_plane', label: 'Chartered Plane / चार्टर्ड प्लेन', icon: '✈️', maxPassengers: 19 },
 ];
 
-// Udan Ka Prakar (Flight Type) Options
+// ============ 9 BOOKING TYPES (NEW) ============
+// Matches backend BOOKING_TYPES from aircraft_catalog_routes.py
+
+export const bookingTypes = [
+  { 
+    value: 'one_way', 
+    label: 'One Way', 
+    labelHi: 'एकतरफा',
+    icon: '→',
+    description: 'Single journey from A to B',
+    descriptionHi: 'A से B तक एक तरफ़ा यात्रा',
+    multiplier: 1.0,
+    minHours: null,
+    minDays: null,
+    discountHint: null
+  },
+  { 
+    value: 'round_trip', 
+    label: 'Round Trip', 
+    labelHi: 'वापसी यात्रा',
+    icon: '↔',
+    description: 'Return journey A to B to A',
+    descriptionHi: 'A से B और वापस A तक',
+    multiplier: 1.85, // 7.5% discount on 2x
+    minHours: null,
+    minDays: null,
+    discountHint: 'Save 5-10%'
+  },
+  { 
+    value: 'multi_city', 
+    label: 'Multi-City', 
+    labelHi: 'बहु-शहर',
+    icon: '◇',
+    description: 'Multiple destinations in one trip',
+    descriptionHi: 'एक यात्रा में कई गंतव्य',
+    multiplier: 1.0, // Per leg pricing
+    minHours: null,
+    minDays: null,
+    discountHint: 'Per-leg discounts'
+  },
+  { 
+    value: 'hourly_charter', 
+    label: 'Hourly Charter', 
+    labelHi: 'प्रति घंटा चार्टर',
+    icon: '⏱',
+    description: 'Book by the hour',
+    descriptionHi: 'घंटे के हिसाब से बुक करें',
+    multiplier: 1.0,
+    minHours: 1,
+    minDays: null,
+    discountHint: null
+  },
+  { 
+    value: 'daily_charter', 
+    label: 'Daily Charter', 
+    labelHi: 'दैनिक चार्टर',
+    icon: '📅',
+    description: 'Full day aircraft at your disposal',
+    descriptionHi: 'पूरे दिन के लिए विमान',
+    multiplier: 0.9, // 10% discount for full day
+    minHours: 8,
+    minDays: 1,
+    discountHint: '10% off daily rate'
+  },
+  { 
+    value: 'multi_day', 
+    label: 'Multi-Day', 
+    labelHi: 'बहु-दिवसीय',
+    icon: '📆',
+    description: '3+ days charter with discounts',
+    descriptionHi: '3+ दिन की चार्टर छूट के साथ',
+    multiplier: 0.85, // 15% discount for 3+ days
+    minHours: null,
+    minDays: 3,
+    discountHint: '10-15% off'
+  },
+  { 
+    value: 'group_booking', 
+    label: 'Group Booking', 
+    labelHi: 'समूह बुकिंग',
+    icon: '👥',
+    description: '5+ passengers, special rates',
+    descriptionHi: '5+ यात्री, विशेष दरें',
+    multiplier: 0.92, // 8% group discount
+    minHours: null,
+    minDays: null,
+    minPassengers: 5,
+    discountHint: 'Group discounts'
+  },
+  { 
+    value: 'emergency', 
+    label: 'Emergency', 
+    labelHi: 'आपातकालीन',
+    icon: '🚨',
+    description: 'Urgent medical or time-critical',
+    descriptionHi: 'तत्काल चिकित्सा या समय-महत्वपूर्ण',
+    multiplier: 1.25, // 25% priority surcharge
+    minHours: null,
+    minDays: null,
+    discountHint: 'Priority surcharge',
+    priority: true
+  },
+  { 
+    value: 'event_based', 
+    label: 'Event Package', 
+    labelHi: 'इवेंट पैकेज',
+    icon: '🎉',
+    description: 'Weddings, Corporate events, Film shoots',
+    descriptionHi: 'शादी, कॉर्पोरेट इवेंट, फिल्म शूटिंग',
+    multiplier: 1.0, // Custom quote
+    minHours: null,
+    minDays: null,
+    discountHint: 'Custom quote',
+    customQuote: true
+  }
+];
+
+// Udan Ka Prakar (Flight Type) Options - Legacy support
 export const udanPrakarOptions = [
   { value: 'one_hour', label: '1 Hour Flight / 1 घंटे की उड़ान', icon: '⏱️' },
   { value: 'two_hour', label: '2 Hour Flight / 2 घंटे की उड़ान', icon: '⏰' },

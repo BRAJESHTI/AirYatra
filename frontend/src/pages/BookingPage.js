@@ -5,7 +5,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Check, AlertCircle, 
   Briefcase, Target, Navigation, Calculator, Send, Loader2,
   UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign, Gift, Tag,
-  FileText, Scale, AlertTriangle, PenTool, ExternalLink
+  FileText, Scale, AlertTriangle, PenTool, ExternalLink, Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,11 @@ import LandingPointSelector from '../components/shared/LandingPointSelector';
 // Import modular booking components and config
 import { 
   BookingStepIndicator,
+  PriceLockTimer,
+  BookingTypeSelector,
   aircraftTypes,
   udanPrakarOptions,
+  bookingTypes,
   bookingForOptions,
   bookingPurposeOptions,
   bookingSteps,
@@ -99,6 +102,7 @@ function BookingPage({ user }) {
     children_count: 0, // up to 4 years free, max 2
     
     // Step 2: Booking Details (Dropdowns)
+    booking_type: 'one_way', // NEW: 9 booking types
     udan_prakar: '', // flight type
     booking_for: '',
     booking_purpose: '',
@@ -148,6 +152,14 @@ function BookingPage({ user }) {
   const [distanceKm, setDistanceKm] = useState(0);
   const [landingRent, setLandingRent] = useState({ pickup: null, drop: null, total: 0 });
   const [permissionRequired, setPermissionRequired] = useState(false);
+  
+  // Price Lock State (NEW)
+  const [priceLock, setPriceLock] = useState({
+    isLocked: false,
+    lockId: null,
+    expiresAt: null,
+    lockedAmount: null
+  });
   
   // Referral & Discount State
   const [referralCode, setReferralCode] = useState('');
@@ -995,6 +1007,17 @@ function BookingPage({ user }) {
   // Render Step 2: Booking Type (Dropdowns)
   const renderBookingTypeStep = () => (
     <div className="space-y-6">
+      {/* NEW: Booking Type Selector (9 types) */}
+      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <BookingTypeSelector
+          selected={formData.booking_type}
+          onSelect={(type) => handleInputChange('booking_type', type)}
+          basePrice={priceEstimate?.total || 0}
+          passengerCount={formData.total_passengers}
+          showPriceImpact={priceEstimate?.total > 0}
+        />
+      </div>
+
       {/* Udan Ka Prakar - Dropdown */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <Label className="text-white text-lg mb-3 block flex items-center gap-2">
@@ -1227,6 +1250,31 @@ function BookingPage({ user }) {
   // Render Step 4: Price & Inquiry
   const renderPriceStep = () => (
     <div className="space-y-6">
+      {/* Price Lock Timer (NEW) */}
+      {priceLock.isLocked && (
+        <PriceLockTimer
+          lockId={priceLock.lockId}
+          expiresAt={priceLock.expiresAt}
+          totalAmount={priceLock.lockedAmount}
+          onExpire={() => {
+            setPriceLock({ isLocked: false, lockId: null, expiresAt: null, lockedAmount: null });
+            toast.warning('Price lock expired. Please recalculate for latest pricing.');
+          }}
+          onExtend={async () => {
+            // Extend price lock by 5 minutes via API
+            try {
+              const response = await pricingEngineAPI.extendPriceLock(priceLock.lockId);
+              if (response.data?.expires_at) {
+                setPriceLock(prev => ({ ...prev, expiresAt: response.data.expires_at }));
+              }
+            } catch (error) {
+              console.error('Failed to extend price lock:', error);
+            }
+          }}
+          redirectOnExpire="/booking"
+        />
+      )}
+
       {/* Summary Card */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
@@ -1235,6 +1283,13 @@ function BookingPage({ user }) {
         </h3>
         
         <div className="grid grid-cols-2 gap-4 text-sm">
+          {/* Booking Type (NEW) */}
+          <div className="text-slate-400">Booking Type / बुकिंग प्रकार</div>
+          <div className="text-white">
+            {bookingTypes.find(t => t.value === formData.booking_type)?.icon || '→'}{' '}
+            {bookingTypes.find(t => t.value === formData.booking_type)?.label || formData.booking_type}
+          </div>
+          
           <div className="text-slate-400">{t('bookingForm.aircraftTypeLabel')}</div>
           <div className="text-white">{formData.aircraft_type === 'helicopter' ? '🚁' : '✈️'} {t(`options.${formData.aircraft_type || 'helicopter'}`)}</div>
           

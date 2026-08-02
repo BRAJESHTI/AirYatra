@@ -5,10 +5,15 @@ export { default as BookingPurposeStep } from './BookingPurposeStep';
 export { default as RouteSelectionStep } from './RouteSelectionStep';
 export { default as PriceSummaryStep } from './PriceSummaryStep';
 
+// New Components
+export { PriceLockTimer, PriceLockBadge } from './PriceLockTimer';
+export { BookingTypeSelector, BookingTypePill } from './BookingTypeSelector';
+
 // Export configuration
 export {
   aircraftTypes,
   udanPrakarOptions,
+  bookingTypes,  // NEW: 9 booking types
   bookingForOptions,
   bookingPurposeOptions,
   bookingSteps,
