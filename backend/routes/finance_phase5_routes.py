@@ -57,6 +57,12 @@ class CurrencyConversion(BaseModel):
     to_currency: str = "INR"
     amount: float
 
+class ForexVendorPayment(BaseModel):
+    vendor_name: str
+    amount_foreign: float
+    currency: str = "USD"
+    description: Optional[str] = None
+
 # ============== AUDIT TRAIL ==============
 @router.post("/audit/log")
 async def create_audit_log(log: AuditLogCreate):
@@ -111,31 +117,40 @@ async def get_audit_logs(
             {"description": {"$regex": search, "$options": "i"}},
             {"entity_id": {"$regex": search, "$options": "i"}}
         ]
+    
+    # Handle date filters - convert string to datetime for comparison
     if from_date:
-        query["created_at"] = {"$gte": from_date}
+        try:
+            from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
+            query["created_at"] = {"$gte": from_dt}
+        except (ValueError, TypeError):
+            pass
     if to_date:
-        if "created_at" in query:
-            query["created_at"]["$lte"] = to_date
-        else:
-            query["created_at"] = {"$lte": to_date}
+        try:
+            to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
+            if "created_at" in query:
+                query["created_at"]["$lte"] = to_dt
+            else:
+                query["created_at"] = {"$lte": to_dt}
+        except (ValueError, TypeError):
+            pass
     
     total = await db.finance_audit_logs.count_documents(query)
     logs = await db.finance_audit_logs.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
-    # Get unique values for filters
-    all_logs = await db.finance_audit_logs.find({}).to_list(5000)
-    modules = list(set(l.get("module", "") for l in all_logs if l.get("module")))
-    actions = list(set(l.get("action", "") for l in all_logs if l.get("action")))
-    entity_types = list(set(l.get("entity_type", "") for l in all_logs if l.get("entity_type")))
+    # Get unique values for filters using distinct for efficiency
+    modules = await db.finance_audit_logs.distinct("module")
+    actions = await db.finance_audit_logs.distinct("action")
+    entity_types = await db.finance_audit_logs.distinct("entity_type")
     
     return {
         "logs": [serialize_doc(l) for l in logs],
         "total": total,
         "page": skip // limit + 1,
         "filters": {
-            "modules": sorted(modules),
-            "actions": sorted(actions),
-            "entity_types": sorted(entity_types)
+            "modules": sorted([m for m in modules if m]),
+            "actions": sorted([a for a in actions if a]),
+            "entity_types": sorted([e for e in entity_types if e])
         }
     }
 
@@ -152,8 +167,23 @@ async def get_audit_stats():
     # Get all logs
     all_logs = await db.finance_audit_logs.find({}).to_list(10000)
     
+    # Helper function to normalize created_at to datetime
+    def get_datetime(log):
+        created = log.get("created_at")
+        if created is None:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        if isinstance(created, datetime):
+            return created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        if isinstance(created, str):
+            try:
+                dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                return datetime.min.replace(tzinfo=timezone.utc)
+        return datetime.min.replace(tzinfo=timezone.utc)
+    
     # Today's activity
-    today_logs = [l for l in all_logs if l.get("created_at", datetime.min) >= today_start.isoformat() if isinstance(l.get("created_at"), str)]
+    today_logs = [l for l in all_logs if get_datetime(l) >= today_start]
     
     # By module
     by_module = {}
@@ -684,31 +714,26 @@ async def convert_currency(conversion: CurrencyConversion):
     }
 
 @router.post("/currency/vendor-payment")
-async def create_forex_vendor_payment(
-    vendor_name: str,
-    amount_foreign: float,
-    currency: str,
-    description: Optional[str] = None
-):
+async def create_forex_vendor_payment(payment: ForexVendorPayment):
     """Create a vendor payment with forex conversion"""
     db = get_database()
     
     # Get exchange rate
     rates_response = await get_exchange_rates()
     rates = rates_response["rates"]
-    rate = rates.get(currency, 83.50)
+    rate = rates.get(payment.currency, 83.50)
     
     # Calculate INR amount
-    inr_amount = amount_foreign * rate
+    inr_amount = payment.amount_foreign * rate
     
     payment_doc = {
         "id": str(uuid.uuid4()),
-        "vendor_name": vendor_name,
-        "original_currency": currency,
-        "original_amount": amount_foreign,
+        "vendor_name": payment.vendor_name,
+        "original_currency": payment.currency,
+        "original_amount": payment.amount_foreign,
         "exchange_rate": rate,
         "inr_amount": round(inr_amount, 2),
-        "description": description,
+        "description": payment.description,
         "status": "pending",
         "created_at": datetime.now(timezone.utc)
     }
@@ -721,14 +746,14 @@ async def create_forex_vendor_payment(
         module="forex",
         entity_type="payment",
         entity_id=payment_doc["id"],
-        description=f"Created forex payment: {currency} {amount_foreign:,.2f} = ₹{inr_amount:,.2f}"
+        description=f"Created forex payment: {payment.currency} {payment.amount_foreign:,.2f} = ₹{inr_amount:,.2f}"
     ))
     
     return {
         "success": True,
         "payment": serialize_doc(payment_doc),
         "conversion": {
-            "from": f"{currency} {amount_foreign:,.2f}",
+            "from": f"{payment.currency} {payment.amount_foreign:,.2f}",
             "to": f"INR {inr_amount:,.2f}",
             "rate": rate
         }

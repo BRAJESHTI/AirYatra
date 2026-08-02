@@ -103,13 +103,11 @@ export default function MultiCurrencySupport() {
     
     setCreatingPayment(true);
     try {
-      await api.post('/finance/phase5/currency/vendor-payment', null, {
-        params: {
-          vendor_name: newPayment.vendor_name,
-          amount_foreign: parseFloat(newPayment.amount_foreign),
-          currency: newPayment.currency,
-          description: newPayment.description
-        }
+      await api.post('/finance/phase5/currency/vendor-payment', {
+        vendor_name: newPayment.vendor_name,
+        amount_foreign: parseFloat(newPayment.amount_foreign),
+        currency: newPayment.currency,
+        description: newPayment.description || null
       });
       toast.success('Forex payment created');
       setShowPaymentModal(false);
