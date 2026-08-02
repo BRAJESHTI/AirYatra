@@ -107,6 +107,8 @@ from routes import kyc_verification_routes
 from routes import ai_advisor_routes
 from routes import pilot_mobile_routes
 from routes import pilot_chat_routes
+from routes import pilot_availability_routes
+from routes import revenue_analytics_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -289,6 +291,12 @@ api_router.include_router(pilot_mobile_routes.router)
 
 # Pilot Chat
 api_router.include_router(pilot_chat_routes.router)
+
+# Pilot Availability
+api_router.include_router(pilot_availability_routes.router)
+
+# Revenue Analytics
+api_router.include_router(revenue_analytics_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

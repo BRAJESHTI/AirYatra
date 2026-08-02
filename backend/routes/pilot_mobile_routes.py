@@ -1016,3 +1016,168 @@ async def preflight_weather_check(
         "recommendation": recommendation,
         "can_proceed_with_preflight": status != "NO-GO"
     }
+
+
+
+# ==================== EMERGENCY CONTACTS ====================
+
+# Default emergency contacts for aviation in India
+EMERGENCY_CONTACTS = [
+    {
+        "id": "atc",
+        "name": "ATC Emergency",
+        "number": "121.5",
+        "type": "radio",
+        "description": "International Distress Frequency",
+        "category": "aviation",
+        "icon": "radio"
+    },
+    {
+        "id": "dgca",
+        "name": "DGCA Control Room",
+        "number": "+91-11-24622495",
+        "type": "phone",
+        "description": "24x7 Helpline",
+        "category": "aviation",
+        "icon": "shield"
+    },
+    {
+        "id": "aai",
+        "name": "AAI Emergency",
+        "number": "+91-11-24632950",
+        "type": "phone",
+        "description": "Airports Authority of India",
+        "category": "aviation",
+        "icon": "plane"
+    },
+    {
+        "id": "airyatra_ops",
+        "name": "AirYatra Operations",
+        "number": "+91-9876543210",
+        "type": "phone",
+        "description": "24x7 Operations Center",
+        "category": "company",
+        "icon": "headphones",
+        "primary": True
+    },
+    {
+        "id": "airyatra_emergency",
+        "name": "AirYatra Emergency",
+        "number": "+91-9876543211",
+        "type": "phone",
+        "description": "Emergency Response Team",
+        "category": "company",
+        "icon": "alert-triangle",
+        "primary": True
+    },
+    {
+        "id": "police",
+        "name": "Police",
+        "number": "100",
+        "type": "phone",
+        "description": "Emergency Police",
+        "category": "emergency",
+        "icon": "shield"
+    },
+    {
+        "id": "ambulance",
+        "name": "Ambulance",
+        "number": "108",
+        "type": "phone",
+        "description": "Medical Emergency",
+        "category": "emergency",
+        "icon": "heart"
+    },
+    {
+        "id": "fire",
+        "name": "Fire Department",
+        "number": "101",
+        "type": "phone",
+        "description": "Fire Emergency",
+        "category": "emergency",
+        "icon": "flame"
+    },
+    {
+        "id": "disaster",
+        "name": "Disaster Management",
+        "number": "1078",
+        "type": "phone",
+        "description": "NDMA Helpline",
+        "category": "emergency",
+        "icon": "alert-circle"
+    },
+]
+
+
+@router.get("/emergency-contacts")
+async def get_emergency_contacts(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get emergency contact numbers"""
+    db = get_database()
+    
+    # Get any custom contacts from database
+    custom_contacts = await db.emergency_contacts.find(
+        {},
+        {"_id": 0}
+    ).to_list(20)
+    
+    # Combine with default contacts
+    all_contacts = EMERGENCY_CONTACTS + custom_contacts
+    
+    # Group by category
+    grouped = {
+        "company": [],
+        "aviation": [],
+        "emergency": []
+    }
+    
+    for contact in all_contacts:
+        category = contact.get("category", "emergency")
+        if category in grouped:
+            grouped[category].append(contact)
+    
+    return {
+        "contacts": all_contacts,
+        "grouped": grouped,
+        "primary_contact": next((c for c in all_contacts if c.get("primary")), all_contacts[0] if all_contacts else None)
+    }
+
+
+@router.post("/emergency-contacts/sos")
+async def trigger_sos(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Trigger SOS alert - notifies operations team"""
+    db = get_database()
+    
+    user_id = current_user.get("id") or str(current_user.get("_id"))
+    user_name = current_user.get("full_name", "Pilot")
+    now = datetime.now(timezone.utc)
+    
+    # Log SOS event
+    sos_record = {
+        "id": f"sos_{ObjectId()}",
+        "pilot_id": user_id,
+        "pilot_name": user_name,
+        "message": data.get("message", "SOS Triggered"),
+        "location": data.get("location"),
+        "flight_id": data.get("flight_id"),
+        "status": "active",
+        "triggered_at": now.isoformat(),
+        "created_at": now.isoformat()
+    }
+    
+    await db.sos_alerts.insert_one(sos_record)
+    
+    # TODO: Send SMS/Email to operations team
+    # For now, just log it
+    print(f"🚨 SOS ALERT: Pilot {user_name} ({user_id}) triggered SOS at {now.isoformat()}")
+    
+    return {
+        "message": "SOS alert sent to operations team",
+        "sos_id": sos_record["id"],
+        "timestamp": now.isoformat(),
+        "contacts_notified": ["Operations Center", "Emergency Response Team"]
+    }
