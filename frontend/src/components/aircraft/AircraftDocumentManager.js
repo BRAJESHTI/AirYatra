@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Upload, Camera, FileText, Trash2, Eye, Download, X,
   CheckCircle, AlertTriangle, Clock, Loader2, Shield,
-  Image, File, Plus, RefreshCw, Calendar, Lock
+  Image, File, Plus, RefreshCw, Calendar, Lock, ZoomIn,
+  ChevronLeft, ChevronRight, Maximize2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -456,6 +457,129 @@ const PhotoUploadModal = ({ aircraft, photoCategory, onClose, onSuccess }) => {
   );
 };
 
+// ============ PHOTO GALLERY LIGHTBOX ============
+const PhotoGalleryLightbox = ({ photos, initialIndex, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
+  const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
+  const currentPhoto = photos[currentIndex];
+  
+  const goNext = () => {
+    setLoading(true);
+    setImageError(false);
+    setCurrentIndex((prev) => (prev + 1) % photos.length);
+  };
+  
+  const goPrev = () => {
+    setLoading(true);
+    setImageError(false);
+    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [photos.length]);
+
+  if (!currentPhoto) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100]"
+      onClick={onClose}
+    >
+      {/* Close Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
+        onClick={onClose}
+      >
+        <X className="h-6 w-6" />
+      </Button>
+
+      {/* Navigation Arrows */}
+      {photos.length > 1 && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10"
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+          >
+            <ChevronLeft className="h-8 w-8" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10"
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+          >
+            <ChevronRight className="h-8 w-8" />
+          </Button>
+        </>
+      )}
+
+      {/* Image Container */}
+      <div 
+        className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-12 w-12 text-orange-400 animate-spin" />
+          </div>
+        )}
+        
+        {imageError ? (
+          <div className="flex flex-col items-center justify-center text-slate-400 p-8">
+            <Image className="h-16 w-16 mb-4" />
+            <p>Failed to load image</p>
+          </div>
+        ) : (
+          <img
+            src={currentPhoto.file_url || currentPhoto.thumbnail_url}
+            alt={currentPhoto.name || 'Aircraft photo'}
+            className={`max-w-full max-h-[85vh] object-contain rounded-lg ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+            onLoad={() => setLoading(false)}
+            onError={() => { setLoading(false); setImageError(true); }}
+          />
+        )}
+      </div>
+
+      {/* Photo Info */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <p className="text-white font-medium">{currentPhoto.name}</p>
+            <p className="text-slate-400 text-sm">
+              {currentPhoto.document_type?.replace('photo_', '').replace(/_/g, ' ')} • 
+              {currentPhoto.file_size ? ` ${(currentPhoto.file_size / 1024).toFixed(1)} KB` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-slate-700 text-white">
+              {currentIndex + 1} / {photos.length}
+            </Badge>
+            {currentPhoto.verification_status === 'verified' && (
+              <Badge className="bg-green-500 text-white">
+                <CheckCircle className="h-3 w-3 mr-1" /> Verified
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ============ MAIN AIRCRAFT DOCUMENT MANAGER ============
 const AircraftDocumentManager = ({ aircraft, onUpdate }) => {
   const [documents, setDocuments] = useState([]);
@@ -464,6 +588,7 @@ const AircraftDocumentManager = ({ aircraft, onUpdate }) => {
   const [uploadModal, setUploadModal] = useState(null);
   const [photoModal, setPhotoModal] = useState(null);
   const [complianceScore, setComplianceScore] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   const fetchDocuments = useCallback(async () => {
     if (!aircraft?.operator_id) return;
@@ -656,52 +781,104 @@ const AircraftDocumentManager = ({ aircraft, onUpdate }) => {
 
         {/* Photos Tab */}
         <TabsContent value="photos" className="space-y-4">
+          {/* Photo Gallery Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {PHOTO_CATEGORIES.map((photoCategory) => {
+            {PHOTO_CATEGORIES.map((photoCategory, catIndex) => {
               const existingPhoto = getPhotoForCategory(photoCategory.id);
+              const photoIndex = photos.findIndex(p => p.document_type === `photo_${photoCategory.id}`);
               
               return (
                 <Card 
                   key={photoCategory.id} 
-                  className={`bg-slate-900 border-slate-700 overflow-hidden ${
+                  className={`bg-slate-900 border-slate-700 overflow-hidden group ${
                     existingPhoto ? 'border-green-500/50' : ''
                   }`}
                 >
                   {existingPhoto ? (
-                    <div className="relative h-32 bg-slate-800">
-                      <div className="absolute inset-0 flex items-center justify-center">
+                    <div 
+                      className="relative h-36 bg-slate-800 cursor-pointer overflow-hidden"
+                      onClick={() => setLightboxIndex(photoIndex >= 0 ? photoIndex : 0)}
+                    >
+                      {/* Show actual image thumbnail */}
+                      {existingPhoto.thumbnail_url || existingPhoto.file_url ? (
+                        <img
+                          src={existingPhoto.thumbnail_url || existingPhoto.file_url}
+                          alt={photoCategory.label}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      {/* Fallback icon */}
+                      <div className="absolute inset-0 items-center justify-center hidden">
                         <Image className="h-12 w-12 text-green-400" />
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-green-500 text-white text-xs">Uploaded</Badge>
+                      
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button size="sm" variant="secondary" className="bg-white/20 hover:bg-white/30">
+                          <ZoomIn className="h-4 w-4 mr-1" /> Preview
+                        </Button>
                       </div>
+                      
+                      {/* Badges */}
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <Badge className="bg-green-500 text-white text-xs">Uploaded</Badge>
+                        {existingPhoto.verification_status === 'verified' && (
+                          <Badge className="bg-blue-500 text-white text-xs">
+                            <CheckCircle className="h-3 w-3" />
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Storage indicator */}
+                      {existingPhoto.storage_type === 'object_storage' && (
+                        <div className="absolute bottom-2 left-2">
+                          <Badge className="bg-purple-500/80 text-white text-xs">
+                            Cloud Storage
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div 
-                      className="h-32 bg-slate-800 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors"
+                      className="h-36 bg-slate-800 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors border-2 border-dashed border-slate-600 hover:border-orange-500/50"
                       onClick={() => setPhotoModal(photoCategory)}
                     >
-                      <Plus className="h-8 w-8 text-slate-500 mb-2" />
-                      <p className="text-slate-400 text-xs">Click to Upload</p>
+                      <Camera className="h-10 w-10 text-slate-500 mb-2" />
+                      <p className="text-slate-400 text-sm">Upload {photoCategory.label.split('/')[0]}</p>
                     </div>
                   )}
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white text-sm">{photoCategory.label}</p>
+                        <p className="text-white text-sm font-medium">{photoCategory.label.split('/')[0]}</p>
+                        <p className="text-slate-500 text-xs">{photoCategory.label.split('/')[1] || ''}</p>
                         {photoCategory.required && !existingPhoto && (
                           <Badge className="bg-orange-500 text-white text-xs mt-1">Required</Badge>
                         )}
                       </div>
                       {existingPhoto && (
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="text-red-400"
-                          onClick={() => handleDocumentDelete(existingPhoto.document_id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="text-slate-400 hover:text-white h-8 w-8"
+                            onClick={() => setLightboxIndex(photoIndex >= 0 ? photoIndex : 0)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="text-red-400 hover:text-red-300 h-8 w-8"
+                            onClick={() => handleDocumentDelete(existingPhoto.document_id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardContent>
@@ -709,6 +886,34 @@ const AircraftDocumentManager = ({ aircraft, onUpdate }) => {
               );
             })}
           </div>
+
+          {/* Upload Stats */}
+          <Card className="bg-slate-900 border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-orange-500/20 rounded-lg">
+                    <Camera className="h-6 w-6 text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">Photo Upload Progress</p>
+                    <p className="text-slate-400 text-sm">
+                      {photos.length} / {PHOTO_CATEGORIES.length} photos uploaded
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Progress 
+                    value={(photos.length / PHOTO_CATEGORIES.length) * 100} 
+                    className="w-32 h-2"
+                  />
+                  <span className="text-slate-400 text-sm">
+                    {Math.round((photos.length / PHOTO_CATEGORIES.length) * 100)}%
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
@@ -729,6 +934,15 @@ const AircraftDocumentManager = ({ aircraft, onUpdate }) => {
           photoCategory={photoModal}
           onClose={() => setPhotoModal(null)}
           onSuccess={() => fetchDocuments()}
+        />
+      )}
+
+      {/* Photo Gallery Lightbox */}
+      {lightboxIndex !== null && photos.length > 0 && (
+        <PhotoGalleryLightbox
+          photos={photos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
         />
       )}
     </div>

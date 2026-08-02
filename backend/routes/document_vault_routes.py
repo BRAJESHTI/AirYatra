@@ -4,6 +4,7 @@ Encrypted document storage with version control
 SECURITY: All endpoints require authentication
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Form
+from fastapi.responses import Response
 from typing import List, Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -11,6 +12,7 @@ import uuid
 import secrets
 import base64
 import hashlib
+import io
 from database import get_database
 from middleware import get_current_user
 from models import (
@@ -18,8 +20,16 @@ from models import (
     FolderCreate, DocumentVerification, BulkDocumentAction,
     DocumentCategory, VaultDocumentType, DocumentVaultStatus, SharePermission
 )
+from services import storage_service
 
 router = APIRouter(prefix="/vault", tags=["Document Vault"])
+
+# Image processing - optional PIL for thumbnails
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 def generate_share_link() -> str:
     """Generate secure share link"""
@@ -58,11 +68,10 @@ async def upload_document(
     folder_id: Optional[str] = Form(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Upload document to vault - AUTHENTICATED"""
+    """Upload document to vault using object storage - AUTHENTICATED"""
     db = get_database()
     
     # SECURITY: Verify owner authorization
-    # Users can only upload to their own vault unless they're admin
     is_admin = "admin" in current_user.get("roles", [])
     is_owner = owner_id == current_user["id"]
     
@@ -75,23 +84,59 @@ async def upload_document(
     # Read file content
     file_content = await file.read()
     file_size = len(file_content)
-    file_type = file.content_type
+    file_type = file.content_type or "application/octet-stream"
     
     # Generate file hash for integrity
     file_hash = hashlib.sha256(file_content).hexdigest()
     
-    # Store file (in production, use S3 or similar)
+    # Generate unique file ID and storage path
     file_id = f"doc_{uuid.uuid4().hex}"
-    file_url = f"/api/vault/file/{file_id}"
+    storage_path = f"airyatra/vault/{owner_id}/{file_id}/{file.filename}"
     
-    # Store file content in database (for demo, use object storage in production)
-    await db.document_files.insert_one({
-        "file_id": file_id,
-        "content": base64.b64encode(file_content).decode(),
-        "file_name": file.filename,
-        "content_type": file_type,
-        "created_at": datetime.utcnow()
-    })
+    try:
+        # Upload to Emergent Object Storage
+        storage_result = await storage_service.put_object(
+            path=storage_path,
+            data=file_content,
+            content_type=file_type
+        )
+        file_url = storage_result.get("url", f"/api/vault/file/{file_id}")
+        storage_type = "object_storage"
+        
+        # Generate thumbnail for images
+        thumbnail_url = None
+        if file_type.startswith("image/") and PIL_AVAILABLE:
+            try:
+                img = Image.open(io.BytesIO(file_content))
+                img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                thumb_buffer = io.BytesIO()
+                img_format = "JPEG" if file_type == "image/jpeg" else "PNG"
+                img.save(thumb_buffer, format=img_format, quality=80, optimize=True)
+                thumb_content = thumb_buffer.getvalue()
+                
+                thumb_path = f"airyatra/vault/{owner_id}/{file_id}/thumb_{file.filename}"
+                thumb_result = await storage_service.put_object(
+                    path=thumb_path,
+                    data=thumb_content,
+                    content_type=file_type
+                )
+                thumbnail_url = thumb_result.get("url")
+            except Exception as e:
+                print(f"Thumbnail generation failed: {e}")
+        
+    except Exception as e:
+        # Fallback to base64 in MongoDB if object storage fails
+        print(f"Object storage failed, falling back to MongoDB: {e}")
+        await db.document_files.insert_one({
+            "file_id": file_id,
+            "content": base64.b64encode(file_content).decode(),
+            "file_name": file.filename,
+            "content_type": file_type,
+            "created_at": datetime.utcnow()
+        })
+        file_url = f"/api/vault/file/{file_id}"
+        storage_type = "mongodb_base64"
+        thumbnail_url = None
     
     now = datetime.utcnow()
     parsed_expiry = None
@@ -118,6 +163,9 @@ async def upload_document(
         "description": description,
         "file_id": file_id,
         "file_url": file_url,
+        "thumbnail_url": thumbnail_url,
+        "storage_type": storage_type,
+        "storage_path": storage_path if storage_type == "object_storage" else None,
         "file_name": file.filename,
         "file_size": file_size,
         "file_type": file_type,
@@ -160,6 +208,8 @@ async def upload_document(
             "document_id": document_doc["document_id"],
             "name": name,
             "file_url": file_url,
+            "thumbnail_url": thumbnail_url,
+            "storage_type": storage_type,
             "status": document_doc["status"]
         }
     }
@@ -358,53 +408,169 @@ async def download_file(
     file_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Download document file - AUTHENTICATED"""
-    from fastapi.responses import Response
-    
+    """Download document file - AUTHENTICATED, supports object storage and legacy base64"""
     db = get_database()
     
-    file_doc = await db.document_files.find_one({"file_id": file_id})
-    
-    if not file_doc:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    # SECURITY: Find the document and verify access
+    # First find the document to get storage info
     document = await db.documents_vault.find_one({"file_id": file_id})
-    if document:
-        is_admin = "admin" in current_user.get("roles", [])
-        is_owner = document.get("owner_id") == current_user["id"]
-        
-        # Check shared access
-        shared_access = any(
-            share.get("user_id") == current_user["id"] 
-            for share in document.get("shared_with", [])
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # SECURITY: Verify access
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    
+    # Check shared access
+    shared_access = any(
+        share.get("user_id") == current_user["id"] 
+        for share in document.get("shared_with", [])
+    )
+    
+    if not is_admin and not is_owner and not shared_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to download this file"
         )
-        
-        if not is_admin and not is_owner and not shared_access:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to download this file"
-            )
     
     # Increment download count
     await db.documents_vault.update_one(
         {"file_id": file_id},
-        {"$inc": {"download_count": 1}}
+        {"$inc": {"download_count": 1}, "$set": {"last_accessed": datetime.utcnow()}}
     )
     
-    if file_doc.get("storage_path"):
-        from services.storage_service import get_object
-        content, _ct = await get_object(file_doc["storage_path"])
-    else:
-        content = base64.b64decode(file_doc["content"])  # legacy documents
+    # Try object storage first (new documents)
+    if document.get("storage_type") == "object_storage" and document.get("storage_path"):
+        try:
+            content, content_type = await storage_service.get_object(document["storage_path"])
+            return Response(
+                content=content,
+                media_type=content_type or document.get("file_type", "application/octet-stream"),
+                headers={
+                    "Content-Disposition": f"attachment; filename={document.get('file_name', 'download')}"
+                }
+            )
+        except Exception as e:
+            print(f"Object storage retrieval failed: {e}")
+            # Fall through to legacy method
     
-    return Response(
-        content=content,
-        media_type=file_doc["content_type"],
-        headers={
-            "Content-Disposition": f"attachment; filename={file_doc['file_name']}"
-        }
+    # Legacy: Try document_files collection (base64 encoded)
+    file_doc = await db.document_files.find_one({"file_id": file_id})
+    if file_doc:
+        content = base64.b64decode(file_doc["content"])
+        return Response(
+            content=content,
+            media_type=file_doc.get("content_type", "application/octet-stream"),
+            headers={
+                "Content-Disposition": f"attachment; filename={file_doc.get('file_name', 'download')}"
+            }
+        )
+    
+    raise HTTPException(status_code=404, detail="File content not found")
+
+
+
+@router.get("/image/{file_id}")
+async def get_image_preview(
+    file_id: str,
+    thumbnail: bool = Query(default=False, description="Return thumbnail if available"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get image preview (inline) - AUTHENTICATED, for gallery/preview use"""
+    db = get_database()
+    
+    document = await db.documents_vault.find_one({"file_id": file_id})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    # Check if it's an image
+    file_type = document.get("file_type", "")
+    if not file_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Not an image file")
+    
+    # SECURITY: Verify access
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = document.get("owner_id") == current_user["id"]
+    shared_access = any(
+        share.get("user_id") == current_user["id"] 
+        for share in document.get("shared_with", [])
     )
+    
+    if not is_admin and not is_owner and not shared_access:
+        raise HTTPException(status_code=403, detail="Not authorized to view this image")
+    
+    # Return thumbnail if requested and available
+    if thumbnail and document.get("thumbnail_url"):
+        # For object storage thumbnails, the URL is direct
+        return {"redirect_url": document["thumbnail_url"]}
+    
+    # Try object storage first
+    if document.get("storage_type") == "object_storage" and document.get("storage_path"):
+        try:
+            content, content_type = await storage_service.get_object(document["storage_path"])
+            return Response(
+                content=content,
+                media_type=content_type or file_type,
+                headers={"Content-Disposition": f"inline; filename={document.get('file_name', 'image')}"}
+            )
+        except Exception as e:
+            print(f"Image retrieval from object storage failed: {e}")
+    
+    # Fallback to base64
+    file_doc = await db.document_files.find_one({"file_id": file_id})
+    if file_doc:
+        content = base64.b64decode(file_doc["content"])
+        return Response(
+            content=content,
+            media_type=file_doc.get("content_type", file_type),
+            headers={"Content-Disposition": f"inline; filename={file_doc.get('file_name', 'image')}"}
+        )
+    
+    raise HTTPException(status_code=404, detail="Image content not found")
+
+
+@router.get("/photos/{owner_id}")
+async def get_owner_photos(
+    owner_id: str,
+    aircraft_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all photo documents for an owner (for gallery view) - AUTHENTICATED"""
+    db = get_database()
+    
+    # SECURITY: Verify authorization
+    is_admin = "admin" in current_user.get("roles", [])
+    is_owner = owner_id == current_user["id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(status_code=403, detail="Not authorized to access these photos")
+    
+    # Build query for photo documents
+    query = {
+        "owner_id": owner_id,
+        "file_type": {"$regex": "^image/"}
+    }
+    
+    if aircraft_id:
+        query["tags"] = aircraft_id
+    
+    photos = await db.documents_vault.find(
+        query,
+        {"_id": 0, "file_hash": 0, "versions_history": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    
+    total = await db.documents_vault.count_documents(query)
+    
+    return {
+        "success": True,
+        "photos": photos,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 # ============ VERSION CONTROL ============
 
