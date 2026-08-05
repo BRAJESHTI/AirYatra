@@ -1,0 +1,842 @@
+name: Create Complete Models Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_type:
+        description: 'Select Model Type'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - kyc
+        - payment
+        - settlement
+        - pilot
+        - other
+      
+jobs:
+  create-models:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create Branch
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git checkout -b feature/complete-models-${{ github.run_number }}
+    
+    - name: Set Up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Create Directory Structure
+      run: |
+        mkdir -p backend/models
+        
+    - name: Create KYCVerification Model
+      if: github.event.inputs.model_type == 'all' || github.event.inputs.model_type == 'kyc'
+      run: |
+        cat > backend/models/KYCVerification.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const kycVerificationSchema = new Schema({
+          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+          userType: { type: String, enum: ['customer', 'operator', 'pilot', 'vendor'], required: true },
+          
+          kycStatus: {
+            type: String,
+            enum: ['not_started', 'in_progress', 'pending_review', 'approved', 'rejected', 'expired'],
+            default: 'not_started'
+          },
+          
+          overallScore: { type: Number, default: 0, min: 0, max: 100 },
+          riskScore: { type: Number, default: 0, min: 0, max: 100 },
+          riskLevel: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'medium' },
+          
+          pan: {
+            documentNumber: String,
+            status: { type: String, enum: ['not_verified', 'pending', 'verified', 'failed'], default: 'not_verified' },
+            verifiedAt: Date,
+            verificationSource: String,
+            score: { type: Number, default: 0 },
+            errorMessage: String,
+            apiResponse: Schema.Types.Mixed,
+            retryCount: { type: Number, default: 0 },
+            lastRetryAt: Date
+          },
+          
+          aadhaar: {
+            documentNumber: String,
+            maskedNumber: String,
+            status: { type: String, enum: ['not_verified', 'pending', 'verified', 'failed'], default: 'not_verified' },
+            verifiedAt: Date,
+            verificationSource: String,
+            score: { type: Number, default: 0 },
+            errorMessage: String,
+            apiResponse: Schema.Types.Mixed,
+            ekyc: {
+              name: String,
+              dob: Date,
+              gender: String,
+              address: String,
+              photoUrl: String,
+              verified: { type: Boolean, default: false }
+            },
+            retryCount: { type: Number, default: 0 },
+            lastRetryAt: Date
+          },
+          
+          gst: {
+            registrationNumber: String,
+            status: { type: String, enum: ['not_verified', 'pending', 'verified', 'failed'], default: 'not_verified' },
+            verifiedAt: Date,
+            verificationSource: String,
+            score: { type: Number, default: 0 },
+            companyName: String,
+            businessType: String,
+            errorMessage: String,
+            apiResponse: Schema.Types.Mixed,
+            expiryDate: Date,
+            activeStatus: { type: Boolean, default: true },
+            retryCount: { type: Number, default: 0 },
+            lastRetryAt: Date
+          },
+          
+          bank: {
+            accountNumber: String,
+            maskedAccountNumber: String,
+            ifscCode: String,
+            bankName: String,
+            accountHolderName: String,
+            status: { type: String, enum: ['not_verified', 'pending', 'verified', 'failed'], default: 'not_verified' },
+            verifiedAt: Date,
+            verificationSource: String,
+            score: { type: Number, default: 0 },
+            pennyDropStatus: { type: String, enum: ['pending', 'success', 'failed'] },
+            pennyDropAmount: Number,
+            errorMessage: String,
+            apiResponse: Schema.Types.Mixed,
+            retryCount: { type: Number, default: 0 },
+            lastRetryAt: Date
+          },
+          
+          faceVerification: {
+            status: { type: String, enum: ['not_verified', 'pending', 'verified', 'failed'], default: 'not_verified' },
+            verifiedAt: Date,
+            verificationSource: String,
+            score: { type: Number, default: 0 },
+            selfieUrl: String,
+            selfieUploadedAt: Date,
+            livenessCheckStatus: { type: String, enum: ['pending', 'passed', 'failed'] },
+            errorMessage: String,
+            apiResponse: Schema.Types.Mixed,
+            retryCount: { type: Number, default: 0 },
+            lastRetryAt: Date
+          },
+          
+          digilocker: {
+            status: { type: String, enum: ['not_verified', 'pending', 'verified', 'failed'], default: 'not_verified' },
+            verifiedAt: Date,
+            documentsRetrieved: [{
+              documentType: String,
+              documentNumber: String,
+              issueDate: Date,
+              expiryDate: Date
+            }],
+            errorMessage: String
+          },
+          
+          documents: {
+            panCard: { fileUrl: String, fileName: String, uploadedAt: Date, verified: { type: Boolean, default: false } },
+            aadhaarCard: { fileUrl: String, fileName: String, uploadedAt: Date, verified: { type: Boolean, default: false } },
+            passport: { fileUrl: String, fileName: String, uploadedAt: Date, expiryDate: Date, verified: { type: Boolean, default: false } },
+            drivingLicense: { fileUrl: String, fileName: String, uploadedAt: Date, expiryDate: Date, verified: { type: Boolean, default: false } },
+            gstCertificate: { fileUrl: String, fileName: String, uploadedAt: Date, verified: { type: Boolean, default: false } },
+            cin: { fileUrl: String, fileName: String, uploadedAt: Date, verified: { type: Boolean, default: false } },
+            bankStatement: { fileUrl: String, fileName: String, uploadedAt: Date, verified: { type: Boolean, default: false } },
+            businessLicense: { fileUrl: String, fileName: String, uploadedAt: Date, verified: { type: Boolean, default: false } },
+            otherDocuments: [{
+              documentType: String,
+              fileUrl: String,
+              fileName: String,
+              uploadedAt: Date,
+              verified: Boolean
+            }]
+          },
+          
+          manualVerification: {
+            requiredAt: Date,
+            verifiedAt: Date,
+            verifiedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            verificationNotes: String,
+            approvalNotes: String,
+            rejectionReason: String,
+            flagsRaised: [{
+              flag: String,
+              severity: { type: String, enum: ['low', 'medium', 'high', 'critical'] },
+              description: String
+            }]
+          },
+          
+          rejections: [{
+            rejectionReason: String,
+            rejectionDate: Date,
+            rejectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            rejectionCount: Number,
+            canResubmit: { type: Boolean, default: true },
+            resubmitDeadline: Date
+          }],
+          
+          expiryDate: Date,
+          renewalRequired: { type: Boolean, default: false },
+          renewalDeadline: Date,
+          renewalReminderSentAt: Date,
+          
+          verificationHistory: [{
+            step: String,
+            status: String,
+            completedAt: Date,
+            errorMessage: String,
+            apiCalls: { type: Number, default: 0 },
+            apiCost: { type: Number, default: 0 }
+          }],
+          
+          complianceFlags: [{
+            flag: String,
+            severity: { type: String, enum: ['low', 'medium', 'high', 'critical'] },
+            description: String,
+            addedAt: { type: Date, default: Date.now },
+            resolvedAt: Date,
+            resolutionNotes: String
+          }],
+          
+          blacklistCheck: {
+            checked: { type: Boolean, default: false },
+            checkedAt: Date,
+            isBlacklisted: { type: Boolean, default: false },
+            blacklistReason: String,
+            source: String
+          },
+          
+          apiCalls: {
+            totalCalls: { type: Number, default: 0 },
+            totalCost: { type: Number, default: 0 },
+            breakdownByService: [{
+              service: String,
+              calls: Number,
+              cost: Number
+            }]
+          },
+          
+          submittedAt: Date,
+          approvedAt: Date,
+          rejectedAt: Date,
+          createdAt: { type: Date, default: Date.now },
+          updatedAt: { type: Date, default: Date.now },
+          
+          auditLog: [{
+            action: String,
+            details: Schema.Types.Mixed,
+            performedBy: String,
+            ipAddress: String,
+            timestamp: { type: Date, default: Date.now }
+          }]
+        });
+        
+        kycVerificationSchema.index({ userId: 1, kycStatus: 1 });
+        kycVerificationSchema.index({ kycStatus: 1 });
+        kycVerificationSchema.index({ riskLevel: 1 });
+        
+        module.exports = mongoose.model('KYCVerification', kycVerificationSchema);
+        EOF
+        
+    - name: Create Payment Model
+      if: github.event.inputs.model_type == 'all' || github.event.inputs.model_type == 'payment'
+      run: |
+        cat > backend/models/Payment.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const paymentSchema = new Schema({
+          bookingId: { type: String, required: true, unique: true },
+          booking: { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
+          customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          operatorId: { type: Schema.Types.ObjectId, ref: 'Operator' },
+          
+          amount: { type: Number, required: true },
+          currency: { type: String, default: 'INR' },
+          originalAmount: Number,
+          discountAmount: { type: Number, default: 0 },
+          discountPercentage: { type: Number, default: 0 },
+          gstPercentage: { type: Number, default: 5 },
+          gstAmount: Number,
+          platformFee: Number,
+          
+          razorpay: {
+            orderId: String,
+            paymentId: String,
+            signature: String,
+            method: { type: String, enum: ['card', 'netbanking', 'upi', 'wallet', 'transfer'] },
+            cardDetails: {
+              cardId: String,
+              cardNetwork: String,
+              cardType: String,
+              last4Digits: String,
+              issuer: String
+            },
+            bankDetails: {
+              bankCode: String,
+              bankName: String
+            },
+            upiDetails: {
+              vpa: String
+            },
+            walletDetails: {
+              walletName: String,
+              walletId: String
+            }
+          },
+          
+          paymentStatus: {
+            type: String,
+            enum: ['initiated', 'pending', 'processing', 'authorized', 'captured', 'failed', 'cancelled'],
+            default: 'initiated'
+          },
+          
+          paymentInitiatedAt: Date,
+          paymentAttemptedAt: Date,
+          paymentCompletedAt: Date,
+          paymentFailedAt: Date,
+          paymentFailureReason: String,
+          
+          retryCount: { type: Number, default: 0 },
+          maxRetries: { type: Number, default: 3 },
+          lastRetryAt: Date,
+          retryHistory: [{
+            attemptNumber: Number,
+            attemptedAt: Date,
+            status: String,
+            errorMessage: String
+          }],
+          
+          refund: {
+            refundStatus: { type: String, enum: ['none', 'pending', 'processing', 'processed', 'failed'], default: 'none' },
+            refundId: String,
+            refundAmount: Number,
+            refundReason: String,
+            initiatedAt: Date,
+            processedAt: Date,
+            refundMethod: { type: String, enum: ['original_payment_method', 'bank_transfer', 'wallet'] },
+            refundNotes: String,
+            failureReason: String
+          },
+          
+          settlement: {
+            settlementStatus: { type: String, enum: ['pending', 'scheduled', 'processing', 'settled', 'failed'], default: 'pending' },
+            settlementDate: Date,
+            settlementAmount: Number,
+            platformCommission: Number,
+            settlementNotes: String,
+            settledAt: Date,
+            settledBy: { type: Schema.Types.ObjectId, ref: 'User' }
+          },
+          
+          invoice: {
+            invoiceNumber: String,
+            invoiceUrl: String,
+            invoiceGeneratedAt: Date,
+            invoiceSentTo: String
+          },
+          
+          receipt: {
+            receiptNumber: String,
+            receiptUrl: String,
+            receiptGeneratedAt: Date,
+            receiptSentTo: String
+          },
+          
+          tax: {
+            gstAmount: Number,
+            gstRate: { type: Number, default: 5 },
+            igst: Number,
+            sgst: Number,
+            cgst: Number,
+            other: Number
+          },
+          
+          verification: {
+            verified: { type: Boolean, default: false },
+            verifiedAt: Date,
+            verifiedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            verificationNotes: String,
+            amlCheck: { type: Boolean, default: false },
+            fraudCheck: { type: Boolean, default: false }
+          },
+          
+          failureDetails: {
+            errorCode: String,
+            errorDescription: String,
+            reason: String,
+            acquirerCode: String,
+            networkErrorCode: String
+          },
+          
+          metadata: {
+            requestId: String,
+            sessionId: String,
+            ipAddress: String,
+            userAgent: String,
+            deviceFingerprint: String,
+            geoLocation: {
+              city: String,
+              state: String,
+              country: String,
+              coordinates: {
+                type: { type: String, enum: ['Point'] },
+                coordinates: [Number]
+              }
+            }
+          },
+          
+          auditLog: [{
+            action: String,
+            performedBy: String,
+            details: Schema.Types.Mixed,
+            timestamp: { type: Date, default: Date.now }
+          }],
+          
+          createdAt: { type: Date, default: Date.now },
+          updatedAt: { type: Date, default: Date.now }
+        });
+        
+        module.exports = mongoose.model('Payment', paymentSchema);
+        EOF
+        
+    - name: Create Settlement Model
+      if: github.event.inputs.model_type == 'all' || github.event.inputs.model_type == 'settlement'
+      run: |
+        cat > backend/models/Settlement.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const settlementSchema = new Schema({
+          settlementId: { type: String, unique: true, required: true },
+          operatorId: { type: Schema.Types.ObjectId, ref: 'Operator', required: true },
+          settlementCycle: {
+            type: String,
+            enum: ['daily', 'weekly', 'biweekly', 'monthly'],
+            default: 'weekly'
+          },
+          
+          settlementPeriodStart: Date,
+          settlementPeriodEnd: Date,
+          
+          summary: {
+            totalBookings: Number,
+            completedFlights: Number,
+            cancelledFlights: Number,
+            totalGrossRevenue: Number,
+            platformCommission: Number,
+            operatorNetRevenue: Number,
+            refunds: Number,
+            cancelledCharges: Number,
+            adjustments: Number,
+            penalties: Number,
+            incentives: Number,
+            netPayableAmount: Number
+          },
+          
+          bookingDetails: [{
+            bookingId: String,
+            flightDate: Date,
+            departureCity: String,
+            arrivalCity: String,
+            aircraftModel: String,
+            passengers: Number,
+            flightDuration: Number,
+            grossAmount: Number,
+            platformCommission: Number,
+            operatorAmount: Number,
+            flightStatus: String,
+            paymentStatus: String
+          }],
+          
+          deductions: {
+            platformCommission: Number,
+            gst: Number,
+            tds: Number,
+            penaltyCharges: Number,
+            otherDeductions: Number,
+            totalDeductions: Number
+          },
+          
+          incentives: {
+            volumeBonus: { type: Number, default: 0 },
+            onTimeBonus: { type: Number, default: 0 },
+            ratingBonus: { type: Number, default: 0 },
+            referralBonus: { type: Number, default: 0 },
+            specialPromotion: { type: Number, default: 0 },
+            totalIncentives: Number
+          },
+          
+          bankDetails: {
+            accountHolderName: String,
+            bankName: String,
+            accountNumber: String,
+            ifscCode: String,
+            accountType: String
+          },
+          
+          settlementStatus: {
+            type: String,
+            enum: ['pending', 'scheduled', 'processing', 'completed', 'failed', 'disputed'],
+            default: 'pending'
+          },
+          
+          settlementDate: Date,
+          scheduledSettlementDate: Date,
+          actualSettlementDate: Date,
+          
+          payment: {
+            transactionId: String,
+            razorpayTransferId: String,
+            bankTransferId: String,
+            amount: Number,
+            paymentMethod: { type: String, enum: ['bank_transfer', 'cheque', 'wire_transfer'] },
+            paymentInitiatedAt: Date,
+            paymentCompletedAt: Date,
+            paymentFailedAt: Date,
+            failureReason: String
+          },
+          
+          documents: {
+            settlementReport: String,
+            invoiceList: String,
+            detailedBreakdown: String,
+            bankStatement: String
+          },
+          
+          taxDetails: {
+            gstApplicable: Boolean,
+            gstPercentage: Number,
+            gstAmount: Number,
+            tdsApplicable: Boolean,
+            tdsPercentage: Number,
+            tdsAmount: Number,
+            panNumber: String
+          },
+          
+          disputes: [{
+            disputeId: String,
+            bookingId: String,
+            issueDescription: String,
+            raisedAt: Date,
+            status: { type: String, enum: ['open', 'resolved', 'rejected'] },
+            resolution: String,
+            resolvedAt: Date
+          }],
+          
+          holdDetails: {
+            isHeld: { type: Boolean, default: false },
+            heldAt: Date,
+            holdReason: String,
+            heldBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            releasedAt: Date
+          },
+          
+          notifications: {
+            readyNotificationSentAt: Date,
+            approvalNotificationSentAt: Date,
+            disbursementNotificationSentAt: Date,
+            disputeNotificationSentAt: Date
+          },
+          
+          approval: {
+            approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            approvedAt: Date,
+            approvalNotes: String,
+            requiresManualApproval: Boolean,
+            approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
+          },
+          
+          auditLog: [{
+            action: String,
+            details: Schema.Types.Mixed,
+            performedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            timestamp: { type: Date, default: Date.now }
+          }],
+          
+          createdAt: { type: Date, default: Date.now },
+          updatedAt: { type: Date, default: Date.now }
+        });
+        
+        module.exports = mongoose.model('Settlement', settlementSchema);
+        EOF
+        
+    - name: Create Pilot Model
+      if: github.event.inputs.model_type == 'all' || github.event.inputs.model_type == 'pilot'
+      run: |
+        cat > backend/models/Pilot.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const pilotSchema = new Schema({
+          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+          pilotId: { type: String, unique: true, required: true },
+          operatorId: { type: Schema.Types.ObjectId, ref: 'Operator', required: true },
+          
+          personalDetails: {
+            fullName: { type: String, required: true },
+            dateOfBirth: { type: Date, required: true },
+            gender: { type: String, enum: ['male', 'female', 'other'], required: true },
+            nationality: { type: String, default: 'Indian' },
+            languages: [{ type: String }],
+            contactNumber: String,
+            emergencyContact: String
+          },
+          
+          licenseDetails: {
+            licenseNumber: String,
+            licenseType: { type: String, enum: ['PPL', 'CPL', 'ATP', 'SPL'], default: 'CPL' },
+            licenseClass: [{ type: String, enum: ['SingleEngine', 'MultiEngine', 'Helicopter', 'IFR'] }],
+            issueDate: Date,
+            expiryDate: Date,
+            ratings: [{ type: String }],
+            licenseUpload: String,
+            verificationStatus: { type: String, enum: ['pending', 'verified', 'expired', 'suspended'], default: 'pending' }
+          },
+          
+          medicalDetails: {
+            medicalClass: { type: String, enum: ['Class1', 'Class2', 'Class3'] },
+            medicalExpiry: Date,
+            medicalUpload: String,
+            bloodGroup: String,
+            disabilities: [{ type: String }],
+            healthDeclaration: { type: Boolean, default: false }
+          },
+          
+          flightHours: {
+            totalHours: { type: Number, default: 0 },
+            singleEngineHours: { type: Number, default: 0 },
+            multiEngineHours: { type: Number, default: 0 },
+            nightHours: { type: Number, default: 0 },
+            ifrHours: { type: Number, default: 0 },
+            pilotInCommandHours: { type: Number, default: 0 },
+            helicopterHours: { type: Number, default: 0 }
+          },
+          
+          employmentRecord: {
+            isCurrentlyEmployed: { type: Boolean, default: false },
+            employmentContractUrl: String,
+            joiningDate: Date,
+            salary: Number,
+            employmentType: { type: String, enum: ['Full-time', 'Part-time', 'Contract', 'Freelance'], default: 'Full-time' }
+          },
+          
+          availability: {
+            isAvailable: { type: Boolean, default: true },
+            availableFrom: Date,
+            availableTo: Date,
+            preferredRoutes: [{ type: String }],
+            blockoutDates: [Date],
+            maxFlightsPerDay: { type: Number, default: 2 },
+            maxHoursPerDay: { type: Number, default: 8 }
+          },
+          
+          backgroundCheck: {
+            verified: { type: Boolean, default: false },
+            policeVerification: String,
+            educationVerification: String,
+            referenceCheck: String,
+            criminalRecord: { type: Boolean, default: false },
+            verificationDate: Date
+          },
+          
+          documents: [{
+            documentType: String,
+            documentUrl: String,
+            verified: { type: Boolean, default: false },
+            expiryDate: Date,
+            verificationNotes: String
+          }],
+          
+          status: {
+            overallStatus: { type: String, enum: ['Active', 'Inactive', 'ApprovalPending', 'Suspended'], default: 'ApprovalPending' },
+            flyingStatus: { type: String, enum: ['Current', 'NonCurrent', 'RefresherRequired'], default: 'RefresherRequired' },
+            medicalStatus: { type: String, enum: ['Valid', 'Expired', 'Suspended'], default: 'Valid' },
+            employmentStatus: { type: String, enum: ['Active', 'OnLeave', 'Terminated'], default: 'Active' }
+          },
+          
+          createdAt: { type: Date, default: Date.now },
+          updatedAt: { type: Date, default: Date.now },
+          updatedBy: { type: Schema.Types.ObjectId, ref: 'User' }
+        });
+        
+        module.exports = mongoose.model('Pilot', pilotSchema);
+        EOF
+        
+    - name: Create Other Models
+      if: github.event.inputs.model_type == 'all' || github.event.inputs.model_type == 'other'
+      run: |
+        cat > backend/models/Review.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const reviewSchema = new Schema({
+          reviewId: { type: String, unique: true, required: true },
+          bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
+          customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          operatorId: { type: Schema.Types.ObjectId, ref: 'Operator' },
+          pilotId: { type: Schema.Types.ObjectId, ref: 'Pilot' },
+          
+          rating: {
+            overall: { type: Number, min: 1, max: 5, required: true },
+            punctuality: { type: Number, min: 1, max: 5 },
+            safety: { type: Number, min: 1, max: 5 },
+            comfort: { type: Number, min: 1, max: 5 },
+            communication: { type: Number, min: 1, max: 5 },
+            valueForMoney: { type: Number, min: 1, max: 5 }
+          },
+          
+          comments: {
+            title: String,
+            description: String,
+            positiveHighlights: [String],
+            areasForImprovement: [String],
+            suggestions: String
+          },
+          
+          status: {
+            type: String,
+            enum: ['pending', 'published', 'flagged', 'removed'],
+            default: 'pending'
+          },
+          
+          verification: {
+            isVerifiedBooking: { type: Boolean, default: false },
+            verificationStatus: { type: String, enum: ['verified', 'unverified', 'suspicious'], default: 'unverified' }
+          },
+          
+          createdAt: { type: Date, default: Date.now },
+          updatedAt: { type: Date, default: Date.now }
+        });
+        
+        module.exports = mongoose.model('Review', reviewSchema);
+        EOF
+        
+        cat > backend/models/AdminAudit.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const adminAuditSchema = new Schema({
+          actionType: { type: String, required: true },
+          performedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          performedAt: { type: Date, default: Date.now },
+          
+          targetType: { type: String, enum: ['user', 'operator', 'pilot', 'booking', 'payment', 'settlement'], required: true },
+          targetId: { type: Schema.Types.ObjectId },
+          targetName: String,
+          
+          changes: [{
+            field: String,
+            oldValue: Schema.Types.Mixed,
+            newValue: Schema.Types.Mixed,
+            type: String
+          }],
+          
+          ipAddress: String,
+          userAgent: String,
+          location: {
+            city: String,
+            region: String,
+            country: String,
+            coordinates: {
+              type: { type: String, enum: ['Point'] },
+              coordinates: [Number]
+            }
+          }
+        });
+        
+        module.exports = mongoose.model('AdminAudit', adminAuditSchema);
+        EOF
+        
+        cat > backend/models/Route.js << 'EOF'
+        const mongoose = require('mongoose');
+        const Schema = mongoose.Schema;
+        
+        const routeSchema = new Schema({
+          routeId: { type: String, unique: true, required: true },
+          departureAirport: {
+            code: String,
+            name: String,
+            city: String,
+            coordinates: {
+              type: { type: String, enum: ['Point'] },
+              coordinates: [Number]
+            }
+          },
+          
+          arrivalAirport: {
+            code: String,
+            name: String,
+            city: String,
+            coordinates: {
+              type: { type: String, enum: ['Point'] },
+              coordinates: [Number]
+            }
+          },
+          
+          distance: Number,
+          estimatedTime: Number,
+          popular: { type: Boolean, default: false },
+          priorityRoutes: [String],
+          seasonalRoutes: [{
+            startMonth: String,
+            endMonth: String,
+            active: Boolean
+          }]
+        });
+        
+        module.exports = mongoose.model('Route', routeSchema);
+        EOF
+        
+    - name: Commit Changes
+      run: |
+        git add backend/models/
+        git commit -m "feat: Add complete models via GitHub Actions"
+        
+    - name: Push Changes
+      run: |
+        git push origin feature/complete-models-${{ github.run_number }}
+        
+    - name: Create Pull Request
+      run: |
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/pulls \
+          -d '{
+            "title": "feat: Add complete models via Actions",
+            "body": "Automatically generated models via GitHub Actions workflow",
+            "head": "feature/complete-models-${{ github.run_number }}",
+            "base": "main"
+          }'
+          
+    - name: Success Notification
+      run: |
+        echo "🎉 All models created successfully!"
+        echo "📁 Models added to: backend/models/"
+        echo "✅ Pull Request created automatically"
