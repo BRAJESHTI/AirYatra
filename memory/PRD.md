@@ -1525,3 +1525,59 @@ Business never stops due to API issues!
 
 ### Access:
 Admin Dashboard → Integrations → API Control Center
+
+
+---
+
+## Cost Reports & Auto-Failover (Aug 6, 2026)
+
+### Status: ✅ COMPLETE
+
+### 1. Monthly Cost Reports (Finance Team)
+**Endpoints:**
+- `GET /api/api-control/admin/cost-reports/monthly` - Monthly cost breakdown
+- `GET /api/api-control/admin/cost-reports/yearly` - Year-to-date summary
+- `GET /api/api-control/admin/cost-reports/export` - Export as CSV
+
+**Features:**
+- Per-API cost breakdown
+- Calls count & cost per call
+- Success/failure rates
+- Month-over-month comparison (% change)
+- Group by category (Payment, Verification, etc.)
+- Trend indicators (↑ increase, ↓ decrease)
+
+### 2. Failover Auto-Switch
+**Endpoints:**
+- `POST /api/api-control/admin/failover/configure` - Setup failover pair
+- `POST /api/api-control/internal/failover/report-failure` - Report API failure
+- `POST /api/api-control/internal/failover/report-success` - Reset failure counter
+- `POST /api/api-control/admin/failover/switch-back` - Manual switch back
+- `GET /api/api-control/admin/failover/status` - Current failover status
+- `GET /api/api-control/admin/failover/events` - Failover event history
+- `GET /api/api-control/admin/failover/recommendations` - AI recommendations
+
+**How it works:**
+1. Configure: Stripe → Razorpay (threshold: 3 failures)
+2. Stripe fails 3 times consecutively
+3. System automatically switches to Razorpay
+4. Admin gets notification alert
+5. Admin can manually switch back when Stripe is fixed
+
+**Tested Flow:**
+```
+Failure 1: logged (consecutive_failures: 1)
+Failure 2: logged (consecutive_failures: 2)
+Failure 3: AUTO-FAILOVER TRIGGERED → razorpay
+Switch Back: Manual → Back to stripe (primary)
+```
+
+### Smart Recommendations:
+- 🔴 Critical: API is DOWN with no failover
+- 🟠 High: Error rate > 10% needs failover
+- 🟡 Medium: Slow response (>2s)
+- 🟢 Low: Failover configured but auto-switch disabled
+
+### Files Updated:
+- `/app/backend/routes/api_control_routes.py` - Added 350+ lines
+- `/app/frontend/src/components/admin/APIControlCenter.js` - Added Tabs UI

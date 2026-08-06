@@ -842,3 +842,661 @@ async def reset_daily_counts(
     )
     
     return {"success": True, "reset_count": result.modified_count}
+
+
+
+# ============ API COST REPORTS (Finance Team) ============
+
+@router.get("/admin/cost-reports/monthly")
+async def get_monthly_cost_report(
+    year: int = None,
+    month: int = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "cfo", "finance_head"]))
+):
+    """
+    Generate monthly cost report per API for finance team
+    Shows: API name, total calls, cost per call, total cost, comparison with last month
+    """
+    db = get_database()
+    
+    # Default to current month
+    now = datetime.now(timezone.utc)
+    if not year:
+        year = now.year
+    if not month:
+        month = now.month
+    
+    # Calculate date range
+    start_date = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end_date = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+    
+    # Previous month for comparison
+    if month == 1:
+        prev_start = datetime(year - 1, 12, 1, tzinfo=timezone.utc)
+        prev_end = start_date
+    else:
+        prev_start = datetime(year, month - 1, 1, tzinfo=timezone.utc)
+        prev_end = start_date
+    
+    # Aggregate current month usage
+    pipeline = [
+        {
+            "$match": {
+                "timestamp": {
+                    "$gte": start_date.isoformat(),
+                    "$lt": end_date.isoformat()
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": "$api_id",
+                "total_calls": {"$sum": 1},
+                "successful_calls": {"$sum": {"$cond": ["$success", 1, 0]}},
+                "failed_calls": {"$sum": {"$cond": ["$success", 0, 1]}},
+                "avg_response_time": {"$avg": "$response_time"}
+            }
+        }
+    ]
+    
+    current_usage = await db.api_usage_logs.aggregate(pipeline).to_list(length=50)
+    current_usage_map = {u["_id"]: u for u in current_usage}
+    
+    # Aggregate previous month for comparison
+    pipeline[0]["$match"]["timestamp"] = {
+        "$gte": prev_start.isoformat(),
+        "$lt": prev_end.isoformat()
+    }
+    prev_usage = await db.api_usage_logs.aggregate(pipeline).to_list(length=50)
+    prev_usage_map = {u["_id"]: u for u in prev_usage}
+    
+    # Get API configs for cost calculation
+    apis = await db.api_control_configs.find({}, {"_id": 0}).to_list(length=50)
+    
+    # Build report
+    report_items = []
+    total_cost = 0
+    total_calls = 0
+    prev_total_cost = 0
+    
+    for api in apis:
+        api_id = api.get("api_id")
+        cost_per_call = api.get("cost_per_call", 0)
+        
+        current = current_usage_map.get(api_id, {"total_calls": 0, "successful_calls": 0, "failed_calls": 0})
+        prev = prev_usage_map.get(api_id, {"total_calls": 0})
+        
+        current_calls = current.get("total_calls", 0)
+        current_cost = current_calls * cost_per_call
+        prev_calls = prev.get("total_calls", 0)
+        prev_cost = prev_calls * cost_per_call
+        
+        # Calculate change percentage
+        if prev_calls > 0:
+            calls_change = round(((current_calls - prev_calls) / prev_calls) * 100, 1)
+        else:
+            calls_change = 100 if current_calls > 0 else 0
+        
+        if prev_cost > 0:
+            cost_change = round(((current_cost - prev_cost) / prev_cost) * 100, 1)
+        else:
+            cost_change = 100 if current_cost > 0 else 0
+        
+        report_items.append({
+            "api_id": api_id,
+            "api_name": api.get("name"),
+            "api_name_hi": api.get("name_hi"),
+            "category": api.get("category"),
+            "cost_per_call": cost_per_call,
+            "current_month": {
+                "calls": current_calls,
+                "successful": current.get("successful_calls", 0),
+                "failed": current.get("failed_calls", 0),
+                "cost": round(current_cost, 2),
+                "avg_response_time": round(current.get("avg_response_time", 0) or 0, 2)
+            },
+            "previous_month": {
+                "calls": prev_calls,
+                "cost": round(prev_cost, 2)
+            },
+            "change": {
+                "calls_percent": calls_change,
+                "cost_percent": cost_change,
+                "trend": "up" if calls_change > 0 else "down" if calls_change < 0 else "stable"
+            }
+        })
+        
+        total_cost += current_cost
+        total_calls += current_calls
+        prev_total_cost += prev_cost
+    
+    # Sort by cost (highest first)
+    report_items.sort(key=lambda x: x["current_month"]["cost"], reverse=True)
+    
+    return {
+        "report_period": {
+            "year": year,
+            "month": month,
+            "month_name": start_date.strftime("%B"),
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat()
+        },
+        "summary": {
+            "total_apis": len(apis),
+            "total_calls": total_calls,
+            "total_cost": round(total_cost, 2),
+            "previous_month_cost": round(prev_total_cost, 2),
+            "cost_change_percent": round(((total_cost - prev_total_cost) / prev_total_cost * 100), 1) if prev_total_cost > 0 else 0,
+            "currency": "INR"
+        },
+        "by_category": _group_report_by_category(report_items),
+        "items": report_items,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_by": current_user.get("email")
+    }
+
+
+def _group_report_by_category(items: List[dict]) -> dict:
+    """Group report items by category"""
+    by_category = {}
+    for item in items:
+        cat = item.get("category", "other")
+        if cat not in by_category:
+            by_category[cat] = {"calls": 0, "cost": 0, "apis": []}
+        by_category[cat]["calls"] += item["current_month"]["calls"]
+        by_category[cat]["cost"] += item["current_month"]["cost"]
+        by_category[cat]["apis"].append(item["api_name"])
+    return by_category
+
+
+@router.get("/admin/cost-reports/yearly")
+async def get_yearly_cost_report(
+    year: int = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "cfo", "finance_head"]))
+):
+    """
+    Generate yearly cost report with month-by-month breakdown
+    """
+    db = get_database()
+    
+    if not year:
+        year = datetime.now(timezone.utc).year
+    
+    # Get all API configs
+    apis = await db.api_control_configs.find({}, {"_id": 0, "api_id": 1, "name": 1, "cost_per_call": 1}).to_list(length=50)
+    api_costs = {a["api_id"]: a.get("cost_per_call", 0) for a in apis}
+    
+    monthly_data = []
+    
+    for month in range(1, 13):
+        start_date = datetime(year, month, 1, tzinfo=timezone.utc)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            end_date = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+        
+        # Skip future months
+        if start_date > datetime.now(timezone.utc):
+            continue
+        
+        pipeline = [
+            {
+                "$match": {
+                    "timestamp": {
+                        "$gte": start_date.isoformat(),
+                        "$lt": end_date.isoformat()
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$api_id",
+                    "calls": {"$sum": 1}
+                }
+            }
+        ]
+        
+        usage = await db.api_usage_logs.aggregate(pipeline).to_list(length=50)
+        
+        month_calls = sum(u["calls"] for u in usage)
+        month_cost = sum(u["calls"] * api_costs.get(u["_id"], 0) for u in usage)
+        
+        monthly_data.append({
+            "month": month,
+            "month_name": start_date.strftime("%B"),
+            "calls": month_calls,
+            "cost": round(month_cost, 2)
+        })
+    
+    return {
+        "year": year,
+        "monthly_breakdown": monthly_data,
+        "total_calls": sum(m["calls"] for m in monthly_data),
+        "total_cost": round(sum(m["cost"] for m in monthly_data), 2),
+        "currency": "INR",
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@router.get("/admin/cost-reports/export")
+async def export_cost_report(
+    year: int,
+    month: int,
+    format: str = "json",
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "cfo", "finance_head"]))
+):
+    """
+    Export cost report in different formats (JSON/CSV ready)
+    """
+    report = await get_monthly_cost_report.__wrapped__(year, month, current_user)
+    
+    if format == "csv_data":
+        # Return CSV-ready data
+        csv_rows = [
+            ["API Name", "Category", "Calls", "Cost per Call (₹)", "Total Cost (₹)", "Success Rate", "Change %"]
+        ]
+        for item in report["items"]:
+            success_rate = 0
+            if item["current_month"]["calls"] > 0:
+                success_rate = round((item["current_month"]["successful"] / item["current_month"]["calls"]) * 100, 1)
+            
+            csv_rows.append([
+                item["api_name"],
+                item["category"],
+                item["current_month"]["calls"],
+                item["cost_per_call"],
+                item["current_month"]["cost"],
+                f"{success_rate}%",
+                f"{item['change']['cost_percent']}%"
+            ])
+        
+        return {"format": "csv", "rows": csv_rows, "filename": f"api_cost_report_{year}_{month}.csv"}
+    
+    return report
+
+
+# ============ FAILOVER AUTO-SWITCH ============
+
+@router.post("/admin/failover/configure")
+async def configure_failover(
+    api_id: str,
+    failover_api_id: str,
+    auto_switch: bool = True,
+    switch_threshold: int = 3,  # Number of failures before auto-switch
+    cooldown_minutes: int = 15,  # Cooldown before switching back
+    request: Request = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """
+    Configure failover settings for an API
+    """
+    db = get_database()
+    
+    # Validate both APIs exist
+    primary = await db.api_control_configs.find_one({"api_id": api_id})
+    failover = await db.api_control_configs.find_one({"api_id": failover_api_id})
+    
+    if not primary:
+        raise HTTPException(status_code=404, detail=f"Primary API {api_id} not found")
+    if not failover:
+        raise HTTPException(status_code=404, detail=f"Failover API {failover_api_id} not found")
+    
+    # Update failover config
+    await db.api_control_configs.update_one(
+        {"api_id": api_id},
+        {"$set": {
+            "failover_provider": failover_api_id,
+            "failover_config": {
+                "auto_switch": auto_switch,
+                "switch_threshold": switch_threshold,
+                "cooldown_minutes": cooldown_minutes,
+                "consecutive_failures": 0,
+                "is_using_failover": False,
+                "last_switch_time": None
+            },
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Log
+    await log_api_audit(db, current_user, api_id, "failover_configure",
+                        {"failover_provider": primary.get("failover_provider")},
+                        {"failover_provider": failover_api_id, "auto_switch": auto_switch},
+                        f"Configured failover to {failover_api_id}", request)
+    
+    return {
+        "success": True,
+        "message": f"Failover configured: {api_id} → {failover_api_id}",
+        "message_hi": f"फेलओवर कॉन्फ़िगर: {api_id} → {failover_api_id}",
+        "config": {
+            "primary": api_id,
+            "failover": failover_api_id,
+            "auto_switch": auto_switch,
+            "threshold": switch_threshold,
+            "cooldown": cooldown_minutes
+        }
+    }
+
+
+@router.post("/internal/failover/report-failure")
+async def report_api_failure(
+    api_id: str,
+    error_message: str = "",
+    background_tasks: BackgroundTasks = None
+):
+    """
+    Internal endpoint to report API failure and trigger auto-failover if configured
+    Called by other services when an API call fails
+    """
+    db = get_database()
+    
+    api = await db.api_control_configs.find_one({"api_id": api_id})
+    if not api:
+        return {"error": "API not found"}
+    
+    failover_config = api.get("failover_config", {})
+    
+    if not failover_config.get("auto_switch"):
+        # Just increment failure count
+        await db.api_control_configs.update_one(
+            {"api_id": api_id},
+            {"$inc": {"failover_config.consecutive_failures": 1}}
+        )
+        return {"action": "logged", "auto_switch": False}
+    
+    # Increment consecutive failures
+    new_failures = failover_config.get("consecutive_failures", 0) + 1
+    threshold = failover_config.get("switch_threshold", 3)
+    
+    await db.api_control_configs.update_one(
+        {"api_id": api_id},
+        {"$set": {"failover_config.consecutive_failures": new_failures}}
+    )
+    
+    # Check if we should auto-switch
+    if new_failures >= threshold and not failover_config.get("is_using_failover"):
+        failover_api_id = api.get("failover_provider")
+        
+        if failover_api_id:
+            # Trigger auto-switch
+            if background_tasks:
+                background_tasks.add_task(
+                    _execute_failover_switch, api_id, failover_api_id, error_message
+                )
+            else:
+                await _execute_failover_switch(api_id, failover_api_id, error_message)
+            
+            return {
+                "action": "failover_triggered",
+                "from": api_id,
+                "to": failover_api_id,
+                "failures": new_failures
+            }
+    
+    return {"action": "failure_logged", "consecutive_failures": new_failures, "threshold": threshold}
+
+
+async def _execute_failover_switch(primary_api_id: str, failover_api_id: str, reason: str):
+    """Execute the actual failover switch"""
+    db = get_database()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update primary API - mark as using failover
+    await db.api_control_configs.update_one(
+        {"api_id": primary_api_id},
+        {"$set": {
+            "health_status": "degraded",
+            "failover_config.is_using_failover": True,
+            "failover_config.last_switch_time": now,
+            "failover_config.failover_reason": reason
+        }}
+    )
+    
+    # Update failover API - increase priority
+    await db.api_control_configs.update_one(
+        {"api_id": failover_api_id},
+        {"$set": {
+            "priority": "primary",
+            "is_acting_as_failover_for": primary_api_id
+        }}
+    )
+    
+    # Create failover event log
+    await db.api_failover_events.insert_one({
+        "event_id": str(uuid.uuid4()),
+        "event_type": "auto_failover",
+        "primary_api": primary_api_id,
+        "failover_api": failover_api_id,
+        "reason": reason,
+        "triggered_at": now,
+        "status": "active"
+    })
+    
+    # Create alert notification
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "api_failover_alert",
+        "title": f"Auto-Failover Triggered: {primary_api_id}",
+        "title_hi": f"ऑटो-फेलओवर शुरू: {primary_api_id}",
+        "message": f"API {primary_api_id} has failed. Automatically switched to {failover_api_id}.",
+        "message_hi": f"API {primary_api_id} फेल हो गया। स्वचालित रूप से {failover_api_id} पर स्विच किया गया।",
+        "severity": "high",
+        "for_roles": ["admin", "super_admin", "cfo"],
+        "read": False,
+        "created_at": now
+    })
+    
+    logger.warning(f"AUTO-FAILOVER: {primary_api_id} → {failover_api_id} | Reason: {reason}")
+
+
+@router.post("/internal/failover/report-success")
+async def report_api_success(api_id: str):
+    """
+    Internal endpoint to report API success - resets failure counter
+    """
+    db = get_database()
+    
+    await db.api_control_configs.update_one(
+        {"api_id": api_id},
+        {"$set": {"failover_config.consecutive_failures": 0}}
+    )
+    
+    return {"action": "success_logged", "failures_reset": True}
+
+
+@router.post("/admin/failover/switch-back")
+async def switch_back_to_primary(
+    api_id: str,
+    request: Request,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """
+    Manually switch back from failover to primary API
+    """
+    db = get_database()
+    
+    api = await db.api_control_configs.find_one({"api_id": api_id})
+    if not api:
+        raise HTTPException(status_code=404, detail="API not found")
+    
+    failover_config = api.get("failover_config", {})
+    
+    if not failover_config.get("is_using_failover"):
+        return {"message": "API is not currently using failover", "message_hi": "API फिलहाल फेलओवर पर नहीं है"}
+    
+    failover_api_id = api.get("failover_provider")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Reset primary API
+    await db.api_control_configs.update_one(
+        {"api_id": api_id},
+        {"$set": {
+            "health_status": "active",
+            "failover_config.is_using_failover": False,
+            "failover_config.consecutive_failures": 0,
+            "failover_config.last_switch_time": now
+        }}
+    )
+    
+    # Reset failover API priority
+    if failover_api_id:
+        await db.api_control_configs.update_one(
+            {"api_id": failover_api_id},
+            {
+                "$set": {"priority": "secondary"},
+                "$unset": {"is_acting_as_failover_for": ""}
+            }
+        )
+    
+    # Log event
+    await db.api_failover_events.insert_one({
+        "event_id": str(uuid.uuid4()),
+        "event_type": "manual_switch_back",
+        "primary_api": api_id,
+        "failover_api": failover_api_id,
+        "switched_by": current_user.get("id"),
+        "triggered_at": now,
+        "status": "completed"
+    })
+    
+    await log_api_audit(db, current_user, api_id, "failover_switch_back",
+                        {"is_using_failover": True},
+                        {"is_using_failover": False},
+                        "Manual switch back to primary", request)
+    
+    return {
+        "success": True,
+        "message": f"Switched back to primary API: {api_id}",
+        "message_hi": f"प्राइमरी API पर वापस: {api_id}"
+    }
+
+
+@router.get("/admin/failover/status")
+async def get_failover_status(
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "cfo"]))
+):
+    """
+    Get current failover status for all APIs
+    """
+    db = get_database()
+    
+    apis = await db.api_control_configs.find(
+        {"failover_provider": {"$ne": None}},
+        {"_id": 0, "api_id": 1, "name": 1, "failover_provider": 1, "failover_config": 1, "health_status": 1}
+    ).to_list(length=50)
+    
+    # Get recent failover events
+    recent_events = await db.api_failover_events.find(
+        {},
+        {"_id": 0}
+    ).sort("triggered_at", -1).limit(10).to_list(length=10)
+    
+    active_failovers = [a for a in apis if a.get("failover_config", {}).get("is_using_failover")]
+    
+    return {
+        "total_configured": len(apis),
+        "active_failovers": len(active_failovers),
+        "apis": apis,
+        "recent_events": recent_events
+    }
+
+
+@router.get("/admin/failover/events")
+async def get_failover_events(
+    limit: int = 50,
+    api_id: Optional[str] = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """
+    Get failover event history
+    """
+    db = get_database()
+    
+    query = {}
+    if api_id:
+        query["$or"] = [{"primary_api": api_id}, {"failover_api": api_id}]
+    
+    events = await db.api_failover_events.find(
+        query,
+        {"_id": 0}
+    ).sort("triggered_at", -1).limit(limit).to_list(length=limit)
+    
+    return {"events": events, "count": len(events)}
+
+
+# ============ SMART FAILOVER RECOMMENDATION ============
+
+@router.get("/admin/failover/recommendations")
+async def get_failover_recommendations(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """
+    Get AI-powered failover recommendations based on API performance
+    """
+    db = get_database()
+    
+    apis = await db.api_control_configs.find({}, {"_id": 0}).to_list(length=50)
+    
+    recommendations = []
+    
+    for api in apis:
+        api_id = api.get("api_id")
+        health = api.get("health_status")
+        has_failover = api.get("failover_provider") is not None
+        avg_response = api.get("avg_response_time", 0)
+        total_errors = api.get("total_errors", 0)
+        total_calls = api.get("total_calls", 1)
+        error_rate = (total_errors / total_calls) * 100 if total_calls > 0 else 0
+        
+        # Generate recommendations
+        if health == "down" and not has_failover:
+            recommendations.append({
+                "api_id": api_id,
+                "priority": "critical",
+                "type": "add_failover",
+                "message": f"{api['name']} is DOWN with no failover configured!",
+                "message_hi": f"{api['name']} डाउन है और कोई फेलओवर नहीं है!",
+                "action": "Configure a failover provider immediately"
+            })
+        elif error_rate > 10 and not has_failover:
+            recommendations.append({
+                "api_id": api_id,
+                "priority": "high",
+                "type": "add_failover",
+                "message": f"{api['name']} has {error_rate:.1f}% error rate - needs failover",
+                "message_hi": f"{api['name']} में {error_rate:.1f}% एरर रेट है - फेलओवर चाहिए",
+                "action": "Configure failover to handle failures"
+            })
+        elif avg_response > 2000:  # > 2 seconds
+            recommendations.append({
+                "api_id": api_id,
+                "priority": "medium",
+                "type": "performance",
+                "message": f"{api['name']} is slow ({avg_response}ms avg response)",
+                "message_hi": f"{api['name']} धीमा है ({avg_response}ms औसत)",
+                "action": "Consider switching to a faster provider"
+            })
+        
+        # Check if failover is configured but not auto-switch
+        if has_failover and not api.get("failover_config", {}).get("auto_switch"):
+            recommendations.append({
+                "api_id": api_id,
+                "priority": "low",
+                "type": "enable_auto",
+                "message": f"{api['name']} has failover but auto-switch is disabled",
+                "message_hi": f"{api['name']} में फेलओवर है पर ऑटो-स्विच बंद है",
+                "action": "Enable auto-switch for faster recovery"
+            })
+    
+    # Sort by priority
+    priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    recommendations.sort(key=lambda x: priority_order.get(x["priority"], 4))
+    
+    return {
+        "total_recommendations": len(recommendations),
+        "critical_count": len([r for r in recommendations if r["priority"] == "critical"]),
+        "recommendations": recommendations
+    }

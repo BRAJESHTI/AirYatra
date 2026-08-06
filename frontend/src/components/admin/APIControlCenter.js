@@ -4,7 +4,8 @@ import {
   Building2, Brain, RefreshCw, AlertTriangle, CheckCircle, XCircle,
   ToggleLeft, ToggleRight, Activity, Clock, IndianRupee, Zap,
   ChevronDown, ChevronUp, History, AlertOctagon, Loader2, Search,
-  Server, Wifi, WifiOff, Globe, Lock, Unlock, TrendingUp
+  Server, Wifi, WifiOff, Globe, Lock, Unlock, TrendingUp, TrendingDown,
+  Download, FileText, ArrowRightLeft, BarChart3, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,10 @@ const APIControlCenter = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [healthChecking, setHealthChecking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('apis');
+  const [costReport, setCostReport] = useState(null);
+  const [failoverStatus, setFailoverStatus] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
 
   const token = localStorage.getItem('token');
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
@@ -34,8 +39,15 @@ const APIControlCenter = () => {
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/api-control/admin/dashboard`, authHeaders);
-      setDashboard(response.data);
+      const [dashRes, failoverRes, recsRes] = await Promise.all([
+        axios.get(`${API_URL}/api/api-control/admin/dashboard`, authHeaders).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/api-control/admin/failover/status`, authHeaders).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/api-control/admin/failover/recommendations`, authHeaders).catch(() => ({ data: { recommendations: [] } }))
+      ]);
+      
+      setDashboard(dashRes.data);
+      setFailoverStatus(failoverRes.data);
+      setRecommendations(recsRes.data?.recommendations || []);
     } catch (error) {
       console.error('Failed to load API dashboard:', error);
       // Auto-initialize if not found
@@ -103,6 +115,53 @@ const APIControlCenter = () => {
       loadDashboard();
     } catch (error) {
       toast.error('Failed to set override');
+    }
+  };
+
+  // Load monthly cost report
+  const loadCostReport = async (year, month) => {
+    try {
+      const now = new Date();
+      const y = year || now.getFullYear();
+      const m = month || (now.getMonth() + 1);
+      const response = await axios.get(
+        `${API_URL}/api/api-control/admin/cost-reports/monthly?year=${y}&month=${m}`,
+        authHeaders
+      );
+      setCostReport(response.data);
+    } catch (error) {
+      toast.error('Failed to load cost report');
+    }
+  };
+
+  // Configure failover
+  const configureFailover = async (primaryId, failoverId) => {
+    try {
+      await axios.post(`${API_URL}/api/api-control/admin/failover/configure`, null, {
+        ...authHeaders,
+        params: {
+          api_id: primaryId,
+          failover_api_id: failoverId,
+          auto_switch: true,
+          switch_threshold: 3,
+          cooldown_minutes: 15
+        }
+      });
+      toast.success('Failover configured!');
+      loadDashboard();
+    } catch (error) {
+      toast.error('Failed to configure failover');
+    }
+  };
+
+  // Switch back from failover
+  const switchBackToPrimary = async (apiId) => {
+    try {
+      await axios.post(`${API_URL}/api/api-control/admin/failover/switch-back?api_id=${apiId}`, {}, authHeaders);
+      toast.success('Switched back to primary!');
+      loadDashboard();
+    } catch (error) {
+      toast.error('Failed to switch back');
     }
   };
 
@@ -200,8 +259,38 @@ const APIControlCenter = () => {
         </div>
       )}
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2">
+      {/* Recommendations Alert */}
+      {recommendations.length > 0 && (
+        <Card className="bg-yellow-500/10 border-yellow-500/50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-400 mt-0.5" />
+              <div>
+                <h4 className="text-yellow-400 font-medium">
+                  {recommendations.filter(r => r.priority === 'critical').length} Critical Recommendations
+                </h4>
+                <p className="text-slate-400 text-sm">
+                  {recommendations[0]?.message}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="bg-slate-800 border border-slate-700">
+          <TabsTrigger value="apis">🖥️ APIs</TabsTrigger>
+          <TabsTrigger value="failover">🔄 Failover</TabsTrigger>
+          <TabsTrigger value="costs">💰 Cost Reports</TabsTrigger>
+          <TabsTrigger value="audit">📜 Audit Logs</TabsTrigger>
+        </TabsList>
+
+        {/* APIs Tab */}
+        <TabsContent value="apis" className="space-y-4">
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2">
         {categories.map(cat => (
           <Button
             key={cat.id}
@@ -241,7 +330,188 @@ const APIControlCenter = () => {
           />
         ))}
       </div>
+        </TabsContent>
 
+        {/* Failover Tab */}
+        <TabsContent value="failover" className="space-y-4">
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <ArrowRightLeft className="h-5 w-5 text-blue-500" />
+                Failover Status / फेलओवर स्थिति
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Automatic failover switches to backup API when primary fails
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Active Failovers */}
+              {failoverStatus?.active_failovers > 0 && (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <div className="flex items-center gap-2 text-yellow-400 font-medium">
+                    <AlertTriangle className="h-5 w-5" />
+                    {failoverStatus.active_failovers} Active Failover(s)
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {failoverStatus?.apis?.filter(a => a.failover_config?.is_using_failover).map(api => (
+                      <div key={api.api_id} className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                        <div>
+                          <span className="text-white">{api.name}</span>
+                          <span className="text-slate-400 mx-2">→</span>
+                          <span className="text-green-400">{api.failover_provider}</span>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => switchBackToPrimary(api.api_id)}>
+                          Switch Back
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Configured Failovers */}
+              <div className="space-y-3">
+                <h4 className="text-white font-medium">Configured Failovers</h4>
+                {failoverStatus?.apis?.map(api => (
+                  <div key={api.api_id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${api.failover_config?.is_using_failover ? 'bg-yellow-400' : 'bg-green-400'}`} />
+                      <div>
+                        <span className="text-white">{api.name}</span>
+                        {api.failover_provider && (
+                          <span className="text-slate-400 ml-2">
+                            → {api.failover_provider}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {api.failover_config?.auto_switch && (
+                        <Badge className="bg-green-500/20 text-green-400">Auto</Badge>
+                      )}
+                      <Badge className={api.failover_config?.is_using_failover ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-500/20 text-slate-400'}>
+                        {api.failover_config?.is_using_failover ? 'On Failover' : 'Primary'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recommendations */}
+              {recommendations.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-white font-medium">Recommendations</h4>
+                  {recommendations.map((rec, idx) => (
+                    <div key={idx} className={`p-3 rounded-lg border ${
+                      rec.priority === 'critical' ? 'bg-red-500/10 border-red-500/30' :
+                      rec.priority === 'high' ? 'bg-orange-500/10 border-orange-500/30' :
+                      'bg-slate-800 border-slate-700'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge className={
+                          rec.priority === 'critical' ? 'bg-red-500 text-white' :
+                          rec.priority === 'high' ? 'bg-orange-500 text-white' :
+                          'bg-slate-500 text-white'
+                        }>
+                          {rec.priority}
+                        </Badge>
+                        <span className="text-white text-sm">{rec.api_id}</span>
+                      </div>
+                      <p className="text-slate-400 text-sm">{rec.message}</p>
+                      <p className="text-slate-500 text-xs mt-1">{rec.action}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Cost Reports Tab */}
+        <TabsContent value="costs" className="space-y-4">
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-green-500" />
+                    Monthly Cost Report / मासिक लागत रिपोर्ट
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    API usage costs for finance team
+                  </CardDescription>
+                </div>
+                <Button onClick={() => loadCostReport()} variant="outline" size="sm">
+                  <Calendar className="h-4 w-4 mr-2" /> Load This Month
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {costReport ? (
+                <div className="space-y-4">
+                  {/* Summary */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="p-4 bg-slate-800 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-white">{costReport.summary?.total_apis}</div>
+                      <div className="text-slate-400 text-sm">Total APIs</div>
+                    </div>
+                    <div className="p-4 bg-slate-800 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-white">{costReport.summary?.total_calls?.toLocaleString()}</div>
+                      <div className="text-slate-400 text-sm">Total Calls</div>
+                    </div>
+                    <div className="p-4 bg-green-500/10 rounded-lg text-center border border-green-500/30">
+                      <div className="text-2xl font-bold text-green-400">₹{costReport.summary?.total_cost?.toLocaleString()}</div>
+                      <div className="text-slate-400 text-sm">Total Cost</div>
+                    </div>
+                    <div className="p-4 bg-slate-800 rounded-lg text-center">
+                      <div className={`text-2xl font-bold flex items-center justify-center gap-1 ${
+                        costReport.summary?.cost_change_percent > 0 ? 'text-red-400' : 'text-green-400'
+                      }`}>
+                        {costReport.summary?.cost_change_percent > 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+                        {costReport.summary?.cost_change_percent}%
+                      </div>
+                      <div className="text-slate-400 text-sm">vs Last Month</div>
+                    </div>
+                  </div>
+
+                  {/* By API */}
+                  <div className="space-y-2">
+                    <h4 className="text-white font-medium">Cost by API</h4>
+                    {costReport.items?.map(item => (
+                      <div key={item.api_id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-slate-700 rounded flex items-center justify-center">
+                            <Server className="h-5 w-5 text-orange-400" />
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">{item.api_name}</div>
+                            <div className="text-slate-500 text-xs">{item.category}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-white font-medium">₹{item.current_month?.cost?.toLocaleString()}</div>
+                          <div className="text-slate-500 text-xs">{item.current_month?.calls?.toLocaleString()} calls</div>
+                        </div>
+                        <div className={`text-sm flex items-center gap-1 ${
+                          item.change?.cost_percent > 0 ? 'text-red-400' : 'text-green-400'
+                        }`}>
+                          {item.change?.cost_percent > 0 ? '↑' : '↓'} {Math.abs(item.change?.cost_percent)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  Click Load This Month to generate cost report
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Audit Logs Tab */}
+        <TabsContent value="audit">
       {/* Recent Audit Logs */}
       {dashboard?.recent_logs?.length > 0 && (
         <Card className="bg-slate-900 border-slate-700">
@@ -252,7 +522,7 @@ const APIControlCenter = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-96 overflow-y-auto">
               {dashboard.recent_logs.map((log, idx) => (
                 <div key={idx} className="flex items-center justify-between p-2 bg-slate-800 rounded text-sm">
                   <div>
@@ -268,6 +538,8 @@ const APIControlCenter = () => {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
