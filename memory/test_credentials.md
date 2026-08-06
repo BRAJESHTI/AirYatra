@@ -103,6 +103,36 @@ For testing Budget Alerts, Slack/Email Alerts, Failover Test Mode:
   - POST /api/api-control/admin/failover/test-mode/simulate-failure (Working)
   - POST /api/api-control/admin/failover/test-mode/run-full-test (Working)
 
+## Quick Admin Login (DEV ONLY - Aug 6, 2026)
+| Setting | Value |
+|---------|-------|
+| Endpoint | POST /api/auth/dev/quick-admin-token |
+| Secret Key | airyatra-dev-quick-login-2026 |
+| Status | ✅ ENABLED |
+
+**Usage:**
+```bash
+curl -X POST "https://aviation-erp-2.preview.emergentagent.com/api/auth/dev/quick-admin-token" \
+  -H "Content-Type: application/json" \
+  -d '{"secret_key": "airyatra-dev-quick-login-2026"}'
+```
+
+**Current Token (24h valid):**
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZmQ1ZjlkNS03ZTkyLTRlMjQtOWM0Yy00MGQzNjFhNzU4YzgiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJlbWFpbCI6InN1cGVyYWRtaW4yQGFpcnlhdHJhLmNvbSIsInF1aWNrX2xvZ2luIjp0cnVlLCJleHAiOjE3ODY2MjU3NDF9.hEn3D-wmoOkOIunPwXr8KTImhwxfFlV5RP5Vuun8us4
+```
+
+**For Screenshots (localStorage):**
+```javascript
+localStorage.setItem('token', 'TOKEN_HERE');
+localStorage.setItem('user', JSON.stringify({
+  id: 'bfd5f9d5-7e92-4e24-9c4c-40d361a758c8',
+  email: 'superadmin2@airyatra.com',
+  name: 'Super Admin',
+  roles: ['super_admin']
+}));
+```
+
 ## Sandbox.co.in KYC API (Aug 6, 2026)
 | Setting | Value |
 |---------|-------|

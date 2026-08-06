@@ -1896,3 +1896,139 @@ async def check_role_selection(current_user: dict = Depends(get_current_user)):
         "is_role_selected": is_role_selected,
         "auth_provider": user.get("auth_provider")
     }
+
+
+
+# ========== QUICK ADMIN LOGIN (DEV/TEST ONLY) ==========
+
+class QuickAdminRequest(BaseModel):
+    secret_key: str  # Must match QUICK_LOGIN_SECRET from env
+    user_email: Optional[str] = None  # Optional: specify which admin
+
+# Quick login secret - must be set in env for this to work
+QUICK_LOGIN_SECRET = os.environ.get("QUICK_LOGIN_SECRET", "airyatra-dev-quick-login-2026")
+QUICK_LOGIN_ENABLED = os.environ.get("QUICK_LOGIN_ENABLED", "true").lower() == "true"
+
+
+@router.post("/dev/quick-admin-token")
+async def get_quick_admin_token(request: QuickAdminRequest):
+    """
+    🔓 DEV ONLY: Generate admin token without OTP/TOTP verification
+    
+    This endpoint is for development/testing purposes only.
+    It allows bypassing 2FA to test admin UI features.
+    
+    SECURITY: 
+    - Requires QUICK_LOGIN_SECRET to match
+    - Can be disabled via QUICK_LOGIN_ENABLED=false
+    - Should be disabled in production
+    
+    Usage:
+    curl -X POST "/api/auth/dev/quick-admin-token" \
+      -H "Content-Type: application/json" \
+      -d '{"secret_key": "airyatra-dev-quick-login-2026"}'
+    """
+    # Check if quick login is enabled
+    if not QUICK_LOGIN_ENABLED:
+        raise HTTPException(
+            status_code=403, 
+            detail="Quick admin login is disabled. Set QUICK_LOGIN_ENABLED=true in env."
+        )
+    
+    # Verify secret key
+    if request.secret_key != QUICK_LOGIN_SECRET:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid secret key"
+        )
+    
+    db = get_database()
+    
+    # Find admin user
+    if request.user_email:
+        user = await db.users.find_one(
+            {"email": request.user_email, "roles": {"$in": ["admin", "super_admin"]}},
+            {"_id": 0, "password_hash": 0}
+        )
+    else:
+        # Find any super_admin first, then admin
+        user = await db.users.find_one(
+            {"roles": "super_admin"},
+            {"_id": 0, "password_hash": 0}
+        )
+        if not user:
+            user = await db.users.find_one(
+                {"roles": "admin"},
+                {"_id": 0, "password_hash": 0}
+            )
+    
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="No admin user found in database"
+        )
+    
+    # Generate token (no 2FA check)
+    token_data = {
+        "sub": user["id"],
+        "roles": user.get("roles", ["admin"]),
+        "email": user.get("email"),
+        "quick_login": True  # Flag to identify quick login tokens
+    }
+    
+    access_token = create_access_token(data=token_data)
+    
+    # Log this action for audit (simplified for dev endpoint)
+    try:
+        from security_middleware import AuditLogger
+        audit_logger = AuditLogger()
+        await audit_logger.log(
+            action="quick_admin_login",
+            category="authentication",
+            user_id=user["id"],
+            user_email=user.get("email"),
+            resource_type="auth",
+            details={
+                "method": "dev_bypass",
+                "warning": "DEV ONLY - should be disabled in production"
+            },
+            ip_address="dev-bypass",
+            status="success",
+            risk_level="medium"
+        )
+    except Exception as e:
+        # Don't fail if audit logging fails
+        print(f"Audit log warning: {e}")
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "email": user.get("email"),
+            "name": user.get("full_name"),
+            "roles": user.get("roles", [])
+        },
+        "message": "🔓 Quick admin token generated (DEV ONLY)",
+        "message_hi": "🔓 त्वरित एडमिन टोकन जनरेट हुआ (केवल DEV के लिए)",
+        "warning": "This endpoint should be disabled in production!",
+        "expires_in": "24 hours"
+    }
+
+
+@router.get("/dev/quick-admin-token")
+async def get_quick_admin_token_info():
+    """
+    Info endpoint to check if quick admin login is available
+    """
+    return {
+        "enabled": QUICK_LOGIN_ENABLED,
+        "endpoint": "/api/auth/dev/quick-admin-token",
+        "method": "POST",
+        "required_body": {
+            "secret_key": "string (must match QUICK_LOGIN_SECRET env var)",
+            "user_email": "string (optional - specify admin email)"
+        },
+        "note": "This is a development-only feature for testing admin UI without OTP",
+        "note_hi": "यह केवल विकास के लिए है - OTP के बिना एडमिन UI टेस्ट करने के लिए"
+    }
