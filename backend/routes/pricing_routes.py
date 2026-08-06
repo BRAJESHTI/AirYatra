@@ -6,6 +6,7 @@ from uuid import uuid4
 import math
 from database import get_database
 from routes.auth_routes import get_current_user
+from models import PricingRequest, PricingRuleUpdate, PricingSettings
 
 router = APIRouter(prefix="/pricing", tags=["Dynamic Pricing"])
 
@@ -42,20 +43,7 @@ DEFAULT_PRICING_CONFIG = {
     "max_multiplier": 2.0
 }
 
-# Models
-class PricingRequest(BaseModel):
-    origin: str
-    destination: str
-    journey_date: str
-    journey_time: Optional[str] = None
-    aircraft_type: Optional[str] = None
-    passengers: int = 1
-    base_price: float
-
-class PricingRuleUpdate(BaseModel):
-    rule_name: str
-    value: float
-
+# Local Models (route-specific)
 class SeasonalRule(BaseModel):
     name: str
     start_date: str  # MM-DD format

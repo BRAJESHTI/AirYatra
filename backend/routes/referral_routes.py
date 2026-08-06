@@ -12,7 +12,7 @@ import string
 
 from database import get_database
 from middleware import get_current_user, require_roles
-from models import UserRole
+from models import UserRole, DiscountCode, DiscountCodeCreate, BulkDiscountUpload
 
 router = APIRouter(prefix="/referral", tags=["Referral & Wallet"])
 
@@ -26,20 +26,6 @@ class ReferralSettings(BaseModel):
     min_booking_for_referral: float = 10000.0  # Minimum booking amount to qualify
     referral_enabled: bool = True
     wallet_enabled: bool = True
-
-
-class DiscountCode(BaseModel):
-    code: str
-    discount_type: str  # "percent" or "fixed"
-    discount_value: float
-    max_uses: int = 100
-    min_booking_amount: float = 5000.0
-    max_discount_amount: Optional[float] = None  # Cap for percentage discounts
-    valid_from: str
-    valid_until: str
-    is_active: bool = True
-    description: str = ""
-    applicable_purposes: List[str] = []  # Empty means all purposes
 
 
 # ============== REFERRAL CODE MANAGEMENT ==============

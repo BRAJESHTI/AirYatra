@@ -4,54 +4,17 @@ Handles priority queue and instant operator notifications for emergency bookings
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
-from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 from database import get_database
 from middleware import get_current_user, require_roles
+from models import EmergencyBookingRequest, EmergencyResponse, UrgencyLevel, EmergencyStatus
 import uuid
 import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/emergency", tags=["Emergency Bookings"])
-
-
-# ============ MODELS ============
-
-class EmergencyBookingRequest(BaseModel):
-    """Emergency booking request - gets priority processing"""
-    # Location
-    from_location: str
-    from_latitude: float
-    from_longitude: float
-    to_location: str
-    to_latitude: float
-    to_longitude: float
-    
-    # Urgency
-    urgency_level: str = "high"  # critical, high, medium
-    urgency_reason: str  # medical_emergency, time_critical, vip_travel, disaster_relief
-    required_by: Optional[str] = None  # ISO datetime - when flight must happen
-    
-    # Flight details
-    passengers: int = 1
-    aircraft_type: Optional[str] = None  # helicopter, light_jet, any
-    special_requirements: Optional[str] = None
-    
-    # Contact
-    emergency_contact_name: str
-    emergency_contact_phone: str
-
-
-class EmergencyResponse(BaseModel):
-    """Response from operator to emergency request"""
-    emergency_booking_id: str
-    can_fulfill: bool
-    aircraft_id: Optional[str] = None
-    estimated_arrival_minutes: Optional[int] = None
-    price: Optional[float] = None
-    notes: Optional[str] = None
 
 
 # ============ CONSTANTS ============

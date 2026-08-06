@@ -749,3 +749,294 @@ class BulkDocumentAction(BaseModel):
     action: str
     destination_folder_id: Optional[str] = None
     tags: Optional[List[str]] = None
+
+
+
+# ============================================================
+# CENTRALIZED MODELS - Emergency, Payment, Invoice, Discount
+# ============================================================
+
+# ============ EMERGENCY BOOKING MODELS ============
+
+class UrgencyLevel(str, Enum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+
+class UrgencyReason(str, Enum):
+    MEDICAL_EMERGENCY = "medical_emergency"
+    TIME_CRITICAL = "time_critical"
+    VIP_TRAVEL = "vip_travel"
+    DISASTER_RELIEF = "disaster_relief"
+    ORGAN_TRANSPORT = "organ_transport"
+
+class EmergencyStatus(str, Enum):
+    BROADCASTING = "broadcasting"
+    AWAITING_RESPONSES = "awaiting_responses"
+    RESPONSES_RECEIVED = "responses_received"
+    OPERATOR_ASSIGNED = "operator_assigned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    NO_OPERATORS_FOUND = "no_operators_found"
+
+class EmergencyBookingRequest(BaseModel):
+    """Emergency booking request - gets priority processing"""
+    # Location
+    from_location: str
+    from_latitude: float
+    from_longitude: float
+    to_location: str
+    to_latitude: float
+    to_longitude: float
+    
+    # Urgency
+    urgency_level: str = "high"  # critical, high, medium
+    urgency_reason: str  # medical_emergency, time_critical, vip_travel, disaster_relief
+    required_by: Optional[str] = None  # ISO datetime - when flight must happen
+    
+    # Flight details
+    passengers: int = 1
+    aircraft_type: Optional[str] = None  # helicopter, light_jet, any
+    special_requirements: Optional[str] = None
+    
+    # Contact
+    emergency_contact_name: str
+    emergency_contact_phone: str
+
+class EmergencyResponse(BaseModel):
+    """Response from operator to emergency request"""
+    emergency_booking_id: str
+    can_fulfill: bool
+    aircraft_id: Optional[str] = None
+    estimated_arrival_minutes: Optional[int] = None
+    price: Optional[float] = None
+    notes: Optional[str] = None
+
+
+# ============ DISCOUNT & REFERRAL MODELS ============
+
+class DiscountType(str, Enum):
+    PERCENT = "percent"
+    FIXED = "fixed"
+
+class DiscountCode(BaseModel):
+    """Discount code for bookings"""
+    code: str
+    discount_type: str  # "percent" or "fixed"
+    discount_value: float
+    max_uses: int = 100
+    min_booking_amount: float = 5000.0
+    max_discount_amount: Optional[float] = None  # Cap for percentage discounts
+    valid_from: str
+    valid_until: str
+    is_active: bool = True
+    description: str = ""
+    applicable_purposes: List[str] = []  # Empty means all purposes
+
+class DiscountCodeCreate(BaseModel):
+    """Create new discount code"""
+    code: Optional[str] = None  # Auto-generate if not provided
+    discount_type: str = "percent"
+    discount_value: float
+    max_uses: int = 100
+    min_booking_amount: float = 5000.0
+    max_discount_amount: Optional[float] = None
+    valid_from: str
+    valid_until: str
+    description: str = ""
+    applicable_purposes: List[str] = []
+
+class BulkDiscountUpload(BaseModel):
+    """Bulk upload discount codes via CSV"""
+    codes: List[DiscountCodeCreate]
+
+
+# ============ INVOICE MODELS ============
+
+class InvoiceType(str, Enum):
+    TAX_INVOICE = "tax_invoice"
+    PROFORMA = "proforma"
+    CREDIT_NOTE = "credit_note"
+    DEBIT_NOTE = "debit_note"
+
+class InvoiceStatus(str, Enum):
+    DRAFT = "draft"
+    SENT = "sent"
+    PAID = "paid"
+    PARTIALLY_PAID = "partially_paid"
+    OVERDUE = "overdue"
+    CANCELLED = "cancelled"
+
+class InvoiceItem(BaseModel):
+    """Single line item in an invoice"""
+    description: str
+    hsn_code: Optional[str] = None
+    quantity: int = 1
+    unit_price: float
+    discount_percent: float = 0
+    gst_percent: float = 18
+
+class InvoiceCreate(BaseModel):
+    """Create new invoice"""
+    booking_id: Optional[str] = None
+    customer_id: str
+    customer_name: str
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_gstin: Optional[str] = None
+    customer_address: Optional[str] = None
+    billing_address: Optional[str] = None
+    items: List[InvoiceItem]
+    notes: Optional[str] = None
+    due_days: int = 30
+    invoice_type: str = "tax_invoice"
+
+class InvoiceUpdate(BaseModel):
+    """Update invoice"""
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    due_days: Optional[int] = None
+
+
+# ============ PRICING MODELS ============
+
+class PricingRequest(BaseModel):
+    """Request for price calculation"""
+    origin: str
+    destination: str
+    journey_date: str
+    journey_time: Optional[str] = None
+    aircraft_type: Optional[str] = None
+    passengers: int = 1
+    base_price: float
+
+class PricingRuleUpdate(BaseModel):
+    """Update pricing rule"""
+    rule_name: str
+    value: float
+
+class PricingSettings(BaseModel):
+    """Platform pricing settings"""
+    platform_commission_percent: float = 10.0
+    platform_fixed_fee: float = 500.0
+    gst_rate: float = 18.0
+    tds_rate: float = 2.0
+    price_lock_duration_minutes: int = 15
+    price_lock_max_minutes: int = 30
+
+
+# ============ PAYMENT MODELS ============
+
+class PaymentStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+
+class PaymentMethod(str, Enum):
+    CARD = "card"
+    UPI = "upi"
+    NETBANKING = "netbanking"
+    WALLET = "wallet"
+    BANK_TRANSFER = "bank_transfer"
+
+class PaymentCreate(BaseModel):
+    """Create payment request"""
+    booking_id: str
+    amount: float
+    currency: str = "INR"
+    payment_method: Optional[str] = None
+    return_url: Optional[str] = None
+
+class PaymentVerify(BaseModel):
+    """Verify payment"""
+    payment_id: str
+    gateway_payment_id: str
+    gateway_signature: Optional[str] = None
+
+class RefundRequest(BaseModel):
+    """Request refund"""
+    payment_id: str
+    amount: Optional[float] = None  # Partial refund if specified
+    reason: str
+
+
+# ============ MULTI-CITY BOOKING MODELS ============
+
+class RouteLeg(BaseModel):
+    """Single leg in multi-city route"""
+    from_location: str
+    from_latitude: float
+    from_longitude: float
+    to_location: str
+    to_latitude: float
+    to_longitude: float
+    distance_km: float = 0
+    estimated_price: float = 0
+
+class MultiCityBookingCreate(BaseModel):
+    """Create multi-city booking"""
+    legs: List[RouteLeg]
+    departure_date: str
+    passengers: int = 1
+    aircraft_type: Optional[str] = None
+    special_requirements: Optional[str] = None
+
+
+# ============ AIRCRAFT CATALOG MODELS ============
+
+class AircraftVerificationStatus(str, Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+class AircraftSafetyFeatures(BaseModel):
+    """Aircraft safety equipment"""
+    tcas: bool = False  # Traffic Collision Avoidance System
+    terrain_awareness: bool = False
+    weather_radar: bool = False
+    autopilot: bool = False
+    defibrillator: bool = False
+    oxygen_kit: bool = False
+    fire_extinguisher: bool = True
+    first_aid: bool = True
+    life_jackets: bool = False
+    emergency_locator: bool = False
+
+class AircraftAmenities(BaseModel):
+    """Aircraft amenities"""
+    wifi_type: str = "none"  # none, basic, high_speed
+    leather_seats: bool = False
+    pressurized_cabin: bool = False
+    air_conditioning: bool = True
+    entertainment_system: bool = False
+    meals_available: bool = False
+    lavatory: bool = False
+    conference_table: bool = False
+    power_outlets: bool = False
+
+class AircraftCrewInfo(BaseModel):
+    """Crew information"""
+    min_crew: int = 1
+    max_crew: int = 2
+    flight_attendant_available: bool = False
+
+class AircraftCatalogCreate(BaseModel):
+    """Create aircraft in catalog"""
+    model: str
+    manufacturer: str
+    aircraft_type: str  # helicopter, light_jet, turbo_prop
+    registration_number: str
+    year_of_manufacture: Optional[int] = None
+    passenger_capacity: int
+    max_range_km: Optional[int] = None
+    cruise_speed_kmh: Optional[int] = None
+    engine_type: Optional[str] = None
+    hourly_rate: float
+    safety_features: Optional[AircraftSafetyFeatures] = None
+    amenities: Optional[AircraftAmenities] = None
+    crew_info: Optional[AircraftCrewInfo] = None

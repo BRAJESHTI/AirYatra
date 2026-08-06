@@ -5,32 +5,11 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from database import get_database
 from routes.auth_routes import get_current_user
+from models import InvoiceItem, InvoiceCreate, InvoiceUpdate, InvoiceStatus, InvoiceType
 
 router = APIRouter(prefix="/invoices", tags=["Invoice & Billing"])
 
-# Models
-class InvoiceItem(BaseModel):
-    description: str
-    hsn_code: Optional[str] = None
-    quantity: int = 1
-    unit_price: float
-    discount_percent: float = 0
-    gst_percent: float = 18
-
-class InvoiceCreate(BaseModel):
-    booking_id: Optional[str] = None
-    customer_id: str
-    customer_name: str
-    customer_email: Optional[str] = None
-    customer_phone: Optional[str] = None
-    customer_gstin: Optional[str] = None
-    customer_address: Optional[str] = None
-    billing_address: Optional[str] = None
-    items: List[InvoiceItem]
-    notes: Optional[str] = None
-    due_days: int = 30
-    invoice_type: str = "tax_invoice"  # tax_invoice, proforma, credit_note
-
+# Models (RefundCreate kept local as it's invoice-specific)
 class RefundCreate(BaseModel):
     invoice_id: str
     amount: float
