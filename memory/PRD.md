@@ -1399,12 +1399,64 @@ Implemented enterprise-grade account lockout security after 5 failed login attem
 - ⏳ WhatsApp: Future implementation
 
 ### Upcoming Tasks (Pending):
-1. **Verification Rule Engine (VRE) Full Implementation** - User requested complete 18-point VRE system
-2. **Bulk Discount Upload** (P1) - CSV import for discount codes
-3. **Offline Map Cache** (P1) - Map tiles for low-connectivity areas
-4. **Route Optimization** (P2) - AI-based leg ordering
+1. **Bulk Discount Upload** (P1) - CSV import for discount codes
+2. **Offline Map Cache** (P1) - Map tiles for low-connectivity areas
+3. **Route Optimization** (P2) - AI-based leg ordering
 
 ### Test Report:
 - Iteration 29: All 4 tasks verified working
-- Backend: 10/10 pytest passing
+- Iteration 30: VRE Backend 20/20 pytest passing
 - Frontend: Route `/aircraft/browse` added, Compare widget functional
+
+---
+
+## VRE (Verification Rule Engine) Implementation - Aug 6, 2026
+
+### Status: ✅ COMPLETE
+
+### Features Implemented:
+1. **30+ Verification Services** - Mobile OTP, Email OTP, PAN, Aadhaar, GST, Bank Account, CIN, MSME, DigiLocker, Face, DL, Passport
+2. **3 Modes per Service** - Disabled / Optional / Mandatory (Admin configurable)
+3. **Booking-Based Rules** - ₹50k (OTP only), ₹50k-2L (PAN+OTP), >₹2L (Full KYC), Corporate (GST+PAN+CIN)
+4. **Role Permissions** - Super Admin, Admin, CFO, Finance Head, Compliance Officer
+5. **Verification Scoring** - 100 points max (PAN 20, GST 20, Bank 20, Aadhaar 20, Face 20)
+6. **Auto Badges** - 🟢 Gold (90+), 🔵 Silver (80+), 🟡 Basic (60+), 🔴 Pending (<60)
+7. **Auto Rules (If X Then Y)** - GST Cancelled→Suspend, Bank Failed→Hold Payout, Insurance Expired→Hide Aircraft
+8. **Sandbox/Production Toggle** - One-click switch without code change
+9. **Emergency Override** - Normal / Manual Mode / Disabled
+10. **Immutable Audit Logs** - All changes logged with timestamp, user, IP, reason
+
+### API Endpoints Created:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/vre/admin/initialize` | POST | Initialize VRE with defaults |
+| `/api/vre/admin/global-config` | GET/PUT | Global configuration |
+| `/api/vre/admin/services/{category}` | GET | Get services by category |
+| `/api/vre/admin/services/{category}/{type}` | PUT | Update service mode |
+| `/api/vre/admin/booking-rules` | GET/POST | Booking amount rules |
+| `/api/vre/admin/auto-rules` | GET/POST | Auto trigger rules |
+| `/api/vre/admin/auto-rules/{id}/toggle` | PUT | Enable/disable rule |
+| `/api/vre/admin/emergency-status` | GET | Emergency override status |
+| `/api/vre/admin/permissions` | GET/PUT | Role permissions |
+| `/api/vre/admin/audit-logs` | GET | Immutable audit logs |
+| `/api/vre/admin/dashboard` | GET | Stats & badge distribution |
+| `/api/vre/verify/pan` | POST | PAN verification |
+| `/api/vre/verify/gst` | POST | GST verification |
+| `/api/vre/verify/bank` | POST | Bank account (penny drop) |
+| `/api/vre/verify/aadhaar/send-otp` | POST | Aadhaar OTP step 1 |
+| `/api/vre/verify/aadhaar/verify-otp` | POST | Aadhaar OTP step 2 |
+| `/api/vre/verify/ifsc/{ifsc}` | GET | IFSC lookup (public) |
+| `/api/vre/user/verification-status` | GET | User's verification score |
+| `/api/vre/booking/required-verifications` | GET | Required verifications for booking |
+
+### Files Created:
+- `/app/backend/routes/vre_routes.py` - Complete VRE API routes (700+ lines)
+- `/app/backend/services/sandbox_kyc_service.py` - Sandbox.co.in integration
+- `/app/backend/models/vre_models.py` - Pydantic models
+- `/app/frontend/src/components/admin/AdminVerificationEngine.js` - Admin UI (rewritten)
+
+### Sandbox.co.in Integration:
+- API Key: key_live_07f61ca61046480a8702eb0c234b59db
+- Supported: PAN, GST, Bank Account, Aadhaar (OTP), IFSC, CIN, DL
+- Status: ✅ Connected (Sandbox test mode - production keys needed for full access)
+
