@@ -1682,6 +1682,88 @@ Switch Back: Manual → Back to stripe (primary)
 - ✅ Budget Configure API - Saves monthly budget
 - ✅ Alert Configure API - Saves Slack webhook and email list
 - ✅ Alert Test API - Sends test notifications
+
+---
+
+## Offline Map Cache Feature (Aug 6, 2026)
+
+### Status: ✅ COMPLETE
+
+### Features Implemented:
+
+1. **Service Worker Map Tile Caching**
+   - Cache-first strategy for map tiles
+   - Supports OpenStreetMap, CartoDB, Stadia tiles
+   - Max 2000 tiles (~50MB cache limit)
+   - 7-day tile expiration with auto-refresh
+   - Offline fallback with placeholder tiles
+
+2. **React Hook (`useMapCache.js`)**
+   - `getStats()` - Get cache statistics
+   - `clearCache()` - Clear all cached tiles
+   - `preCacheRegion(regionKey)` - Pre-download tiles for a region
+   - `preCacheMultipleRegions(regionKeys)` - Batch pre-caching
+
+3. **Admin UI (`MapCacheSettings.js`)**
+   - Cache usage stats (tile count, size)
+   - Pre-cache Indian cities (Mumbai, Delhi, Bangalore, etc.)
+   - Pilgrimage routes (Shirdi, Tirupati, Vaishno Devi, Kedarnath)
+   - Clear cache button
+   - Online/Offline indicator
+
+4. **Pre-defined Regions (INDIA_REGIONS)**
+   - 10 Major Cities: Mumbai, Delhi, Bangalore, Chennai, Hyderabad, Kolkata, Pune, Ahmedabad, Jaipur, Goa
+   - 4 Pilgrimage Routes: Shirdi, Tirupati, Vaishno Devi, Kedarnath
+   - All India (low zoom overview)
+
+### Files Created:
+- `/app/frontend/public/service-worker.js` (Enhanced with map caching)
+- `/app/frontend/src/hooks/useMapCache.js`
+- `/app/frontend/src/components/admin/MapCacheSettings.js`
+
+### Access:
+Admin Dashboard → Integrations → Offline Map Cache
+
+---
+
+## Route Optimization AI Feature (Aug 6, 2026)
+
+### Status: ✅ COMPLETE (Already existed, UI enhanced)
+
+### Features:
+
+1. **TSP Algorithm Implementation**
+   - Brute force for ≤7 destinations (guaranteed optimal)
+   - Nearest Neighbor + 2-opt for larger routes
+   - Haversine distance calculation
+
+2. **API Endpoints** (Already existed)
+   - `POST /api/routes/multi-stop` - Optimize multi-city route
+   - `POST /api/routes/optimize` - Single route optimization
+   - `GET /api/routes/locations` - Get helipad locations
+   - `GET /api/routes/distance` - Calculate point-to-point distance
+
+3. **Frontend Integration (New)**
+   - "AI Optimize" button in MultiCityRouteBuilder
+   - Shows original vs optimized route comparison
+   - Displays savings in km and time
+   - "Apply Optimized Route" to reorder legs
+
+### Example Optimization:
+- Input: Mumbai → Delhi → Jaipur → Agra
+- Output: Mumbai → Jaipur → Delhi (shorter path)
+- Savings: ~100-200 km depending on route
+
+### Files Updated:
+- `/app/frontend/src/components/booking/MultiCityRouteBuilder.js`
+
+### Testing:
+```bash
+curl -X POST "http://localhost:8001/api/routes/multi-stop" \
+  -H "Content-Type: application/json" \
+  -d '{"locations": ["mumbai", "delhi", "jaipur"], "start_location": "mumbai"}'
+```
+
 - ✅ Failover Test Start - Creates test session
 - ✅ Simulate Failure - Increments failure count
 - ✅ Full Auto Test - Runs complete cycle with report

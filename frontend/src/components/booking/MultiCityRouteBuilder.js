@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, MapPin, ArrowRight, Navigation, Calculator, AlertCircle, GripVertical, Map } from 'lucide-react';
+import { Plus, Trash2, MapPin, ArrowRight, Navigation, Calculator, AlertCircle, GripVertical, Map, Sparkles, Loader2, TrendingDown, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import LandingPointSelector from '../shared/LandingPointSelector';
 import MultiCityRouteMap from './MultiCityRouteMap';
+import { toast } from 'sonner';
+import axios from 'axios';
 
 // DnD Kit imports for drag-drop reordering
 import {
@@ -210,6 +212,13 @@ export const MultiCityRouteBuilder = ({
   const [showMap, setShowMap] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
   
+  // Route Optimization State
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState(null);
+  const [showOptimization, setShowOptimization] = useState(false);
+  
+  const API_URL = process.env.REACT_APP_BACKEND_URL;
+  
   // DnD Kit sensors for drag-drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -375,6 +384,128 @@ export const MultiCityRouteBuilder = ({
     setLegs(newLegs);
   };
 
+  // ============ ROUTE OPTIMIZATION AI ============
+  
+  // Optimize route using AI
+  const optimizeRoute = async () => {
+    // Check if we have enough valid destinations
+    const validLegs = legs.filter(leg => leg.from && leg.to);
+    if (validLegs.length < 2) {
+      toast.error('Add at least 2 complete legs to optimize / ऑप्टिमाइज़ के लिए कम से कम 2 पूर्ण पड़ाव जोड़ें');
+      return;
+    }
+    
+    try {
+      setOptimizing(true);
+      setOptimizationResult(null);
+      
+      // Build locations array for API
+      const origin = {
+        name: legs[0].from?.landing_point_name || 'Origin',
+        lat: legs[0].from?.latitude || 0,
+        lng: legs[0].from?.longitude || 0,
+        city: legs[0].from?.city || ''
+      };
+      
+      const destinations = legs.map(leg => ({
+        name: leg.to?.landing_point_name || 'Destination',
+        lat: leg.to?.latitude || 0,
+        lng: leg.to?.longitude || 0,
+        city: leg.to?.city || ''
+      })).filter(d => d.lat !== 0);
+      
+      // Use backend API for optimization (existing endpoint)
+      const locationNames = [
+        legs[0].from?.city?.toLowerCase() || 'mumbai',
+        ...legs.map(l => l.to?.city?.toLowerCase()).filter(Boolean)
+      ];
+      
+      const response = await axios.post(`${API_URL}/api/routes/multi-stop`, {
+        locations: locationNames,
+        start_location: locationNames[0],
+        return_to_start: false,
+        optimize_for: 'distance'
+      });
+      
+      const result = response.data;
+      
+      // Calculate savings
+      const originalDistance = totalDistance;
+      const optimizedDistance = result.total_distance_km || totalDistance;
+      const savings = originalDistance - optimizedDistance;
+      const savingsPercent = originalDistance > 0 ? (savings / originalDistance * 100) : 0;
+      
+      setOptimizationResult({
+        originalOrder: legs.map(l => l.to?.landing_point_name?.split(',')[0] || 'Unknown'),
+        optimizedOrder: result.optimized_route || [],
+        originalDistance: Math.round(originalDistance),
+        optimizedDistance: Math.round(optimizedDistance),
+        savingsKm: Math.round(savings),
+        savingsPercent: Math.round(savingsPercent),
+        estimatedTime: result.estimated_time_min || 0,
+        isDifferent: savings > 5
+      });
+      
+      setShowOptimization(true);
+      
+      if (savings > 10) {
+        toast.success(`🚁 Found shorter route! Save ${Math.round(savings)} km / छोटा रास्ता मिला!`);
+      } else {
+        toast.info('✅ Your route is already optimal! / आपका रूट पहले से बेहतर है!');
+      }
+      
+    } catch (error) {
+      console.error('Route optimization failed:', error);
+      toast.error('Failed to optimize route / रूट ऑप्टिमाइज़ करने में विफल');
+    } finally {
+      setOptimizing(false);
+    }
+  };
+  
+  // Apply optimized route
+  const applyOptimizedRoute = () => {
+    if (!optimizationResult?.optimizedOrder) return;
+    
+    // Reorder legs based on optimization
+    const optimizedOrder = optimizationResult.optimizedOrder;
+    const newLegs = [];
+    
+    // Build new legs array based on optimized order
+    for (let i = 0; i < optimizedOrder.length - 1; i++) {
+      const fromName = optimizedOrder[i];
+      const toName = optimizedOrder[i + 1];
+      
+      // Find matching leg or create new one
+      const existingLeg = legs.find(l => 
+        (l.from?.city?.toLowerCase() === fromName.toLowerCase() || 
+         l.from?.landing_point_name?.toLowerCase().includes(fromName.toLowerCase())) &&
+        (l.to?.city?.toLowerCase() === toName.toLowerCase() ||
+         l.to?.landing_point_name?.toLowerCase().includes(toName.toLowerCase()))
+      );
+      
+      if (existingLeg) {
+        newLegs.push({ ...existingLeg, id: Date.now() + i });
+      } else {
+        // Create placeholder leg
+        newLegs.push({
+          id: Date.now() + i,
+          from: legs.find(l => l.from?.city?.toLowerCase() === fromName.toLowerCase())?.from ||
+                legs.find(l => l.to?.city?.toLowerCase() === fromName.toLowerCase())?.to || null,
+          to: legs.find(l => l.to?.city?.toLowerCase() === toName.toLowerCase())?.to || null,
+          distance: 0,
+          price: 0
+        });
+      }
+    }
+    
+    if (newLegs.length >= 2) {
+      setLegs(recalculateChain(newLegs));
+      setShowOptimization(false);
+      setOptimizationResult(null);
+      toast.success('Route optimized! / रूट ऑप्टिमाइज़ हो गया!');
+    }
+  };
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Header */}
@@ -389,6 +520,24 @@ export const MultiCityRouteBuilder = ({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Route Optimization Button */}
+          {legs.filter(l => l.from && l.to).length >= 2 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={optimizeRoute}
+              disabled={optimizing}
+              className="border-purple-500/50 text-purple-400 hover:bg-purple-500/20"
+              data-testid="optimize-route-btn"
+            >
+              {optimizing ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-1" />
+              )}
+              {optimizing ? 'Optimizing...' : 'AI Optimize'}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -460,6 +609,82 @@ export const MultiCityRouteBuilder = ({
           <Plus className="h-4 w-4 mr-2" />
           Add Destination / गंतव्य जोड़ें ({legs.length}/{maxLegs})
         </Button>
+      )}
+      
+      {/* Route Optimization Result */}
+      {showOptimization && optimizationResult && (
+        <Card className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-400" />
+                Route Optimization / रूट ऑप्टिमाइज़ेशन
+              </h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowOptimization(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            {optimizationResult.isDifferent ? (
+              <>
+                {/* Comparison */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="p-3 bg-slate-800/50 rounded-lg">
+                    <p className="text-slate-400 text-xs mb-1">Current Route</p>
+                    <p className="text-white text-lg font-bold">{optimizationResult.originalDistance} km</p>
+                    <p className="text-slate-500 text-xs truncate">
+                      {optimizationResult.originalOrder?.join(' → ')}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-green-400 text-xs mb-1">Optimized Route</p>
+                    <p className="text-green-400 text-lg font-bold">{optimizationResult.optimizedDistance} km</p>
+                    <p className="text-green-400/70 text-xs truncate">
+                      {optimizationResult.optimizedOrder?.join(' → ')}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Savings Badge */}
+                <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg mb-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="h-5 w-5 text-green-400" />
+                    <span className="text-green-400 font-medium">
+                      Save {optimizationResult.savingsKm} km ({optimizationResult.savingsPercent}%)
+                    </span>
+                  </div>
+                  <Badge className="bg-green-500/20 text-green-400">
+                    ~{Math.round(optimizationResult.savingsKm / 250 * 60)} min faster
+                  </Badge>
+                </div>
+                
+                {/* Apply Button */}
+                <Button
+                  onClick={applyOptimizedRoute}
+                  className="w-full bg-purple-500 hover:bg-purple-600"
+                >
+                  <Route className="h-4 w-4 mr-2" />
+                  Apply Optimized Route / ऑप्टिमाइज़्ड रूट लागू करें
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <div className="w-12 h-12 mx-auto mb-3 bg-green-500/20 rounded-full flex items-center justify-center">
+                  <svg className="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-green-400 font-medium">Your route is already optimal!</p>
+                <p className="text-slate-400 text-sm">आपका रूट पहले से ही सबसे बेहतर है!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
       
       {/* Route Summary */}

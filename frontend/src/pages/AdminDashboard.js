@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Bot, HardDrive, Database, Percent, Menu, Server } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Map as MapIcon, Bot, HardDrive, Database, Percent, Menu, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -99,6 +99,7 @@ import AdminVerificationQueue from '@/components/admin/AdminVerificationQueue';
 import AdminVerificationEngine from '@/components/admin/AdminVerificationEngine';
 // API Control Center
 import APIControlCenter from '@/components/admin/APIControlCenter';
+import MapCacheSettings from '@/components/admin/MapCacheSettings';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -257,6 +258,7 @@ const navGroups = [
     icon: HardDrive,
     items: [
       { id: 'api_control_center', label: 'API Control Center / API नियंत्रण', icon: Server, highlight: true },
+      { id: 'map_cache', label: 'Offline Map Cache / ऑफलाइन मैप', icon: MapIcon, highlight: true },
       { id: 'partners', label: 'Partner API Platform', icon: Key, highlight: true },
       { id: 'twilio', label: 'Twilio (VoIP/Calls)', icon: Phone, highlight: true },
       { id: 'tally', label: 'Tally Accounting', icon: Calculator, highlight: true },
@@ -402,6 +404,8 @@ function AdminDashboard({ user, onLogout }) {
       // Advanced Integrations
       case 'api_control_center':
         return <APIControlCenter />;
+      case 'map_cache':
+        return <MapCacheSettings />;
       case 'twilio':
         return <TwilioIntegration />;
       case 'tally':
