@@ -1332,3 +1332,497 @@ class EntityVerificationStatus(BaseModel):
     next_check_due: Optional[str] = None
     is_compliant: bool = False
     compliance_issues: List[str] = []
+
+
+
+# ============================================================
+# AI SMART COMPARISON - Aircraft Comparison System
+# From Document [1] - "Customer को पूरा Comparison दिखे"
+# ============================================================
+
+class ComparisonFilledBy(str, Enum):
+    """Who filled the comparison data"""
+    OPERATOR = "operator"
+    ADMIN = "admin"
+    AI = "ai"
+    SYSTEM = "system"
+
+class ComparisonCategory(str, Enum):
+    """Categories for comparison"""
+    FEATURES = "features"
+    PRICE = "price"
+    SAFETY = "safety"
+    AMENITIES = "amenities"
+    OPERATOR = "operator"
+    PERFORMANCE = "performance"
+
+class FeatureComparisonItem(BaseModel):
+    """Single feature comparison between aircraft"""
+    feature_name: str
+    feature_name_hi: str  # Hindi name
+    aircraft_1_value: str
+    aircraft_2_value: str
+    aircraft_3_value: Optional[str] = None
+    winner: Optional[str] = None  # aircraft_id of winner
+    importance: str = "medium"  # low, medium, high, critical
+
+class PriceComparisonItem(BaseModel):
+    """Price comparison item"""
+    component: str  # base_price, landing_charges, etc.
+    component_hi: str
+    aircraft_1_amount: float
+    aircraft_2_amount: float
+    aircraft_3_amount: Optional[float] = None
+    cheapest: Optional[str] = None
+
+class SafetyComparisonItem(BaseModel):
+    """Safety feature comparison"""
+    feature: str
+    feature_hi: str
+    aircraft_1_has: bool
+    aircraft_2_has: bool
+    aircraft_3_has: Optional[bool] = None
+    weight: int = 10  # Importance weight for scoring
+
+class AmenityComparisonItem(BaseModel):
+    """Amenity comparison"""
+    amenity: str
+    amenity_hi: str
+    aircraft_1_has: bool
+    aircraft_2_has: bool
+    aircraft_3_has: Optional[bool] = None
+    category: str = "comfort"  # comfort, entertainment, business
+
+class OperatorComparisonItem(BaseModel):
+    """Operator comparison"""
+    metric: str
+    metric_hi: str
+    aircraft_1_value: str
+    aircraft_2_value: str
+    aircraft_3_value: Optional[str] = None
+
+class AircraftComparisonCreate(BaseModel):
+    """Create new aircraft comparison"""
+    aircraft_ids: List[str]  # 2-3 aircraft IDs
+    route_origin: Optional[str] = None
+    route_destination: Optional[str] = None
+    journey_date: Optional[str] = None
+    passengers: int = 1
+
+class AircraftComparison(BaseModel):
+    """
+    AI Smart Comparison for customers
+    From Document [1] - Complete comparison view
+    """
+    id: Optional[str] = None
+    comparison_id: str
+    
+    # Aircraft being compared (2-3)
+    aircraft_ids: List[str]
+    aircraft_details: List[dict] = []  # Cached aircraft info
+    
+    # Route context
+    route_origin: Optional[str] = None
+    route_destination: Optional[str] = None
+    journey_date: Optional[str] = None
+    distance_km: float = 0
+    passengers: int = 1
+    
+    # Comparison data
+    feature_comparison: List[FeatureComparisonItem] = []
+    price_comparison: List[PriceComparisonItem] = []
+    safety_comparison: List[SafetyComparisonItem] = []
+    amenities_comparison: List[AmenityComparisonItem] = []
+    operator_comparison: List[OperatorComparisonItem] = []
+    
+    # Scores (out of 100)
+    scores: dict = {}  # {aircraft_id: {safety: 85, comfort: 70, value: 90, overall: 82}}
+    
+    # AI Recommendation
+    ai_recommendation: Optional[str] = None  # aircraft_id
+    ai_recommendation_reason: Optional[str] = None
+    ai_recommendation_reason_hi: Optional[str] = None
+    
+    # Winner by category
+    winners: dict = {}  # {safety: aircraft_id, price: aircraft_id, overall: aircraft_id}
+    
+    # Metadata
+    filled_by: ComparisonFilledBy = ComparisonFilledBy.SYSTEM
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    expires_at: Optional[str] = None  # Comparison valid for limited time
+    view_count: int = 0
+
+
+# ============================================================
+# AI REPOSITIONING ENGINE - Hybrid Smart Pricing & Dispatch
+# From Document [4] - Mode-1 Fixed Route + Mode-2 Reverse Auction
+# ============================================================
+
+class PricingMode(str, Enum):
+    """Pricing modes"""
+    FIXED_ROUTE = "fixed_route"      # Mode-1: Instant booking at fixed price
+    REVERSE_AUCTION = "reverse_auction"  # Mode-2: Operators bid
+    HYBRID = "hybrid"                # Both modes available
+    CHARTER = "charter"              # Custom quote only
+
+class RepositioningType(str, Enum):
+    """Types of repositioning/ferry flights"""
+    EMPTY_LEG = "empty_leg"          # Aircraft returning empty
+    POSITIONING = "positioning"       # Moving to pickup location
+    MAINTENANCE = "maintenance"       # Going for maintenance
+    BASE_RETURN = "base_return"      # Returning to home base
+
+class FerryChargeType(str, Enum):
+    """How ferry charges are applied"""
+    INCLUDED = "included"            # No extra charge
+    PERCENTAGE = "percentage"        # % of base price
+    FIXED = "fixed"                  # Fixed amount
+    PER_KM = "per_km"               # Per kilometer rate
+    SPLIT = "split"                 # Split between bookings
+
+class FixedRouteStatus(str, Enum):
+    """Status of fixed route"""
+    ACTIVE = "active"
+    PAUSED = "paused"
+    SOLD_OUT = "sold_out"
+    EXPIRED = "expired"
+
+class AuctionStatus(str, Enum):
+    """Auction status"""
+    DRAFT = "draft"
+    ACTIVE = "active"
+    BIDDING = "bidding"
+    AWAITING_SELECTION = "awaiting_selection"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+class BidStatus(str, Enum):
+    """Bid status"""
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+    EXPIRED = "expired"
+
+
+# === FIXED ROUTE MODELS (Mode-1) ===
+
+class FixedRouteCreate(BaseModel):
+    """Create fixed route for instant booking"""
+    route_name: str
+    route_name_hi: Optional[str] = None
+    origin: str
+    origin_coordinates: dict  # {lat, lng}
+    destination: str
+    destination_coordinates: dict
+    distance_km: float
+    
+    # Pricing
+    base_price: float
+    price_per_seat: Optional[float] = None
+    min_passengers: int = 1
+    max_passengers: int = 6
+    
+    # Schedule
+    available_days: List[str] = []  # ["monday", "wednesday", "friday"]
+    departure_times: List[str] = []  # ["09:00", "14:00", "18:00"]
+    advance_booking_hours: int = 24
+    
+    # Aircraft
+    aircraft_type: str
+    operator_id: Optional[str] = None
+    aircraft_ids: List[str] = []  # Specific aircraft for this route
+    
+    # Validity
+    valid_from: str
+    valid_until: str
+    
+    # Ferry handling
+    ferry_included: bool = True
+    ferry_charge_type: FerryChargeType = FerryChargeType.INCLUDED
+    ferry_charge_value: float = 0
+
+class FixedRoute(BaseModel):
+    """
+    Fixed Route for Instant Booking (Mode-1)
+    From Document [4]
+    """
+    id: Optional[str] = None
+    route_code: str  # AUTO: FXR-DEL-MUM-001
+    route_name: str
+    route_name_hi: Optional[str] = None
+    
+    # Route details
+    origin: str
+    origin_coordinates: dict
+    destination: str
+    destination_coordinates: dict
+    distance_km: float
+    estimated_duration_minutes: int = 0
+    
+    # Pricing
+    base_price: float
+    price_per_seat: Optional[float] = None
+    current_price: float = 0  # Dynamic price after multipliers
+    min_passengers: int = 1
+    max_passengers: int = 6
+    
+    # Dynamic pricing factors
+    demand_multiplier: float = 1.0
+    seasonal_multiplier: float = 1.0
+    time_multiplier: float = 1.0
+    
+    # Schedule
+    available_days: List[str] = []
+    departure_times: List[str] = []
+    advance_booking_hours: int = 24
+    
+    # Aircraft assignment
+    aircraft_type: str
+    operator_id: Optional[str] = None
+    aircraft_ids: List[str] = []
+    assigned_aircraft: Optional[dict] = None
+    
+    # Availability
+    seats_available: int = 6
+    bookings_today: int = 0
+    total_bookings: int = 0
+    
+    # Ferry handling
+    ferry_included: bool = True
+    ferry_charge_type: FerryChargeType = FerryChargeType.INCLUDED
+    ferry_charge_value: float = 0
+    
+    # Status
+    status: FixedRouteStatus = FixedRouteStatus.ACTIVE
+    valid_from: str
+    valid_until: str
+    
+    # Metadata
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    
+    # Analytics
+    popularity_score: float = 0
+    average_rating: float = 0
+    total_revenue: float = 0
+
+
+# === REVERSE AUCTION MODELS (Mode-2) ===
+
+class AuctionBidCreate(BaseModel):
+    """Operator submits bid for auction"""
+    auction_id: str
+    aircraft_id: str
+    bid_amount: float
+    estimated_arrival_minutes: Optional[int] = None
+    notes: Optional[str] = None
+    valid_for_minutes: int = 30
+
+class AuctionBid(BaseModel):
+    """Bid in reverse auction"""
+    id: Optional[str] = None
+    bid_id: str
+    auction_id: str
+    
+    # Bidder
+    operator_id: str
+    operator_name: Optional[str] = None
+    aircraft_id: str
+    aircraft_details: Optional[dict] = None
+    
+    # Bid details
+    bid_amount: float
+    original_amount: float  # Before any auto-adjustments
+    estimated_arrival_minutes: Optional[int] = None
+    ferry_distance_km: float = 0
+    ferry_cost_included: bool = True
+    
+    # Status
+    status: BidStatus = BidStatus.PENDING
+    rank: int = 0  # 1 = lowest bid
+    
+    # Timestamps
+    bid_at: str
+    valid_until: str
+    responded_at: Optional[str] = None
+    
+    notes: Optional[str] = None
+
+class ReverseAuctionCreate(BaseModel):
+    """Customer creates reverse auction"""
+    origin: str
+    origin_coordinates: dict
+    destination: str
+    destination_coordinates: dict
+    
+    journey_date: str
+    preferred_time: Optional[str] = None
+    flexible_time: bool = True
+    
+    passengers: int = 1
+    aircraft_type: Optional[str] = None  # Any if not specified
+    
+    max_budget: Optional[float] = None  # Customer's max budget
+    
+    special_requirements: Optional[str] = None
+    
+    # Auction settings
+    auction_duration_minutes: int = 60  # How long auction runs
+    auto_accept_lowest: bool = False
+    notify_all_operators: bool = True
+
+class ReverseAuction(BaseModel):
+    """
+    Reverse Auction for Custom Routes (Mode-2)
+    From Document [4] - Operators bid, customer selects
+    """
+    id: Optional[str] = None
+    auction_id: str
+    auction_number: str  # AUC-20260802-A1B2C3
+    
+    # Customer
+    customer_id: str
+    customer_name: Optional[str] = None
+    
+    # Route
+    origin: str
+    origin_coordinates: dict
+    destination: str
+    destination_coordinates: dict
+    distance_km: float = 0
+    
+    # Journey
+    journey_date: str
+    preferred_time: Optional[str] = None
+    flexible_time: bool = True
+    passengers: int = 1
+    aircraft_type: Optional[str] = None
+    
+    # Budget
+    max_budget: Optional[float] = None
+    
+    # Auction timing
+    auction_duration_minutes: int = 60
+    started_at: str
+    ends_at: str
+    
+    # Bids
+    bids: List[AuctionBid] = []
+    total_bids: int = 0
+    lowest_bid: Optional[float] = None
+    highest_bid: Optional[float] = None
+    
+    # Selection
+    auto_accept_lowest: bool = False
+    selected_bid_id: Optional[str] = None
+    selected_operator_id: Optional[str] = None
+    
+    # Status
+    status: AuctionStatus = AuctionStatus.ACTIVE
+    
+    # Notifications
+    operators_notified: int = 0
+    operators_eligible: int = 0
+    
+    # Result
+    final_price: Optional[float] = None
+    booking_id: Optional[str] = None
+    
+    # Metadata
+    special_requirements: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+# === AI REPOSITIONING ENGINE ===
+
+class RepositioningEngineSettings(BaseModel):
+    """Settings for AI repositioning engine"""
+    # Mode settings
+    default_mode: PricingMode = PricingMode.HYBRID
+    fixed_route_enabled: bool = True
+    reverse_auction_enabled: bool = True
+    
+    # Auction settings
+    default_auction_duration_minutes: int = 60
+    min_auction_duration_minutes: int = 15
+    max_auction_duration_minutes: int = 480
+    bid_timeout_seconds: int = 300  # 5 minutes from [4]
+    auto_extend_on_late_bid: bool = True
+    extend_minutes: int = 5
+    
+    # Notification settings
+    notify_operators_within_km: int = 500
+    notify_by_aircraft_type: bool = True
+    notify_by_availability: bool = True
+    
+    # Ferry calculation
+    ferry_rate_per_km: float = 50  # ₹50/km default
+    max_ferry_distance_km: int = 300
+    include_ferry_in_bid: bool = True
+    
+    # Pricing rules
+    min_price_threshold: float = 10000
+    max_markup_percent: float = 100
+    
+    # AI settings
+    ai_price_suggestion_enabled: bool = True
+    ai_operator_ranking_enabled: bool = True
+    
+class AIRepositioningEngine(BaseModel):
+    """
+    Hybrid Smart Pricing & AI Dispatch Engine
+    From Document [4]
+    """
+    id: Optional[str] = None
+    engine_id: str = "default_repositioning_engine"
+    
+    # Settings
+    settings: RepositioningEngineSettings = RepositioningEngineSettings()
+    
+    # Fixed Routes (Mode-1)
+    fixed_routes_count: int = 0
+    active_fixed_routes: int = 0
+    
+    # Auctions (Mode-2)
+    active_auctions_count: int = 0
+    completed_auctions_today: int = 0
+    
+    # Performance metrics
+    total_bookings_via_fixed: int = 0
+    total_bookings_via_auction: int = 0
+    average_auction_duration_minutes: float = 0
+    average_bids_per_auction: float = 0
+    customer_satisfaction_score: float = 0
+    
+    # Ferry analytics
+    total_ferry_km_saved: float = 0
+    total_ferry_cost_optimized: float = 0
+    
+    # Metadata
+    last_updated: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+class FerryCalculationRequest(BaseModel):
+    """Request to calculate ferry charges"""
+    aircraft_current_location: dict  # {lat, lng}
+    pickup_location: dict
+    drop_location: dict
+    return_to_base: bool = True
+    base_location: Optional[dict] = None
+
+class FerryCalculationResult(BaseModel):
+    """Result of ferry calculation"""
+    positioning_distance_km: float
+    return_distance_km: float
+    total_ferry_km: float
+    ferry_cost: float
+    ferry_time_minutes: int
+    recommendation: str  # "include_in_price", "charge_separately", "waive"
+    recommendation_hi: str

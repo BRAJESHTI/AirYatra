@@ -152,6 +152,10 @@ from routes import admin_document_routes
 from routes import emergency_booking_routes
 # Verification Rule Engine
 from routes import verification_engine_routes
+# AI Smart Comparison
+from routes import ai_comparison_routes
+# AI Repositioning Engine (Fixed Routes + Reverse Auction)
+from routes import ai_repositioning_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -405,6 +409,12 @@ api_router.include_router(emergency_booking_routes.router)
 
 # Verification Rule Engine
 api_router.include_router(verification_engine_routes.router)
+
+# AI Smart Comparison
+api_router.include_router(ai_comparison_routes.router)
+
+# AI Repositioning Engine
+api_router.include_router(ai_repositioning_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
