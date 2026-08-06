@@ -1051,6 +1051,75 @@ async def permanently_delete_aircraft(
 
 # ============ CUSTOMER ENDPOINTS ============
 
+@router.get("/public/browse")
+async def browse_aircraft(
+    aircraft_type: Optional[str] = None,
+    min_seats: Optional[int] = None,
+    max_hourly_price: Optional[float] = None,
+    features: Optional[str] = None,  # Comma-separated: wifi,lavatory,pet_friendly
+    verified_only: bool = False,
+    limit: int = Query(default=50, le=100)
+):
+    """
+    Public browse endpoint for customer aircraft catalog with compare feature support
+    Returns all published aircraft for browsing and comparison
+    """
+    db = get_database()
+    
+    query = {
+        "is_published": True,
+        "availability_status": {"$in": ["available", "reserved"]}
+    }
+    
+    # Only show verified if explicitly requested
+    if verified_only:
+        query["verification.status"] = {"$in": ["verified", "premium_verified"]}
+    
+    if aircraft_type:
+        query["basic_info.aircraft_type"] = aircraft_type
+    
+    if min_seats:
+        query["features.total_seats"] = {"$gte": min_seats}
+    
+    if max_hourly_price:
+        query["pricing.hourly_price"] = {"$lte": max_hourly_price}
+    
+    if features:
+        feature_list = features.split(",")
+        for feature in feature_list:
+            query[f"features.{feature.strip()}"] = True
+    
+    aircraft_list = await db.aircraft_catalog.find(
+        query,
+        {
+            "_id": 0,
+            "documents": 0,  # Don't expose document URLs
+            "operator_email": 0,
+            "crew.licence_number": 0,
+            "crew.medical_validity": 0
+        }
+    ).sort([("verification.status", 1), ("pricing.hourly_price", 1)]).to_list(limit)
+    
+    # Enrich with badges and scores for comparison
+    for aircraft in aircraft_list:
+        aircraft["verification_badge"] = get_verification_badge(
+            aircraft.get("verification", {}).get("status", "pending")
+        )
+        aircraft["safety_score"] = calculate_safety_score(aircraft.get("safety_equipment", {}))
+        aircraft["amenity_score"] = calculate_amenity_score(aircraft.get("features", {}))
+    
+    return {
+        "aircraft": aircraft_list,
+        "count": len(aircraft_list),
+        "filters_applied": {
+            "aircraft_type": aircraft_type,
+            "min_seats": min_seats,
+            "max_hourly_price": max_hourly_price,
+            "verified_only": verified_only
+        }
+    }
+
+
 @router.get("/public/featured")
 async def get_featured_aircraft(
     limit: int = Query(default=6, le=12)

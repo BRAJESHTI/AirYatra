@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 29 - Verified 4 tasks: (1) Fixed Route seeding, (2) Public Aircraft Browse API, (3) Auction Notification status, (4) Admin Dashboard Verification Engine + Compare Widget integration. Backend: 10/10 pytest passing in /app/backend/tests/test_repositioning_and_catalog.py. GET /api/repositioning/fixed-routes returns total=8 seeded routes with all expected codes present: FXR-DEL-BOM-001 (Delhi->Mumbai, base_price 250000, max 6 pax), FXR-BOM-DEL-001, FXR-DHR-KED-001 (Kedarnath Yatra), FXR-HYD-TIR-001 (Tirupati Darshan), FXR-BOM-PNQ-001, FXR-DEL-JAI-001, FXR-DEL-CHD-001, FXR-BLR-MAA-001. GET /api/repositioning/fixed-routes/{code} returns route detail, 404 for unknown. Origin filter (?origin=Delhi) returns 3 routes. GET /api/aircraft/public/browse works without auth, returns 3 verified aircraft (H145 helicopter/9-seat/280k, 407 helicopter/6-seat/150k, Citation XLS light_jet/8-seat/450k), enriched with verification_badge, safety_score, amenity_score; sensitive fields (documents, operator_email, crew.licence_number) excluded; filters aircraft_type=helicopter, min_seats=8, max_hourly_price=200000 all work correctly. GET /api/repositioning/notifications/status returns exactly: {in_app:true, email:true, sms:false, whatsapp:false, twilio_configured:false, smtp_configured:true} — matches spec. Admin Dashboard code review: verification_engine nav item present in sidebar (AdminDashboard.js:244, highlight:true, Shield icon) and correctly wired to <AdminVerificationEngine /> in renderContent() switch (line 483) with the component file existing at /app/frontend/src/components/admin/AdminVerificationEngine.js (527 lines).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Task 4 — Comparison UI Widget on catalog pages",
+        "issue": "PublicAircraftBrowse.js (the customer-facing catalog with the floating CompareWidget) is NOT wired into any route in App.js. Tried /aircraft/browse, /browse-aircraft, /catalog, /aircraft-catalog — all fall through to the 404 catch-all and get the loading/landing shell. Component exists and imports CompareWidget correctly, but there is no user-visible entry point, so the compare widget is effectively dead code for customers. Add a <Route path=\"/aircraft/browse\" element={<PublicAircraftBrowse />} /> (or similar public route) and link it from the header/landing page.",
+        "affected_selectors": ["/aircraft/browse", "PublicAircraftBrowse", "CompareWidget"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_repositioning_and_catalog.py",
+    "/app/test_reports/pytest/iter29_results.xml"
+  ],
+  "action_items": [
+    "Register PublicAircraftBrowse in App.js routes (e.g. /aircraft/browse) and link to it from the landing page / main nav so the Compare Widget (Task 4) is actually reachable by customers. Right now the component and CompareWidget are orphaned — only imported by each other.",
+    "Consider adding grep-based lint / route-coverage test to prevent orphaned page components in future iterations."
+  ],
+  "critical_code_review_comments": [
+    "PublicAircraftBrowse.js and CompareWidget.js are not referenced anywhere except each other; App.js has no route for them. Feature task 4 backend is complete but frontend integration is missing.",
+    "aircraft_catalog_routes.py:calculate_expiry_status uses datetime.now().date() (naive local time) whereas everywhere else datetime.now(timezone.utc) is used — could cause off-by-one day at UTC/IST boundaries when evaluating expiry.",
+    "ai_repositioning_routes.py:notify_operators_for_auction sets notified_count = len(operators) unconditionally even before the notification_service call — the counter reflects intent, not actual delivery. Consider tracking notification_service response and only counting successes."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_repositioning_and_catalog.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10)",
+    "frontend": "75% — 3 of 4 features fully integrated; Task 4 (Compare Widget on catalog pages) has an orphaned component with no route"
+  },
+  "seed_data_creation": "None (used existing seeded 8 fixed routes and 3 published aircraft: H145, 407, Citation XLS).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Public endpoints tested without auth. Admin flow verified via code review only (admin@airyatra.com has TOTP 2FA — interactive login not attempted this iteration).",
+  "context_for_next_testing_agent": "Backend for all 4 iteration-29 tasks is production-ready. The only outstanding issue is that PublicAircraftBrowse (Task 4 frontend) is not wired into App.js. Once the main agent adds a route like /aircraft/browse and a nav link, re-run: 1) navigate to the route, 2) verify aircraft cards render with 'Compare' checkboxes, 3) select 2-3 aircraft, 4) verify the floating CompareWidget bottom bar shows selected count, 5) click 'Compare Now' -> AircraftComparison modal opens hitting POST /api/aircraft/compare with the selected IDs. AdminVerificationEngine component at /app/frontend/src/components/admin/AdminVerificationEngine.js is 527 lines — after logging in as admin with TOTP, navigate to /admin, open sidebar, click 'Verification Engine / सत्यापन इंजन' (with Shield icon, highlighted) and verify the component renders. Backend tests file: /app/backend/tests/test_repositioning_and_catalog.py — keep as regression.",
+  "rca_of_the_issue": "Task 4 (Comparison UI Widget on catalog pages) backend endpoints (/api/aircraft/public/browse, /api/aircraft/compare) and React components (PublicAircraftBrowse, CompareWidget, AircraftComparison) were all implemented, but the developer agent did not add the <Route> declaration in App.js and did not add a navigation link. Result: 100% dead code from a user perspective. Fix: add `<Route path=\"/aircraft/browse\" element={<PublicAircraftBrowse />} />` inside the public (unauthenticated) route block in App.js (~line 121) and a header/landing link."
+}

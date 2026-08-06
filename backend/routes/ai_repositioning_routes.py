@@ -1,6 +1,7 @@
 """
 AI Repositioning Engine Routes
 From Document [4] - Mode-1 Fixed Route + Mode-2 Reverse Auction
+With Enhanced Notification System (SMS/Email/In-App)
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
@@ -15,6 +16,7 @@ from models import (
     AuctionStatus, BidStatus, PricingMode, FerryChargeType,
     FerryCalculationRequest, FerryCalculationResult
 )
+from services.auction_notification_service import get_notification_service, NotificationType
 import uuid
 import logging
 from math import radians, sin, cos, sqrt, atan2
@@ -57,8 +59,9 @@ async def get_engine_settings():
 
 
 async def notify_operators_for_auction(auction_id: str, auction_data: dict):
-    """Background task to notify eligible operators"""
+    """Background task to notify eligible operators via SMS/Email/In-App"""
     db = get_database()
+    notification_service = get_notification_service(db)
     
     # Find operators with aircraft that can serve this route
     aircraft_type = auction_data.get('aircraft_type')
@@ -71,26 +74,15 @@ async def notify_operators_for_auction(auction_id: str, auction_data: dict):
     operators = await db.operators.find(query, {"_id": 0}).to_list(length=100)
     
     notified_count = 0
+    operator_ids = []
+    
     for operator in operators:
-        # Create notification
-        notification = {
-            "id": str(uuid.uuid4()),
-            "type": "auction_opportunity",
-            "user_id": operator.get("user_id"),
-            "title": "New Auction Opportunity",
-            "title_hi": "नई नीलामी का अवसर",
-            "message": f"New booking request: {auction_data.get('origin')} → {auction_data.get('destination')}",
-            "data": {
-                "auction_id": auction_id,
-                "route": f"{auction_data.get('origin')} → {auction_data.get('destination')}",
-                "date": auction_data.get('journey_date'),
-                "passengers": auction_data.get('passengers')
-            },
-            "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.notifications.insert_one(notification)
+        operator_ids.append(operator.get("id"))
         notified_count += 1
+    
+    # Use enhanced notification service (SMS + Email + In-App)
+    if operator_ids:
+        await notification_service.notify_operators_new_auction(auction_data, operator_ids)
     
     # Update auction with notification count
     await db.reverse_auctions.update_one(
@@ -98,7 +90,7 @@ async def notify_operators_for_auction(auction_id: str, auction_data: dict):
         {"$set": {"operators_notified": notified_count, "operators_eligible": len(operators)}}
     )
     
-    logger.info(f"Notified {notified_count} operators for auction {auction_id}")
+    logger.info(f"Notified {notified_count} operators for auction {auction_id} via SMS/Email/In-App")
 
 
 # ============ ENGINE SETTINGS ============
@@ -414,6 +406,10 @@ async def create_auction(
     
     await db.reverse_auctions.insert_one(auction)
     
+    # Notify customer that auction was created
+    notification_service = get_notification_service(db)
+    background_tasks.add_task(notification_service.notify_auction_created, auction)
+    
     # Notify operators in background
     if request.notify_all_operators:
         background_tasks.add_task(notify_operators_for_auction, auction_id, auction)
@@ -523,6 +519,28 @@ async def place_bid(
             }
         }
     )
+    
+    # Send notifications
+    notification_service = get_notification_service(db)
+    
+    # Notify customer about new bid
+    await notification_service.notify_bid_placed(auction, new_bid)
+    
+    # Notify outbid operators
+    for b in sorted_bids:
+        if b.get("operator_id") != operator["id"] and b.get("rank", 0) > 1:
+            # This operator was outbid
+            outbid_operator = await db.operators.find_one(
+                {"id": b.get("operator_id")},
+                {"_id": 0, "user_id": 1}
+            )
+            if outbid_operator and outbid_operator.get("user_id"):
+                await notification_service.notify_outbid(
+                    auction, 
+                    outbid_operator["user_id"], 
+                    lowest_bid, 
+                    b.get("rank", 0)
+                )
     
     # Check auto-accept
     if auction.get("auto_accept_lowest") and new_bid["rank"] == 1:
@@ -670,6 +688,21 @@ async def select_winning_bid(
     }
     
     await db.auction_bookings.insert_one(booking)
+    
+    # Send notifications for winner and losers
+    notification_service = get_notification_service(db)
+    
+    # Notify winning operator
+    await notification_service.notify_auction_won(auction, winning_bid, booking_ref)
+    
+    # Notify losing operators
+    losing_operator_ids = [
+        b.get("operator_id") 
+        for b in auction.get("bids", []) 
+        if b.get("operator_id") != winning_bid.get("operator_id")
+    ]
+    if losing_operator_ids:
+        await notification_service.notify_auction_lost(auction, losing_operator_ids)
     
     return {
         "success": True,
@@ -832,4 +865,81 @@ async def get_engine_analytics(
             "via_auctions": auction_bookings,
             "total": fixed_bookings + auction_bookings
         }
+    }
+
+
+
+# ============ NOTIFICATION SETTINGS ============
+
+@router.get("/notifications/settings")
+async def get_notification_settings(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get auction notification settings"""
+    db = get_database()
+    notification_service = get_notification_service(db)
+    settings = await notification_service.get_notification_settings()
+    return settings
+
+
+@router.put("/notifications/settings")
+async def update_notification_settings(
+    settings: dict,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Update auction notification settings"""
+    db = get_database()
+    
+    await db.notification_settings.update_one(
+        {"setting_id": "auction_notifications"},
+        {
+            "$set": {
+                "channels": settings.get("channels", {}),
+                "events": settings.get("events", {}),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_by": current_user["id"]
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Notification settings updated / सूचना सेटिंग अपडेट"}
+
+
+@router.get("/notifications/logs")
+async def get_notification_logs(
+    limit: int = Query(50, le=200),
+    notification_type: Optional[str] = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get notification delivery logs"""
+    db = get_database()
+    
+    query = {}
+    if notification_type:
+        query["type"] = notification_type
+    
+    logs = await db.notification_logs.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(length=limit)
+    
+    return {"logs": logs, "total": len(logs)}
+
+
+@router.get("/notifications/status")
+async def get_notification_status():
+    """Check notification service status"""
+    db = get_database()
+    notification_service = get_notification_service(db)
+    
+    import os
+    
+    return {
+        "in_app": True,
+        "email": bool(os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASSWORD")),
+        "sms": notification_service.twilio_enabled,
+        "whatsapp": False,  # Future implementation
+        "twilio_configured": bool(os.environ.get("TWILIO_ACCOUNT_SID")),
+        "smtp_configured": bool(os.environ.get("SMTP_USER"))
     }
