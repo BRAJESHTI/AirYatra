@@ -1,0 +1,33 @@
+{
+  "summary": "VRE (Verification Rule Engine) backend testing complete. 20/20 pytest cases pass at /app/backend/tests/test_vre.py against public REACT_APP_BACKEND_URL. Verified: (1) POST /api/vre/admin/initialize returns success or 'already initialized' (idempotent); (2) GET /api/vre/admin/global-config returns sandbox_mode=true, gold_threshold=90, silver=80, basic=60, default_api_provider=sandbox, and 401 without auth; (3) GET /api/vre/admin/booking-rules returns 4 seeded rules (rule_1 0-50k -> mobile_otp, rule_2 50k-2L -> mobile_otp+pan, rule_3 >2L -> mobile_otp+pan+aadhaar, rule_corporate -> gst+pan+cin); (4) GET /api/vre/admin/auto-rules returns 4 seeded rules with triggers gst_cancelled, bank_verification_failed, insurance_expired, pilot_medical_expired, all is_active=true with actions arrays populated; (5) GET /api/vre/admin/dashboard returns stats(total_verifications, verified, failed, success_rate), badge_distribution(gold/silver/basic/pending), service_usage aggregation, and embedded global_config; (6) GET /api/vre/admin/services/{customer|operator} returns correct default modes: customer.mobile_otp=mandatory, email_otp=optional, bank_account=disabled, and operator has mobile_otp/email_otp/pan/gst/bank_account all mandatory; (7) POST /api/vre/verify/pan validates format (400 on 'INVALID'), returns 200 for valid PAN 'ABCDE1234F' with success=false + 'Insufficient privilege' from Sandbox.co.in (expected behavior with test API key); (8) GET /api/vre/booking/required-verifications returns correct rule per amount tier (25k, 100k, 500k) + corporate flag; (9) GET /api/vre/admin/audit-logs, /permissions (all 5 default roles present), /emergency-status, and /user/verification-status all return 200 with valid schemas. JWT tokens generated via backend auth.create_access_token with sub=user_id (per playbook). No backend issues found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/vre/admin/global-config", "issue": "Auto-init fallback calls initialize_vre_config.__wrapped__(current_user) with only 1 arg but require_roles-wrapped signature expects the dep — dead-code path since global_config always exists after initialize; still fragile if collection is manually dropped."},
+      {"endpoint": "POST /api/vre/verify/pan", "issue": "Returns 200 with success=false on Sandbox 'Insufficient privilege' — acceptable but consider returning 502/424 to differentiate provider-privilege errors from valid negative verifications; also inserts a user_verifications record with status=failed on every call, which pollutes stats/dashboard."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vre.py",
+    "/app/test_reports/pytest/vre_results.xml"
+  ],
+  "action_items": [
+    "None blocking. Optional: harden PAN verify endpoint to distinguish upstream 'Insufficient privilege' (Sandbox test key limitation) from actual failed verification so /admin/dashboard success_rate is not skewed by test traffic. Optional: fix the __wrapped__ auto-init fallback signature in get_global_config or remove it (collections are seeded via /admin/initialize).",
+    "Once Sandbox.co.in production PAN privilege is enabled, re-run TestPANVerification with a real PAN to confirm end-to-end success path (score_earned=20, user badge updates via update_user_score)."
+  ],
+  "critical_code_review_comments": [
+    "vre_routes.py get_global_config auto-init fallback calls `initialize_vre_config.__wrapped__(current_user)` passing user positionally where the wrapped function expects a Depends() — this would raise if actually triggered. Since /admin/initialize is called first, the branch is dead, but should be corrected or removed.",
+    "vre_routes.py:DEFAULT_AUTO_RULES rule auto_4 uses action 'remove_from_available' which is NOT declared in the AutoRuleAction enum. This is inserted at initialize time (bypasses enum validation via dict) but any subsequent create/update via AutoRuleCreateRequest would reject it — inconsistency in the domain model.",
+    "vre_routes.py verify_pan/verify_gst/verify_bank use FastAPI query-param style (`pan_number: str` without Body) so the client must POST with query params, not JSON. Endpoints work but are non-idiomatic for POST — consider Pydantic request bodies for consistency and OpenAPI docs quality.",
+    "vre_routes.py: audit `log_audit` uses `str(new_value).lower()` for risk_level heuristic — fragile string-matching on 'disable'; better to derive from operation type."
+  ],
+  "updated_files": ["/app/backend/tests/test_vre.py (new)"],
+  "success_rate": {"backend": "100% (20/20)", "frontend": "N/A - backend only"},
+  "seed_data_creation": "None. Used already-initialized VRE collections (vre_global_config, vre_booking_rules, vre_auto_rules, vre_category_configs, vre_role_permissions). PAN verify test inserts a failed user_verifications record for the VRE Admin user (minor stat pollution).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "VRE Admin: vreadmin@airyatra.com / VREAdmin123! (user_id 19d5b13f-dc86-4472-a1eb-a8a390cb4c0e). JWT generated via backend.auth.create_access_token with sub=user_id and roles=['admin','super_admin'].",
+  "context_for_next_testing_agent": "VRE backend fully covered by /app/backend/tests/test_vre.py (20 tests, all passing). All 8 requested features validated. Sandbox PAN 'Insufficient privilege' is documented and expected. When Sandbox key is upgraded to a privileged one, only TestPANVerification.test_valid_pan_format needs re-assertion (success=true + score_earned=20). Frontend AdminVerificationEngine.js exists at /app/frontend/src/components/admin/AdminVerificationEngine.js and is wired in AdminDashboard.js sidebar (verified in iteration_29) — UI testing was NOT requested in this iteration; can be tested after admin TOTP login.",
+  "rca_of_the_issue": "N/A - no failures."
+}

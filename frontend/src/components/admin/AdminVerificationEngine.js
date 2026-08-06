@@ -1,331 +1,404 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Shield, Settings, AlertTriangle, CheckCircle, XCircle, RefreshCw,
-  Users, FileCheck, Clock, Bell, ToggleLeft, ToggleRight, Save,
-  ChevronDown, ChevronUp, Plus, Trash2, Edit2, History, AlertOctagon
+  Users, FileCheck, Clock, Bell, Save, History, AlertOctagon,
+  Scale, Building2, Plane, User, Briefcase, CreditCard, FileText,
+  ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Plus, Trash2, Edit2,
+  Loader2, Phone, Mail, CheckSquare, Fingerprint, BadgeCheck, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 /**
- * Admin Verification Engine Configuration
- * From Document [2] & [5]
+ * Complete Verification Rule Engine (VRE) Admin Panel
+ * 18-point configurable verification system with Sandbox.co.in integration
  */
 const AdminVerificationEngine = () => {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // State
+  const [globalConfig, setGlobalConfig] = useState(null);
+  const [customerServices, setCustomerServices] = useState([]);
+  const [operatorServices, setOperatorServices] = useState([]);
+  const [bookingRules, setBookingRules] = useState([]);
+  const [autoRules, setAutoRules] = useState([]);
+  const [permissions, setPermissions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [dashboard, setDashboard] = useState(null);
+  const [emergencyStatus, setEmergencyStatus] = useState(null);
 
-  // Load config on mount
-  useEffect(() => {
-    loadConfig();
-    loadAuditLogs();
-  }, []);
+  const token = localStorage.getItem('token');
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
-  const loadConfig = async () => {
+  // Load all data
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/verification-engine/admin/full-config`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConfig(data);
-      }
+      const [configRes, dashboardRes, customerRes, operatorRes, rulesRes, autoRes, permRes, auditRes, emergRes] = await Promise.all([
+        axios.get(`${API_URL}/api/vre/admin/global-config`, authHeaders).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/vre/admin/dashboard`, authHeaders).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/vre/admin/services/customer`, authHeaders).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/vre/admin/services/operator`, authHeaders).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/vre/admin/booking-rules`, authHeaders).catch(() => ({ data: { rules: [] } })),
+        axios.get(`${API_URL}/api/vre/admin/auto-rules`, authHeaders).catch(() => ({ data: { rules: [] } })),
+        axios.get(`${API_URL}/api/vre/admin/permissions`, authHeaders).catch(() => ({ data: { permissions: [] } })),
+        axios.get(`${API_URL}/api/vre/admin/audit-logs?limit=20`, authHeaders).catch(() => ({ data: { logs: [] } })),
+        axios.get(`${API_URL}/api/vre/admin/emergency-status`, authHeaders).catch(() => ({ data: null }))
+      ]);
+
+      setGlobalConfig(configRes.data);
+      setDashboard(dashboardRes.data);
+      setCustomerServices(customerRes.data?.services || []);
+      setOperatorServices(operatorRes.data?.services || []);
+      setBookingRules(rulesRes.data?.rules || []);
+      setAutoRules(autoRes.data?.rules || []);
+      setPermissions(permRes.data?.permissions || []);
+      setAuditLogs(auditRes.data?.logs || []);
+      setEmergencyStatus(emergRes.data);
     } catch (e) {
-      console.error('Failed to load config:', e);
-      toast.error('Failed to load verification config');
+      console.error('Load error:', e);
+      toast.error('Failed to load VRE configuration');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadAuditLogs = async () => {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Initialize VRE if not configured
+  const initializeVRE = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/verification-engine/admin/audit-logs?limit=20`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAuditLogs(data.logs || []);
-      }
+      await axios.post(`${API_URL}/api/vre/admin/initialize`, {}, authHeaders);
+      toast.success('VRE initialized successfully!');
+      loadData();
     } catch (e) {
-      console.error('Failed to load audit logs:', e);
+      toast.error('Failed to initialize VRE');
     }
   };
 
-  const setMode = async (mode) => {
-    setSaving(true);
+  // Toggle sandbox/production mode
+  const toggleMode = async (field, value) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/verification-engine/admin/set-mode/${mode}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        toast.success(`Mode changed to: ${mode}`);
-        loadConfig();
-        loadAuditLogs();
-      } else {
-        toast.error('Failed to change mode');
-      }
+      await axios.put(`${API_URL}/api/vre/admin/global-config`, {
+        [field]: value,
+        reason: `Toggled ${field}`
+      }, authHeaders);
+      toast.success(`${field} updated`);
+      loadData();
     } catch (e) {
-      toast.error('Error changing mode');
-    } finally {
-      setSaving(false);
+      toast.error('Failed to update mode');
     }
   };
 
-  const setProvider = async (provider) => {
-    setSaving(true);
+  // Update service mode
+  const updateServiceMode = async (category, serviceType, newMode) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/verification-engine/admin/set-provider/${provider}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        toast.success(`Provider changed to: ${provider}`);
-        loadConfig();
-      } else {
-        toast.error('Failed to change provider');
-      }
+      await axios.put(`${API_URL}/api/vre/admin/services/${category}/${serviceType}`, {
+        mode: newMode,
+        reason: `Changed ${serviceType} to ${newMode}`
+      }, authHeaders);
+      toast.success(`${serviceType} mode updated to ${newMode}`);
+      loadData();
     } catch (e) {
-      toast.error('Error changing provider');
-    } finally {
-      setSaving(false);
+      toast.error('Failed to update service');
     }
   };
 
-  const enableEmergencyOverride = async () => {
-    const reason = prompt('Enter reason for emergency override:');
-    if (!reason) return;
-    
-    setSaving(true);
+  // Toggle auto rule
+  const toggleAutoRule = async (ruleId) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/verification-engine/admin/emergency-override`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reason, duration_hours: 24, otp: '123456' })
-      });
-      if (res.ok) {
-        toast.success('Emergency override enabled for 24 hours');
-        loadConfig();
-      }
+      await axios.put(`${API_URL}/api/vre/admin/auto-rules/${ruleId}/toggle`, {}, authHeaders);
+      toast.success('Rule toggled');
+      loadData();
     } catch (e) {
-      toast.error('Failed to enable override');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const disableOverride = async () => {
-    setSaving(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/verification-engine/admin/disable-override`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        toast.success('Emergency override disabled');
-        loadConfig();
-      }
-    } catch (e) {
-      toast.error('Failed to disable override');
-    } finally {
-      setSaving(false);
+      toast.error('Failed to toggle rule');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <RefreshCw className="h-8 w-8 animate-spin text-orange-500" />
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     );
   }
 
-  const modes = [
-    { value: 'disabled', label: 'Disabled', labelHi: 'बंद', color: 'bg-slate-500', desc: 'No verification required' },
-    { value: 'optional', label: 'Optional', labelHi: 'वैकल्पिक', color: 'bg-blue-500', desc: 'Badges earned, not required' },
-    { value: 'mandatory', label: 'Mandatory', labelHi: 'अनिवार्य', color: 'bg-green-500', desc: 'Must verify to operate' }
-  ];
-
-  const providers = [
-    { value: 'sandbox', label: 'Sandbox (Test)', icon: '🧪' },
-    { value: 'surepass', label: 'SurePass', icon: '✅' },
-    { value: 'signzy', label: 'Signzy', icon: '🔐' },
-    { value: 'idfy', label: 'IDFY', icon: '🆔' },
-    { value: 'hyperverge', label: 'HyperVerge', icon: '🔍' },
-    { value: 'digilocker', label: 'DigiLocker', icon: '📁' }
-  ];
-
-  const scoringConfig = config?.scoring_config || {};
+  if (!globalConfig) {
+    return (
+      <Card className="bg-slate-900 border-orange-500/50">
+        <CardContent className="p-8 text-center">
+          <Shield className="h-16 w-16 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Verification Rule Engine</h2>
+          <p className="text-slate-400 mb-6">VRE is not initialized. Click below to set up default configuration.</p>
+          <Button onClick={initializeVRE} className="bg-orange-500 hover:bg-orange-600">
+            <Plus className="h-4 w-4 mr-2" /> Initialize VRE
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6" data-testid="vre-admin-panel">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Shield className="h-7 w-7 text-green-400" />
-            Verification Rule Engine
-          </h1>
-          <p className="text-slate-400 mt-1">
-            Admin-configurable verification system / सत्यापन नियम इंजन
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Shield className="h-6 w-6 text-orange-500" />
+            Verification Rule Engine / सत्यापन नियम इंजन
+          </h2>
+          <p className="text-slate-400 text-sm">
+            18-point configurable verification system • Sandbox.co.in Integration
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {config?.override_enabled && (
-            <Badge className="bg-red-500/20 text-red-400 animate-pulse">
-              <AlertOctagon className="h-3 w-3 mr-1" />
-              Emergency Override Active
-            </Badge>
-          )}
-          <Badge className={`${config?.sandbox_mode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
-            {config?.sandbox_mode ? '🧪 Sandbox Mode' : '🚀 Production'}
+        <div className="flex gap-2">
+          <Badge className={globalConfig.sandbox_mode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
+            {globalConfig.sandbox_mode ? '🧪 Sandbox Mode' : '🚀 Production Mode'}
           </Badge>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+          </Button>
         </div>
       </div>
 
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-800">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="scoring">Scoring</TabsTrigger>
-          <TabsTrigger value="rules">Rules</TabsTrigger>
-          <TabsTrigger value="providers">Providers</TabsTrigger>
-          <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+        <TabsList className="bg-slate-800 border border-slate-700">
+          <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
+          <TabsTrigger value="services">⚙️ Services</TabsTrigger>
+          <TabsTrigger value="booking-rules">💰 Booking Rules</TabsTrigger>
+          <TabsTrigger value="auto-rules">🤖 Auto Rules</TabsTrigger>
+          <TabsTrigger value="emergency">🚨 Emergency</TabsTrigger>
+          <TabsTrigger value="audit">📜 Audit Logs</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Mode Selection */}
-          <Card className="bg-slate-800/50 border-slate-700">
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard" className="space-y-6">
+          {dashboard && (
+            <>
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard
+                  icon={<CheckCircle className="h-5 w-5" />}
+                  label="Total Verifications"
+                  value={dashboard.stats?.total_verifications || 0}
+                  color="blue"
+                />
+                <StatCard
+                  icon={<CheckSquare className="h-5 w-5" />}
+                  label="Verified"
+                  value={dashboard.stats?.verified || 0}
+                  color="green"
+                />
+                <StatCard
+                  icon={<XCircle className="h-5 w-5" />}
+                  label="Failed"
+                  value={dashboard.stats?.failed || 0}
+                  color="red"
+                />
+                <StatCard
+                  icon={<Scale className="h-5 w-5" />}
+                  label="Success Rate"
+                  value={`${dashboard.stats?.success_rate || 0}%`}
+                  color="orange"
+                />
+              </div>
+
+              {/* Badge Distribution */}
+              <Card className="bg-slate-900 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <BadgeCheck className="h-5 w-5 text-orange-500" />
+                    Badge Distribution / बैज वितरण
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                      <div className="text-3xl font-bold text-yellow-400">{dashboard.badge_distribution?.gold || 0}</div>
+                      <div className="text-sm text-slate-400">🟢 Gold (90+)</div>
+                    </div>
+                    <div className="text-center p-4 bg-slate-500/10 rounded-lg border border-slate-500/30">
+                      <div className="text-3xl font-bold text-slate-300">{dashboard.badge_distribution?.silver || 0}</div>
+                      <div className="text-sm text-slate-400">🔵 Silver (80+)</div>
+                    </div>
+                    <div className="text-center p-4 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                      <div className="text-3xl font-bold text-orange-400">{dashboard.badge_distribution?.basic || 0}</div>
+                      <div className="text-sm text-slate-400">🟡 Basic (60+)</div>
+                    </div>
+                    <div className="text-center p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                      <div className="text-3xl font-bold text-red-400">{dashboard.badge_distribution?.pending || 0}</div>
+                      <div className="text-sm text-slate-400">🔴 Pending</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mode Toggles */}
+              <Card className="bg-slate-900 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-orange-500" />
+                    System Mode / सिस्टम मोड
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                    <div>
+                      <div className="text-white font-medium">🧪 Sandbox Mode</div>
+                      <div className="text-slate-400 text-sm">Fake data, all verifications pass automatically</div>
+                    </div>
+                    <Switch
+                      checked={globalConfig.sandbox_mode}
+                      onCheckedChange={(v) => toggleMode('sandbox_mode', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                    <div>
+                      <div className="text-white font-medium">🚀 Production Mode</div>
+                      <div className="text-slate-400 text-sm">Real API calls to Sandbox.co.in</div>
+                    </div>
+                    <Switch
+                      checked={globalConfig.production_mode}
+                      onCheckedChange={(v) => toggleMode('production_mode', v)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services" className="space-y-6">
+          {/* Customer Services */}
+          <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <Settings className="h-5 w-5 text-blue-400" />
-                Verification Mode / सत्यापन मोड
+                <User className="h-5 w-5 text-blue-500" />
+                Customer Verification Services / ग्राहक सत्यापन
               </CardTitle>
-              <CardDescription>Select how verification works for operators</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {modes.map(mode => (
-                  <button
-                    key={mode.value}
-                    onClick={() => setMode(mode.value)}
-                    disabled={saving}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      config?.verification_mode === mode.value
-                        ? `${mode.color} border-white/30`
-                        : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-semibold">{mode.label}</span>
-                      {config?.verification_mode === mode.value && (
-                        <CheckCircle className="h-5 w-5 text-white" />
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-300">{mode.labelHi}</p>
-                    <p className="text-xs text-slate-400 mt-1">{mode.desc}</p>
-                  </button>
+              <div className="space-y-3">
+                {customerServices.map((service) => (
+                  <ServiceRow
+                    key={service.service_type}
+                    service={service}
+                    onModeChange={(mode) => updateServiceMode('customer', service.service_type, mode)}
+                  />
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Emergency Override */}
-          <Card className={`border-2 ${config?.override_enabled ? 'bg-red-500/10 border-red-500/50' : 'bg-slate-800/50 border-slate-700'}`}>
+          {/* Operator Services */}
+          <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <AlertTriangle className={`h-5 w-5 ${config?.override_enabled ? 'text-red-400' : 'text-yellow-400'}`} />
-                Emergency Override / आपातकालीन ओवरराइड
-              </CardTitle>
-              <CardDescription>
-                Enable manual verification when APIs fail
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {config?.override_enabled ? (
-                <div className="space-y-4">
-                  <div className="bg-red-500/20 rounded-lg p-4">
-                    <p className="text-red-400 font-medium">Override Active</p>
-                    <p className="text-sm text-red-400/70 mt-1">
-                      Reason: {config?.override_reason || 'N/A'}
-                    </p>
-                    <p className="text-sm text-red-400/70">
-                      Expires: {config?.override_expires_at ? new Date(config.override_expires_at).toLocaleString() : 'N/A'}
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={disableOverride}
-                    disabled={saving}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Return to Normal Mode
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-slate-400 text-sm">
-                    When APIs are down, enable emergency override to allow manual verification.
-                    This should only be used in emergencies.
-                  </p>
-                  <Button 
-                    onClick={enableEmergencyOverride}
-                    disabled={saving}
-                    variant="outline"
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Enable Emergency Override
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Booking Rules Preview */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <FileCheck className="h-5 w-5 text-purple-400" />
-                Booking Verification Rules / बुकिंग सत्यापन नियम
+                <Building2 className="h-5 w-5 text-green-500" />
+                Operator Verification Services / ऑपरेटर सत्यापन
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(config?.booking_rules || []).map((rule, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                    <div>
-                      <p className="text-white font-medium">
-                        ₹{rule.min_amount?.toLocaleString('en-IN')} 
-                        {rule.max_amount ? ` - ₹${rule.max_amount.toLocaleString('en-IN')}` : '+'}
-                      </p>
-                      <p className="text-slate-400 text-sm">{rule.description}</p>
+                {operatorServices.map((service) => (
+                  <ServiceRow
+                    key={service.service_type}
+                    service={service}
+                    onModeChange={(mode) => updateServiceMode('operator', service.service_type, mode)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Booking Rules Tab */}
+        <TabsContent value="booking-rules" className="space-y-6">
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-orange-500" />
+                Booking Amount Rules / बुकिंग राशि नियम
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Different verification requirements based on booking amount
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {bookingRules.map((rule) => (
+                  <div key={rule.rule_id} className="p-4 bg-slate-800 rounded-lg border border-slate-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium text-white">{rule.description}</div>
+                      <Badge className={rule.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
+                        {rule.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {rule.required_verifications?.map((v, j) => (
-                        <Badge key={j} className="bg-blue-500/20 text-blue-400 text-xs">
-                          {v.toUpperCase()}
+                    <div className="text-slate-400 text-sm mb-2">{rule.description_hi}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {rule.required_verifications?.map((v) => (
+                        <Badge key={v} variant="outline" className="text-orange-400 border-orange-400">
+                          {getServiceIcon(v)} {v.replace(/_/g, ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-2">
+                      Amount: ₹{rule.min_amount?.toLocaleString()} - {rule.max_amount ? `₹${rule.max_amount.toLocaleString()}` : 'No Limit'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Auto Rules Tab */}
+        <TabsContent value="auto-rules" className="space-y-6">
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <AlertOctagon className="h-5 w-5 text-red-500" />
+                Auto Rules (If X Then Y) / स्वचालित नियम
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Automated actions triggered by verification events
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {autoRules.map((rule) => (
+                  <div key={rule.rule_id} className="p-4 bg-slate-800 rounded-lg border border-slate-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <div className="font-medium text-white">{rule.name}</div>
+                        <div className="text-slate-400 text-sm">{rule.name_hi}</div>
+                      </div>
+                      <Switch
+                        checked={rule.is_active}
+                        onCheckedChange={() => toggleAutoRule(rule.rule_id)}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Badge className="bg-red-500/20 text-red-400">
+                        Trigger: {rule.trigger?.replace(/_/g, ' ')}
+                      </Badge>
+                      <span className="text-slate-500">→</span>
+                      {rule.actions?.map((action, idx) => (
+                        <Badge key={idx} className="bg-blue-500/20 text-blue-400">
+                          {action.replace(/_/g, ' ')}
                         </Badge>
                       ))}
                     </div>
@@ -336,146 +409,46 @@ const AdminVerificationEngine = () => {
           </Card>
         </TabsContent>
 
-        {/* Scoring Tab */}
-        <TabsContent value="scoring" className="space-y-6">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Verification Scoring Weights</CardTitle>
-              <CardDescription>Points assigned for each verification type</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {[
-                  { key: 'pan_score', label: 'PAN', icon: '🪪' },
-                  { key: 'gst_score', label: 'GST', icon: '📋' },
-                  { key: 'bank_score', label: 'Bank', icon: '🏦' },
-                  { key: 'aadhaar_score', label: 'Aadhaar', icon: '🆔' },
-                  { key: 'face_score', label: 'Face', icon: '👤' },
-                  { key: 'company_reg_score', label: 'Company', icon: '🏢' },
-                  { key: 'aoc_score', label: 'AOC', icon: '✈️' },
-                  { key: 'insurance_score', label: 'Insurance', icon: '🛡️' },
-                  { key: 'pilot_license_score', label: 'Pilot License', icon: '👨‍✈️' },
-                ].map(item => (
-                  <div key={item.key} className="bg-slate-700/50 rounded-lg p-4 text-center">
-                    <span className="text-2xl">{item.icon}</span>
-                    <p className="text-white font-medium mt-2">{item.label}</p>
-                    <p className="text-3xl font-bold text-orange-400 mt-1">
-                      {scoringConfig[item.key] || 0}
-                    </p>
-                    <p className="text-slate-400 text-xs">points</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Badge Thresholds */}
-              <div className="mt-6 pt-6 border-t border-slate-700">
-                <h4 className="text-white font-medium mb-4">Badge Thresholds / बैज सीमाएं</h4>
-                <div className="flex gap-4">
-                  <div className="flex-1 bg-yellow-500/20 rounded-lg p-4 text-center">
-                    <span className="text-2xl">🥇</span>
-                    <p className="text-yellow-400 font-bold text-xl">{scoringConfig.gold_threshold || 90}+</p>
-                    <p className="text-slate-300 text-sm">Gold</p>
-                  </div>
-                  <div className="flex-1 bg-slate-400/20 rounded-lg p-4 text-center">
-                    <span className="text-2xl">🥈</span>
-                    <p className="text-slate-300 font-bold text-xl">{scoringConfig.silver_threshold || 70}+</p>
-                    <p className="text-slate-300 text-sm">Silver</p>
-                  </div>
-                  <div className="flex-1 bg-amber-700/20 rounded-lg p-4 text-center">
-                    <span className="text-2xl">🥉</span>
-                    <p className="text-amber-600 font-bold text-xl">{scoringConfig.basic_threshold || 50}+</p>
-                    <p className="text-slate-300 text-sm">Basic</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Rules Tab */}
-        <TabsContent value="rules" className="space-y-6">
-          <Card className="bg-slate-800/50 border-slate-700">
+        {/* Emergency Tab */}
+        <TabsContent value="emergency" className="space-y-6">
+          <Card className="bg-slate-900 border-red-500/50">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <Bell className="h-5 w-5 text-red-400" />
-                Auto Rules / ऑटो नियम
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Emergency Override / आपातकालीन ओवरराइड
               </CardTitle>
-              <CardDescription>Automatic actions based on verification status</CardDescription>
+              <CardDescription className="text-slate-400">
+                Switch to manual verification mode when APIs are down
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {(config?.auto_rules || []).map((rule, i) => (
-                  <div key={i} className={`p-4 rounded-lg border ${rule.is_active ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-800/50 border-slate-700 opacity-60'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${rule.is_active ? 'bg-green-500/20' : 'bg-slate-600/20'}`}>
-                          {rule.is_active ? (
-                            <ToggleRight className="h-5 w-5 text-green-400" />
-                          ) : (
-                            <ToggleLeft className="h-5 w-5 text-slate-400" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{rule.rule_name}</p>
-                          <p className="text-slate-400 text-sm">
-                            If <code className="bg-slate-600 px-1 rounded">{rule.condition_type}</code> = 
-                            <code className="bg-slate-600 px-1 rounded ml-1">{rule.condition_value}</code>
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge className={`${
-                          rule.action === 'suspend_operator' ? 'bg-red-500/20 text-red-400' :
-                          rule.action === 'block_bookings' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-yellow-500/20 text-yellow-400'
-                        }`}>
-                          {rule.action?.replace(/_/g, ' ').toUpperCase()}
-                        </Badge>
-                        {rule.grace_period_days > 0 && (
-                          <p className="text-slate-400 text-xs mt-1">
-                            Grace: {rule.grace_period_days} days
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className={`p-4 rounded-lg border text-center ${emergencyStatus?.global_status === 'normal' ? 'bg-green-500/10 border-green-500' : 'bg-slate-800 border-slate-700'}`}>
+                  <div className="text-2xl mb-1">🟢</div>
+                  <div className="text-white font-medium">Normal</div>
+                  <div className="text-slate-400 text-xs">All APIs working</div>
+                </div>
+                <div className={`p-4 rounded-lg border text-center ${emergencyStatus?.global_status === 'manual_mode' ? 'bg-yellow-500/10 border-yellow-500' : 'bg-slate-800 border-slate-700'}`}>
+                  <div className="text-2xl mb-1">🟡</div>
+                  <div className="text-white font-medium">Manual Mode</div>
+                  <div className="text-slate-400 text-xs">Human review</div>
+                </div>
+                <div className={`p-4 rounded-lg border text-center ${emergencyStatus?.global_status === 'disabled' ? 'bg-red-500/10 border-red-500' : 'bg-slate-800 border-slate-700'}`}>
+                  <div className="text-2xl mb-1">🔴</div>
+                  <div className="text-white font-medium">Disabled</div>
+                  <div className="text-slate-400 text-xs">All verifications off</div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Providers Tab */}
-        <TabsContent value="providers" className="space-y-6">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">API Provider Selection</CardTitle>
-              <CardDescription>Choose verification API provider</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {providers.map(provider => (
-                  <button
-                    key={provider.value}
-                    onClick={() => setProvider(provider.value)}
-                    disabled={saving}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      config?.primary_provider === provider.value
-                        ? 'bg-green-500/20 border-green-500'
-                        : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{provider.icon}</span>
-                      <div>
-                        <p className="text-white font-medium">{provider.label}</p>
-                        {config?.primary_provider === provider.value && (
-                          <Badge className="bg-green-500/20 text-green-400 mt-1">Active</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <div className="text-yellow-400 font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Emergency Override Info
+                </div>
+                <div className="text-slate-400 text-sm mt-2">
+                  When any verification API fails, system automatically switches to Manual Mode.
+                  Compliance Officer will receive alert and can manually verify users.
+                  No booking will be stopped due to API issues.
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -483,35 +456,35 @@ const AdminVerificationEngine = () => {
 
         {/* Audit Logs Tab */}
         <TabsContent value="audit" className="space-y-6">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-900 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <History className="h-5 w-5 text-blue-400" />
-                Audit Logs / ऑडिट लॉग
+                <History className="h-5 w-5 text-orange-500" />
+                Audit Logs (Immutable) / ऑडिट लॉग
               </CardTitle>
-              <CardDescription>Track all configuration changes</CardDescription>
+              <CardDescription className="text-slate-400">
+                All configuration changes are logged and cannot be deleted
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {auditLogs.length === 0 ? (
-                  <p className="text-slate-400 text-center py-8">No audit logs yet</p>
+                  <div className="text-center text-slate-500 py-8">No audit logs yet</div>
                 ) : (
-                  auditLogs.map((log, i) => (
-                    <div key={i} className="p-3 bg-slate-700/50 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-blue-500/20 text-blue-400">
-                          {log.action?.replace(/_/g, ' ')}
+                  auditLogs.map((log, idx) => (
+                    <div key={idx} className="p-3 bg-slate-800 rounded-lg text-sm">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-white font-medium">{log.service_or_setting}</div>
+                        <Badge className={log.risk_level === 'high' ? 'bg-red-500/20 text-red-400' : 'bg-slate-500/20 text-slate-400'}>
+                          {log.risk_level}
                         </Badge>
-                        <span className="text-slate-400 text-xs">
-                          {new Date(log.changed_at).toLocaleString()}
-                        </span>
                       </div>
-                      {log.reason && (
-                        <p className="text-slate-300 text-sm mt-1">Reason: {log.reason}</p>
-                      )}
-                      {log.otp_verified && (
-                        <Badge className="bg-green-500/20 text-green-400 text-xs mt-1">OTP Verified</Badge>
-                      )}
+                      <div className="text-slate-400 text-xs">
+                        By: {log.changed_by_email} | {new Date(log.timestamp).toLocaleString()}
+                      </div>
+                      <div className="text-slate-500 text-xs mt-1">
+                        Reason: {log.reason} | OTP: {log.otp_verified ? '✅' : '❌'}
+                      </div>
                     </div>
                   ))
                 )}
@@ -522,6 +495,77 @@ const AdminVerificationEngine = () => {
       </Tabs>
     </div>
   );
+};
+
+// Stat Card Component
+const StatCard = ({ icon, label, value, color }) => {
+  const colors = {
+    blue: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400',
+    green: 'from-green-500/20 to-green-600/10 border-green-500/30 text-green-400',
+    red: 'from-red-500/20 to-red-600/10 border-red-500/30 text-red-400',
+    orange: 'from-orange-500/20 to-orange-600/10 border-orange-500/30 text-orange-400'
+  };
+
+  return (
+    <div className={`p-4 rounded-lg bg-gradient-to-br border ${colors[color]}`}>
+      <div className="flex items-center gap-2 mb-2">
+        {icon}
+        <span className="text-slate-400 text-sm">{label}</span>
+      </div>
+      <div className="text-2xl font-bold text-white">{value}</div>
+    </div>
+  );
+};
+
+// Service Row Component
+const ServiceRow = ({ service, onModeChange }) => {
+  const modeColors = {
+    disabled: 'bg-slate-500/20 text-slate-400',
+    optional: 'bg-yellow-500/20 text-yellow-400',
+    mandatory: 'bg-green-500/20 text-green-400'
+  };
+
+  return (
+    <div className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-slate-700 rounded">
+          {getServiceIcon(service.service_type)}
+        </div>
+        <div>
+          <div className="text-white font-medium">{service.description || service.service_type.replace(/_/g, ' ')}</div>
+          <div className="text-slate-500 text-xs">{service.description_hi || ''}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Badge className="bg-orange-500/20 text-orange-400">{service.score_weight} pts</Badge>
+        <select
+          value={service.mode}
+          onChange={(e) => onModeChange(e.target.value)}
+          className={`px-3 py-1 rounded text-sm border-0 ${modeColors[service.mode]} cursor-pointer`}
+        >
+          <option value="disabled">Disabled</option>
+          <option value="optional">Optional</option>
+          <option value="mandatory">Mandatory</option>
+        </select>
+      </div>
+    </div>
+  );
+};
+
+// Get icon for service type
+const getServiceIcon = (type) => {
+  const icons = {
+    mobile_otp: <Phone className="h-4 w-4 text-blue-400" />,
+    email_otp: <Mail className="h-4 w-4 text-green-400" />,
+    pan: <FileText className="h-4 w-4 text-orange-400" />,
+    gst: <Building2 className="h-4 w-4 text-purple-400" />,
+    aadhaar: <Fingerprint className="h-4 w-4 text-cyan-400" />,
+    bank_account: <CreditCard className="h-4 w-4 text-green-400" />,
+    face: <User className="h-4 w-4 text-pink-400" />,
+    cin: <Briefcase className="h-4 w-4 text-indigo-400" />,
+    digilocker: <FileCheck className="h-4 w-4 text-blue-400" />,
+  };
+  return icons[type] || <CheckCircle className="h-4 w-4 text-slate-400" />;
 };
 
 export default AdminVerificationEngine;

@@ -82,3 +82,19 @@
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
 | Customer | emergencytest@airyatra.com | Emergency@123 | Created for Emergency Booking P0 testing. Use direct JWT token for API testing (OTP still triggers). |
+
+
+## VRE Admin (Verification Rule Engine - Aug 6, 2026)
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Super Admin | vreadmin@airyatra.com | VREAdmin123! | Created for VRE API testing. Has roles: ['admin', 'super_admin']. Use for VRE dashboard, services config, booking rules, auto rules testing. |
+| User ID | 19d5b13f-dc86-4472-a1eb-a8a390cb4c0e | - | Direct user ID for JWT token generation |
+
+## Sandbox.co.in KYC API (Aug 6, 2026)
+| Setting | Value |
+|---------|-------|
+| API Key | key_live_07f61ca61046480a8702eb0c234b59db |
+| API Secret | key_live_07f61ca61046480a8702eb0c234b59db |
+| Base URL | https://api.sandbox.co.in |
+| Status | ✅ ACTIVE (Sandbox test mode) |
+| Supported | PAN, GST, Bank Account, Aadhaar (OTP), IFSC, CIN, DL |

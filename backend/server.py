@@ -156,6 +156,8 @@ from routes import verification_engine_routes
 from routes import ai_comparison_routes
 # AI Repositioning Engine (Fixed Routes + Reverse Auction)
 from routes import ai_repositioning_routes
+# Complete Verification Rule Engine (18-point system with Sandbox.co.in)
+from routes import vre_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -415,6 +417,9 @@ api_router.include_router(ai_comparison_routes.router)
 
 # AI Repositioning Engine
 api_router.include_router(ai_repositioning_routes.router)
+
+# Complete VRE (18-point Verification Rule Engine with Sandbox.co.in)
+api_router.include_router(vre_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
