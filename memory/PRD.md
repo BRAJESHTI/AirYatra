@@ -1352,3 +1352,59 @@ Implemented enterprise-grade account lockout security after 5 failed login attem
 - Hindi descriptions: ✅ Working
 
 
+
+
+---
+
+## LATEST SESSION UPDATE (Aug 6, 2026)
+
+### Completed Tasks:
+
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 1 | **Admin Dashboard Integration** | ✅ DONE | `verification_engine` case added to `renderContent()` switch in AdminDashboard.js. Component linked to sidebar nav. |
+| 2 | **Fixed Route Seeding** | ✅ DONE | 8 popular routes seeded: Delhi-Mumbai, Mumbai-Delhi, Delhi-Chandigarh, Mumbai-Pune, Delhi-Jaipur, Bangalore-Chennai, Kedarnath Yatra, Tirupati Darshan. Script: `/app/backend/scripts/seed_fixed_routes.py` |
+| 3 | **Auction Notifications** | ✅ DONE | Full notification service created at `/app/backend/services/auction_notification_service.py`. Supports In-App (always), Email (SMTP configured), SMS (ready, needs Twilio keys). Notifications for: auction created, bid placed, outbid, won, lost, ending soon. |
+| 4 | **Comparison UI Widget** | ✅ DONE | `CompareWidget.js` floating component + `PublicAircraftBrowse.js` page. Route: `/aircraft/browse`. Features: select up to 3 aircraft, floating widget shows selections, "Compare" button opens AircraftComparison modal. |
+
+### New Files Created:
+- `/app/backend/scripts/seed_fixed_routes.py` - Seeding script for 8 fixed routes
+- `/app/backend/services/auction_notification_service.py` - SMS/Email/In-App notification service
+- `/app/frontend/src/components/aircraft/CompareWidget.js` - Floating compare widget
+- `/app/frontend/src/components/aircraft/PublicAircraftBrowse.js` - Public aircraft catalog with compare
+
+### API Endpoints Added:
+- `GET /api/aircraft/public/browse` - Public aircraft catalog with filters
+- `GET /api/repositioning/notifications/status` - Check notification service status
+- `GET /api/repositioning/notifications/settings` - Get notification settings
+- `PUT /api/repositioning/notifications/settings` - Update notification settings
+- `GET /api/repositioning/notifications/logs` - View notification delivery logs
+
+### Fixed Routes Seeded:
+| Route Code | Route | Distance | Base Price |
+|------------|-------|----------|------------|
+| FXR-DEL-BOM-001 | Delhi → Mumbai | 1148 km | ₹2,50,000 |
+| FXR-BOM-DEL-001 | Mumbai → Delhi | 1148 km | ₹2,50,000 |
+| FXR-DEL-CHD-001 | Delhi → Chandigarh | 245 km | ₹85,000 |
+| FXR-BOM-PNQ-001 | Mumbai → Pune | 150 km | ₹65,000 |
+| FXR-DEL-JAI-001 | Delhi → Jaipur | 268 km | ₹95,000 |
+| FXR-BLR-MAA-001 | Bangalore → Chennai | 290 km | ₹1,10,000 |
+| FXR-DHR-KED-001 | Dehradun → Kedarnath | 95 km | ₹1,75,000 |
+| FXR-HYD-TIR-001 | Hyderabad → Tirupati | 510 km | ₹1,65,000 |
+
+### Notification Service Status:
+- ✅ In-App: Working (always available)
+- ✅ Email: Working (Gmail SMTP configured)
+- ⏳ SMS: Ready (needs Twilio credentials)
+- ⏳ WhatsApp: Future implementation
+
+### Upcoming Tasks (Pending):
+1. **Verification Rule Engine (VRE) Full Implementation** - User requested complete 18-point VRE system
+2. **Bulk Discount Upload** (P1) - CSV import for discount codes
+3. **Offline Map Cache** (P1) - Map tiles for low-connectivity areas
+4. **Route Optimization** (P2) - AI-based leg ordering
+
+### Test Report:
+- Iteration 29: All 4 tasks verified working
+- Backend: 10/10 pytest passing
+- Frontend: Route `/aircraft/browse` added, Compare widget functional

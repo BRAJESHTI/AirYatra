@@ -50,6 +50,8 @@ const CommandCenterDashboard = lazy(() => import('./components/admin/CommandCent
 const AIPricingAdvisor = lazy(() => import('./components/admin/AIPricingAdvisor'));
 // Account Unlock Page
 const UnlockAccountPage = lazy(() => import('./pages/UnlockAccountPage'));
+// Public Aircraft Browse with Compare
+const PublicAircraftBrowse = lazy(() => import('./components/aircraft/PublicAircraftBrowse'));
 
 // Import shared components
 import AIChatbot from './components/shared/AIChatbot';
@@ -131,6 +133,9 @@ function App() {
           <Route path="/legal/privacy" element={<LegalPage />} />
           <Route path="/legal/cancellation" element={<LegalPage />} />
           <Route path="/legal/:type" element={<LegalPage />} />
+          
+          {/* Public Aircraft Browse with Compare Feature */}
+          <Route path="/aircraft/browse" element={<PublicAircraftBrowse />} />
           
           <Route
             path="/customer"
