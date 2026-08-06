@@ -479,6 +479,8 @@ function AdminDashboard({ user, onLogout }) {
         return <ComplianceDashboard />;
       case 'verification_queue':
         return <AdminVerificationQueue />;
+      case 'verification_engine':
+        return <AdminVerificationEngine />;
       case 'command_center':
         return <CommandCenter user={user} />;
       default:
