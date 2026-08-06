@@ -1290,3 +1290,65 @@ Implemented enterprise-grade account lockout security after 5 failed login attem
 - **WhatsApp API CRM Integration**: Full chat CRM with message templates
 
 ---
+
+
+## Verification Rule Engine (Aug 2, 2026) ✅
+
+### Model Implementation (models.py - 300+ lines added)
+
+**Enums:**
+- VerificationMode (disabled/optional/mandatory)
+- VerificationProvider (sandbox/surepass/signzy/idfy/hyperverge/digilocker/custom)
+- VerificationBadge (gold/silver/basic/pending/suspended)
+- VerificationType (pan/gst/bank/aadhaar/face/company_reg/aoc/insurance/pilot_license)
+- ServiceStatus (normal/manual/disabled)
+- AutoRuleAction (suspend_operator/downgrade_badge/notify_admin/require_reverification/block_bookings/send_warning)
+
+**Core Models:**
+- VerificationScoreConfig - Scoring weights (PAN 20, GST 20, Bank 20, etc.)
+- BookingVerificationRule - Amount-based verification rules
+- AutoVerificationRule - Automated actions (GST cancelled → Suspend)
+- ProviderConfig - API provider settings
+- VerificationRuleEngine - Main engine configuration
+- VerificationAuditLog - Change tracking
+- EntityVerificationStatus - User/Operator verification status
+
+### API Routes (verification_engine_routes.py - 600+ lines)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/verification-engine/config` | GET | Public config (no API keys) |
+| `/api/verification-engine/required-for-booking` | GET | Get required verifications for amount |
+| `/api/verification-engine/admin/full-config` | GET | Full config (admin) |
+| `/api/verification-engine/admin/update` | PUT | Update engine config |
+| `/api/verification-engine/admin/set-mode/{mode}` | POST | Quick set mode |
+| `/api/verification-engine/admin/set-provider/{provider}` | POST | Set verification provider |
+| `/api/verification-engine/admin/scoring` | PUT | Update scoring weights |
+| `/api/verification-engine/admin/booking-rules` | GET/POST | Booking verification rules |
+| `/api/verification-engine/admin/auto-rules` | GET/POST | Auto rules (GST check) |
+| `/api/verification-engine/admin/auto-rules/{id}/toggle` | PUT | Enable/disable rule |
+| `/api/verification-engine/admin/emergency-override` | POST | Enable manual mode |
+| `/api/verification-engine/admin/disable-override` | POST | Disable override |
+| `/api/verification-engine/admin/audit-logs` | GET | View change history |
+| `/api/verification-engine/entity/{type}/{id}` | GET | Entity verification status |
+| `/api/verification-engine/sandbox/verify/{type}` | POST | Sandbox verification (test) |
+
+### Features Implemented from Document [2] & [5]:
+
+1. ✅ **Verification Modes** - disabled/optional/mandatory
+2. ✅ **API Provider Selection** - 7 providers supported
+3. ✅ **Scoring System** - PAN(20) + GST(20) + Bank(20) + Aadhaar(20) + Face(20) = 100
+4. ✅ **Badge Thresholds** - Gold(90+), Silver(70+), Basic(50+), Pending(<50)
+5. ✅ **Booking-Based Rules** - ₹50k→OTP, ₹2L→PAN, ₹5L→Full KYC
+6. ✅ **Auto Rules** - GST cancelled → Suspend Operator
+7. ✅ **Emergency Override** - Manual mode when APIs fail
+8. ✅ **Audit Logging** - All changes tracked with OTP verification
+9. ✅ **Role Permissions** - super_admin/admin/compliance/finance/cfo/operator
+10. ✅ **Daily Checks** - GST and Insurance expiry monitoring
+
+### Test Results:
+- Config endpoint: ✅ Working
+- Booking rules: ✅ ₹25k→email, ₹1.5L→OTP, ₹5L→Full KYC
+- Hindi descriptions: ✅ Working
+
+

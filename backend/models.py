@@ -1040,3 +1040,295 @@ class AircraftCatalogCreate(BaseModel):
     safety_features: Optional[AircraftSafetyFeatures] = None
     amenities: Optional[AircraftAmenities] = None
     crew_info: Optional[AircraftCrewInfo] = None
+
+
+
+# ============================================================
+# VERIFICATION RULE ENGINE - Admin Configurable System
+# From Document [2] & [5]
+# ============================================================
+
+class VerificationMode(str, Enum):
+    """Verification requirement mode"""
+    DISABLED = "disabled"       # No verification required
+    OPTIONAL = "optional"       # Verification optional, badges earned
+    MANDATORY = "mandatory"     # Must verify to operate
+
+class VerificationProvider(str, Enum):
+    """Supported verification API providers"""
+    SANDBOX = "sandbox"         # Test mode - always passes
+    SUREPASS = "surepass"       # SurePass API
+    SIGNZY = "signzy"           # Signzy API
+    IDFY = "idfy"               # IDFY API
+    HYPERVERGE = "hyperverge"   # HyperVerge API
+    DIGILOCKER = "digilocker"   # DigiLocker Integration
+    CUSTOM = "custom"           # Custom API endpoint
+
+class VerificationBadge(str, Enum):
+    """Verification badge levels based on score"""
+    GOLD = "gold"               # 90-100 score
+    SILVER = "silver"           # 70-89 score
+    BASIC = "basic"             # 50-69 score
+    PENDING = "pending"         # <50 score or incomplete
+    SUSPENDED = "suspended"     # Failed verification or rule violation
+
+class VerificationType(str, Enum):
+    """Types of verification checks"""
+    PAN = "pan"
+    GST = "gst"
+    BANK = "bank"
+    AADHAAR = "aadhaar"
+    FACE = "face"
+    COMPANY_REG = "company_reg"
+    AOC = "aoc"                 # Air Operator Certificate
+    INSURANCE = "insurance"
+    PILOT_LICENSE = "pilot_license"
+
+class ServiceStatus(str, Enum):
+    """Verification service status"""
+    NORMAL = "normal"           # APIs working normally
+    MANUAL = "manual"           # Manual verification mode (APIs down)
+    DISABLED = "disabled"       # Service completely disabled
+
+class AutoRuleAction(str, Enum):
+    """Actions for auto rules"""
+    SUSPEND_OPERATOR = "suspend_operator"
+    DOWNGRADE_BADGE = "downgrade_badge"
+    NOTIFY_ADMIN = "notify_admin"
+    REQUIRE_REVERIFICATION = "require_reverification"
+    BLOCK_BOOKINGS = "block_bookings"
+    SEND_WARNING = "send_warning"
+
+
+# ============ VERIFICATION SCORING CONFIG ============
+
+class VerificationScoreConfig(BaseModel):
+    """Scoring weights for different verification types"""
+    pan_score: int = 20
+    gst_score: int = 20
+    bank_score: int = 20
+    aadhaar_score: int = 20
+    face_score: int = 20
+    # Additional scores
+    company_reg_score: int = 15
+    aoc_score: int = 25
+    insurance_score: int = 20
+    pilot_license_score: int = 15
+    
+    # Badge thresholds
+    gold_threshold: int = 90
+    silver_threshold: int = 70
+    basic_threshold: int = 50
+
+
+class BookingVerificationRule(BaseModel):
+    """Verification rules based on booking amount"""
+    min_amount: float
+    max_amount: Optional[float] = None
+    required_verifications: List[str]  # ["otp", "pan", "aadhaar", etc.]
+    description: str
+
+
+class AutoVerificationRule(BaseModel):
+    """Auto rule: condition → action"""
+    rule_id: str
+    rule_name: str
+    condition_type: str  # "gst_status", "insurance_expiry", "document_expired"
+    condition_value: str  # "cancelled", "expired", etc.
+    action: AutoRuleAction
+    notify_roles: List[str] = []  # ["admin", "compliance"]
+    grace_period_days: int = 0
+    is_active: bool = True
+
+
+class ProviderConfig(BaseModel):
+    """Configuration for verification API provider"""
+    provider: VerificationProvider
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
+    base_url: Optional[str] = None
+    webhook_url: Optional[str] = None
+    timeout_seconds: int = 30
+    retry_count: int = 3
+    is_active: bool = True
+    supported_verifications: List[VerificationType] = []
+
+
+# ============ MAIN VERIFICATION RULE ENGINE ============
+
+class VerificationRuleEngine(BaseModel):
+    """
+    Admin-configurable Verification Rule Engine
+    Complete implementation from Document [2] & [5]
+    """
+    id: Optional[str] = None
+    
+    # === CORE SETTINGS ===
+    verification_mode: VerificationMode = VerificationMode.OPTIONAL
+    service_status: ServiceStatus = ServiceStatus.NORMAL
+    
+    # === ENVIRONMENT ===
+    production_mode: bool = False
+    sandbox_mode: bool = True
+    test_mode_message: str = "Test mode - verifications simulated"
+    
+    # === API PROVIDER ===
+    primary_provider: VerificationProvider = VerificationProvider.SANDBOX
+    fallback_provider: Optional[VerificationProvider] = None
+    provider_configs: List[ProviderConfig] = []
+    
+    # === SCORING SYSTEM ===
+    scoring_config: VerificationScoreConfig = VerificationScoreConfig()
+    
+    # === BOOKING-BASED RULES ===
+    # From [5]: ₹50k→OTP, ₹2L→PAN+Aadhaar
+    booking_rules: List[BookingVerificationRule] = [
+        BookingVerificationRule(
+            min_amount=0,
+            max_amount=50000,
+            required_verifications=["email"],
+            description="Basic email verification"
+        ),
+        BookingVerificationRule(
+            min_amount=50000,
+            max_amount=200000,
+            required_verifications=["email", "otp", "phone"],
+            description="OTP verification required"
+        ),
+        BookingVerificationRule(
+            min_amount=200000,
+            max_amount=500000,
+            required_verifications=["email", "otp", "phone", "pan"],
+            description="PAN verification required"
+        ),
+        BookingVerificationRule(
+            min_amount=500000,
+            max_amount=None,
+            required_verifications=["email", "otp", "phone", "pan", "aadhaar"],
+            description="Full KYC required"
+        )
+    ]
+    
+    # === AUTO RULES ===
+    # From [2]: If GST cancelled → Suspend Operator
+    auto_rules: List[AutoVerificationRule] = [
+        AutoVerificationRule(
+            rule_id="gst_cancelled",
+            rule_name="GST Cancellation Check",
+            condition_type="gst_status",
+            condition_value="cancelled",
+            action=AutoRuleAction.SUSPEND_OPERATOR,
+            notify_roles=["admin", "compliance"],
+            grace_period_days=0
+        ),
+        AutoVerificationRule(
+            rule_id="insurance_expired",
+            rule_name="Insurance Expiry Check",
+            condition_type="insurance_expiry",
+            condition_value="expired",
+            action=AutoRuleAction.BLOCK_BOOKINGS,
+            notify_roles=["admin", "operator"],
+            grace_period_days=7
+        ),
+        AutoVerificationRule(
+            rule_id="aoc_expiring",
+            rule_name="AOC Expiring Soon",
+            condition_type="aoc_expiry",
+            condition_value="expiring_30_days",
+            action=AutoRuleAction.SEND_WARNING,
+            notify_roles=["operator"],
+            grace_period_days=30
+        )
+    ]
+    
+    # === DAILY CHECKS ===
+    daily_gst_check: bool = True
+    daily_insurance_check: bool = True
+    expiry_alert_days: List[int] = [30, 15, 7, 3, 1]  # Days before expiry to alert
+    
+    # === ROLE PERMISSIONS ===
+    # From [5]: CEO/Finance/Compliance roles
+    role_permissions: dict = {
+        "super_admin": ["view", "edit", "override", "audit"],
+        "admin": ["view", "edit", "override"],
+        "compliance": ["view", "edit", "verify"],
+        "finance": ["view", "verify"],
+        "cfo": ["view", "override"],
+        "operator": ["view"]
+    }
+    
+    # === EMERGENCY OVERRIDE ===
+    # From [2]: Manual verification when APIs fail
+    override_enabled: bool = False
+    override_reason: Optional[str] = None
+    override_by: Optional[str] = None
+    override_at: Optional[str] = None
+    override_expires_at: Optional[str] = None
+    
+    # === AUDIT ===
+    audit_all_changes: bool = True
+    require_otp_for_changes: bool = True
+    
+    # === METADATA ===
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+class VerificationRuleUpdate(BaseModel):
+    """Update verification rules - partial update"""
+    verification_mode: Optional[VerificationMode] = None
+    service_status: Optional[ServiceStatus] = None
+    production_mode: Optional[bool] = None
+    sandbox_mode: Optional[bool] = None
+    primary_provider: Optional[VerificationProvider] = None
+    fallback_provider: Optional[VerificationProvider] = None
+    scoring_config: Optional[VerificationScoreConfig] = None
+    daily_gst_check: Optional[bool] = None
+    daily_insurance_check: Optional[bool] = None
+    expiry_alert_days: Optional[List[int]] = None
+
+
+class EmergencyOverrideRequest(BaseModel):
+    """Request to enable emergency override"""
+    reason: str
+    duration_hours: int = 24
+    otp: str  # OTP verification required
+
+
+class VerificationAuditLog(BaseModel):
+    """Audit log for verification changes"""
+    id: Optional[str] = None
+    action: str  # "mode_changed", "provider_changed", "rule_added", "override_enabled"
+    changed_by: str
+    changed_at: str
+    old_value: Optional[dict] = None
+    new_value: Optional[dict] = None
+    ip_address: Optional[str] = None
+    otp_verified: bool = False
+    reason: Optional[str] = None
+
+
+class VerificationResult(BaseModel):
+    """Result of a verification check"""
+    verification_type: VerificationType
+    status: str  # "success", "failed", "pending", "skipped"
+    provider_used: VerificationProvider
+    score_earned: int = 0
+    response_data: Optional[dict] = None
+    error_message: Optional[str] = None
+    verified_at: Optional[str] = None
+    expires_at: Optional[str] = None
+
+
+class EntityVerificationStatus(BaseModel):
+    """Complete verification status for an entity (user/operator)"""
+    entity_id: str
+    entity_type: str  # "user", "operator"
+    total_score: int = 0
+    badge: VerificationBadge = VerificationBadge.PENDING
+    verifications: List[VerificationResult] = []
+    last_checked_at: Optional[str] = None
+    next_check_due: Optional[str] = None
+    is_compliant: bool = False
+    compliance_issues: List[str] = []

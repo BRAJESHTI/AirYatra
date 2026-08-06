@@ -150,6 +150,8 @@ from routes import compliance_monitor_routes
 from routes import admin_document_routes
 # Emergency Booking Priority System
 from routes import emergency_booking_routes
+# Verification Rule Engine
+from routes import verification_engine_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -400,6 +402,9 @@ api_router.include_router(admin_document_routes.router)
 
 # Emergency Booking Priority System
 api_router.include_router(emergency_booking_routes.router)
+
+# Verification Rule Engine
+api_router.include_router(verification_engine_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)
