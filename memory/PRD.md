@@ -1818,6 +1818,78 @@ curl -X POST "/api/auth/dev/quick-admin-token" \
 - ✅ Offline Map Cache Settings
 
 ### Files Updated:
+
+---
+
+## Critical Business Models Created (Aug 6, 2026)
+
+### Status: ✅ COMPLETE
+
+Based on Documents [1], [2], [3], [4], [5] requirements, created comprehensive data models:
+
+### 1. Document Vault Models (`document_vault_models.py`)
+- **DocumentVault** - Central document storage with 5-year retention
+- **DocumentFolder** - Folder organization
+- **DocumentAuditLog** - Complete audit trail
+- **Enums**: DocumentCategory, VaultDocumentType, DocumentVaultStatus, SharePermission
+
+### 2. Operator & Aircraft Verification Models (`operator_verification_models.py`)
+**Section A - Company Documents:**
+- Certificate of Incorporation, PAN, GST, CIN/LLP
+- Registered Office Address Proof
+- Authorized Signatory ID, Bank Account
+- Personal Guarantee
+
+**Section B - DGCA Documents:**
+- AOC Certificate
+- DGCA Permissions & Operations Specifications
+- Category Justification, Approval Letter
+
+**Section C - Aircraft Documents:**
+- `AircraftBasicInfo` - Registration, type, manufacturer, capacity
+- `AircraftAirworthiness` - CoA, maintenance release (CRITICAL)
+- `AircraftInsurance` - Policy, coverage, insurer verification
+- `AircraftMaintenance` - CAMO, records, flight hours
+- `AircraftFlightCrew` - Pilot details, medical, training
+- `AircraftSafetyEquipment` - First aid, fire extinguisher, ELT, life jackets
+- `AircraftPhotos` - 8 required angles
+
+### 3. Complaint & Penalty Models (`complaint_penalty_models.py`)
+- **Complaint** - Full investigation workflow, AirYatra decides
+- **Penalty** - Rule-based penalties:
+  - 1 serious complaint: ₹10,000
+  - 2 complaints in 30 days: ₹20,000 + suspension
+  - 3+ complaints in 60 days: Delisting
+- **ForcedRescheduling** - Operator cannot refuse
+- **CustomerSatisfactionScore (CSS)**:
+  - Below 70: Rating drop
+  - Below 60: 7-14 day suspension
+  - Below 50: Automatic delisting
+  - No appeal allowed
+
+### 4. Corporate Membership Models (`corporate_membership_models.py`)
+- **CorporateMembership** - Tiers (Bronze to Diamond)
+- **CorporateBookingPolicy** - Approval workflows, budget controls
+- Volume discounts, credit limits, cost centers
+
+### Files Created:
+```
+/app/backend/models/
+├── __init__.py                      # Package exports
+├── document_vault_models.py         # Document storage
+├── operator_verification_models.py  # Verification workflow
+├── complaint_penalty_models.py      # Complaints & CSS
+└── corporate_membership_models.py   # Corporate accounts
+```
+
+### Next Steps (Controllers & Routes):
+1. Document Vault API (upload, download, share, verify)
+2. Operator Verification Workflow API
+3. Complaint Management API
+4. Penalty System API (automatic calculation)
+5. CSS Monitoring API (monthly score calculation)
+6. Corporate Membership API
+
 - `/app/backend/routes/auth_routes.py` - Added quick-admin-token endpoints
 - `/app/memory/test_credentials.md` - Added usage documentation
 
