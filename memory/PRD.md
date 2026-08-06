@@ -1581,3 +1581,110 @@ Switch Back: Manual → Back to stripe (primary)
 ### Files Updated:
 - `/app/backend/routes/api_control_routes.py` - Added 350+ lines
 - `/app/frontend/src/components/admin/APIControlCenter.js` - Added Tabs UI
+
+
+
+---
+
+## Budget Alerts, Slack/Email Alerts & Failover Testing Mode (Aug 6, 2026)
+
+### Status: ✅ COMPLETE
+
+### 1. Budget Alerts System
+
+**Endpoints:**
+- `GET /api/api-control/admin/budget/status` - Get budget status with spending projections
+- `POST /api/api-control/admin/budget/configure` - Configure monthly budget and thresholds
+
+**Features:**
+- Monthly budget configuration (₹)
+- Warning threshold (default 80%) - amber alert
+- Critical threshold (default 95%) - red alert
+- Daily spending tracking
+- Projected monthly spend calculation
+- Remaining budget display
+- Notification emails for threshold breaches
+- Slack webhook support for budget alerts
+
+**Budget Status Response:**
+```json
+{
+  "configured": true,
+  "status": "healthy/warning/critical",
+  "status_emoji": "🟢/🟡/🔴",
+  "budget": { "monthly": 50000, "warning_at": 40000, "critical_at": 47500 },
+  "spending": { "current": 12000, "percent": 24, "remaining": 38000, "projected": 19000 }
+}
+```
+
+### 2. Alert Channels (Slack + Email)
+
+**Endpoints:**
+- `POST /api/api-control/admin/alerts/configure` - Configure alert channels
+- `POST /api/api-control/admin/alerts/test` - Send test alerts
+
+**Features:**
+- Slack webhook URL configuration
+- Email recipients list (comma-separated)
+- Alert type toggles:
+  - 🔄 Failover Alerts (when API switches to backup)
+  - 💰 Budget Alerts (when spending exceeds thresholds)
+  - ❤️ Health Alerts (when API goes down or degrades)
+- Test alert functionality for all channels
+
+### 3. Failover Test Mode (Sandbox Testing)
+
+**Endpoints:**
+- `GET /api/api-control/admin/failover/test-mode/sessions` - List test sessions
+- `POST /api/api-control/admin/failover/test-mode/start` - Start manual test
+- `POST /api/api-control/admin/failover/test-mode/simulate-failure` - Simulate one failure
+- `POST /api/api-control/admin/failover/test-mode/stop` - Stop running test
+- `POST /api/api-control/admin/failover/test-mode/run-full-test` - Run full auto test
+
+**How Failover Testing Works:**
+1. **Select API**: Choose an API that has a failover provider configured
+2. **Start Test**: Creates sandbox test session (is_test_mode: true)
+3. **Simulate Failures**: Each click simulates one API failure
+4. **Verify Failover**: After threshold (3 failures), shows "failover would trigger"
+5. **Full Auto Test**: Runs complete cycle automatically and generates report
+
+**Test Result:**
+```json
+{
+  "api": "stripe",
+  "failover": "razorpay",
+  "threshold": 3,
+  "failures_simulated": 3,
+  "failover_would_trigger": true,
+  "status": "PASS ✅",
+  "note": "Failover configuration is working correctly"
+}
+```
+
+**Key Benefits:**
+- Test failover without affecting production
+- Verify configuration before real failures happen
+- Historical test sessions for audit
+- Confidence in disaster recovery
+
+### Frontend UI Updates:
+
+**New Tabs Added:**
+- 💸 Budget Alerts - Configure budget, thresholds, Slack/Email
+- 🧪 Test Mode - Manual/auto failover testing
+
+**Files Updated:**
+- `/app/backend/routes/api_control_routes.py` - Added 500+ lines for Budget & Testing
+- `/app/frontend/src/components/admin/APIControlCenter.js` - Added 2 new tabs with full UI
+
+### Testing Done (Aug 6, 2026):
+- ✅ Budget Status API - Returns proper status
+- ✅ Budget Configure API - Saves monthly budget
+- ✅ Alert Configure API - Saves Slack webhook and email list
+- ✅ Alert Test API - Sends test notifications
+- ✅ Failover Test Start - Creates test session
+- ✅ Simulate Failure - Increments failure count
+- ✅ Full Auto Test - Runs complete cycle with report
+- ✅ Test Sessions - Lists all historical tests
+
+All APIs tested via curl with valid JWT token. Frontend linting passed. Ready for production use.

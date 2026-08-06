@@ -5,7 +5,8 @@ import {
   ToggleLeft, ToggleRight, Activity, Clock, IndianRupee, Zap,
   ChevronDown, ChevronUp, History, AlertOctagon, Loader2, Search,
   Server, Wifi, WifiOff, Globe, Lock, Unlock, TrendingUp, TrendingDown,
-  Download, FileText, ArrowRightLeft, BarChart3, Calendar
+  Download, FileText, ArrowRightLeft, BarChart3, Calendar, Bell, 
+  Wallet, TestTube, Play, Square, Send, Slack, MailIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,32 @@ const APIControlCenter = () => {
   const [costReport, setCostReport] = useState(null);
   const [failoverStatus, setFailoverStatus] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
+  
+  // Budget & Alerts State
+  const [budgetStatus, setBudgetStatus] = useState(null);
+  const [budgetConfig, setBudgetConfig] = useState({
+    monthly_budget: '',
+    warning_threshold: 80,
+    critical_threshold: 95,
+    notify_emails: '',
+    slack_webhook: ''
+  });
+  const [alertConfig, setAlertConfig] = useState({
+    slack_webhook: '',
+    email_recipients: '',
+    enable_failover_alerts: true,
+    enable_budget_alerts: true,
+    enable_health_alerts: true
+  });
+  const [savingBudget, setSavingBudget] = useState(false);
+  const [savingAlerts, setSavingAlerts] = useState(false);
+  const [testingAlerts, setTestingAlerts] = useState(false);
+  
+  // Failover Test Mode State
+  const [testSessions, setTestSessions] = useState([]);
+  const [activeTest, setActiveTest] = useState(null);
+  const [startingTest, setStartingTest] = useState(false);
+  const [selectedApiForTest, setSelectedApiForTest] = useState('');
 
   const token = localStorage.getItem('token');
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
@@ -165,6 +192,156 @@ const APIControlCenter = () => {
     }
   };
 
+  // Load Budget Status
+  const loadBudgetStatus = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/api-control/admin/budget/status`, authHeaders);
+      setBudgetStatus(response.data);
+    } catch (error) {
+      console.error('Failed to load budget status:', error);
+    }
+  };
+
+  // Save Budget Config
+  const saveBudgetConfig = async () => {
+    try {
+      setSavingBudget(true);
+      const emails = budgetConfig.notify_emails.split(',').map(e => e.trim()).filter(e => e);
+      await axios.post(`${API_URL}/api/api-control/admin/budget/configure`, null, {
+        ...authHeaders,
+        params: {
+          monthly_budget: parseFloat(budgetConfig.monthly_budget),
+          warning_threshold_percent: budgetConfig.warning_threshold,
+          critical_threshold_percent: budgetConfig.critical_threshold,
+          notify_emails: emails,
+          notify_slack_webhook: budgetConfig.slack_webhook || null
+        }
+      });
+      toast.success('Budget configured! / बजट कॉन्फ़िगर हो गया!');
+      loadBudgetStatus();
+    } catch (error) {
+      toast.error('Failed to save budget config');
+    } finally {
+      setSavingBudget(false);
+    }
+  };
+
+  // Save Alert Channels Config
+  const saveAlertConfig = async () => {
+    try {
+      setSavingAlerts(true);
+      const emails = alertConfig.email_recipients.split(',').map(e => e.trim()).filter(e => e);
+      await axios.post(`${API_URL}/api/api-control/admin/alerts/configure`, null, {
+        ...authHeaders,
+        params: {
+          slack_webhook: alertConfig.slack_webhook || null,
+          email_recipients: emails,
+          enable_failover_alerts: alertConfig.enable_failover_alerts,
+          enable_budget_alerts: alertConfig.enable_budget_alerts,
+          enable_health_alerts: alertConfig.enable_health_alerts
+        }
+      });
+      toast.success('Alert channels configured! / अलर्ट चैनल कॉन्फ़िगर!');
+    } catch (error) {
+      toast.error('Failed to save alert config');
+    } finally {
+      setSavingAlerts(false);
+    }
+  };
+
+  // Test Alert Channels
+  const testAlerts = async (channel = 'all') => {
+    try {
+      setTestingAlerts(true);
+      const response = await axios.post(`${API_URL}/api/api-control/admin/alerts/test?channel=${channel}`, {}, authHeaders);
+      toast.success(`Test alert sent! Results: ${JSON.stringify(response.data.results)}`);
+    } catch (error) {
+      toast.error('Failed to send test alert - configure channels first');
+    } finally {
+      setTestingAlerts(false);
+    }
+  };
+
+  // Load Failover Test Sessions
+  const loadTestSessions = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/api-control/admin/failover/test-mode/sessions`, authHeaders);
+      setTestSessions(response.data.sessions || []);
+      const active = response.data.sessions?.find(s => s.status === 'running');
+      setActiveTest(active || null);
+    } catch (error) {
+      console.error('Failed to load test sessions:', error);
+    }
+  };
+
+  // Start Failover Test
+  const startFailoverTest = async () => {
+    if (!selectedApiForTest) {
+      toast.error('Select an API to test / टेस्ट के लिए API चुनें');
+      return;
+    }
+    try {
+      setStartingTest(true);
+      const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/start`, null, {
+        ...authHeaders,
+        params: { api_id: selectedApiForTest, simulate_failures: 3 }
+      });
+      toast.success(response.data.message_hi || response.data.message);
+      setActiveTest({ test_id: response.data.test_id, api_id: selectedApiForTest, status: 'running', failures_simulated: 0 });
+      loadTestSessions();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to start test');
+    } finally {
+      setStartingTest(false);
+    }
+  };
+
+  // Simulate Failure in Test
+  const simulateFailure = async () => {
+    if (!activeTest?.test_id) return;
+    try {
+      const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/simulate-failure?test_id=${activeTest.test_id}`, {}, authHeaders);
+      toast.info(response.data.message_hi || response.data.message);
+      if (response.data.failover_triggered) {
+        toast.success('🔄 Failover would be triggered! / फेलओवर ट्रिगर होता!');
+      }
+      loadTestSessions();
+    } catch (error) {
+      toast.error('Failed to simulate failure');
+    }
+  };
+
+  // Stop Failover Test
+  const stopFailoverTest = async () => {
+    if (!activeTest?.test_id) return;
+    try {
+      const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/stop?test_id=${activeTest.test_id}`, {}, authHeaders);
+      toast.success('Test stopped! / टेस्ट बंद!');
+      setActiveTest(null);
+      loadTestSessions();
+    } catch (error) {
+      toast.error('Failed to stop test');
+    }
+  };
+
+  // Run Full Auto Test
+  const runFullAutoTest = async () => {
+    if (!selectedApiForTest) {
+      toast.error('Select an API to test');
+      return;
+    }
+    try {
+      setStartingTest(true);
+      const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/run-full-test?api_id=${selectedApiForTest}`, {}, authHeaders);
+      toast.success('Full test completed! / पूर्ण टेस्ट पूरा!');
+      loadTestSessions();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to run full test');
+    } finally {
+      setStartingTest(false);
+    }
+  };
+
   const categories = [
     { id: 'all', label: 'All APIs', icon: <Globe className="h-4 w-4" /> },
     { id: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
@@ -280,10 +457,12 @@ const APIControlCenter = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-800 border border-slate-700">
+        <TabsList className="bg-slate-800 border border-slate-700 flex-wrap">
           <TabsTrigger value="apis">🖥️ APIs</TabsTrigger>
           <TabsTrigger value="failover">🔄 Failover</TabsTrigger>
           <TabsTrigger value="costs">💰 Cost Reports</TabsTrigger>
+          <TabsTrigger value="budget" onClick={loadBudgetStatus}>💸 Budget Alerts</TabsTrigger>
+          <TabsTrigger value="test" onClick={loadTestSessions}>🧪 Test Mode</TabsTrigger>
           <TabsTrigger value="audit">📜 Audit Logs</TabsTrigger>
         </TabsList>
 
@@ -506,6 +685,417 @@ const APIControlCenter = () => {
                   Click Load This Month to generate cost report
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Budget Alerts Tab */}
+        <TabsContent value="budget" className="space-y-4">
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Budget Status Card */}
+            <Card className="bg-slate-900 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-green-500" />
+                  Budget Status / बजट स्थिति
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {budgetStatus?.configured ? (
+                  <div className="space-y-4">
+                    {/* Status Badge */}
+                    <div className={`p-4 rounded-lg border ${
+                      budgetStatus.status === 'critical' ? 'bg-red-500/10 border-red-500/50' :
+                      budgetStatus.status === 'warning' ? 'bg-yellow-500/10 border-yellow-500/50' :
+                      'bg-green-500/10 border-green-500/50'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white font-medium">
+                          {budgetStatus.status_emoji} {budgetStatus.status === 'critical' ? 'CRITICAL' : budgetStatus.status === 'warning' ? 'WARNING' : 'HEALTHY'}
+                        </span>
+                        <span className={`text-2xl font-bold ${
+                          budgetStatus.status === 'critical' ? 'text-red-400' :
+                          budgetStatus.status === 'warning' ? 'text-yellow-400' : 'text-green-400'
+                        }`}>
+                          {budgetStatus.spending?.percent}%
+                        </span>
+                      </div>
+                      {/* Progress Bar */}
+                      <div className="w-full bg-slate-700 rounded-full h-3">
+                        <div 
+                          className={`h-3 rounded-full transition-all ${
+                            budgetStatus.status === 'critical' ? 'bg-red-500' :
+                            budgetStatus.status === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(budgetStatus.spending?.percent || 0, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-slate-800 rounded-lg">
+                        <div className="text-slate-400 text-xs">Monthly Budget</div>
+                        <div className="text-white font-bold">₹{budgetStatus.budget?.monthly?.toLocaleString()}</div>
+                      </div>
+                      <div className="p-3 bg-slate-800 rounded-lg">
+                        <div className="text-slate-400 text-xs">Current Spend</div>
+                        <div className="text-orange-400 font-bold">₹{budgetStatus.spending?.current?.toLocaleString()}</div>
+                      </div>
+                      <div className="p-3 bg-slate-800 rounded-lg">
+                        <div className="text-slate-400 text-xs">Remaining</div>
+                        <div className="text-green-400 font-bold">₹{budgetStatus.spending?.remaining?.toLocaleString()}</div>
+                      </div>
+                      <div className="p-3 bg-slate-800 rounded-lg">
+                        <div className="text-slate-400 text-xs">Projected This Month</div>
+                        <div className={`font-bold ${budgetStatus.spending?.projected > budgetStatus.budget?.monthly ? 'text-red-400' : 'text-blue-400'}`}>
+                          ₹{budgetStatus.spending?.projected?.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Thresholds */}
+                    <div className="text-sm text-slate-400">
+                      <p>⚠️ Warning at: ₹{budgetStatus.budget?.warning_at?.toLocaleString()} ({budgetStatus.thresholds?.warning_percent}%)</p>
+                      <p>🔴 Critical at: ₹{budgetStatus.budget?.critical_at?.toLocaleString()} ({budgetStatus.thresholds?.critical_percent}%)</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Wallet className="h-12 w-12 mx-auto text-slate-600 mb-3" />
+                    <p className="text-slate-400">Budget not configured</p>
+                    <p className="text-slate-500 text-sm">Configure budget on the right →</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Budget Configuration */}
+            <Card className="bg-slate-900 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-orange-500" />
+                  Configure Budget / बजट सेटिंग्स
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-slate-400 text-sm">Monthly Budget (₹) / मासिक बजट</label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 50000"
+                    value={budgetConfig.monthly_budget}
+                    onChange={(e) => setBudgetConfig({...budgetConfig, monthly_budget: e.target.value})}
+                    className="bg-slate-800 border-slate-700 text-white mt-1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 text-sm">Warning Threshold %</label>
+                    <Input
+                      type="number"
+                      value={budgetConfig.warning_threshold}
+                      onChange={(e) => setBudgetConfig({...budgetConfig, warning_threshold: parseInt(e.target.value)})}
+                      className="bg-slate-800 border-slate-700 text-white mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-sm">Critical Threshold %</label>
+                    <Input
+                      type="number"
+                      value={budgetConfig.critical_threshold}
+                      onChange={(e) => setBudgetConfig({...budgetConfig, critical_threshold: parseInt(e.target.value)})}
+                      className="bg-slate-800 border-slate-700 text-white mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 text-sm flex items-center gap-1">
+                    <MailIcon className="h-4 w-4" /> Alert Emails (comma separated)
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="finance@company.com, cfo@company.com"
+                    value={budgetConfig.notify_emails}
+                    onChange={(e) => setBudgetConfig({...budgetConfig, notify_emails: e.target.value})}
+                    className="bg-slate-800 border-slate-700 text-white mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 text-sm flex items-center gap-1">
+                    <Bell className="h-4 w-4" /> Slack Webhook URL
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="https://hooks.slack.com/services/..."
+                    value={budgetConfig.slack_webhook}
+                    onChange={(e) => setBudgetConfig({...budgetConfig, slack_webhook: e.target.value})}
+                    className="bg-slate-800 border-slate-700 text-white mt-1"
+                  />
+                  <p className="text-slate-500 text-xs mt-1">Create at: Slack → Apps → Incoming Webhooks</p>
+                </div>
+
+                <Button 
+                  onClick={saveBudgetConfig} 
+                  disabled={savingBudget || !budgetConfig.monthly_budget}
+                  className="w-full bg-orange-500 hover:bg-orange-600"
+                >
+                  {savingBudget ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                  Save Budget Config / बजट सेव करें
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Alert Channels Configuration */}
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Bell className="h-5 w-5 text-yellow-500" />
+                Alert Channels / अलर्ट चैनल
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Configure Slack & Email notifications for API failures, budget alerts, health issues
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-slate-400 text-sm flex items-center gap-1">
+                      <Bell className="h-4 w-4 text-purple-400" /> Slack Webhook URL
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="https://hooks.slack.com/services/..."
+                      value={alertConfig.slack_webhook}
+                      onChange={(e) => setAlertConfig({...alertConfig, slack_webhook: e.target.value})}
+                      className="bg-slate-800 border-slate-700 text-white mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 text-sm flex items-center gap-1">
+                      <MailIcon className="h-4 w-4 text-blue-400" /> Email Recipients (comma separated)
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="admin@company.com, ops@company.com"
+                      value={alertConfig.email_recipients}
+                      onChange={(e) => setAlertConfig({...alertConfig, email_recipients: e.target.value})}
+                      className="bg-slate-800 border-slate-700 text-white mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-white font-medium">Alert Types / अलर्ट प्रकार</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg cursor-pointer">
+                      <Switch
+                        checked={alertConfig.enable_failover_alerts}
+                        onCheckedChange={(v) => setAlertConfig({...alertConfig, enable_failover_alerts: v})}
+                      />
+                      <div>
+                        <span className="text-white">🔄 Failover Alerts</span>
+                        <p className="text-slate-500 text-xs">When API switches to backup</p>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg cursor-pointer">
+                      <Switch
+                        checked={alertConfig.enable_budget_alerts}
+                        onCheckedChange={(v) => setAlertConfig({...alertConfig, enable_budget_alerts: v})}
+                      />
+                      <div>
+                        <span className="text-white">💰 Budget Alerts</span>
+                        <p className="text-slate-500 text-xs">When spending exceeds thresholds</p>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg cursor-pointer">
+                      <Switch
+                        checked={alertConfig.enable_health_alerts}
+                        onCheckedChange={(v) => setAlertConfig({...alertConfig, enable_health_alerts: v})}
+                      />
+                      <div>
+                        <span className="text-white">❤️ Health Alerts</span>
+                        <p className="text-slate-500 text-xs">When API goes down or degrades</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  onClick={saveAlertConfig} 
+                  disabled={savingAlerts}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  {savingAlerts ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                  Save Alert Config
+                </Button>
+                <Button 
+                  onClick={() => testAlerts('all')} 
+                  disabled={testingAlerts}
+                  variant="outline"
+                >
+                  {testingAlerts ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                  Send Test Alert
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Failover Test Mode Tab */}
+        <TabsContent value="test" className="space-y-4">
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Start New Test */}
+            <Card className="bg-slate-900 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <TestTube className="h-5 w-5 text-purple-500" />
+                  Failover Test Mode / फेलओवर टेस्ट
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Simulate failures safely without affecting production
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {activeTest ? (
+                  <div className="p-4 bg-purple-500/10 border border-purple-500/50 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge className="bg-purple-500 text-white animate-pulse">
+                        🧪 TEST IN PROGRESS
+                      </Badge>
+                      <span className="text-slate-400 text-sm">{activeTest.api_id}</span>
+                    </div>
+                    <div className="text-white mb-3">
+                      Failures Simulated: <span className="text-orange-400 font-bold">{activeTest.failures_simulated || 0}</span> / 3
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={simulateFailure} className="bg-orange-500 hover:bg-orange-600">
+                        <AlertTriangle className="h-4 w-4 mr-2" /> Simulate Failure
+                      </Button>
+                      <Button onClick={stopFailoverTest} variant="destructive">
+                        <Square className="h-4 w-4 mr-2" /> Stop Test
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-slate-400 text-sm">Select API to Test / टेस्ट के लिए API चुनें</label>
+                      <select
+                        value={selectedApiForTest}
+                        onChange={(e) => setSelectedApiForTest(e.target.value)}
+                        className="w-full mt-1 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                      >
+                        <option value="">-- Select API --</option>
+                        {failoverStatus?.apis?.filter(a => a.failover_provider).map(api => (
+                          <option key={api.api_id} value={api.api_id}>
+                            {api.name} → {api.failover_provider}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={startFailoverTest} 
+                        disabled={startingTest || !selectedApiForTest}
+                        className="bg-purple-500 hover:bg-purple-600"
+                      >
+                        {startingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                        Start Manual Test
+                      </Button>
+                      <Button 
+                        onClick={runFullAutoTest} 
+                        disabled={startingTest || !selectedApiForTest}
+                        variant="outline"
+                      >
+                        <Zap className="h-4 w-4 mr-2" /> Run Full Auto Test
+                      </Button>
+                    </div>
+
+                    <div className="p-3 bg-slate-800 rounded-lg text-sm">
+                      <p className="text-slate-400">ℹ️ <strong className="text-white">Manual Test:</strong> You simulate failures step-by-step</p>
+                      <p className="text-slate-400">ℹ️ <strong className="text-white">Auto Test:</strong> Runs full cycle automatically and generates report</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Test History */}
+            <Card className="bg-slate-900 border-slate-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <History className="h-5 w-5 text-blue-500" />
+                    Test History / टेस्ट इतिहास
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={loadTestSessions}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {testSessions.length > 0 ? (
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {testSessions.map((session, idx) => (
+                      <div key={idx} className="p-3 bg-slate-800 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-medium">{session.api_id}</span>
+                          <Badge className={
+                            session.status === 'running' ? 'bg-purple-500 text-white' :
+                            session.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                            session.status === 'failover_simulated' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-slate-500/20 text-slate-400'
+                          }>
+                            {session.status}
+                          </Badge>
+                        </div>
+                        <div className="text-slate-400 text-xs">
+                          <p>Failover: {session.failover_api_id}</p>
+                          <p>Failures: {session.failures_simulated}/{session.simulate_failures}</p>
+                          <p>Started: {new Date(session.started_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500">
+                    <TestTube className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No test sessions yet</p>
+                    <p className="text-xs">Run a test to see history</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* How Failover Testing Works */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-4">
+              <h4 className="text-white font-medium mb-2">🧪 How Failover Testing Works / कैसे काम करता है?</h4>
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                <div className="p-3 bg-slate-700/50 rounded-lg">
+                  <div className="text-purple-400 font-medium">1️⃣ Select API</div>
+                  <p className="text-slate-400">Choose an API that has a failover provider configured</p>
+                </div>
+                <div className="p-3 bg-slate-700/50 rounded-lg">
+                  <div className="text-orange-400 font-medium">2️⃣ Simulate Failures</div>
+                  <p className="text-slate-400">Each click simulates one API failure without actual impact</p>
+                </div>
+                <div className="p-3 bg-slate-700/50 rounded-lg">
+                  <div className="text-green-400 font-medium">3️⃣ Verify Failover</div>
+                  <p className="text-slate-400">After threshold (3 failures), failover would trigger - shown in test report</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

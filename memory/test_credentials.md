@@ -88,7 +88,20 @@
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
 | Super Admin | vreadmin@airyatra.com | VREAdmin123! | Created for VRE API testing. Has roles: ['admin', 'super_admin']. Use for VRE dashboard, services config, booking rules, auto rules testing. |
-| User ID | 19d5b13f-dc86-4472-a1eb-a8a390cb4c0e | - | Direct user ID for JWT token generation |
+| User ID | 601a4741-f347-4ce8-845e-6cbd91bf9a78 | - | Direct user ID for JWT token generation (airyatra_db database) |
+
+## API Control Center Test Token (Aug 6, 2026)
+For testing Budget Alerts, Slack/Email Alerts, Failover Test Mode:
+- Valid JWT Token (24h): `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MDFhNDc0MS1mMzQ3LTRjZTgtODQ1ZS02Y2JkOTFiZjlhNzgiLCJyb2xlcyI6WyJhZG1pbiIsInN1cGVyX2FkbWluIl0sImV4cCI6MTc4NjEwMzY1Mn0.3YAMWE6SEuqeOtfgKnzCKmSxxZJwwwR1GPc-tak-QNA`
+- Endpoints Tested:
+  - GET /api/api-control/admin/budget/status (Working)
+  - POST /api/api-control/admin/budget/configure (Working)
+  - POST /api/api-control/admin/alerts/configure (Working)
+  - POST /api/api-control/admin/alerts/test (Working)
+  - GET /api/api-control/admin/failover/test-mode/sessions (Working)
+  - POST /api/api-control/admin/failover/test-mode/start (Working)
+  - POST /api/api-control/admin/failover/test-mode/simulate-failure (Working)
+  - POST /api/api-control/admin/failover/test-mode/run-full-test (Working)
 
 ## Sandbox.co.in KYC API (Aug 6, 2026)
 | Setting | Value |
