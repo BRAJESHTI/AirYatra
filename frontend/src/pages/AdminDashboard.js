@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Map as MapIcon, Bot, HardDrive, Database, Percent, Menu, Server } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Map as MapIcon, Bot, HardDrive, Database, Percent, Menu, Server, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -104,6 +104,10 @@ import MapCacheSettings from '@/components/admin/MapCacheSettings';
 import DocumentVaultAdmin from '@/components/admin/DocumentVaultAdmin';
 // WhatsApp CRM
 import WhatsAppCRM from '@/components/admin/WhatsAppCRM';
+// Complaint Analytics
+import ComplaintAnalytics from '@/components/admin/ComplaintAnalytics';
+// Bulk Discount Upload
+import BulkDiscountUpload from '@/components/admin/BulkDiscountUpload';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -213,6 +217,7 @@ const navGroups = [
     items: [
       { id: 'ceo', label: 'CEO Dashboard', icon: TrendingUp, highlight: true },
       { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
+      { id: 'complaint_analytics', label: 'Complaint Analytics / शिकायत', icon: Flag, highlight: true },
       { id: 'reports', label: 'Reports', icon: PieChart },
       { id: 'predictive', label: 'Predictive Analytics', icon: BarChart3, highlight: true },
       { id: 'audit', label: 'Audit Logs', icon: FileText },
@@ -356,7 +361,9 @@ function AdminDashboard({ user, onLogout }) {
       case 'marketing':
         return <MarketingCampaigns />;
       case 'discount_codes':
-        return <AdminDiscountCodes />;
+        return <BulkDiscountUpload />;
+      case 'complaint_analytics':
+        return <ComplaintAnalytics />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features

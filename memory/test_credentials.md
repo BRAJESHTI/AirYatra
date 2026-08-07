@@ -103,7 +103,7 @@ For testing Budget Alerts, Slack/Email Alerts, Failover Test Mode:
   - POST /api/api-control/admin/failover/test-mode/simulate-failure (Working)
   - POST /api/api-control/admin/failover/test-mode/run-full-test (Working)
 
-## Quick Admin Login (DEV ONLY - Aug 6, 2026)
+## Quick Admin Login (DEV ONLY - Aug 7, 2026)
 | Setting | Value |
 |---------|-------|
 | Endpoint | POST /api/auth/dev/quick-admin-token |
@@ -117,14 +117,14 @@ curl -X POST "https://aviation-erp-2.preview.emergentagent.com/api/auth/dev/quic
   -d '{"secret_key": "airyatra-dev-quick-login-2026"}'
 ```
 
-**Current Token (24h valid):**
+**Current Token (24h valid - Updated Aug 7, 2026):**
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZmQ1ZjlkNS03ZTkyLTRlMjQtOWM0Yy00MGQzNjFhNzU4YzgiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJlbWFpbCI6InN1cGVyYWRtaW4yQGFpcnlhdHJhLmNvbSIsInF1aWNrX2xvZ2luIjp0cnVlLCJleHAiOjE3ODY2MjU3NDF9.hEn3D-wmoOkOIunPwXr8KTImhwxfFlV5RP5Vuun8us4
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZmQ1ZjlkNS03ZTkyLTRlMjQtOWM0Yy00MGQzNjFhNzU4YzgiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJlbWFpbCI6InN1cGVyYWRtaW4yQGFpcnlhdHJhLmNvbSIsInF1aWNrX2xvZ2luIjp0cnVlLCJleHAiOjE3ODY2ODgwNTJ9.iOe3TeUMr4aKGvmg2KMoKhOfLaEsw7rYPqWws4ZApao
 ```
 
 **For Screenshots (localStorage):**
 ```javascript
-localStorage.setItem('token', 'TOKEN_HERE');
+localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZmQ1ZjlkNS03ZTkyLTRlMjQtOWM0Yy00MGQzNjFhNzU4YzgiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJlbWFpbCI6InN1cGVyYWRtaW4yQGFpcnlhdHJhLmNvbSIsInF1aWNrX2xvZ2luIjp0cnVlLCJleHAiOjE3ODY2ODgwNTJ9.iOe3TeUMr4aKGvmg2KMoKhOfLaEsw7rYPqWws4ZApao');
 localStorage.setItem('user', JSON.stringify({
   id: 'bfd5f9d5-7e92-4e24-9c4c-40d361a758c8',
   email: 'superadmin2@airyatra.com',

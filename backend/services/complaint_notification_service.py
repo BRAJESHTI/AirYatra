@@ -1,11 +1,23 @@
 """
 Complaint Notification Service
 Handles all complaint-related notifications - status updates, deadline warnings, penalty alerts
+Includes email delivery via SMTP
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from database import get_database
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Import email service
+try:
+    from services.email_service import email_service
+    EMAIL_ENABLED = True
+except ImportError:
+    EMAIL_ENABLED = False
+    logger.warning("Email service not available")
 
 
 async def send_complaint_notification(
@@ -18,9 +30,10 @@ async def send_complaint_notification(
     priority: str = "normal",
     recipient_email: Optional[str] = None,
     recipient_phone: Optional[str] = None,
-    metadata: Optional[dict] = None
+    metadata: Optional[dict] = None,
+    send_email: bool = True  # Whether to also send email
 ):
-    """Send a complaint-related notification"""
+    """Send a complaint-related notification (in-app + email)"""
     db = get_database()
     
     notif_doc = {
@@ -42,11 +55,235 @@ async def send_complaint_notification(
         "is_read": False,
         "is_archived": False,
         "created_at": datetime.now(timezone.utc),
-        "read_at": None
+        "read_at": None,
+        "email_sent": False
     }
     
     await db.notifications.insert_one(notif_doc)
+    
+    # Send email if enabled and email address provided
+    if send_email and EMAIL_ENABLED and recipient_email:
+        try:
+            # Build email data
+            email_data = {
+                "complaint_id": complaint_id,
+                "title": title,
+                "message": message,
+                "recipient_type": recipient_type,
+                **(metadata or {})
+            }
+            
+            # Use appropriate template based on notification type
+            if notification_type == "complaint_new":
+                result = await email_service.send_email(
+                    to_email=recipient_email,
+                    subject=f"🚨 URGENT: New Complaint - {email_data.get('complaint_number', '')}",
+                    html_body=_build_complaint_email_html(email_data, "operator_alert")
+                )
+            elif notification_type == "complaint_confirmation":
+                result = await email_service.send_email(
+                    to_email=recipient_email,
+                    subject=f"✅ Complaint #{email_data.get('complaint_number', '')} Filed - AirYatra",
+                    html_body=_build_complaint_email_html(email_data, "customer_confirmation")
+                )
+            elif notification_type == "complaint_decision":
+                result = await email_service.send_email(
+                    to_email=recipient_email,
+                    subject=f"⚖️ Complaint Decision - {email_data.get('complaint_number', '')}",
+                    html_body=_build_complaint_email_html(email_data, "decision")
+                )
+            elif notification_type == "complaint_deadline_warning":
+                result = await email_service.send_email(
+                    to_email=recipient_email,
+                    subject=f"⏰ {email_data.get('hours_remaining', '')}H Left - Complaint #{email_data.get('complaint_number', '')}",
+                    html_body=_build_complaint_email_html(email_data, "deadline")
+                )
+            elif notification_type == "penalty_issued":
+                result = await email_service.send_email(
+                    to_email=recipient_email,
+                    subject=f"💰 Penalty Issued: ₹{email_data.get('penalty_amount', 0):,}",
+                    html_body=_build_complaint_email_html(email_data, "penalty")
+                )
+            else:
+                # Generic notification email
+                result = await email_service.send_email(
+                    to_email=recipient_email,
+                    subject=title,
+                    html_body=_build_complaint_email_html(email_data, "generic")
+                )
+            
+            if result.get("success"):
+                await db.notifications.update_one(
+                    {"_id": notif_doc.get("_id")},
+                    {"$set": {"email_sent": True, "email_sent_at": datetime.now(timezone.utc)}}
+                )
+                logger.info(f"Email sent: {notification_type} to {recipient_email}")
+        except Exception as e:
+            logger.error(f"Failed to send email notification: {e}")
+    
     return notif_doc
+
+
+def _build_complaint_email_html(data: dict, template_type: str) -> str:
+    """Build HTML email content for complaint notifications"""
+    
+    base_style = """
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .info-box { background: #252542; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .alert-box { padding: 15px; border-radius: 8px; margin: 15px 0; }
+        .alert-red { background: #ef4444; color: white; }
+        .alert-green { background: #22c55e; color: white; }
+        .alert-yellow { background: #f59e0b; color: black; }
+        .btn { display: inline-block; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        .btn-primary { background: #f97316; color: white; }
+        .btn-green { background: #22c55e; color: white; }
+        .footer { text-align: center; padding: 20px; border-top: 1px solid #333; color: #888; font-size: 12px; }
+    </style>
+    """
+    
+    if template_type == "operator_alert":
+        return f"""
+        <html><head>{base_style}</head><body>
+        <div class="container">
+            <div class="header">
+                <h1>🛩️ AirYatra</h1>
+            </div>
+            <div class="content">
+                <div class="alert-box alert-red">
+                    <h2 style="margin:0;">🚨 NEW COMPLAINT - RESPOND IN 24 HOURS</h2>
+                </div>
+                <p>A customer has filed a complaint against your service.</p>
+                <div class="info-box">
+                    <p><strong>Complaint #:</strong> {data.get('complaint_number', 'N/A')}</p>
+                    <p><strong>Subject:</strong> {data.get('subject', 'N/A')}</p>
+                    <p><strong>Severity:</strong> {data.get('severity', 'Medium').upper()}</p>
+                    <p><strong>Category:</strong> {data.get('category', 'N/A')}</p>
+                </div>
+                <div class="alert-box alert-yellow">
+                    <strong>⚠️ Important:</strong>
+                    <ul style="margin:10px 0 0;padding-left:20px;">
+                        <li>Late response = ₹5,000 penalty</li>
+                        <li>Respond with full details and evidence</li>
+                        <li>AirYatra makes the final decision</li>
+                    </ul>
+                </div>
+                <p style="text-align:center;"><a href="#" class="btn btn-green">Respond Now →</a></p>
+            </div>
+            <div class="footer">© 2026 AirYatra Aviation Pvt Ltd</div>
+        </div>
+        </body></html>
+        """
+    
+    elif template_type == "customer_confirmation":
+        return f"""
+        <html><head>{base_style}</head><body>
+        <div class="container">
+            <div class="header"><h1>🛩️ AirYatra</h1></div>
+            <div class="content">
+                <div class="alert-box alert-green">
+                    <h2 style="margin:0;">✅ Complaint Registered</h2>
+                </div>
+                <p>Your complaint has been successfully filed.</p>
+                <div class="info-box">
+                    <p><strong>Complaint #:</strong> {data.get('complaint_number', 'N/A')}</p>
+                    <p><strong>Subject:</strong> {data.get('subject', 'N/A')}</p>
+                </div>
+                <p><strong>What happens next?</strong></p>
+                <ul>
+                    <li>Operator must respond within 24 hours</li>
+                    <li>AirYatra will investigate independently</li>
+                    <li>You'll be notified of the final decision</li>
+                </ul>
+            </div>
+            <div class="footer">© 2026 AirYatra Aviation Pvt Ltd</div>
+        </div>
+        </body></html>
+        """
+    
+    elif template_type == "decision":
+        decision = data.get('decision', 'partial')
+        decision_color = 'alert-green' if decision == 'dismissed' else 'alert-red' if decision == 'upheld' else 'alert-yellow'
+        return f"""
+        <html><head>{base_style}</head><body>
+        <div class="container">
+            <div class="header"><h1>🛩️ AirYatra</h1></div>
+            <div class="content">
+                <h2>⚖️ Complaint Decision</h2>
+                <div class="alert-box {decision_color}">
+                    <h3 style="margin:0;text-align:center;">Decision: {decision.upper()}</h3>
+                </div>
+                <div class="info-box">
+                    <p><strong>Complaint #:</strong> {data.get('complaint_number', 'N/A')}</p>
+                    <p><strong>Notes:</strong> {data.get('notes', 'No additional notes')}</p>
+                </div>
+                <p>This decision is final. No appeals are allowed as per AirYatra policy.</p>
+            </div>
+            <div class="footer">© 2026 AirYatra Aviation Pvt Ltd</div>
+        </div>
+        </body></html>
+        """
+    
+    elif template_type == "deadline":
+        hours = data.get('hours_remaining', 24)
+        urgency_color = 'alert-red' if hours <= 2 else 'alert-yellow'
+        return f"""
+        <html><head>{base_style}</head><body>
+        <div class="container">
+            <div class="header"><h1>🛩️ AirYatra</h1></div>
+            <div class="content">
+                <div class="alert-box {urgency_color}">
+                    <h2 style="margin:0;text-align:center;">⏰ {hours} HOURS LEFT!</h2>
+                    <p style="margin:5px 0 0;text-align:center;">Complaint #{data.get('complaint_number', '')}</p>
+                </div>
+                <p>Your response deadline is approaching. Late responses incur <strong>₹5,000 penalty</strong>.</p>
+                <p style="text-align:center;"><a href="#" class="btn btn-green">Respond Now →</a></p>
+            </div>
+            <div class="footer">© 2026 AirYatra Aviation Pvt Ltd</div>
+        </div>
+        </body></html>
+        """
+    
+    elif template_type == "penalty":
+        return f"""
+        <html><head>{base_style}</head><body>
+        <div class="container">
+            <div class="header"><h1>🛩️ AirYatra</h1></div>
+            <div class="content">
+                <div class="alert-box alert-red">
+                    <h2 style="margin:0;text-align:center;">💰 Penalty Issued</h2>
+                    <p style="font-size:28px;margin:10px 0 0;text-align:center;">₹{data.get('penalty_amount', 0):,}</p>
+                </div>
+                <div class="info-box">
+                    <p><strong>Rule:</strong> {data.get('penalty_rule', 'N/A')}</p>
+                    <p><strong>Due Date:</strong> 7 days from issue</p>
+                </div>
+                {'<div class="alert-box alert-red">⚠️ Account Suspended</div>' if data.get('suspension_triggered') else ''}
+                {'<div class="alert-box alert-red">❌ Account Delisted</div>' if data.get('delisting_triggered') else ''}
+                <p>Pay within 7 days to avoid further action. Contact support@airyatra.com for questions.</p>
+            </div>
+            <div class="footer">© 2026 AirYatra Aviation Pvt Ltd</div>
+        </div>
+        </body></html>
+        """
+    
+    else:
+        # Generic
+        return f"""
+        <html><head>{base_style}</head><body>
+        <div class="container">
+            <div class="header"><h1>🛩️ AirYatra</h1></div>
+            <div class="content">
+                <h2>{data.get('title', 'Notification')}</h2>
+                <p>{data.get('message', '')}</p>
+            </div>
+            <div class="footer">© 2026 AirYatra Aviation Pvt Ltd</div>
+        </div>
+        </body></html>
+        """
 
 
 async def notify_complaint_filed(complaint: dict):

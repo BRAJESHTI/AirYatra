@@ -2122,3 +2122,64 @@ Route: Admin Dashboard → Integrations → WhatsApp CRM
 - All linting passed ✅
 - Backend server running ✅
 - WhatsApp CRM UI verified via screenshot ✅
+
+---
+
+## Session: August 7, 2026
+
+### Bulk Discount Upload & Complaint Analytics
+
+**Status**: ✅ DONE (Backend Tested, Frontend Components Ready)
+
+#### Backend APIs (Tested via curl):
+1. **Discount Management API** (`/api/discounts/*`):
+   - `GET /api/discounts/stats` - Returns total/active/expired codes stats ✅
+   - `GET /api/discounts/list` - Paginated list with search/filter ✅ (Fixed ObjectId serialization)
+   - `POST /api/discounts/create` - Create single discount code ✅
+   - `POST /api/discounts/bulk-upload/preview` - CSV preview without saving
+   - `POST /api/discounts/bulk-upload/confirm` - Confirm CSV upload
+   - `GET /api/discounts/validate/{code}` - Validate code for booking ✅
+   - `PATCH /api/discounts/{id}` - Update discount
+   - `DELETE /api/discounts/{id}` - Deactivate discount
+   - `GET /api/discounts/download-template` - CSV template ✅
+
+2. **Complaint Analytics API** (`/api/complaints/admin/*`):
+   - `GET /api/complaints/admin/dashboard` - Dashboard stats ✅
+   - `GET /api/complaints/admin/all` - All complaints list ✅
+
+#### Frontend Components:
+1. **BulkDiscountUpload.js** - Full discount management:
+   - Upload/Manage tabs
+   - CSV bulk upload with preview
+   - Stats cards (Total/Active/Expired)
+   - Create single discount dialog
+   - Search & filter by status
+   - Discount list with edit/delete actions
+
+2. **ComplaintAnalytics.js** - Analytics dashboard:
+   - Period selector (7d/30d/90d/YTD/All)
+   - KPI cards (Total/Resolved/Upheld/Pending)
+   - Category breakdown with percentages
+   - Operator rankings (by complaint count)
+   - Resolution time trends
+   - Export capability
+
+#### Admin Dashboard Integration:
+- "Discount Codes / कोड" under Marketing & Loyalty section
+- "Complaint Analytics / शिकायत" under Analytics & Reports section
+
+#### Bug Fixes:
+1. Fixed ObjectId serialization in `/api/discounts/stats` (added `_id: 0` projection)
+2. Fixed datetime comparison in `/api/discounts/list` (handled string/datetime types)
+
+#### Files Created/Modified:
+- `/app/backend/routes/discount_routes.py` - Full discount CRUD + bulk upload
+- `/app/frontend/src/components/admin/BulkDiscountUpload.js`
+- `/app/frontend/src/components/admin/ComplaintAnalytics.js`
+- `/app/frontend/src/pages/AdminDashboard.js` - Added imports & nav items
+
+#### Note on Testing:
+- Backend APIs verified via curl with quick-admin-token
+- Frontend components lint-error free
+- Sidebar hover-based navigation tricky for Playwright automation (design choice)
+- Admin Dashboard loads correctly with all data visible
