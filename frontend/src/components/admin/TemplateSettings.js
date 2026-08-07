@@ -5,7 +5,9 @@ import {
   ChevronDown, Check, X, FileText, Zap, Send, Download,
   Settings, AlertTriangle, CheckCircle2, Clock, Hash, Globe,
   BarChart3, TrendingUp, Calendar, GitBranch, Beaker, Languages,
-  Timer, Bell, ArrowRight, Award, Target, Percent
+  Timer, Bell, ArrowRight, Award, Target, Percent, History,
+  RotateCcw, Shield, CheckSquare, XSquare, MessageCircle, Sparkles,
+  Lightbulb, Wand2, FileCheck, FileClock, AlertCircle, PlayCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,34 +17,10 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 
 const CATEGORY_CONFIG = {
-  sms: { 
-    label: 'SMS Templates', 
-    icon: Phone, 
-    color: 'bg-green-500', 
-    bgLight: 'bg-green-50',
-    description: 'Short text messages for mobile notifications'
-  },
-  whatsapp: { 
-    label: 'WhatsApp Templates', 
-    icon: MessageSquare, 
-    color: 'bg-emerald-500',
-    bgLight: 'bg-emerald-50',
-    description: 'Rich messaging templates with formatting'
-  },
-  email: { 
-    label: 'Email Templates', 
-    icon: Mail, 
-    color: 'bg-blue-500',
-    bgLight: 'bg-blue-50',
-    description: 'HTML email templates with branding'
-  },
-  payment: { 
-    label: 'Payment Templates', 
-    icon: CreditCard, 
-    color: 'bg-purple-500',
-    bgLight: 'bg-purple-50',
-    description: 'Receipts and payment notifications'
-  }
+  sms: { label: 'SMS', icon: Phone, color: 'bg-green-500', bgLight: 'bg-green-50' },
+  whatsapp: { label: 'WhatsApp', icon: MessageSquare, color: 'bg-emerald-500', bgLight: 'bg-emerald-50' },
+  email: { label: 'Email', icon: Mail, color: 'bg-blue-500', bgLight: 'bg-blue-50' },
+  payment: { label: 'Payment', icon: CreditCard, color: 'bg-purple-500', bgLight: 'bg-purple-50' }
 };
 
 const LANGUAGE_CONFIG = {
@@ -53,8 +31,16 @@ const LANGUAGE_CONFIG = {
   ta: { name: 'Tamil', native: 'தமிழ்', flag: '🏺' }
 };
 
+const APPROVAL_STATUS = {
+  draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: FileText },
+  pending_approval: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: FileClock },
+  approved: { label: 'Approved', color: 'bg-green-100 text-green-700', icon: FileCheck },
+  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XSquare },
+  changes_requested: { label: 'Changes Requested', color: 'bg-orange-100 text-orange-700', icon: AlertCircle }
+};
+
 export default function TemplateSettings() {
-  const [activeTab, setActiveTab] = useState('templates'); // templates, analytics, ab-testing, scheduled
+  const [activeTab, setActiveTab] = useState('templates');
   const [activeCategory, setActiveCategory] = useState('sms');
   const [templates, setTemplates] = useState([]);
   const [stats, setStats] = useState(null);
@@ -69,15 +55,24 @@ export default function TemplateSettings() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showABDialog, setShowABDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [showQueueDialog, setShowQueueDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [previewContent, setPreviewContent] = useState(null);
   
-  // Analytics state
+  // Data states
   const [analyticsData, setAnalyticsData] = useState(null);
   const [abStats, setAbStats] = useState(null);
   const [scheduledTemplates, setScheduledTemplates] = useState(null);
+  const [versionHistory, setVersionHistory] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [notificationQueue, setNotificationQueue] = useState([]);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [bestPractices, setBestPractices] = useState(null);
   
-  // Template variables and events
+  // Config
   const [templateVariables, setTemplateVariables] = useState({});
   const [triggerEvents, setTriggerEvents] = useState([]);
   const [languages, setLanguages] = useState([]);
@@ -85,27 +80,17 @@ export default function TemplateSettings() {
   
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    category: 'sms',
-    subject: '',
-    content: '',
-    content_hindi: '',
-    content_marathi: '',
-    content_gujarati: '',
-    content_tamil: '',
-    variables: [],
-    trigger_event: '',
-    is_active: true,
-    priority: 0,
-    schedule_type: 'immediate',
-    schedule_offset: 24,
-    schedule_unit: 'hours',
-    schedule_time: '09:00'
+    name: '', category: 'sms', subject: '', content: '',
+    content_hindi: '', content_marathi: '', content_gujarati: '', content_tamil: '',
+    variables: [], trigger_event: '', is_active: true, priority: 0,
+    schedule_type: 'immediate', schedule_offset: 24, schedule_unit: 'hours', schedule_time: '09:00'
   });
   
   const [activeLang, setActiveLang] = useState('en');
+  const [approvalNote, setApprovalNote] = useState('');
+  const [aiSuggestionType, setAiSuggestionType] = useState('improve');
 
-  // Load template variables
+  // Load functions
   const loadVariables = useCallback(async () => {
     try {
       const res = await api.get('/templates/variables');
@@ -118,22 +103,15 @@ export default function TemplateSettings() {
     }
   }, []);
 
-  // Load templates
   const loadTemplates = useCallback(async () => {
     setLoading(true);
     try {
       const [listRes, statsRes] = await Promise.all([
         api.get('/templates/list', {
-          params: {
-            category: activeCategory,
-            search: searchQuery || undefined,
-            is_active: showInactive ? undefined : true,
-            limit: 100
-          }
+          params: { category: activeCategory, search: searchQuery || undefined, is_active: showInactive ? undefined : true, limit: 100 }
         }),
         api.get('/templates/stats')
       ]);
-      
       setTemplates(listRes.data.templates || []);
       setStats(statsRes.data.stats || {});
     } catch (err) {
@@ -143,82 +121,81 @@ export default function TemplateSettings() {
     }
   }, [activeCategory, searchQuery, showInactive]);
 
-  // Load analytics
   const loadAnalytics = useCallback(async () => {
     try {
       const res = await api.get('/templates/analytics/overview?days=30');
       setAnalyticsData(res.data);
-    } catch (err) {
-      console.error('Failed to load analytics:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
-  // Load scheduled templates
   const loadScheduled = useCallback(async () => {
     try {
       const res = await api.get('/templates/scheduled');
       setScheduledTemplates(res.data.scheduled_templates);
-    } catch (err) {
-      console.error('Failed to load scheduled:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => {
-    loadVariables();
-  }, [loadVariables]);
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const res = await api.get('/templates/approvals/pending');
+      setPendingApprovals(res.data.pending_approvals || []);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  const loadNotificationQueue = useCallback(async () => {
+    try {
+      const [pendingRes, historyRes] = await Promise.all([
+        api.get('/templates/queue/pending'),
+        api.get('/templates/queue/history?days=7')
+      ]);
+      setNotificationQueue({
+        pending: pendingRes.data.pending || [],
+        history: historyRes.data.history || [],
+        stats: historyRes.data.stats || {}
+      });
+    } catch (err) { console.error(err); }
+  }, []);
+
+  const loadBestPractices = useCallback(async () => {
+    try {
+      const res = await api.get(`/templates/ai/best-practices?category=${activeCategory}`);
+      setBestPractices(res.data.best_practices);
+    } catch (err) { console.error(err); }
+  }, [activeCategory]);
+
+  useEffect(() => { loadVariables(); }, [loadVariables]);
 
   useEffect(() => {
-    if (activeTab === 'templates') {
-      loadTemplates();
-    } else if (activeTab === 'analytics') {
-      loadAnalytics();
-    } else if (activeTab === 'scheduled') {
-      loadScheduled();
-    }
-  }, [activeTab, loadTemplates, loadAnalytics, loadScheduled]);
+    if (activeTab === 'templates') loadTemplates();
+    else if (activeTab === 'analytics') loadAnalytics();
+    else if (activeTab === 'scheduled') loadScheduled();
+    else if (activeTab === 'approvals') loadPendingApprovals();
+    else if (activeTab === 'queue') loadNotificationQueue();
+  }, [activeTab, loadTemplates, loadAnalytics, loadScheduled, loadPendingApprovals, loadNotificationQueue]);
 
   // Handlers
   const handleCreate = () => {
     setFormData({
-      name: '',
-      category: activeCategory,
-      subject: '',
-      content: '',
-      content_hindi: '',
-      content_marathi: '',
-      content_gujarati: '',
-      content_tamil: '',
-      variables: [],
-      trigger_event: '',
-      is_active: true,
-      priority: 0,
-      schedule_type: 'immediate',
-      schedule_offset: 24,
-      schedule_unit: 'hours',
-      schedule_time: '09:00'
+      name: '', category: activeCategory, subject: '', content: '',
+      content_hindi: '', content_marathi: '', content_gujarati: '', content_tamil: '',
+      variables: [], trigger_event: '', is_active: true, priority: 0,
+      schedule_type: 'immediate', schedule_offset: 24, schedule_unit: 'hours', schedule_time: '09:00'
     });
     setActiveLang('en');
+    loadBestPractices();
     setShowCreateDialog(true);
   };
 
   const handleEdit = (template) => {
     setSelectedTemplate(template);
     setFormData({
-      name: template.name,
-      category: template.category,
-      subject: template.subject || '',
-      content: template.content,
-      content_hindi: template.content_hindi || '',
-      content_marathi: template.content_marathi || '',
-      content_gujarati: template.content_gujarati || '',
-      content_tamil: template.content_tamil || '',
-      variables: template.variables || [],
-      trigger_event: template.trigger_event || '',
-      is_active: template.is_active,
-      priority: template.priority || 0,
-      schedule_type: template.schedule_type || 'immediate',
-      schedule_offset: template.schedule_offset || 24,
-      schedule_unit: template.schedule_unit || 'hours',
+      name: template.name, category: template.category, subject: template.subject || '',
+      content: template.content, content_hindi: template.content_hindi || '',
+      content_marathi: template.content_marathi || '', content_gujarati: template.content_gujarati || '',
+      content_tamil: template.content_tamil || '', variables: template.variables || [],
+      trigger_event: template.trigger_event || '', is_active: template.is_active,
+      priority: template.priority || 0, schedule_type: template.schedule_type || 'immediate',
+      schedule_offset: template.schedule_offset || 24, schedule_unit: template.schedule_unit || 'hours',
       schedule_time: template.schedule_time || '09:00'
     });
     setActiveLang('en');
@@ -231,19 +208,20 @@ export default function TemplateSettings() {
       setPreviewContent(res.data.preview);
       setSelectedTemplate(template);
       setShowPreviewDialog(true);
-    } catch (err) {
-      toast.error('Failed to generate preview');
-    }
+    } catch (err) { toast.error('Preview failed'); }
   };
 
   const handleToggleActive = async (template) => {
+    // Check approval status
+    if (!template.is_active && template.approval_status && template.approval_status !== 'approved') {
+      toast.error('Template must be approved before activation');
+      return;
+    }
     try {
       await api.patch(`/templates/${template.template_id}/toggle`);
-      toast.success(template.is_active ? 'Template deactivated' : 'Template activated');
+      toast.success(template.is_active ? 'Deactivated' : 'Activated');
       loadTemplates();
-    } catch (err) {
-      toast.error('Failed to toggle status');
-    }
+    } catch (err) { toast.error('Toggle failed'); }
   };
 
   const handleDelete = (template) => {
@@ -254,66 +232,162 @@ export default function TemplateSettings() {
   const confirmDelete = async () => {
     try {
       await api.delete(`/templates/${selectedTemplate.template_id}`);
-      toast.success('Template deleted');
+      toast.success('Deleted');
       setShowDeleteDialog(false);
       loadTemplates();
-    } catch (err) {
-      toast.error('Failed to delete template');
-    }
+    } catch (err) { toast.error('Delete failed'); }
   };
 
   const handleSaveTemplate = async (isEdit = false) => {
     try {
       if (isEdit) {
+        // Save version before edit
+        await api.post(`/templates/${selectedTemplate.template_id}/save-version?change_note=${encodeURIComponent('Pre-edit backup')}`);
         await api.put(`/templates/${selectedTemplate.template_id}`, formData);
-        toast.success('Template updated');
+        toast.success('Updated & version saved');
         setShowEditDialog(false);
       } else {
         await api.post('/templates/create', formData);
-        toast.success('Template created');
+        toast.success('Created');
         setShowCreateDialog(false);
       }
       loadTemplates();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to save template');
-    }
+    } catch (err) { toast.error(err.response?.data?.detail || 'Save failed'); }
   };
 
   const handleSeedDefaults = async () => {
     try {
       const res = await api.post('/templates/seed-defaults');
-      toast.success(`Created ${res.data.created} default templates`);
+      toast.success(`Created ${res.data.created} templates`);
       loadTemplates();
-    } catch (err) {
-      toast.error('Failed to seed templates');
-    }
+    } catch (err) { toast.error('Seed failed'); }
   };
 
   const handleDuplicate = async (template) => {
-    const newName = prompt('Enter name for duplicated template:', `${template.name} (Copy)`);
+    const newName = prompt('New name:', `${template.name} (Copy)`);
     if (!newName) return;
-    
     try {
       await api.post(`/templates/duplicate/${template.template_id}?new_name=${encodeURIComponent(newName)}`);
-      toast.success('Template duplicated');
+      toast.success('Duplicated');
       loadTemplates();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to duplicate template');
-    }
+    } catch (err) { toast.error('Duplicate failed'); }
   };
 
-  // A/B Testing handlers
-  const handleCreateVariant = async (template) => {
-    const variantName = prompt('Enter variant name:', `${template.name} - Variant B`);
-    if (!variantName) return;
-    
+  // Version History
+  const handleViewHistory = async (template) => {
+    setSelectedTemplate(template);
     try {
-      await api.post(`/templates/${template.template_id}/create-variant?variant_name=${encodeURIComponent(variantName)}`);
-      toast.success('A/B variant created');
+      const res = await api.get(`/templates/${template.template_id}/history`);
+      setVersionHistory(res.data.history || []);
+      setShowHistoryDialog(true);
+    } catch (err) { toast.error('History load failed'); }
+  };
+
+  const handleRollback = async (version) => {
+    if (!confirm(`Rollback to version ${version}?`)) return;
+    try {
+      await api.post(`/templates/${selectedTemplate.template_id}/rollback/${version}`);
+      toast.success(`Rolled back to v${version}`);
+      setShowHistoryDialog(false);
       loadTemplates();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to create variant');
+    } catch (err) { toast.error('Rollback failed'); }
+  };
+
+  // Approval Workflow
+  const handleSubmitForApproval = async (template) => {
+    const note = prompt('Add note (optional):');
+    try {
+      await api.post(`/templates/${template.template_id}/submit-for-approval?note=${encodeURIComponent(note || '')}`);
+      toast.success('Submitted for approval');
+      loadTemplates();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Submit failed'); }
+  };
+
+  const handleApprove = async (templateId) => {
+    try {
+      await api.post(`/templates/${templateId}/approve?note=${encodeURIComponent(approvalNote)}`);
+      toast.success('Approved');
+      setApprovalNote('');
+      loadPendingApprovals();
+      loadTemplates();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Approve failed'); }
+  };
+
+  const handleReject = async (templateId) => {
+    if (!approvalNote || approvalNote.length < 10) {
+      toast.error('Please provide rejection reason (min 10 chars)');
+      return;
     }
+    try {
+      await api.post(`/templates/${templateId}/reject?reason=${encodeURIComponent(approvalNote)}`);
+      toast.success('Rejected');
+      setApprovalNote('');
+      loadPendingApprovals();
+      loadTemplates();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Reject failed'); }
+  };
+
+  const handleRequestChanges = async (templateId) => {
+    if (!approvalNote || approvalNote.length < 10) {
+      toast.error('Please specify changes needed (min 10 chars)');
+      return;
+    }
+    try {
+      await api.post(`/templates/${templateId}/request-changes?changes=${encodeURIComponent(approvalNote)}`);
+      toast.success('Changes requested');
+      setApprovalNote('');
+      loadPendingApprovals();
+      loadTemplates();
+    } catch (err) { toast.error('Request failed'); }
+  };
+
+  // AI Suggestions
+  const handleGetAISuggestions = async (template) => {
+    setSelectedTemplate(template);
+    setAiSuggestions(null);
+    setShowAIDialog(true);
+    try {
+      const res = await api.post(`/templates/${template.template_id}/ai-suggestions?suggestion_type=${aiSuggestionType}`);
+      setAiSuggestions(res.data);
+    } catch (err) { toast.error('AI suggestions failed'); }
+  };
+
+  // Queue
+  const handleSendNow = async (queueId) => {
+    try {
+      await api.post(`/templates/queue/${queueId}/send-now`);
+      toast.success('Sending...');
+      setTimeout(loadNotificationQueue, 2000);
+    } catch (err) { toast.error('Send failed'); }
+  };
+
+  const handleCancelQueued = async (queueId) => {
+    try {
+      await api.post(`/templates/queue/${queueId}/cancel`);
+      toast.success('Cancelled');
+      loadNotificationQueue();
+    } catch (err) { toast.error('Cancel failed'); }
+  };
+
+  // A/B Testing
+  const handleCreateVariant = async (template) => {
+    const name = prompt('Variant name:', `${template.name} - Variant B`);
+    if (!name) return;
+    try {
+      await api.post(`/templates/${template.template_id}/create-variant?variant_name=${encodeURIComponent(name)}`);
+      toast.success('Variant created');
+      loadTemplates();
+    } catch (err) { toast.error('Create variant failed'); }
+  };
+
+  const handleViewABStats = async (template) => {
+    const parentId = template.parent_template_id || template.template_id;
+    try {
+      const res = await api.get(`/templates/${parentId}/ab-stats`);
+      setAbStats(res.data);
+      setSelectedTemplate(template);
+      setShowABDialog(true);
+    } catch (err) { toast.error('A/B stats failed'); }
   };
 
   const handleToggleABTest = async (template, percentage = 50) => {
@@ -321,24 +395,10 @@ export default function TemplateSettings() {
       const res = await api.patch(`/templates/${template.template_id}/ab-test/toggle?percentage=${percentage}`);
       toast.success(res.data.message);
       loadTemplates();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to toggle A/B test');
-    }
+    } catch (err) { toast.error('Toggle A/B failed'); }
   };
 
-  const handleViewABStats = async (template) => {
-    try {
-      const parentId = template.parent_template_id || template.template_id;
-      const res = await api.get(`/templates/${parentId}/ab-stats`);
-      setAbStats(res.data);
-      setSelectedTemplate(template);
-      setShowABDialog(true);
-    } catch (err) {
-      toast.error('Failed to load A/B stats');
-    }
-  };
-
-  // Schedule handlers
+  // Schedule
   const handleConfigureSchedule = (template) => {
     setSelectedTemplate(template);
     setFormData(prev => ({
@@ -353,136 +413,184 @@ export default function TemplateSettings() {
 
   const handleSaveSchedule = async () => {
     try {
-      const params = new URLSearchParams({
-        schedule_type: formData.schedule_type
-      });
-      
+      const params = new URLSearchParams({ schedule_type: formData.schedule_type });
       if (formData.schedule_type !== 'immediate') {
-        if (formData.schedule_type === 'fixed_time') {
-          params.append('schedule_time', formData.schedule_time);
-        } else {
-          params.append('schedule_offset', formData.schedule_offset);
-          params.append('schedule_unit', formData.schedule_unit);
-        }
+        if (formData.schedule_type === 'fixed_time') params.append('schedule_time', formData.schedule_time);
+        else { params.append('schedule_offset', formData.schedule_offset); params.append('schedule_unit', formData.schedule_unit); }
       }
-      
       await api.post(`/templates/${selectedTemplate.template_id}/schedule?${params.toString()}`);
-      toast.success('Schedule configured');
+      toast.success('Schedule saved');
       setShowScheduleDialog(false);
       loadTemplates();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to configure schedule');
-    }
+    } catch (err) { toast.error('Schedule save failed'); }
   };
 
   const insertVariable = (variable) => {
-    const fieldMap = {
-      en: 'content',
-      hi: 'content_hindi',
-      mr: 'content_marathi',
-      gu: 'content_gujarati',
-      ta: 'content_tamil'
-    };
+    const fieldMap = { en: 'content', hi: 'content_hindi', mr: 'content_marathi', gu: 'content_gujarati', ta: 'content_tamil' };
     const field = fieldMap[activeLang] || 'content';
-    
     setFormData(prev => ({
       ...prev,
       [field]: prev[field] + variable,
-      variables: prev.variables.includes(variable.replace(/[{}]/g, '')) 
-        ? prev.variables 
-        : [...prev.variables, variable.replace(/[{}]/g, '')]
+      variables: prev.variables.includes(variable.replace(/[{}]/g, '')) ? prev.variables : [...prev.variables, variable.replace(/[{}]/g, '')]
     }));
   };
 
-  const getContentField = (lang) => {
-    const fieldMap = {
-      en: 'content',
-      hi: 'content_hindi',
-      mr: 'content_marathi',
-      gu: 'content_gujarati',
-      ta: 'content_tamil'
-    };
-    return fieldMap[lang] || 'content';
-  };
+  const getContentField = (lang) => ({ en: 'content', hi: 'content_hindi', mr: 'content_marathi', gu: 'content_gujarati', ta: 'content_tamil' })[lang] || 'content';
 
-  const CategoryIcon = CATEGORY_CONFIG[activeCategory]?.icon || FileText;
-
-  // Render Analytics Tab
-  const renderAnalytics = () => (
-    <div className="space-y-6">
-      {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Send className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-800 dark:text-white">
-                {analyticsData?.total_sent?.toLocaleString() || 0}
-              </p>
-              <p className="text-sm text-slate-500">Total Sent (30d)</p>
-            </div>
-          </div>
+  // Render Tabs
+  const renderApprovals = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Pending Approvals ({pendingApprovals.length})</h2>
+        <Button variant="outline" size="sm" onClick={loadPendingApprovals}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
+      </div>
+      {pendingApprovals.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border">
+          <CheckSquare className="h-12 w-12 mx-auto text-green-300 mb-2" />
+          <p className="text-slate-500">No pending approvals</p>
         </div>
-        
-        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-          const Icon = config.icon;
-          const catStats = analyticsData?.category_stats?.[key] || {};
-          return (
-            <div key={key} className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 ${config.bgLight} rounded-lg`}>
-                  <Icon className={`h-5 w-5 ${config.color.replace('bg-', 'text-')}`} />
-                </div>
+      ) : (
+        <div className="space-y-3">
+          {pendingApprovals.map(approval => (
+            <div key={approval.approval_id} className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+              <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="text-xl font-bold text-slate-800 dark:text-white">
-                    {catStats.total_usage?.toLocaleString() || 0}
-                  </p>
-                  <p className="text-sm text-slate-500">{config.label.replace(' Templates', '')}</p>
+                  <h3 className="font-medium">{approval.template_name}</h3>
+                  <p className="text-sm text-slate-500">{approval.category} • Submitted by {approval.submitted_by_email}</p>
+                  {approval.note && <p className="text-sm text-slate-600 mt-1">Note: {approval.note}</p>}
+                </div>
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded">Pending</span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded text-sm mb-3 font-mono">
+                {approval.content_snapshot}
+              </div>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Add review note..."
+                  value={approvalNote}
+                  onChange={(e) => setApprovalNote(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" className="bg-green-500 hover:bg-green-600" onClick={() => handleApprove(approval.template_id)}>
+                    <CheckCircle2 className="h-4 w-4 mr-1" />Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleRequestChanges(approval.template_id)}>
+                    <MessageCircle className="h-4 w-4 mr-1" />Request Changes
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleReject(approval.template_id)}>
+                    <XSquare className="h-4 w-4 mr-1" />Reject
+                  </Button>
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderQueue = () => (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { label: 'Queued', value: notificationQueue?.stats?.queued || 0, color: 'bg-blue-500' },
+          { label: 'Sent (7d)', value: notificationQueue?.stats?.sent || 0, color: 'bg-green-500' },
+          { label: 'Failed', value: notificationQueue?.stats?.failed || 0, color: 'bg-red-500' },
+          { label: 'Total', value: notificationQueue?.stats?.total || 0, color: 'bg-slate-500' }
+        ].map(stat => (
+          <div key={stat.label} className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+            <div className={`w-3 h-3 rounded-full ${stat.color} mb-2`} />
+            <p className="text-2xl font-bold">{stat.value}</p>
+            <p className="text-sm text-slate-500">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Pending Queue */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-500" />
+            Pending Notifications
+          </h3>
+          <Button variant="outline" size="sm" onClick={loadNotificationQueue}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+        {notificationQueue?.pending?.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">No pending notifications</div>
+        ) : (
+          <div className="divide-y">
+            {notificationQueue?.pending?.map(item => (
+              <div key={item.queue_id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{item.template_name}</p>
+                  <p className="text-sm text-slate-500">{item.recipient} • {item.category}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => handleSendNow(item.queue_id)}>
+                    <PlayCircle className="h-4 w-4 mr-1" />Send Now
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleCancelQueued(item.queue_id)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Send History */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold flex items-center gap-2">
+            <History className="h-5 w-5 text-slate-500" />
+            Recent Send History (7 days)
+          </h3>
+        </div>
+        <div className="max-h-80 overflow-y-auto divide-y">
+          {notificationQueue?.history?.slice(0, 20).map(item => (
+            <div key={item.queue_id} className="p-3 flex items-center justify-between text-sm">
+              <div>
+                <p className="font-medium">{item.template_name}</p>
+                <p className="text-slate-500">{item.recipient}</p>
+              </div>
+              <span className={`px-2 py-1 rounded text-xs ${
+                item.status === 'sent' ? 'bg-green-100 text-green-700' :
+                item.status === 'failed' ? 'bg-red-100 text-red-700' :
+                'bg-gray-100 text-gray-700'
+              }`}>{item.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAnalytics = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <Send className="h-6 w-6 text-blue-500 mb-2" />
+          <p className="text-2xl font-bold">{analyticsData?.total_sent?.toLocaleString() || 0}</p>
+          <p className="text-sm text-slate-500">Total Sent (30d)</p>
+        </div>
+        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
+          const catStats = analyticsData?.category_stats?.[key] || {};
+          return (
+            <div key={key} className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+              <config.icon className={`h-6 w-6 ${config.color.replace('bg-', 'text-')} mb-2`} />
+              <p className="text-2xl font-bold">{catStats.total_usage?.toLocaleString() || 0}</p>
+              <p className="text-sm text-slate-500">{config.label}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Usage Trend Chart */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-        <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-orange-500" />
-          Usage Trend (Last 30 Days)
-        </h3>
-        <div className="h-64 flex items-end gap-1">
-          {analyticsData?.usage_trend?.slice(-30).map((day, i) => {
-            const total = day.sms + day.whatsapp + day.email + day.payment;
-            const maxHeight = 200;
-            const height = Math.max(10, (total / 500) * maxHeight);
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div 
-                  className="w-full bg-gradient-to-t from-orange-500 to-orange-300 rounded-t transition-all hover:from-orange-600 hover:to-orange-400"
-                  style={{ height: `${height}px` }}
-                  title={`${day.date}: ${total} messages`}
-                />
-                {i % 5 === 0 && (
-                  <span className="text-xs text-slate-400 rotate-45 origin-left">
-                    {day.date.slice(5)}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Language Distribution & Top Templates */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Language Distribution */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-          <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-            <Languages className="h-5 w-5 text-purple-500" />
-            Language Distribution
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Languages className="h-5 w-5 text-purple-500" />Language Distribution
           </h3>
           <div className="space-y-3">
             {Object.entries(analyticsData?.language_stats || {}).map(([code, data]) => (
@@ -490,45 +598,26 @@ export default function TemplateSettings() {
                 <span className="text-lg">{LANGUAGE_CONFIG[code]?.flag}</span>
                 <div className="flex-1">
                   <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{LANGUAGE_CONFIG[code]?.native || code}</span>
+                    <span className="text-sm">{LANGUAGE_CONFIG[code]?.native || code}</span>
                     <span className="text-sm text-slate-500">{data.percentage}%</span>
                   </div>
-                  <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-                      style={{ width: `${data.percentage}%` }}
-                    />
-                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full"><div className="h-full bg-purple-500 rounded-full" style={{ width: `${data.percentage}%` }} /></div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Top Templates */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-          <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-            <Award className="h-5 w-5 text-yellow-500" />
-            Top Performing Templates
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Award className="h-5 w-5 text-yellow-500" />Top Templates
           </h3>
-          <div className="space-y-3">
-            {analyticsData?.top_templates?.slice(0, 5).map((template, i) => (
-              <div key={template.template_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  i === 0 ? 'bg-yellow-100 text-yellow-700' :
-                  i === 1 ? 'bg-slate-100 text-slate-700' :
-                  i === 2 ? 'bg-orange-100 text-orange-700' :
-                  'bg-slate-50 text-slate-500'
-                }`}>
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{template.name}</p>
-                  <p className="text-xs text-slate-500">{template.category}</p>
-                </div>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  {template.usage_count.toLocaleString()}
-                </span>
+          <div className="space-y-2">
+            {analyticsData?.top_templates?.slice(0, 5).map((t, i) => (
+              <div key={t.template_id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-50">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100'}`}>{i + 1}</span>
+                <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{t.name}</p></div>
+                <span className="text-sm font-semibold">{t.usage_count}</span>
               </div>
             ))}
           </div>
@@ -537,68 +626,40 @@ export default function TemplateSettings() {
     </div>
   );
 
-  // Render Scheduled Templates Tab
   const renderScheduled = () => (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Scheduled Templates</h2>
-          <p className="text-sm text-slate-500">Templates configured to send at specific times</p>
-        </div>
-        <Button variant="outline" onClick={loadScheduled}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      {scheduledTemplates && Object.entries(scheduledTemplates).map(([type, templates]) => (
-        templates.length > 0 && (
-          <div key={type} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="font-medium flex items-center gap-2">
-                {type === 'before_event' && <Bell className="h-4 w-4 text-blue-500" />}
-                {type === 'after_event' && <Clock className="h-4 w-4 text-green-500" />}
-                {type === 'fixed_time' && <Timer className="h-4 w-4 text-purple-500" />}
-                {type === 'immediate' && <Zap className="h-4 w-4 text-yellow-500" />}
-                {scheduleTypes.find(s => s.id === type)?.name || type}
-                <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">
-                  {templates.length}
-                </span>
-              </h3>
-            </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-700">
-              {templates.map(template => (
-                <div key={template.template_id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{template.name}</p>
-                      <p className="text-sm text-slate-500">
-                        {template.schedule_type === 'before_event' && 
-                          `${template.schedule_offset} ${template.schedule_unit} before event`}
-                        {template.schedule_type === 'after_event' && 
-                          `${template.schedule_offset} ${template.schedule_unit} after event`}
-                        {template.schedule_type === 'fixed_time' && 
-                          `Daily at ${template.schedule_time}`}
-                        {template.trigger_event && ` • Trigger: ${template.trigger_event}`}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => handleConfigureSchedule(template)}>
-                      <Settings className="h-4 w-4 mr-1" />
-                      Configure
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {scheduledTemplates && Object.entries(scheduledTemplates).map(([type, templates]) => templates.length > 0 && (
+        <div key={type} className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b">
+            <h3 className="font-medium flex items-center gap-2">
+              {type === 'before_event' && <Bell className="h-4 w-4 text-blue-500" />}
+              {type === 'after_event' && <Clock className="h-4 w-4 text-green-500" />}
+              {type === 'fixed_time' && <Timer className="h-4 w-4 text-purple-500" />}
+              {scheduleTypes.find(s => s.id === type)?.name || type}
+              <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">{templates.length}</span>
+            </h3>
           </div>
-        )
+          <div className="divide-y">
+            {templates.map(t => (
+              <div key={t.template_id} className="p-4 flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{t.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {t.schedule_type === 'before_event' && `${t.schedule_offset} ${t.schedule_unit} before`}
+                    {t.schedule_type === 'after_event' && `${t.schedule_offset} ${t.schedule_unit} after`}
+                    {t.schedule_type === 'fixed_time' && `Daily at ${t.schedule_time}`}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => handleConfigureSchedule(t)}><Settings className="h-4 w-4" /></Button>
+              </div>
+            ))}
+          </div>
+        </div>
       ))}
-
       {(!scheduledTemplates || Object.values(scheduledTemplates).every(t => t.length === 0)) && (
-        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-          <Calendar className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-          <p className="text-slate-500">No scheduled templates configured</p>
-          <p className="text-sm text-slate-400 mt-1">Edit any template and configure scheduling</p>
+        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border">
+          <Calendar className="h-12 w-12 mx-auto text-slate-300 mb-2" />
+          <p className="text-slate-500">No scheduled templates</p>
         </div>
       )}
     </div>
@@ -609,247 +670,123 @@ export default function TemplateSettings() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
             <Settings className="h-7 w-7 text-orange-500" />
-            Template Settings / टेम्पलेट सेटिंग्स
+            Template Settings
           </h1>
-          <p className="text-slate-500 mt-1">Manage notification templates with scheduling, A/B testing & multi-language</p>
+          <p className="text-slate-500 mt-1">Multi-language templates with scheduling, approvals & AI suggestions</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSeedDefaults}>
-            <Download className="h-4 w-4 mr-2" />
-            Load Defaults
-          </Button>
-          <Button onClick={handleCreate} className="bg-orange-500 hover:bg-orange-600">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Template
-          </Button>
+          <Button variant="outline" onClick={handleSeedDefaults}><Download className="h-4 w-4 mr-2" />Defaults</Button>
+          <Button onClick={handleCreate} className="bg-orange-500 hover:bg-orange-600"><Plus className="h-4 w-4 mr-2" />Add</Button>
         </div>
       </div>
 
-      {/* Main Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         {[
           { id: 'templates', label: 'Templates', icon: FileText },
-          { id: 'analytics', label: 'Usage Analytics', icon: BarChart3 },
+          { id: 'approvals', label: 'Approvals', icon: Shield, badge: pendingApprovals.length },
+          { id: 'queue', label: 'Send Queue', icon: Send },
+          { id: 'analytics', label: 'Analytics', icon: BarChart3 },
           { id: 'scheduled', label: 'Scheduled', icon: Calendar },
         ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              activeTab === tab.id
-                ? 'bg-orange-500 text-white'
-                : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap ${activeTab === tab.id ? 'bg-orange-500 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <tab.icon className="h-4 w-4" />{tab.label}
+            {tab.badge > 0 && <span className="px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">{tab.badge}</span>}
           </button>
         ))}
       </div>
 
-      {/* Analytics Tab */}
+      {/* Tab Content */}
+      {activeTab === 'approvals' && renderApprovals()}
+      {activeTab === 'queue' && renderQueue()}
       {activeTab === 'analytics' && renderAnalytics()}
-
-      {/* Scheduled Tab */}
       {activeTab === 'scheduled' && renderScheduled()}
 
-      {/* Templates Tab */}
       {activeTab === 'templates' && (
         <>
-          {/* Stats Cards */}
+          {/* Category Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-              const Icon = config.icon;
-              const catStats = stats?.[key] || { total: 0, active: 0, inactive: 0 };
+              const catStats = stats?.[key] || { total: 0, active: 0 };
               const isActive = activeCategory === key;
-              
               return (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className={`p-4 rounded-xl border-2 transition-all text-left ${
-                    isActive 
-                      ? `border-orange-500 ${config.bgLight} dark:bg-slate-800`
-                      : 'border-slate-200 dark:border-slate-700 hover:border-orange-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`p-2 rounded-lg ${config.color}`}>
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      isActive ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {catStats.total} total
-                    </span>
+                <button key={key} onClick={() => setActiveCategory(key)} className={`p-4 rounded-xl border-2 text-left ${isActive ? `border-orange-500 ${config.bgLight}` : 'border-slate-200 hover:border-orange-300'}`}>
+                  <div className="flex justify-between mb-2">
+                    <div className={`p-2 rounded-lg ${config.color}`}><config.icon className="h-5 w-5 text-white" /></div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${isActive ? 'bg-orange-500 text-white' : 'bg-slate-100'}`}>{catStats.total}</span>
                   </div>
-                  <h3 className="font-semibold text-slate-800 dark:text-white">{config.label}</h3>
-                  <div className="flex gap-3 mt-1 text-xs">
-                    <span className="text-green-600">{catStats.active} active</span>
-                    <span className="text-slate-400">{catStats.inactive} inactive</span>
-                  </div>
+                  <h3 className="font-semibold">{config.label}</h3>
+                  <p className="text-xs text-green-600">{catStats.active} active</p>
                 </button>
               );
             })}
           </div>
 
-          {/* Search & Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+          {/* Search */}
+          <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search templates..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+              <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
-                className="rounded border-slate-300"
-              />
+              <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} className="rounded" />
               Show inactive
             </label>
-            <Button variant="outline" size="sm" onClick={loadTemplates}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <Button variant="outline" size="sm" onClick={loadTemplates}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></Button>
           </div>
 
           {/* Templates List */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
-              <CategoryIcon className={`h-5 w-5 ${CATEGORY_CONFIG[activeCategory]?.color.replace('bg-', 'text-')}`} />
-              <h2 className="font-semibold text-slate-800 dark:text-white">
-                {CATEGORY_CONFIG[activeCategory]?.label}
-              </h2>
-            </div>
-
+          <div className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
             {loading ? (
-              <div className="p-12 text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-orange-500" />
-              </div>
+              <div className="p-12 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-orange-500" /></div>
             ) : templates.length === 0 ? (
-              <div className="p-12 text-center">
-                <FileText className="h-12 w-12 mx-auto text-slate-300" />
-                <p className="mt-2 text-slate-500">No templates found</p>
-              </div>
+              <div className="p-12 text-center"><FileText className="h-12 w-12 mx-auto text-slate-300" /><p className="mt-2 text-slate-500">No templates</p></div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                {templates.map((template) => (
-                  <div
-                    key={template.template_id}
-                    className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
-                      !template.is_active ? 'opacity-60' : ''
-                    }`}
-                  >
+              <div className="divide-y">
+                {templates.map(template => (
+                  <div key={template.template_id} className={`p-4 hover:bg-slate-50 ${!template.is_active ? 'opacity-60' : ''}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-medium text-slate-800 dark:text-white">
-                            {template.name}
-                          </h3>
-                          {template.is_active ? (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Active
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-500">
-                              Inactive
+                          <h3 className="font-medium">{template.name}</h3>
+                          {template.is_active ? <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Active</span> : <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100">Inactive</span>}
+                          {template.approval_status && APPROVAL_STATUS[template.approval_status] && (
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${APPROVAL_STATUS[template.approval_status].color}`}>
+                              {APPROVAL_STATUS[template.approval_status].label}
                             </span>
                           )}
-                          {template.schedule_type && template.schedule_type !== 'immediate' && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700 flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Scheduled
-                            </span>
-                          )}
-                          {template.is_variant && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                              <GitBranch className="h-3 w-3" />
-                              A/B Variant
-                            </span>
-                          )}
-                          {template.ab_test_active && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1">
-                              <Beaker className="h-3 w-3" />
-                              Testing
-                            </span>
-                          )}
-                          {template.has_variants && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-700">
-                              Has Variants
-                            </span>
-                          )}
+                          {template.schedule_type && template.schedule_type !== 'immediate' && <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700"><Clock className="h-3 w-3 inline mr-1" />Scheduled</span>}
+                          {template.is_variant && <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700"><GitBranch className="h-3 w-3 inline mr-1" />Variant</span>}
+                          {template.has_variants && <span className="px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-700">Has Variants</span>}
+                          {template.version && <span className="text-xs text-slate-400">v{template.version}</span>}
                         </div>
-                        
-                        {template.trigger_event && (
-                          <div className="flex items-center gap-1 text-xs text-slate-500 mb-1">
-                            <Zap className="h-3 w-3" />
-                            {template.trigger_event.replace(/_/g, ' ')}
-                          </div>
-                        )}
-                        
-                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1">
-                          {template.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
-                        </p>
-
-                        {/* Language indicators */}
-                        <div className="flex gap-1 mt-2">
-                          {template.content && <span className="text-xs" title="English">🇬🇧</span>}
-                          {template.content_hindi && <span className="text-xs" title="Hindi">🇮🇳</span>}
-                          {template.content_marathi && <span className="text-xs" title="Marathi">🏛️</span>}
-                          {template.content_gujarati && <span className="text-xs" title="Gujarati">🦁</span>}
-                          {template.content_tamil && <span className="text-xs" title="Tamil">🏺</span>}
+                        <p className="text-sm text-slate-600 line-clamp-1">{template.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...</p>
+                        <div className="flex gap-1 mt-1">
+                          {template.content && <span className="text-xs">🇬🇧</span>}
+                          {template.content_hindi && <span className="text-xs">🇮🇳</span>}
+                          {template.content_marathi && <span className="text-xs">🏛️</span>}
+                          {template.content_gujarati && <span className="text-xs">🦁</span>}
+                          {template.content_tamil && <span className="text-xs">🏺</span>}
                         </div>
                       </div>
-                      
-                      {/* Action Buttons */}
                       <div className="flex items-center gap-1 flex-wrap">
-                        <Button variant="ghost" size="sm" onClick={() => handlePreview(template)} title="Preview">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(template)} title="Edit">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleConfigureSchedule(template)} title="Schedule">
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                        {!template.is_variant && (
-                          <Button variant="ghost" size="sm" onClick={() => handleCreateVariant(template)} title="Create A/B Variant">
-                            <GitBranch className="h-4 w-4" />
-                          </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handlePreview(template)} title="Preview"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(template)} title="Edit"><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleViewHistory(template)} title="History"><History className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleGetAISuggestions(template)} title="AI Suggestions"><Sparkles className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleConfigureSchedule(template)} title="Schedule"><Calendar className="h-4 w-4" /></Button>
+                        {!template.is_variant && <Button variant="ghost" size="sm" onClick={() => handleCreateVariant(template)} title="A/B Variant"><GitBranch className="h-4 w-4" /></Button>}
+                        {(template.is_variant || template.has_variants) && <Button variant="ghost" size="sm" onClick={() => handleViewABStats(template)} title="A/B Stats"><BarChart3 className="h-4 w-4" /></Button>}
+                        {template.approval_status !== 'pending_approval' && template.approval_status !== 'approved' && (
+                          <Button variant="ghost" size="sm" onClick={() => handleSubmitForApproval(template)} title="Submit for Approval"><Shield className="h-4 w-4" /></Button>
                         )}
-                        {(template.is_variant || template.has_variants) && (
-                          <Button variant="ghost" size="sm" onClick={() => handleViewABStats(template)} title="A/B Stats">
-                            <BarChart3 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleDuplicate(template)} title="Duplicate">
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant={template.is_active ? "ghost" : "default"}
-                          size="sm"
-                          onClick={() => handleToggleActive(template)}
-                          className={template.is_active ? '' : 'bg-green-500 hover:bg-green-600 text-white'}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleDuplicate(template)} title="Duplicate"><Copy className="h-4 w-4" /></Button>
+                        <Button variant={template.is_active ? "ghost" : "default"} size="sm" onClick={() => handleToggleActive(template)} className={template.is_active ? '' : 'bg-green-500 text-white'}>
                           {template.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(template)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(template)} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </div>
                   </div>
@@ -861,411 +798,203 @@ export default function TemplateSettings() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={showCreateDialog || showEditDialog} onOpenChange={() => {
-        setShowCreateDialog(false);
-        setShowEditDialog(false);
-      }}>
+      <Dialog open={showCreateDialog || showEditDialog} onOpenChange={() => { setShowCreateDialog(false); setShowEditDialog(false); }}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {showEditDialog ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-              {showEditDialog ? 'Edit Template' : 'Create Template'}
-            </DialogTitle>
+            <DialogTitle>{showEditDialog ? 'Edit Template' : 'Create Template'}</DialogTitle>
           </DialogHeader>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-4">
-            {/* Form Column */}
+          <div className="grid lg:grid-cols-3 gap-6 py-4">
             <div className="lg:col-span-2 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Template Name *</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Booking Confirmation SMS"
-                  />
-                </div>
-                <div>
-                  <Label>Category *</Label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                    disabled={showEditDialog}
-                  >
-                    {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-                      <option key={key} value={key}>{config.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <div><Label>Name *</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                <div><Label>Category</Label><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-3 py-2 border rounded-lg" disabled={showEditDialog}>
+                  {Object.entries(CATEGORY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select></div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Trigger Event</Label>
-                  <select
-                    value={formData.trigger_event}
-                    onChange={(e) => setFormData({ ...formData, trigger_event: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                  >
-                    <option value="">-- Select Trigger --</option>
-                    {triggerEvents
-                      .filter(e => e.category.includes(formData.category))
-                      .map(event => (
-                        <option key={event.id} value={event.id}>{event.name}</option>
-                      ))
-                    }
-                  </select>
-                </div>
-                <div>
-                  <Label>Schedule Type</Label>
-                  <select
-                    value={formData.schedule_type}
-                    onChange={(e) => setFormData({ ...formData, schedule_type: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                  >
-                    {scheduleTypes.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
+                <div><Label>Trigger Event</Label><select value={formData.trigger_event} onChange={(e) => setFormData({ ...formData, trigger_event: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                  <option value="">-- Select --</option>
+                  {triggerEvents.filter(e => e.category.includes(formData.category)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select></div>
+                <div><Label>Schedule</Label><select value={formData.schedule_type} onChange={(e) => setFormData({ ...formData, schedule_type: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                  {scheduleTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select></div>
               </div>
-
-              {/* Schedule Configuration */}
-              {formData.schedule_type !== 'immediate' && (
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <Label className="text-purple-700 dark:text-purple-300 flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Schedule Configuration
-                  </Label>
-                  {formData.schedule_type === 'fixed_time' ? (
-                    <Input
-                      type="time"
-                      value={formData.schedule_time}
-                      onChange={(e) => setFormData({ ...formData, schedule_time: e.target.value })}
-                      className="mt-2"
-                    />
-                  ) : (
-                    <div className="flex gap-2 mt-2">
-                      <Input
-                        type="number"
-                        value={formData.schedule_offset}
-                        onChange={(e) => setFormData({ ...formData, schedule_offset: parseInt(e.target.value) })}
-                        className="w-24"
-                        min={1}
-                        max={168}
-                      />
-                      <select
-                        value={formData.schedule_unit}
-                        onChange={(e) => setFormData({ ...formData, schedule_unit: e.target.value })}
-                        className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                      >
-                        <option value="minutes">Minutes</option>
-                        <option value="hours">Hours</option>
-                        <option value="days">Days</option>
-                      </select>
-                      <span className="flex items-center text-sm text-slate-500">
-                        {formData.schedule_type === 'before_event' ? 'before event' : 'after event'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {(formData.category === 'email' || formData.category === 'payment') && (
-                <div>
-                  <Label>Subject Line</Label>
-                  <Input
-                    value={formData.subject}
-                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    placeholder="e.g., Booking Confirmed - {{booking_id}}"
-                  />
-                </div>
+                <div><Label>Subject</Label><Input value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} /></div>
               )}
-
-              {/* Language Tabs */}
               <div>
-                <Label className="flex items-center gap-2 mb-2">
-                  <Languages className="h-4 w-4" />
-                  Content (Multi-Language)
-                </Label>
+                <Label className="flex items-center gap-2 mb-2"><Languages className="h-4 w-4" />Content</Label>
                 <div className="flex gap-1 mb-2 flex-wrap">
                   {Object.entries(LANGUAGE_CONFIG).map(([code, lang]) => (
-                    <button
-                      key={code}
-                      onClick={() => setActiveLang(code)}
-                      className={`px-3 py-1.5 text-sm rounded-lg flex items-center gap-1 transition-colors ${
-                        activeLang === code
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      <span>{lang.flag}</span>
-                      {lang.native}
+                    <button key={code} onClick={() => setActiveLang(code)} className={`px-3 py-1.5 text-sm rounded-lg flex items-center gap-1 ${activeLang === code ? 'bg-orange-500 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>
+                      {lang.flag} {lang.native}
                     </button>
                   ))}
                 </div>
-                <textarea
-                  value={formData[getContentField(activeLang)]}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    [getContentField(activeLang)]: e.target.value 
-                  })}
-                  rows={formData.category === 'email' ? 10 : 5}
-                  className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 font-mono text-sm"
-                  placeholder={`Enter ${LANGUAGE_CONFIG[activeLang]?.name} content...`}
-                />
+                <textarea value={formData[getContentField(activeLang)]} onChange={(e) => setFormData({ ...formData, [getContentField(activeLang)]: e.target.value })} rows={formData.category === 'email' ? 10 : 5} className="w-full px-3 py-2 border rounded-lg font-mono text-sm" placeholder={`${LANGUAGE_CONFIG[activeLang]?.name} content...`} />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Priority</Label>
-                  <Input
-                    type="number"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="flex items-end">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="rounded h-5 w-5"
-                    />
-                    <span>Active</span>
-                  </label>
-                </div>
+                <div><Label>Priority</Label><Input type="number" value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })} /></div>
+                <div className="flex items-end"><label className="flex items-center gap-2"><input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="rounded h-5 w-5" />Active</label></div>
               </div>
             </div>
-
-            {/* Variables Panel */}
             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Hash className="h-4 w-4" />
-                Variables
-              </h4>
-              <p className="text-xs text-slate-500 mb-3">Click to insert</p>
-              
-              <div className="space-y-4 max-h-[500px] overflow-y-auto">
+              <h4 className="font-medium mb-3"><Hash className="h-4 w-4 inline mr-1" />Variables</h4>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
                 {Object.entries(templateVariables).map(([group, vars]) => (
                   <div key={group}>
-                    <h5 className="text-xs font-medium text-slate-500 uppercase mb-2">
-                      {group}
-                    </h5>
+                    <h5 className="text-xs font-medium text-slate-500 uppercase mb-1">{group}</h5>
                     <div className="flex flex-wrap gap-1">
-                      {vars.map((v, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => insertVariable(v)}
-                          className="px-2 py-1 text-xs bg-white dark:bg-slate-800 border rounded hover:bg-orange-50 hover:border-orange-300 font-mono"
-                        >
-                          {v}
-                        </button>
-                      ))}
+                      {vars.map((v, i) => <button key={i} type="button" onClick={() => insertVariable(v)} className="px-2 py-1 text-xs bg-white border rounded hover:bg-orange-50 font-mono">{v}</button>)}
                     </div>
                   </div>
                 ))}
               </div>
+              {bestPractices && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="font-medium mb-2 flex items-center gap-1"><Lightbulb className="h-4 w-4 text-yellow-500" />Tips</h4>
+                  <ul className="text-xs text-slate-600 space-y-1">
+                    {bestPractices.tips?.slice(0, 4).map((tip, i) => <li key={i}>• {tip}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }}>
-              Cancel
-            </Button>
-            <Button onClick={() => handleSaveTemplate(showEditDialog)} className="bg-orange-500 hover:bg-orange-600">
-              {showEditDialog ? 'Update' : 'Create'} Template
-            </Button>
+            <Button variant="outline" onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }}>Cancel</Button>
+            <Button onClick={() => handleSaveTemplate(showEditDialog)} className="bg-orange-500 hover:bg-orange-600">{showEditDialog ? 'Update' : 'Create'}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle><History className="h-5 w-5 inline mr-2" />Version History</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-4">
+            {versionHistory.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">No version history</p>
+            ) : versionHistory.map(v => (
+              <div key={v.version_id} className="p-4 border rounded-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <span className="font-semibold">Version {v.version}</span>
+                    <p className="text-sm text-slate-500">{v.created_by_email} • {new Date(v.created_at).toLocaleString()}</p>
+                    {v.change_note && <p className="text-sm mt-1">{v.change_note}</p>}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => handleRollback(v.version)}><RotateCcw className="h-4 w-4 mr-1" />Rollback</Button>
+                </div>
+                <div className="text-xs bg-slate-50 p-2 rounded font-mono line-clamp-2">{v.snapshot?.content?.substring(0, 150)}...</div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Suggestions Dialog */}
+      <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle><Sparkles className="h-5 w-5 inline mr-2 text-purple-500" />AI Suggestions</DialogTitle></DialogHeader>
+          <div className="py-4">
+            <div className="flex gap-2 mb-4">
+              {['improve', 'shorten', 'emoji', 'formal', 'casual'].map(type => (
+                <button key={type} onClick={() => { setAiSuggestionType(type); handleGetAISuggestions(selectedTemplate); }} className={`px-3 py-1.5 rounded-lg text-sm ${aiSuggestionType === type ? 'bg-purple-500 text-white' : 'bg-slate-100'}`}>
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+            {!aiSuggestions ? (
+              <div className="text-center py-8"><Loader2 className="h-8 w-8 animate-spin mx-auto text-purple-500" /><p className="mt-2 text-slate-500">Getting AI suggestions...</p></div>
+            ) : aiSuggestions.ai_available === false ? (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-500 mb-4">{aiSuggestions.message}</p>
+                {aiSuggestions.suggestions?.map((s, i) => (
+                  <div key={i} className="p-4 border rounded-lg">
+                    <h4 className="font-medium flex items-center gap-2"><Lightbulb className="h-4 w-4 text-yellow-500" />{s.title}</h4>
+                    <p className="text-sm text-slate-600 mt-1">{s.suggestion}</p>
+                    {s.example && <code className="text-xs bg-slate-100 p-2 rounded block mt-2">{s.example}</code>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <pre className="whitespace-pre-wrap text-sm">{aiSuggestions.ai_response}</pre>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* A/B Stats Dialog */}
       <Dialog open={showABDialog} onOpenChange={setShowABDialog}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Beaker className="h-5 w-5 text-purple-500" />
-              A/B Test Results
-            </DialogTitle>
-          </DialogHeader>
-          
+          <DialogHeader><DialogTitle><Beaker className="h-5 w-5 inline mr-2" />A/B Test Results</DialogTitle></DialogHeader>
           {abStats && (
             <div className="py-4 space-y-4">
-              {/* Original */}
               <div className="p-4 border rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">Original (A)</span>
-                    <span className="font-medium">{abStats.original?.name}</span>
-                  </div>
-                  {abStats.winner === abStats.original?.template_id && (
-                    <span className="flex items-center gap-1 text-green-600 text-sm">
-                      <Award className="h-4 w-4" />
-                      Winner
-                    </span>
-                  )}
+                <div className="flex justify-between mb-3">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">Original (A)</span>
+                  {abStats.winner === abStats.original?.template_id && <span className="text-green-600 text-sm flex items-center"><Award className="h-4 w-4 mr-1" />Winner</span>}
                 </div>
                 <div className="grid grid-cols-4 gap-3 text-center">
-                  <div>
-                    <p className="text-2xl font-bold">{abStats.original?.sent_count}</p>
-                    <p className="text-xs text-slate-500">Sent</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{abStats.original?.delivery_rate}%</p>
-                    <p className="text-xs text-slate-500">Delivered</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{abStats.original?.open_rate}%</p>
-                    <p className="text-xs text-slate-500">Opened</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-green-600">{abStats.original?.conversion_rate}%</p>
-                    <p className="text-xs text-slate-500">Converted</p>
-                  </div>
+                  <div><p className="text-2xl font-bold">{abStats.original?.sent_count}</p><p className="text-xs text-slate-500">Sent</p></div>
+                  <div><p className="text-2xl font-bold">{abStats.original?.delivery_rate}%</p><p className="text-xs text-slate-500">Delivered</p></div>
+                  <div><p className="text-2xl font-bold">{abStats.original?.open_rate}%</p><p className="text-xs text-slate-500">Opened</p></div>
+                  <div><p className="text-2xl font-bold text-green-600">{abStats.original?.conversion_rate}%</p><p className="text-xs text-slate-500">Converted</p></div>
                 </div>
               </div>
-
-              {/* Variants */}
-              {abStats.variants?.map((variant, i) => (
-                <div key={variant.template_id} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Variant {String.fromCharCode(66 + i)}</span>
-                      <span className="font-medium">{variant.name}</span>
-                      {variant.ab_test_active && (
-                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">Testing</span>
-                      )}
-                    </div>
-                    {abStats.winner === variant.template_id && (
-                      <span className="flex items-center gap-1 text-green-600 text-sm">
-                        <Award className="h-4 w-4" />
-                        Winner
-                      </span>
-                    )}
+              {abStats.variants?.map((v, i) => (
+                <div key={v.template_id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between mb-3">
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Variant {String.fromCharCode(66 + i)}</span>
+                    {abStats.winner === v.template_id && <span className="text-green-600 text-sm flex items-center"><Award className="h-4 w-4 mr-1" />Winner</span>}
                   </div>
                   <div className="grid grid-cols-4 gap-3 text-center">
-                    <div>
-                      <p className="text-2xl font-bold">{variant.sent_count}</p>
-                      <p className="text-xs text-slate-500">Sent</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{variant.delivery_rate}%</p>
-                      <p className="text-xs text-slate-500">Delivered</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{variant.open_rate}%</p>
-                      <p className="text-xs text-slate-500">Opened</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-green-600">{variant.conversion_rate}%</p>
-                      <p className="text-xs text-slate-500">Converted</p>
-                    </div>
+                    <div><p className="text-2xl font-bold">{v.sent_count}</p><p className="text-xs text-slate-500">Sent</p></div>
+                    <div><p className="text-2xl font-bold">{v.delivery_rate}%</p><p className="text-xs text-slate-500">Delivered</p></div>
+                    <div><p className="text-2xl font-bold">{v.open_rate}%</p><p className="text-xs text-slate-500">Opened</p></div>
+                    <div><p className="text-2xl font-bold text-green-600">{v.conversion_rate}%</p><p className="text-xs text-slate-500">Converted</p></div>
                   </div>
                   <div className="mt-3 flex justify-end">
-                    <Button
-                      size="sm"
-                      variant={variant.ab_test_active ? "destructive" : "default"}
-                      onClick={() => handleToggleABTest(variant)}
-                    >
-                      {variant.ab_test_active ? 'Stop Test' : 'Start Test'}
-                    </Button>
+                    <Button size="sm" variant={v.ab_test_active ? "destructive" : "default"} onClick={() => handleToggleABTest(v)}>{v.ab_test_active ? 'Stop Test' : 'Start Test'}</Button>
                   </div>
                 </div>
               ))}
-
-              {/* Recommendation */}
-              <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                <p className="text-sm flex items-center gap-2">
-                  <Target className="h-4 w-4 text-orange-500" />
-                  <strong>Recommendation:</strong> {abStats.recommendation}
-                </p>
-              </div>
+              <div className="p-3 bg-slate-100 rounded-lg"><p className="text-sm"><Target className="h-4 w-4 inline mr-2 text-orange-500" /><strong>Recommendation:</strong> {abStats.recommendation}</p></div>
             </div>
           )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowABDialog(false)}>Close</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Schedule Dialog */}
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-purple-500" />
-              Configure Schedule
-            </DialogTitle>
-          </DialogHeader>
-          
+          <DialogHeader><DialogTitle><Calendar className="h-5 w-5 inline mr-2" />Configure Schedule</DialogTitle></DialogHeader>
           <div className="py-4 space-y-4">
             <div>
               <Label>Schedule Type</Label>
-              <select
-                value={formData.schedule_type}
-                onChange={(e) => setFormData({ ...formData, schedule_type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 mt-1"
-              >
-                {scheduleTypes.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+              <select value={formData.schedule_type} onChange={(e) => setFormData({ ...formData, schedule_type: e.target.value })} className="w-full px-3 py-2 border rounded-lg mt-1">
+                {scheduleTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <p className="text-xs text-slate-500 mt-1">
-                {scheduleTypes.find(s => s.id === formData.schedule_type)?.description}
-              </p>
             </div>
-
             {formData.schedule_type === 'fixed_time' && (
-              <div>
-                <Label>Time of Day</Label>
-                <Input
-                  type="time"
-                  value={formData.schedule_time}
-                  onChange={(e) => setFormData({ ...formData, schedule_time: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
+              <div><Label>Time</Label><Input type="time" value={formData.schedule_time} onChange={(e) => setFormData({ ...formData, schedule_time: e.target.value })} className="mt-1" /></div>
             )}
-
             {(formData.schedule_type === 'before_event' || formData.schedule_type === 'after_event') && (
-              <div>
-                <Label>Offset</Label>
+              <div><Label>Offset</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={formData.schedule_offset}
-                    onChange={(e) => setFormData({ ...formData, schedule_offset: parseInt(e.target.value) })}
-                    className="w-24"
-                    min={1}
-                    max={168}
-                  />
-                  <select
-                    value={formData.schedule_unit}
-                    onChange={(e) => setFormData({ ...formData, schedule_unit: e.target.value })}
-                    className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                  >
-                    <option value="minutes">Minutes</option>
-                    <option value="hours">Hours</option>
-                    <option value="days">Days</option>
+                  <Input type="number" value={formData.schedule_offset} onChange={(e) => setFormData({ ...formData, schedule_offset: parseInt(e.target.value) })} className="w-24" min={1} max={168} />
+                  <select value={formData.schedule_unit} onChange={(e) => setFormData({ ...formData, schedule_unit: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg">
+                    <option value="minutes">Minutes</option><option value="hours">Hours</option><option value="days">Days</option>
                   </select>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Template will be sent {formData.schedule_offset} {formData.schedule_unit} {formData.schedule_type === 'before_event' ? 'before' : 'after'} the event
-                </p>
               </div>
             )}
           </div>
-          
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>Cancel</Button>
-            <Button onClick={handleSaveSchedule} className="bg-purple-500 hover:bg-purple-600">
-              Save Schedule
-            </Button>
+            <Button onClick={handleSaveSchedule} className="bg-purple-500 hover:bg-purple-600">Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1273,72 +1002,31 @@ export default function TemplateSettings() {
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Template Preview
-            </DialogTitle>
-          </DialogHeader>
-          
+          <DialogHeader><DialogTitle><Eye className="h-5 w-5 inline mr-2" />Preview</DialogTitle></DialogHeader>
           {previewContent && (
             <div className="py-4">
-              <div className="mb-4 flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-xs text-white ${CATEGORY_CONFIG[previewContent.category]?.color}`}>
-                  {previewContent.category?.toUpperCase()}
-                </span>
-                <span className="text-slate-600">{previewContent.name}</span>
-              </div>
-              
-              {previewContent.subject && (
-                <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                  <Label className="text-xs text-slate-500">Subject</Label>
-                  <p className="font-medium">{previewContent.subject}</p>
-                </div>
-              )}
-              
+              <div className="mb-4"><span className={`px-2 py-1 rounded text-xs text-white ${CATEGORY_CONFIG[previewContent.category]?.color}`}>{previewContent.category?.toUpperCase()}</span></div>
+              {previewContent.subject && <div className="mb-4 p-3 bg-slate-100 rounded-lg"><Label className="text-xs">Subject</Label><p className="font-medium">{previewContent.subject}</p></div>}
               <div className="border rounded-lg overflow-hidden">
                 {previewContent.category === 'email' || previewContent.category === 'payment' ? (
-                  <iframe
-                    srcDoc={previewContent.content}
-                    title="Preview"
-                    className="w-full h-[500px] bg-white"
-                  />
+                  <iframe srcDoc={previewContent.content} title="Preview" className="w-full h-[500px] bg-white" />
                 ) : (
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900 whitespace-pre-wrap">
-                    {previewContent.content}
-                  </div>
+                  <div className="p-4 bg-slate-50 whitespace-pre-wrap">{previewContent.content}</div>
                 )}
               </div>
             </div>
           )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>Close</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              Delete Template?
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <p className="text-slate-600">
-              Are you sure you want to delete <strong>&quot;{selectedTemplate?.name}&quot;</strong>?
-            </p>
-          </div>
-          
+          <DialogHeader><DialogTitle className="text-red-600"><AlertTriangle className="h-5 w-5 inline mr-2" />Delete?</DialogTitle></DialogHeader>
+          <p className="py-4">Delete &quot;{selectedTemplate?.name}&quot;?</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
-              Delete
-            </Button>
+            <Button onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

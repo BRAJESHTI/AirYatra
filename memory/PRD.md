@@ -2292,3 +2292,80 @@ Settings & System → Template Settings / टेम्पलेट
 - `POST /templates/{id}/track-usage` - Track template usage events
 - `GET /templates/analytics/overview` - Usage analytics dashboard
 - `GET /templates/analytics/template/{id}` - Per-template analytics
+
+---
+
+## Session: August 7, 2026 (Part 4)
+
+### Advanced Template Features - Auto-Send, Approval Workflow, Version History, AI Suggestions
+
+**Status**: ✅ DONE (All 4 Advanced Features Implemented)
+
+#### 1. Auto-Send Integration (Notification Queue)
+- Queue notifications for scheduled sending
+- Send immediately or at scheduled time
+- Track sent/failed/queued status
+- Cancel queued notifications
+- APIs:
+  - `POST /templates/{id}/queue-notification` - Queue a notification
+  - `GET /templates/queue/pending` - Get pending queue
+  - `GET /templates/queue/history` - Get send history with stats
+  - `POST /templates/queue/{queue_id}/send-now` - Manually trigger send
+  - `POST /templates/queue/{queue_id}/cancel` - Cancel queued notification
+
+#### 2. Template Approval Workflow (Maker-Checker)
+- Submit template for approval
+- Approve/Reject/Request Changes actions
+- Maker-checker validation (cannot approve own submission)
+- Approval history tracking
+- Only approved templates can be activated
+- APIs:
+  - `POST /templates/{id}/submit-for-approval` - Submit for review
+  - `GET /templates/approvals/pending` - List pending approvals
+  - `POST /templates/{id}/approve` - Approve (super_admin only)
+  - `POST /templates/{id}/reject` - Reject with reason
+  - `POST /templates/{id}/request-changes` - Request modifications
+  - `GET /templates/{id}/approval-history` - View approval history
+
+#### 3. Version History & Rollback
+- Automatic version snapshots before edits
+- Manual version save with notes
+- View version history
+- Compare two versions
+- Rollback to any previous version
+- APIs:
+  - `GET /templates/{id}/history` - Get version history
+  - `POST /templates/{id}/save-version` - Manually save version
+  - `POST /templates/{id}/rollback/{version}` - Rollback to version
+  - `GET /templates/{id}/compare/{v1}/{v2}` - Compare versions
+
+#### 4. AI-Powered Suggestions
+- Template improvement suggestions
+- Content shortening
+- Emoji enhancement
+- Formal/Casual tone adjustment
+- Best practices by category (SMS/WhatsApp/Email/Payment)
+- AI template generation (when LLM available)
+- Falls back to curated best practices when AI unavailable
+- APIs:
+  - `POST /templates/{id}/ai-suggestions` - Get AI suggestions
+  - `GET /templates/ai/best-practices` - Get best practices by category
+  - `POST /templates/ai/generate-template` - Generate new template with AI
+
+#### Frontend UI Additions:
+- 5 main tabs: Templates | Approvals | Send Queue | Analytics | Scheduled
+- Approval workflow buttons (Approve/Reject/Request Changes)
+- Version history dialog with rollback
+- AI suggestions dialog with suggestion types
+- Notification queue management with Send Now/Cancel
+- Status badges: Active, Pending Approval, Approved, Rejected, etc.
+
+#### Database Collections Added:
+- `template_versions` - Version history snapshots
+- `template_approvals` - Approval workflow records
+- `notification_queue` - Queued notifications
+
+#### Files Modified:
+- `/app/backend/routes/template_routes.py` - Added all new endpoints
+- `/app/frontend/src/components/admin/TemplateSettings.js` - Complete UI overhaul
+

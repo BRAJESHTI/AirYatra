@@ -1,23 +1,44 @@
 """
 Template Management Routes - AirYatra Aviation Platform
 Manage SMS, WhatsApp, Email, and Payment notification templates
-Features: Scheduling, A/B Testing, Multi-Language, Usage Analytics
+Features: Scheduling, A/B Testing, Multi-Language, Usage Analytics,
+          Auto-Send, Approval Workflow, Version History, AI Suggestions
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 import uuid
 import random
+import copy
+import hashlib
+import os
 
 from database import get_database
 from middleware import require_roles
 
 router = APIRouter(prefix="/templates", tags=["Template Management"])
 
+# Try to import AI integration
+try:
+    from emergentintegrations.llm.chat import chat, Message
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+    print("AI suggestions disabled - emergentintegrations not available")
+
 
 # ==================== MODELS ====================
+
+# Approval Status
+APPROVAL_STATUS = {
+    "draft": {"label": "Draft", "color": "gray", "can_activate": False},
+    "pending_approval": {"label": "Pending Approval", "color": "yellow", "can_activate": False},
+    "approved": {"label": "Approved", "color": "green", "can_activate": True},
+    "rejected": {"label": "Rejected", "color": "red", "can_activate": False},
+    "changes_requested": {"label": "Changes Requested", "color": "orange", "can_activate": False}
+}
 
 class TemplateBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -278,6 +299,200 @@ async def get_scheduled_templates(
         "success": True,
         "scheduled_templates": grouped,
         "total": len(templates)
+    }
+
+
+# ==================== QUEUE ROUTES (Before /{template_id}) ====================
+
+@router.get("/queue/pending")
+async def get_pending_notifications_route(
+    category: str = None,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get pending notifications in queue"""
+    
+    db = get_database()
+    
+    query = {"status": "queued"}
+    if category:
+        query["category"] = category
+    
+    pending = await db.notification_queue.find(query)\
+        .sort("scheduled_time", 1)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for p in pending:
+        p["_id"] = str(p["_id"])
+        for field in ["scheduled_time", "created_at"]:
+            if isinstance(p.get(field), datetime):
+                p[field] = p[field].isoformat()
+    
+    return {
+        "success": True,
+        "pending": pending,
+        "total": len(pending)
+    }
+
+
+@router.get("/queue/history")
+async def get_send_history_route(
+    template_id: str = None,
+    status: str = None,
+    days: int = Query(7, ge=1, le=30),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get notification send history"""
+    
+    db = get_database()
+    
+    query = {
+        "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=days)}
+    }
+    if template_id:
+        query["template_id"] = template_id
+    if status:
+        query["status"] = status
+    
+    history = await db.notification_queue.find(query)\
+        .sort("created_at", -1)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for h in history:
+        h["_id"] = str(h["_id"])
+        for field in ["scheduled_time", "created_at", "sent_at"]:
+            if isinstance(h.get(field), datetime):
+                h[field] = h[field].isoformat()
+    
+    # Stats
+    stats = {
+        "total": len(history),
+        "sent": sum(1 for h in history if h.get("status") == "sent"),
+        "failed": sum(1 for h in history if h.get("status") == "failed"),
+        "queued": sum(1 for h in history if h.get("status") == "queued")
+    }
+    
+    return {
+        "success": True,
+        "history": history,
+        "stats": stats
+    }
+
+
+# ==================== APPROVALS ROUTES (Before /{template_id}) ====================
+
+@router.get("/approvals/pending")
+async def get_pending_approvals_route(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get all templates pending approval"""
+    
+    db = get_database()
+    
+    pending = await db.template_approvals.find(
+        {"status": "pending"}
+    ).sort("submitted_at", -1).to_list(100)
+    
+    for p in pending:
+        p["_id"] = str(p["_id"])
+        if isinstance(p.get("submitted_at"), datetime):
+            p["submitted_at"] = p["submitted_at"].isoformat()
+    
+    return {
+        "success": True,
+        "pending_approvals": pending,
+        "total": len(pending)
+    }
+
+
+# ==================== AI ROUTES (Before /{template_id}) ====================
+
+@router.get("/ai/best-practices")
+async def get_best_practices_route(
+    category: str = Query("sms", pattern="^(sms|whatsapp|email|payment)$")
+):
+    """Get best practices for template creation"""
+    
+    best_practices = {
+        "sms": {
+            "max_length": 160,
+            "tips": [
+                "Keep under 160 characters for single SMS",
+                "Start with brand name (AirYatra)",
+                "Include booking ID for reference",
+                "End with contact info or action",
+                "Avoid special characters that may not render",
+                "Use simple, clear language"
+            ],
+            "do_not": [
+                "Don't use ALL CAPS",
+                "Don't include long URLs",
+                "Don't use excessive punctuation!!!",
+                "Don't send at odd hours"
+            ],
+            "examples": {
+                "good": "AirYatra: Booking {{booking_id}} confirmed! {{departure_city}}→{{arrival_city}} on {{departure_date}}. Query: 1800-AIR-YATRA",
+                "bad": "YOUR BOOKING HAS BEEN CONFIRMED!!! CLICK HERE: https://very-long-url.com/booking/details?id=123456789&ref=abc"
+            }
+        },
+        "whatsapp": {
+            "max_length": 4096,
+            "tips": [
+                "Use formatting: *bold*, _italic_, ~strikethrough~",
+                "Include emojis for visual appeal",
+                "Structure with clear sections",
+                "Add interactive buttons if supported",
+                "Include images/documents when relevant"
+            ],
+            "do_not": [
+                "Don't send too many messages",
+                "Don't use excessive emojis",
+                "Don't include sensitive data in media"
+            ],
+            "examples": {
+                "good": "🎉 *Booking Confirmed!*\n\n📋 ID: {{booking_id}}\n✈️ {{departure_city}} → {{arrival_city}}\n📅 {{departure_date}}"
+            }
+        },
+        "email": {
+            "max_length": None,
+            "tips": [
+                "Use responsive HTML design",
+                "Include preheader text",
+                "Add clear CTA buttons",
+                "Include unsubscribe link",
+                "Test across email clients",
+                "Optimize images for fast loading"
+            ],
+            "do_not": [
+                "Don't use image-only emails",
+                "Don't hide important info in images",
+                "Don't use too many fonts/colors"
+            ]
+        },
+        "payment": {
+            "max_length": None,
+            "tips": [
+                "Include transaction ID prominently",
+                "Show itemized breakdown",
+                "Include GST/tax details",
+                "Add payment method info",
+                "Include support contact"
+            ],
+            "do_not": [
+                "Don't include full card numbers",
+                "Don't show CVV or security codes"
+            ]
+        }
+    }
+    
+    return {
+        "success": True,
+        "category": category,
+        "best_practices": best_practices.get(category, {}),
+        "all_categories": list(best_practices.keys())
     }
 
 
@@ -1511,3 +1726,992 @@ async def update_template_schedule(
             "time": schedule_time
         }
     }
+
+
+
+# ==================== VERSION HISTORY ENDPOINTS ====================
+
+@router.get("/{template_id}/history")
+async def get_template_history(
+    template_id: str,
+    limit: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get version history of a template"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Get version history
+    history = await db.template_versions.find(
+        {"template_id": template_id}
+    ).sort("version", -1).limit(limit).to_list(limit)
+    
+    for h in history:
+        h["_id"] = str(h["_id"])
+        if isinstance(h.get("created_at"), datetime):
+            h["created_at"] = h["created_at"].isoformat()
+    
+    return {
+        "success": True,
+        "template_id": template_id,
+        "current_version": template.get("version", 1),
+        "history": history,
+        "total_versions": len(history)
+    }
+
+
+@router.post("/{template_id}/save-version")
+async def save_template_version(
+    template_id: str,
+    change_note: str = Query(None, max_length=500),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually save current state as a version"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Get current version number
+    current_version = template.get("version", 0)
+    new_version = current_version + 1
+    
+    # Create version snapshot
+    version_doc = {
+        "version_id": f"VER-{uuid.uuid4().hex[:8].upper()}",
+        "template_id": template_id,
+        "version": new_version,
+        "snapshot": {
+            "name": template.get("name"),
+            "content": template.get("content"),
+            "content_hindi": template.get("content_hindi"),
+            "content_marathi": template.get("content_marathi"),
+            "content_gujarati": template.get("content_gujarati"),
+            "content_tamil": template.get("content_tamil"),
+            "subject": template.get("subject"),
+            "variables": template.get("variables"),
+            "trigger_event": template.get("trigger_event"),
+            "schedule_type": template.get("schedule_type"),
+            "schedule_offset": template.get("schedule_offset"),
+            "schedule_unit": template.get("schedule_unit"),
+            "priority": template.get("priority")
+        },
+        "change_note": change_note or "Manual version save",
+        "created_by": current_user.get("id"),
+        "created_by_email": current_user.get("email"),
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    await db.template_versions.insert_one(version_doc)
+    
+    # Update template version number
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {"version": new_version, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {
+        "success": True,
+        "version": new_version,
+        "version_id": version_doc["version_id"],
+        "message": f"Version {new_version} saved"
+    }
+
+
+@router.post("/{template_id}/rollback/{version}")
+async def rollback_template(
+    template_id: str,
+    version: int,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Rollback template to a previous version"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Get the version to rollback to
+    version_doc = await db.template_versions.find_one({
+        "template_id": template_id,
+        "version": version
+    })
+    if not version_doc:
+        raise HTTPException(status_code=404, detail=f"Version {version} not found")
+    
+    # Save current state as new version before rollback
+    current_version = template.get("version", 0)
+    new_version = current_version + 1
+    
+    # Save current state
+    pre_rollback_doc = {
+        "version_id": f"VER-{uuid.uuid4().hex[:8].upper()}",
+        "template_id": template_id,
+        "version": new_version,
+        "snapshot": {
+            "name": template.get("name"),
+            "content": template.get("content"),
+            "content_hindi": template.get("content_hindi"),
+            "content_marathi": template.get("content_marathi"),
+            "content_gujarati": template.get("content_gujarati"),
+            "content_tamil": template.get("content_tamil"),
+            "subject": template.get("subject"),
+            "variables": template.get("variables"),
+            "trigger_event": template.get("trigger_event"),
+            "schedule_type": template.get("schedule_type"),
+            "schedule_offset": template.get("schedule_offset"),
+            "schedule_unit": template.get("schedule_unit"),
+            "priority": template.get("priority")
+        },
+        "change_note": f"Auto-saved before rollback to version {version}",
+        "created_by": current_user.get("id"),
+        "created_by_email": current_user.get("email"),
+        "created_at": datetime.now(timezone.utc)
+    }
+    await db.template_versions.insert_one(pre_rollback_doc)
+    
+    # Apply rollback
+    snapshot = version_doc.get("snapshot", {})
+    
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "content": snapshot.get("content"),
+            "content_hindi": snapshot.get("content_hindi"),
+            "content_marathi": snapshot.get("content_marathi"),
+            "content_gujarati": snapshot.get("content_gujarati"),
+            "content_tamil": snapshot.get("content_tamil"),
+            "subject": snapshot.get("subject"),
+            "variables": snapshot.get("variables", []),
+            "trigger_event": snapshot.get("trigger_event"),
+            "schedule_type": snapshot.get("schedule_type"),
+            "schedule_offset": snapshot.get("schedule_offset"),
+            "schedule_unit": snapshot.get("schedule_unit"),
+            "priority": snapshot.get("priority", 0),
+            "version": new_version + 1,
+            "rollback_from_version": version,
+            "updated_at": datetime.now(timezone.utc),
+            "updated_by": current_user.get("id")
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Rolled back to version {version}",
+        "new_version": new_version + 1,
+        "rollback_from": version
+    }
+
+
+@router.get("/{template_id}/compare/{version1}/{version2}")
+async def compare_versions(
+    template_id: str,
+    version1: int,
+    version2: int,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Compare two versions of a template"""
+    
+    db = get_database()
+    
+    v1 = await db.template_versions.find_one({"template_id": template_id, "version": version1})
+    v2 = await db.template_versions.find_one({"template_id": template_id, "version": version2})
+    
+    if not v1 or not v2:
+        raise HTTPException(status_code=404, detail="One or both versions not found")
+    
+    # Compare snapshots
+    s1 = v1.get("snapshot", {})
+    s2 = v2.get("snapshot", {})
+    
+    differences = []
+    fields_to_compare = ["content", "content_hindi", "content_marathi", "content_gujarati", 
+                         "content_tamil", "subject", "trigger_event", "schedule_type", "priority"]
+    
+    for field in fields_to_compare:
+        val1 = s1.get(field)
+        val2 = s2.get(field)
+        if val1 != val2:
+            differences.append({
+                "field": field,
+                "version1_value": val1,
+                "version2_value": val2
+            })
+    
+    return {
+        "success": True,
+        "version1": {"version": version1, "created_at": v1.get("created_at"), "note": v1.get("change_note")},
+        "version2": {"version": version2, "created_at": v2.get("created_at"), "note": v2.get("change_note")},
+        "differences": differences,
+        "total_changes": len(differences)
+    }
+
+
+# ==================== APPROVAL WORKFLOW ENDPOINTS ====================
+
+@router.post("/{template_id}/submit-for-approval")
+async def submit_for_approval(
+    template_id: str,
+    note: str = Query(None, max_length=500),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Submit template for approval"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    current_status = template.get("approval_status", "draft")
+    if current_status == "pending_approval":
+        raise HTTPException(status_code=400, detail="Template already pending approval")
+    
+    # Create approval request
+    approval_doc = {
+        "approval_id": f"APR-{uuid.uuid4().hex[:8].upper()}",
+        "template_id": template_id,
+        "template_name": template.get("name"),
+        "category": template.get("category"),
+        "submitted_by": current_user.get("id"),
+        "submitted_by_email": current_user.get("email"),
+        "submitted_at": datetime.now(timezone.utc),
+        "status": "pending",
+        "note": note,
+        "content_snapshot": template.get("content")[:200] + "..." if len(template.get("content", "")) > 200 else template.get("content"),
+        "reviewed_by": None,
+        "reviewed_at": None,
+        "review_note": None
+    }
+    
+    await db.template_approvals.insert_one(approval_doc)
+    
+    # Update template status
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "approval_status": "pending_approval",
+            "approval_submitted_at": datetime.now(timezone.utc),
+            "approval_submitted_by": current_user.get("id"),
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        "success": True,
+        "approval_id": approval_doc["approval_id"],
+        "message": "Template submitted for approval"
+    }
+
+
+@router.get("/approvals/pending")
+async def get_pending_approvals(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get all templates pending approval"""
+    
+    db = get_database()
+    
+    pending = await db.template_approvals.find(
+        {"status": "pending"}
+    ).sort("submitted_at", -1).to_list(100)
+    
+    for p in pending:
+        p["_id"] = str(p["_id"])
+        if isinstance(p.get("submitted_at"), datetime):
+            p["submitted_at"] = p["submitted_at"].isoformat()
+    
+    return {
+        "success": True,
+        "pending_approvals": pending,
+        "total": len(pending)
+    }
+
+
+@router.post("/{template_id}/approve")
+async def approve_template(
+    template_id: str,
+    note: str = Query(None, max_length=500),
+    current_user: dict = Depends(require_roles(["super_admin"]))
+):
+    """Approve a template (super_admin only)"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    if template.get("approval_status") != "pending_approval":
+        raise HTTPException(status_code=400, detail="Template not pending approval")
+    
+    # Check maker-checker (approver cannot be submitter)
+    if template.get("approval_submitted_by") == current_user.get("id"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Maker-Checker violation: You cannot approve your own submission"
+        )
+    
+    # Update approval record
+    await db.template_approvals.update_one(
+        {"template_id": template_id, "status": "pending"},
+        {"$set": {
+            "status": "approved",
+            "reviewed_by": current_user.get("id"),
+            "reviewed_by_email": current_user.get("email"),
+            "reviewed_at": datetime.now(timezone.utc),
+            "review_note": note
+        }}
+    )
+    
+    # Update template
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "approval_status": "approved",
+            "approved_by": current_user.get("id"),
+            "approved_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": "Template approved",
+        "can_activate": True
+    }
+
+
+@router.post("/{template_id}/reject")
+async def reject_template(
+    template_id: str,
+    reason: str = Query(..., min_length=10, max_length=500),
+    current_user: dict = Depends(require_roles(["super_admin"]))
+):
+    """Reject a template (super_admin only)"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    if template.get("approval_status") != "pending_approval":
+        raise HTTPException(status_code=400, detail="Template not pending approval")
+    
+    # Update approval record
+    await db.template_approvals.update_one(
+        {"template_id": template_id, "status": "pending"},
+        {"$set": {
+            "status": "rejected",
+            "reviewed_by": current_user.get("id"),
+            "reviewed_by_email": current_user.get("email"),
+            "reviewed_at": datetime.now(timezone.utc),
+            "review_note": reason
+        }}
+    )
+    
+    # Update template
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "approval_status": "rejected",
+            "rejection_reason": reason,
+            "rejected_by": current_user.get("id"),
+            "rejected_at": datetime.now(timezone.utc),
+            "is_active": False,  # Deactivate rejected templates
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": "Template rejected",
+        "reason": reason
+    }
+
+
+@router.post("/{template_id}/request-changes")
+async def request_changes(
+    template_id: str,
+    changes: str = Query(..., min_length=10, max_length=1000),
+    current_user: dict = Depends(require_roles(["super_admin"]))
+):
+    """Request changes on a template"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Update approval record
+    await db.template_approvals.update_one(
+        {"template_id": template_id, "status": "pending"},
+        {"$set": {
+            "status": "changes_requested",
+            "reviewed_by": current_user.get("id"),
+            "reviewed_by_email": current_user.get("email"),
+            "reviewed_at": datetime.now(timezone.utc),
+            "review_note": changes
+        }}
+    )
+    
+    # Update template
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "approval_status": "changes_requested",
+            "requested_changes": changes,
+            "changes_requested_by": current_user.get("id"),
+            "changes_requested_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": "Changes requested",
+        "requested_changes": changes
+    }
+
+
+@router.get("/{template_id}/approval-history")
+async def get_approval_history(
+    template_id: str,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get approval history for a template"""
+    
+    db = get_database()
+    
+    history = await db.template_approvals.find(
+        {"template_id": template_id}
+    ).sort("submitted_at", -1).to_list(50)
+    
+    for h in history:
+        h["_id"] = str(h["_id"])
+        for field in ["submitted_at", "reviewed_at"]:
+            if isinstance(h.get(field), datetime):
+                h[field] = h[field].isoformat()
+    
+    return {
+        "success": True,
+        "template_id": template_id,
+        "history": history
+    }
+
+
+# ==================== AUTO-SEND / NOTIFICATION QUEUE ENDPOINTS ====================
+
+@router.post("/{template_id}/queue-notification")
+async def queue_notification(
+    template_id: str,
+    recipient_data: dict,
+    scheduled_time: datetime = None,
+    language: str = Query("en"),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Queue a notification to be sent"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    if not template.get("is_active"):
+        raise HTTPException(status_code=400, detail="Template is not active")
+    
+    # Get content based on language
+    lang_field_map = {
+        "en": "content",
+        "hi": "content_hindi",
+        "mr": "content_marathi",
+        "gu": "content_gujarati",
+        "ta": "content_tamil"
+    }
+    content_field = lang_field_map.get(language, "content")
+    content = template.get(content_field) or template.get("content")
+    
+    # Replace variables in content
+    for key, value in recipient_data.items():
+        placeholder = "{{" + key + "}}"
+        content = content.replace(placeholder, str(value))
+    
+    # Create queue entry
+    queue_doc = {
+        "queue_id": f"QUE-{uuid.uuid4().hex[:8].upper()}",
+        "template_id": template_id,
+        "template_name": template.get("name"),
+        "category": template.get("category"),
+        "recipient": recipient_data.get("recipient_email") or recipient_data.get("recipient_phone"),
+        "recipient_data": recipient_data,
+        "content": content,
+        "subject": template.get("subject"),
+        "language": language,
+        "status": "queued",  # queued, sending, sent, failed
+        "scheduled_time": scheduled_time or datetime.now(timezone.utc),
+        "sent_at": None,
+        "error": None,
+        "retries": 0,
+        "created_by": current_user.get("id"),
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    await db.notification_queue.insert_one(queue_doc)
+    
+    return {
+        "success": True,
+        "queue_id": queue_doc["queue_id"],
+        "scheduled_time": queue_doc["scheduled_time"].isoformat(),
+        "message": "Notification queued"
+    }
+
+
+@router.get("/queue/pending")
+async def get_pending_notifications(
+    category: str = None,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get pending notifications in queue"""
+    
+    db = get_database()
+    
+    query = {"status": "queued"}
+    if category:
+        query["category"] = category
+    
+    pending = await db.notification_queue.find(query)\
+        .sort("scheduled_time", 1)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for p in pending:
+        p["_id"] = str(p["_id"])
+        for field in ["scheduled_time", "created_at"]:
+            if isinstance(p.get(field), datetime):
+                p[field] = p[field].isoformat()
+    
+    return {
+        "success": True,
+        "pending": pending,
+        "total": len(pending)
+    }
+
+
+@router.get("/queue/history")
+async def get_send_history(
+    template_id: str = None,
+    status: str = None,
+    days: int = Query(7, ge=1, le=30),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get notification send history"""
+    
+    db = get_database()
+    
+    query = {
+        "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=days)}
+    }
+    if template_id:
+        query["template_id"] = template_id
+    if status:
+        query["status"] = status
+    
+    history = await db.notification_queue.find(query)\
+        .sort("created_at", -1)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for h in history:
+        h["_id"] = str(h["_id"])
+        for field in ["scheduled_time", "created_at", "sent_at"]:
+            if isinstance(h.get(field), datetime):
+                h[field] = h[field].isoformat()
+    
+    # Stats
+    stats = {
+        "total": len(history),
+        "sent": sum(1 for h in history if h.get("status") == "sent"),
+        "failed": sum(1 for h in history if h.get("status") == "failed"),
+        "queued": sum(1 for h in history if h.get("status") == "queued")
+    }
+    
+    return {
+        "success": True,
+        "history": history,
+        "stats": stats
+    }
+
+
+@router.post("/queue/{queue_id}/send-now")
+async def send_notification_now(
+    queue_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger sending a queued notification"""
+    
+    db = get_database()
+    
+    queue_item = await db.notification_queue.find_one({"queue_id": queue_id})
+    if not queue_item:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+    
+    if queue_item.get("status") != "queued":
+        raise HTTPException(status_code=400, detail=f"Cannot send - status is {queue_item.get('status')}")
+    
+    # Mark as sending
+    await db.notification_queue.update_one(
+        {"queue_id": queue_id},
+        {"$set": {"status": "sending"}}
+    )
+    
+    # Simulate sending (in production, this would call actual notification service)
+    async def send_notification():
+        try:
+            # Simulated delay
+            import asyncio
+            await asyncio.sleep(1)
+            
+            # Mark as sent
+            await db.notification_queue.update_one(
+                {"queue_id": queue_id},
+                {"$set": {
+                    "status": "sent",
+                    "sent_at": datetime.now(timezone.utc)
+                }}
+            )
+            
+            # Update template usage
+            if queue_item.get("template_id"):
+                await db.notification_templates.update_one(
+                    {"template_id": queue_item["template_id"]},
+                    {
+                        "$inc": {"usage_count": 1},
+                        "$set": {"last_used_at": datetime.now(timezone.utc)}
+                    }
+                )
+        except Exception as e:
+            await db.notification_queue.update_one(
+                {"queue_id": queue_id},
+                {"$set": {
+                    "status": "failed",
+                    "error": str(e),
+                    "retries": queue_item.get("retries", 0) + 1
+                }}
+            )
+    
+    background_tasks.add_task(send_notification)
+    
+    return {
+        "success": True,
+        "queue_id": queue_id,
+        "message": "Notification sending initiated"
+    }
+
+
+@router.post("/queue/{queue_id}/cancel")
+async def cancel_queued_notification(
+    queue_id: str,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Cancel a queued notification"""
+    
+    db = get_database()
+    
+    result = await db.notification_queue.update_one(
+        {"queue_id": queue_id, "status": "queued"},
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_by": current_user.get("id"),
+            "cancelled_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Could not cancel - item not found or not queued")
+    
+    return {"success": True, "message": "Notification cancelled"}
+
+
+# ==================== AI SUGGESTIONS ENDPOINTS ====================
+
+@router.post("/{template_id}/ai-suggestions")
+async def get_ai_suggestions(
+    template_id: str,
+    suggestion_type: str = Query("improve", pattern="^(improve|shorten|translate|emoji|formal|casual)$"),
+    target_language: str = Query(None),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get AI-powered suggestions for template improvement"""
+    
+    if not AI_AVAILABLE:
+        # Return mock suggestions if AI not available
+        return {
+            "success": True,
+            "ai_available": False,
+            "suggestions": [
+                {
+                    "type": "tip",
+                    "title": "Add Personalization",
+                    "suggestion": "Include customer's name at the beginning for better engagement",
+                    "example": "Hi {{customer_name}}, ..."
+                },
+                {
+                    "type": "tip",
+                    "title": "Add Call-to-Action",
+                    "suggestion": "End with a clear action for the customer to take",
+                    "example": "Reply CONFIRM to book now!"
+                },
+                {
+                    "type": "tip",
+                    "title": "Keep it Concise",
+                    "suggestion": "SMS should be under 160 characters for single message",
+                    "example": None
+                }
+            ],
+            "message": "AI suggestions unavailable - showing best practices"
+        }
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    content = template.get("content", "")
+    category = template.get("category", "sms")
+    
+    # Build prompt based on suggestion type
+    prompts = {
+        "improve": f"""Analyze this {category} notification template and suggest 3 specific improvements:
+
+Template: {content}
+
+Focus on:
+1. Engagement and clarity
+2. Call-to-action effectiveness  
+3. Professional tone
+
+Provide specific rewritten examples for each suggestion.""",
+        
+        "shorten": f"""Shorten this {category} message while keeping all important information:
+
+Original: {content}
+
+Provide 2-3 shorter versions, with character counts.""",
+        
+        "translate": f"""Translate this notification to {target_language or 'Hindi'}:
+
+Original (English): {content}
+
+Provide:
+1. Direct translation
+2. Culturally adapted version""",
+        
+        "emoji": f"""Add appropriate emojis to this {category} notification:
+
+Original: {content}
+
+Provide version with tasteful, professional emojis.""",
+        
+        "formal": f"""Make this message more formal and professional:
+
+Original: {content}""",
+        
+        "casual": f"""Make this message more friendly and conversational:
+
+Original: {content}"""
+    }
+    
+    try:
+        llm_api_key = os.environ.get("LLM_API_KEY")
+        
+        response = await chat(
+            api_key=llm_api_key,
+            model="gpt-4o",
+            messages=[
+                Message(role="system", content="You are an expert in crafting notification messages for aviation booking services. Provide practical, actionable suggestions."),
+                Message(role="user", content=prompts.get(suggestion_type, prompts["improve"]))
+            ]
+        )
+        
+        return {
+            "success": True,
+            "ai_available": True,
+            "suggestion_type": suggestion_type,
+            "original_content": content,
+            "ai_response": response,
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "ai_available": True,
+            "error": str(e),
+            "message": "AI suggestion failed"
+        }
+
+
+@router.get("/ai/best-practices")
+async def get_best_practices(
+    category: str = Query("sms", pattern="^(sms|whatsapp|email|payment)$")
+):
+    """Get best practices for template creation"""
+    
+    best_practices = {
+        "sms": {
+            "max_length": 160,
+            "tips": [
+                "Keep under 160 characters for single SMS",
+                "Start with brand name (AirYatra)",
+                "Include booking ID for reference",
+                "End with contact info or action",
+                "Avoid special characters that may not render",
+                "Use simple, clear language"
+            ],
+            "do_not": [
+                "Don't use ALL CAPS",
+                "Don't include long URLs",
+                "Don't use excessive punctuation!!!",
+                "Don't send at odd hours"
+            ],
+            "examples": {
+                "good": "AirYatra: Booking {{booking_id}} confirmed! {{departure_city}}→{{arrival_city}} on {{departure_date}}. Query: 1800-AIR-YATRA",
+                "bad": "YOUR BOOKING HAS BEEN CONFIRMED!!! CLICK HERE: https://very-long-url.com/booking/details?id=123456789&ref=abc"
+            }
+        },
+        "whatsapp": {
+            "max_length": 4096,
+            "tips": [
+                "Use formatting: *bold*, _italic_, ~strikethrough~",
+                "Include emojis for visual appeal",
+                "Structure with clear sections",
+                "Add interactive buttons if supported",
+                "Include images/documents when relevant"
+            ],
+            "do_not": [
+                "Don't send too many messages",
+                "Don't use excessive emojis",
+                "Don't include sensitive data in media"
+            ],
+            "examples": {
+                "good": "🎉 *Booking Confirmed!*\n\n📋 ID: {{booking_id}}\n✈️ {{departure_city}} → {{arrival_city}}\n📅 {{departure_date}}"
+            }
+        },
+        "email": {
+            "max_length": None,
+            "tips": [
+                "Use responsive HTML design",
+                "Include preheader text",
+                "Add clear CTA buttons",
+                "Include unsubscribe link",
+                "Test across email clients",
+                "Optimize images for fast loading"
+            ],
+            "do_not": [
+                "Don't use image-only emails",
+                "Don't hide important info in images",
+                "Don't use too many fonts/colors"
+            ]
+        },
+        "payment": {
+            "max_length": None,
+            "tips": [
+                "Include transaction ID prominently",
+                "Show itemized breakdown",
+                "Include GST/tax details",
+                "Add payment method info",
+                "Include support contact"
+            ],
+            "do_not": [
+                "Don't include full card numbers",
+                "Don't show CVV or security codes"
+            ]
+        }
+    }
+    
+    return {
+        "success": True,
+        "category": category,
+        "best_practices": best_practices.get(category, {}),
+        "all_categories": list(best_practices.keys())
+    }
+
+
+@router.post("/ai/generate-template")
+async def generate_template_with_ai(
+    category: str = Query(..., pattern="^(sms|whatsapp|email|payment)$"),
+    trigger_event: str = Query(...),
+    tone: str = Query("professional", pattern="^(professional|friendly|urgent|casual)$"),
+    include_hindi: bool = Query(True),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Generate a new template using AI"""
+    
+    if not AI_AVAILABLE:
+        return {
+            "success": False,
+            "ai_available": False,
+            "message": "AI generation not available"
+        }
+    
+    prompt = f"""Generate a {category} notification template for an aviation/helicopter booking service.
+
+Event: {trigger_event}
+Tone: {tone}
+Brand: AirYatra
+
+Requirements:
+1. Include relevant variables like {{{{customer_name}}}}, {{{{booking_id}}}}, etc.
+2. {'Generate both English and Hindi versions' if include_hindi else 'English only'}
+3. Follow {category} best practices
+4. Keep it concise and actionable
+
+Provide the template in this format:
+ENGLISH:
+[template content]
+
+{'HINDI:' if include_hindi else ''}
+{'[Hindi translation]' if include_hindi else ''}
+
+VARIABLES USED:
+[list of variables]"""
+    
+    try:
+        llm_api_key = os.environ.get("LLM_API_KEY")
+        
+        response = await chat(
+            api_key=llm_api_key,
+            model="gpt-4o",
+            messages=[
+                Message(role="system", content="You are an expert in crafting notification templates for aviation services in India. Create professional, engaging messages."),
+                Message(role="user", content=prompt)
+            ]
+        )
+        
+        return {
+            "success": True,
+            "ai_available": True,
+            "generated_template": response,
+            "category": category,
+            "trigger_event": trigger_event,
+            "tone": tone
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "ai_available": True,
+            "error": str(e)
+        }
