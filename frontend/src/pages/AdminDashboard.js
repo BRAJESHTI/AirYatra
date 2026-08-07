@@ -108,6 +108,8 @@ import WhatsAppCRM from '@/components/admin/WhatsAppCRM';
 import ComplaintAnalytics from '@/components/admin/ComplaintAnalytics';
 // Bulk Discount Upload
 import BulkDiscountUpload from '@/components/admin/BulkDiscountUpload';
+// Template Settings
+import TemplateSettings from '@/components/admin/TemplateSettings';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -241,6 +243,7 @@ const navGroups = [
     icon: Cog,
     items: [
       { id: 'settings', label: 'Global Settings', icon: Settings },
+      { id: 'template_settings', label: 'Template Settings / टेम्पलेट', icon: FileText, highlight: true },
       { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
       { id: 'webhooks', label: 'Webhooks', icon: Globe },
       { id: 'call_recording', label: 'Call Recording', icon: Phone },
@@ -364,6 +367,8 @@ function AdminDashboard({ user, onLogout }) {
         return <BulkDiscountUpload />;
       case 'complaint_analytics':
         return <ComplaintAnalytics />;
+      case 'template_settings':
+        return <TemplateSettings />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features

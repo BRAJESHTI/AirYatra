@@ -438,6 +438,10 @@ api_router.include_router(css_routes.router)
 # Discount Management
 api_router.include_router(discount_routes.router)
 
+# Template Management
+from routes import template_routes
+api_router.include_router(template_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 
