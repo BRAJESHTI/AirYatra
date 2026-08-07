@@ -127,6 +127,12 @@ from routes import content_routes
 from routes import razorpay_routes
 # PayPal Payment Gateway
 from routes import paypal_routes
+# Cashfree Payment Gateway
+from routes import cashfree_routes
+# Legal Documents Management
+from routes import legal_documents_routes
+# Unified Refund System
+from routes import unified_refund_routes
 # AI Sales Advisor
 from routes import ai_sales_routes
 # AI Report Generator
@@ -381,6 +387,15 @@ api_router.include_router(razorpay_routes.router)
 
 # PayPal Payment Gateway
 api_router.include_router(paypal_routes.router)
+
+# Cashfree Payment Gateway
+api_router.include_router(cashfree_routes.router)
+
+# Legal Documents Management
+api_router.include_router(legal_documents_routes.router)
+
+# Unified Refund System
+api_router.include_router(unified_refund_routes.router)
 
 # AI Sales Advisor
 api_router.include_router(ai_sales_routes.router)

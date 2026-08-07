@@ -2797,3 +2797,82 @@ PAYPAL_MODE=sandbox  # or 'live'
 5. Restart backend
 
 ---
+
+### Phase 9: Payment System Enhancement (Aug 7, 2026)
+
+#### 1. Payment Method Selector UI 🟢 DONE
+- **Component**: `PaymentMethodSelector.js` (400+ lines)
+- **Gateways**: Razorpay, Stripe, PayPal, Cashfree
+- **Features**:
+  - Visual gateway selection with icons/logos
+  - "Recommended" badge for Indian users (Razorpay)
+  - Test mode indicators
+  - Terms & conditions checkbox before payment
+  - Confirmation dialog with amount breakdown
+
+#### 2. Cashfree Integration 🟢 DONE
+- **Service**: `cashfree_service.py` (350 lines)
+- **Routes**: `cashfree_routes.py` (300 lines)
+- **Mode**: Sandbox (MOCK when credentials not configured)
+- **Endpoints**:
+  - `GET /api/payments/cashfree/config`
+  - `POST /api/payments/cashfree/create-order`
+  - `POST /api/payments/cashfree/verify-payment`
+  - `POST /api/payments/cashfree/refund`
+  - `POST /api/payments/cashfree/webhook`
+- **Configuration**: `CASHFREE_CLIENT_ID`, `CASHFREE_CLIENT_SECRET`, `CASHFREE_MODE`
+
+#### 3. Unified Refund System 🟢 DONE
+- **Service**: `unified_refund_service.py` (390 lines)
+- **Routes**: `unified_refund_routes.py` (325 lines)
+- **Supported Gateways**: PayPal, Razorpay, Cashfree
+- **Cancellation Rules (Time-based)**:
+  - 72+ hours: 10% deduction (90% refund)
+  - 48-72 hours: 25% deduction (75% refund)
+  - 24-48 hours: 50% deduction (50% refund)
+  - 12-24 hours: 75% deduction (25% refund)
+  - <12 hours: 100% deduction (No refund)
+- **Additional Fees**: 2.5% processing fee + ₹500 admin fee
+- **Endpoints**:
+  - `GET /api/refunds/policy` - Get refund rules
+  - `POST /api/refunds/preview` - Preview refund amount
+  - `POST /api/refunds/process` - Process refund with terms acceptance
+  - `POST /api/refunds/admin/manual-refund` - Admin override
+
+#### 4. Legal Documents Management 🟢 DONE
+- **Routes**: `legal_documents_routes.py` (400 lines)
+- **Document Types**:
+  - Terms & Conditions
+  - Refund Policy
+  - Privacy Policy
+  - Operator Agreement
+  - Booking Terms
+  - Safety Guidelines
+  - Cookie Policy
+- **Features**:
+  - Versioning (V1, V2, etc.)
+  - Draft/Published states
+  - Admin CRUD operations
+  - Public endpoints (no auth)
+  - Multi-language support
+- **Endpoints**:
+  - `GET /api/legal-documents/types` - List all types
+  - `GET /api/legal-documents/public/{doc_type}` - Get published document
+  - `POST /api/legal-documents/admin/create` - Create document
+  - `PUT /api/legal-documents/admin/{doc_id}` - Update document
+  - `POST /api/legal-documents/admin/{doc_id}/publish` - Publish draft
+  - `POST /api/legal-documents/admin/{doc_id}/new-version` - Create new version
+
+#### Files Added:
+- `/app/backend/services/cashfree_service.py`
+- `/app/backend/routes/cashfree_routes.py`
+- `/app/backend/services/unified_refund_service.py`
+- `/app/backend/routes/unified_refund_routes.py`
+- `/app/backend/routes/legal_documents_routes.py`
+- `/app/frontend/src/components/payments/PaymentMethodSelector.js`
+
+#### Files Modified:
+- `/app/backend/server.py` - Added Cashfree, Legal Docs, Refund routes
+- `/app/backend/.env` - Added Cashfree config
+
+---
