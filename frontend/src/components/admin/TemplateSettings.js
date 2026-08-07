@@ -9,8 +9,12 @@ import {
   RotateCcw, Shield, CheckSquare, XSquare, MessageCircle, Sparkles,
   Lightbulb, Wand2, FileCheck, FileClock, AlertCircle, PlayCircle,
   BookOpen, Library, TestTube2, Activity, Package, Star, Import, 
-  Gauge, AlertOctagon, Filter, ExternalLink, Inbox
+  Gauge, AlertOctagon, Filter, ExternalLink, Inbox, PhoneCall
 } from 'lucide-react';
+import { 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell 
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,6 +95,18 @@ export default function TemplateSettings() {
     comparison: 'below',
     notify_emails: ''
   });
+  
+  // Chart & WhatsApp States
+  const [chartData, setChartData] = useState({ line: [], bar: [], pie: [], summary: {} });
+  const [chartDays, setChartDays] = useState(7);
+  const [whatsappStatus, setWhatsappStatus] = useState(null);
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappTemplate, setWhatsappTemplate] = useState('booking_confirmation');
+  const [whatsappVariables, setWhatsappVariables] = useState({});
+  
+  // Chart colors
+  const CHART_COLORS = ['#f97316', '#22c55e', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
   
   // Config
   const [templateVariables, setTemplateVariables] = useState({});
@@ -217,18 +233,41 @@ export default function TemplateSettings() {
     } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => { loadVariables(); }, [loadVariables]);
+  // Chart Data Load
+  const loadChartData = useCallback(async () => {
+    try {
+      const res = await api.get(`/templates/analytics/chart-data?days=${chartDays}`);
+      if (res.data.success) {
+        setChartData({
+          line: res.data.line_chart?.data || [],
+          bar: res.data.bar_chart?.data || [],
+          pie: res.data.pie_chart?.data || [],
+          summary: res.data.summary || {}
+        });
+      }
+    } catch (err) { console.error(err); }
+  }, [chartDays]);
+
+  // WhatsApp Status
+  const loadWhatsAppStatus = useCallback(async () => {
+    try {
+      const res = await api.get('/templates/whatsapp/status');
+      setWhatsappStatus(res.data);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  useEffect(() => { loadVariables(); loadWhatsAppStatus(); }, [loadVariables, loadWhatsAppStatus]);
 
   useEffect(() => {
     if (activeTab === 'templates') loadTemplates();
-    else if (activeTab === 'analytics') loadAnalytics();
+    else if (activeTab === 'analytics') { loadAnalytics(); loadChartData(); }
     else if (activeTab === 'scheduled') loadScheduled();
     else if (activeTab === 'approvals') loadPendingApprovals();
     else if (activeTab === 'queue') loadNotificationQueue();
     else if (activeTab === 'library') loadLibrary();
     else if (activeTab === 'alerts') loadAlerts();
     else if (activeTab === 'delivery') loadDeliveryReports();
-  }, [activeTab, loadTemplates, loadAnalytics, loadScheduled, loadPendingApprovals, loadNotificationQueue, loadLibrary, loadAlerts, loadDeliveryReports]);
+  }, [activeTab, loadTemplates, loadAnalytics, loadScheduled, loadPendingApprovals, loadNotificationQueue, loadLibrary, loadAlerts, loadDeliveryReports, loadChartData]);
 
   // Handlers
   const handleCreate = () => {
@@ -555,6 +594,34 @@ export default function TemplateSettings() {
     setShowAlertDialog(true);
   };
 
+  // WhatsApp Handlers
+  const handleSendWhatsApp = async () => {
+    if (!whatsappPhone) { toast.error('Enter phone number'); return; }
+    try {
+      const res = await api.post(`/templates/whatsapp/send?phone=${encodeURIComponent(whatsappPhone)}&template_id=${whatsappTemplate}`, {
+        variables: whatsappVariables
+      });
+      if (res.data.success) {
+        toast.success(`WhatsApp sent! ${res.data.mock_mode ? '(Mock Mode)' : ''}`);
+        setShowWhatsAppDialog(false);
+      } else {
+        toast.error(res.data.error || 'Send failed');
+      }
+    } catch (err) { toast.error('WhatsApp send failed'); }
+  };
+
+  const handleTriggerAlertCheck = async () => {
+    try {
+      const res = await api.post('/templates/alerts/trigger-check');
+      if (res.data.alerts_triggered > 0) {
+        toast.success(`${res.data.alerts_triggered} alerts triggered! Emails sent.`);
+      } else {
+        toast.info('No alerts triggered. All metrics within threshold.');
+      }
+      loadAlerts();
+    } catch (err) { toast.error('Alert check failed'); }
+  };
+
   const insertVariable = (variable) => {
     const fieldMap = { en: 'content', hi: 'content_hindi', mr: 'content_marathi', gu: 'content_gujarati', ta: 'content_tamil' };
     const field = fieldMap[activeLang] || 'content';
@@ -699,24 +766,96 @@ export default function TemplateSettings() {
 
   const renderAnalytics = () => (
     <div className="space-y-6">
+      {/* Period Selector */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-orange-500" />Template Analytics
+        </h2>
+        <div className="flex gap-2">
+          {[7, 14, 30].map(d => (
+            <Button key={d} size="sm" variant={chartDays === d ? "default" : "outline"} onClick={() => setChartDays(d)} className={chartDays === d ? 'bg-orange-500' : ''}>
+              {d}d
+            </Button>
+          ))}
+          <Button variant="outline" size="sm" onClick={loadChartData}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+      </div>
+
+      {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
           <Send className="h-6 w-6 text-blue-500 mb-2" />
-          <p className="text-2xl font-bold">{analyticsData?.total_sent?.toLocaleString() || 0}</p>
-          <p className="text-sm text-slate-500">Total Sent (30d)</p>
+          <p className="text-2xl font-bold">{chartData.summary?.total?.toLocaleString() || analyticsData?.total_sent?.toLocaleString() || 0}</p>
+          <p className="text-sm text-slate-500">Total Sent ({chartDays}d)</p>
         </div>
-        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-          const catStats = analyticsData?.category_stats?.[key] || {};
-          return (
-            <div key={key} className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
-              <config.icon className={`h-6 w-6 ${config.color.replace('bg-', 'text-')} mb-2`} />
-              <p className="text-2xl font-bold">{catStats.total_usage?.toLocaleString() || 0}</p>
-              <p className="text-sm text-slate-500">{config.label}</p>
-            </div>
-          );
-        })}
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <CheckCircle2 className="h-6 w-6 text-green-500 mb-2" />
+          <p className="text-2xl font-bold">{chartData.summary?.sent?.toLocaleString() || 0}</p>
+          <p className="text-sm text-slate-500">Delivered</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <AlertTriangle className="h-6 w-6 text-red-500 mb-2" />
+          <p className="text-2xl font-bold">{chartData.summary?.failed?.toLocaleString() || 0}</p>
+          <p className="text-sm text-slate-500">Failed</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <TrendingUp className="h-6 w-6 text-purple-500 mb-2" />
+          <p className="text-2xl font-bold">{chartData.summary?.success_rate || 0}%</p>
+          <p className="text-sm text-slate-500">Success Rate</p>
+        </div>
       </div>
 
+      {/* Charts Grid */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Line Chart - Daily Trend */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-500" />Daily Delivery Trend
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData.line}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v?.slice(5)} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip 
+                  contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: '#fff' }}
+                  labelFormatter={(v) => `Date: ${v}`}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="sent" stroke="#22c55e" strokeWidth={2} name="Sent" dot={false} />
+                <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} name="Failed" dot={false} />
+                <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} name="Total" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Bar Chart - Category Comparison */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-orange-500" />Category Performance
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData.bar} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis dataKey="category" type="category" width={80} tick={{ fontSize: 11 }} />
+                <Tooltip 
+                  contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: '#fff' }}
+                  formatter={(v, name) => [v, name === 'success_rate' ? `${v}%` : v]}
+                />
+                <Legend />
+                <Bar dataKey="sent" fill="#22c55e" name="Sent" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="failed" fill="#ef4444" name="Failed" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy Stats Section */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -878,12 +1017,38 @@ export default function TemplateSettings() {
   const renderAlerts = () => (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <h2 className="text-lg font-semibold">Performance Alerts</h2>
-        <Button onClick={() => openAlertDialog()} className="bg-orange-500 hover:bg-orange-600">
-          <Plus className="h-4 w-4 mr-2" />Configure Alert
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleTriggerAlertCheck} className="border-purple-500 text-purple-600 hover:bg-purple-50">
+            <PlayCircle className="h-4 w-4 mr-2" />Run Check Now
+          </Button>
+          <Button onClick={() => openAlertDialog()} className="bg-orange-500 hover:bg-orange-600">
+            <Plus className="h-4 w-4 mr-2" />Configure Alert
+          </Button>
+        </div>
       </div>
+
+      {/* WhatsApp Status Card */}
+      {whatsappStatus && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <PhoneCall className="h-8 w-8" />
+              <div>
+                <h3 className="font-semibold">WhatsApp Integration</h3>
+                <p className="text-sm opacity-90">
+                  Status: {whatsappStatus.status} | Provider: {whatsappStatus.provider?.toUpperCase()}
+                  {whatsappStatus.mock_mode && <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-xs">MOCK MODE</span>}
+                </p>
+              </div>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setShowWhatsAppDialog(true)} className="bg-white text-green-600 hover:bg-green-50">
+              <Send className="h-4 w-4 mr-1" />Send Test
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Alert Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1537,6 +1702,67 @@ export default function TemplateSettings() {
             <Button variant="outline" onClick={() => setShowAlertDialog(false)}>Cancel</Button>
             <Button onClick={handleConfigureAlert} className="bg-orange-500 hover:bg-orange-600">
               <Bell className="h-4 w-4 mr-2" />Save Alert
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp Send Dialog */}
+      <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle><PhoneCall className="h-5 w-5 inline mr-2 text-green-500" />Send WhatsApp Message</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {whatsappStatus?.mock_mode && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                <AlertTriangle className="h-4 w-4 inline mr-1" />
+                Mock Mode Active - Messages won&apos;t be delivered to real numbers
+              </div>
+            )}
+            <div>
+              <Label>Phone Number *</Label>
+              <Input 
+                value={whatsappPhone} 
+                onChange={(e) => setWhatsappPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="mt-1"
+              />
+              <p className="text-xs text-slate-500 mt-1">Include country code (e.g., +91 for India)</p>
+            </div>
+            <div>
+              <Label>Template</Label>
+              <select 
+                value={whatsappTemplate} 
+                onChange={(e) => setWhatsappTemplate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg mt-1"
+              >
+                <option value="booking_confirmation">Booking Confirmation</option>
+                <option value="payment_reminder">Payment Reminder</option>
+                <option value="flight_reminder">Flight Reminder</option>
+                <option value="complaint_update">Complaint Update</option>
+                <option value="discount_code">Discount Code</option>
+                <option value="otp_verification">OTP Verification</option>
+              </select>
+            </div>
+            <div>
+              <Label>Variables (JSON format)</Label>
+              <textarea
+                value={JSON.stringify(whatsappVariables, null, 2)}
+                onChange={(e) => {
+                  try {
+                    setWhatsappVariables(JSON.parse(e.target.value));
+                  } catch (err) { /* ignore parse errors while typing */ }
+                }}
+                placeholder='{"customer_name": "John", "booking_id": "BK-123"}'
+                className="w-full px-3 py-2 border rounded-lg mt-1 h-24 font-mono text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWhatsAppDialog(false)}>Cancel</Button>
+            <Button onClick={handleSendWhatsApp} className="bg-green-500 hover:bg-green-600">
+              <Send className="h-4 w-4 mr-2" />Send WhatsApp
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4028,3 +4028,567 @@ async def import_multiple_templates(
         "imported_templates": imported,
         "skipped_templates": skipped
     }
+
+
+
+# ==================== WHATSAPP INTEGRATION ====================
+
+# Try to import WhatsApp service
+try:
+    from services.whatsapp_service import whatsapp_service, send_whatsapp_template
+    WHATSAPP_AVAILABLE = True
+except ImportError:
+    WHATSAPP_AVAILABLE = False
+    print("WhatsApp service not available")
+
+
+@router.get("/whatsapp/status")
+async def get_whatsapp_status(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get WhatsApp service status"""
+    if not WHATSAPP_AVAILABLE:
+        return {
+            "success": True,
+            "available": False,
+            "message": "WhatsApp service not configured"
+        }
+    
+    status = whatsapp_service.get_status()
+    return {
+        "success": True,
+        "available": True,
+        **status
+    }
+
+
+@router.get("/whatsapp/templates")
+async def get_whatsapp_templates(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get available WhatsApp templates"""
+    if not WHATSAPP_AVAILABLE:
+        return {"success": False, "error": "WhatsApp service not available"}
+    
+    return {
+        "success": True,
+        **whatsapp_service.get_available_templates()
+    }
+
+
+@router.post("/whatsapp/send")
+async def send_whatsapp_message(
+    phone: str = Query(..., description="Recipient phone number"),
+    template_id: str = Query(..., description="Template ID"),
+    variables: dict = None,
+    background_tasks: BackgroundTasks = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Send WhatsApp message using template"""
+    if not WHATSAPP_AVAILABLE:
+        return {"success": False, "error": "WhatsApp service not available"}
+    
+    db = get_database()
+    
+    # Send message
+    result = await send_whatsapp_template(phone, template_id, variables or {})
+    
+    # Log to notification queue
+    queue_item = {
+        "queue_id": f"WQ-{uuid.uuid4().hex[:8].upper()}",
+        "category": "whatsapp",
+        "template_id": template_id,
+        "template_name": result.get("template_name", template_id),
+        "recipient": phone,
+        "variables": variables,
+        "status": "sent" if result["success"] else "failed",
+        "external_message_id": result.get("message_id"),
+        "provider": result.get("provider", "twilio"),
+        "mock_mode": result.get("mock_mode", True),
+        "created_by": current_user.get("id"),
+        "created_at": datetime.now(timezone.utc),
+        "sent_at": datetime.now(timezone.utc) if result["success"] else None,
+        "error": result.get("error")
+    }
+    
+    await db.notification_queue.insert_one(queue_item)
+    
+    return {
+        "success": result["success"],
+        "message_id": result.get("message_id"),
+        "status": result.get("status"),
+        "mock_mode": result.get("mock_mode"),
+        "error": result.get("error")
+    }
+
+
+@router.post("/whatsapp/send-bulk")
+async def send_bulk_whatsapp(
+    template_id: str = Query(...),
+    recipients: List[dict] = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Send WhatsApp to multiple recipients"""
+    if not WHATSAPP_AVAILABLE:
+        return {"success": False, "error": "WhatsApp service not available"}
+    
+    if not recipients:
+        return {"success": False, "error": "No recipients provided"}
+    
+    result = await whatsapp_service.send_bulk_messages(recipients, template_id)
+    
+    return {
+        "success": True,
+        **result
+    }
+
+
+# ==================== ALERT EMAIL NOTIFICATIONS ====================
+
+# Try to import email service
+try:
+    from services.email_service import send_email
+    EMAIL_AVAILABLE = True
+except ImportError:
+    EMAIL_AVAILABLE = False
+    print("Email service not available for alerts")
+
+
+async def send_alert_email(
+    alert: dict,
+    metric_value: float,
+    template_name: str = None
+):
+    """Send alert notification email"""
+    if not EMAIL_AVAILABLE:
+        return {"success": False, "error": "Email service not available"}
+    
+    db = get_database()
+    
+    # Get recipients from alert config or use default admin emails
+    recipients = alert.get("notify_emails", [])
+    if not recipients:
+        # Get admin users' emails
+        admins = await db.users.find(
+            {"roles": {"$in": ["admin", "super_admin"]}},
+            {"email": 1}
+        ).to_list(10)
+        recipients = [a["email"] for a in admins if a.get("email")]
+    
+    if not recipients:
+        return {"success": False, "error": "No recipients configured"}
+    
+    # Build email content
+    metric_name = alert["metric"].replace("_", " ").title()
+    threshold = alert["threshold"]
+    comparison = "below" if alert["comparison"] == "below" else "above"
+    
+    subject = f"🚨 Template Alert: {metric_name} is {comparison} {threshold}%"
+    
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #ef4444, #dc2626); padding: 30px; text-align: center; }}
+        .header h1 {{ margin: 0; font-size: 24px; }}
+        .content {{ padding: 30px; }}
+        .alert-box {{ background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 15px 0; border-left: 4px solid #ef4444; }}
+        .metric {{ font-size: 48px; font-weight: bold; color: #ef4444; text-align: center; margin: 20px 0; }}
+        .info-row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a4e; }}
+        .label {{ color: #94a3b8; }}
+        .value {{ color: #ffffff; font-weight: 600; }}
+        .footer {{ background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }}
+        .btn {{ display: inline-block; background: #f97316; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 10px 0; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Performance Alert Triggered</h1>
+        </div>
+        <div class="content">
+            <div class="alert-box">
+                <h3 style="margin-top:0; color:#ef4444;">Alert Details</h3>
+                <div class="metric">{metric_value:.1f}%</div>
+                <p style="text-align:center; color:#94a3b8;">Current {metric_name}</p>
+            </div>
+            
+            <div class="alert-box">
+                <div class="info-row">
+                    <span class="label">Metric:</span>
+                    <span class="value">{metric_name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Threshold:</span>
+                    <span class="value">{comparison.title()} {threshold}%</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Current Value:</span>
+                    <span class="value" style="color:#ef4444;">{metric_value:.1f}%</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Template:</span>
+                    <span class="value">{template_name or 'All Templates (Global)'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Triggered At:</span>
+                    <span class="value">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</span>
+                </div>
+            </div>
+            
+            <p style="text-align:center;">
+                <a href="#" class="btn">View Dashboard →</a>
+            </p>
+            
+            <p style="color:#94a3b8; font-size:14px;">
+                This alert was triggered because the {metric_name.lower()} fell {comparison} your configured threshold of {threshold}%.
+                Review your template performance and take necessary action.
+            </p>
+        </div>
+        <div class="footer">
+            <p>AirYatra Template Management System</p>
+            <p>You're receiving this because you're configured for alert notifications.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    
+    # Send to all recipients
+    sent_count = 0
+    for recipient in recipients:
+        try:
+            await send_email(recipient, subject, html_body)
+            sent_count += 1
+        except Exception as e:
+            print(f"Failed to send alert email to {recipient}: {e}")
+    
+    return {
+        "success": sent_count > 0,
+        "sent_to": sent_count,
+        "total_recipients": len(recipients)
+    }
+
+
+@router.post("/alerts/trigger-check")
+async def trigger_alert_check(
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger alert check for all active alerts"""
+    
+    db = get_database()
+    
+    # Get all active alerts
+    alerts = await db.template_alerts.find({"is_active": True}).to_list(100)
+    
+    if not alerts:
+        return {"success": True, "message": "No active alerts configured", "triggered": 0}
+    
+    triggered = []
+    
+    for alert in alerts:
+        # Calculate current metric value
+        metric = alert["metric"]
+        template_id = alert.get("template_id")
+        
+        # Get stats from notification queue
+        query = {"created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=7)}}
+        if template_id:
+            query["template_id"] = template_id
+        
+        total = await db.notification_queue.count_documents(query)
+        
+        if total == 0:
+            continue
+        
+        # Calculate metric based on type
+        if metric == "delivery_rate":
+            delivered = await db.notification_queue.count_documents({**query, "status": "sent"})
+            metric_value = (delivered / total) * 100 if total > 0 else 0
+        elif metric == "open_rate":
+            opened = await db.notification_queue.count_documents({**query, "delivery_status": "opened"})
+            delivered = await db.notification_queue.count_documents({**query, "status": "sent"})
+            metric_value = (opened / delivered) * 100 if delivered > 0 else 0
+        elif metric == "click_rate":
+            clicked = await db.notification_queue.count_documents({**query, "delivery_status": "clicked"})
+            delivered = await db.notification_queue.count_documents({**query, "status": "sent"})
+            metric_value = (clicked / delivered) * 100 if delivered > 0 else 0
+        elif metric == "bounce_rate":
+            bounced = await db.notification_queue.count_documents({**query, "status": "bounced"})
+            metric_value = (bounced / total) * 100 if total > 0 else 0
+        else:
+            continue
+        
+        # Check if threshold is breached
+        threshold = alert["threshold"]
+        comparison = alert["comparison"]
+        
+        should_trigger = (
+            (comparison == "below" and metric_value < threshold) or
+            (comparison == "above" and metric_value > threshold)
+        )
+        
+        if should_trigger:
+            # Get template name
+            template_name = None
+            if template_id:
+                template = await db.notification_templates.find_one({"template_id": template_id})
+                template_name = template.get("name") if template else None
+            
+            # Send alert email
+            email_result = await send_alert_email(alert, metric_value, template_name)
+            
+            # Log to alert history
+            history_record = {
+                "history_id": f"AH-{uuid.uuid4().hex[:8].upper()}",
+                "alert_id": alert["alert_id"],
+                "metric": metric,
+                "threshold": threshold,
+                "comparison": comparison,
+                "actual_value": round(metric_value, 2),
+                "template_id": template_id,
+                "template_name": template_name,
+                "email_sent": email_result.get("success", False),
+                "recipients_notified": email_result.get("sent_to", 0),
+                "triggered_at": datetime.now(timezone.utc)
+            }
+            
+            await db.alert_history.insert_one(history_record)
+            
+            # Update alert trigger count
+            await db.template_alerts.update_one(
+                {"alert_id": alert["alert_id"]},
+                {
+                    "$inc": {"trigger_count": 1},
+                    "$set": {"last_triggered_at": datetime.now(timezone.utc)}
+                }
+            )
+            
+            triggered.append({
+                "alert_id": alert["alert_id"],
+                "metric": metric,
+                "value": round(metric_value, 2),
+                "threshold": threshold,
+                "email_sent": email_result.get("success", False)
+            })
+    
+    return {
+        "success": True,
+        "alerts_checked": len(alerts),
+        "alerts_triggered": len(triggered),
+        "triggered_details": triggered
+    }
+
+
+# ==================== ANALYTICS CHARTS DATA ====================
+
+@router.get("/analytics/chart-data")
+async def get_analytics_chart_data(
+    days: int = Query(7, ge=1, le=30),
+    category: str = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get chart data for template analytics"""
+    
+    db = get_database()
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Base query
+    base_query = {"created_at": {"$gte": start_date}}
+    if category:
+        base_query["category"] = category
+    
+    # 1. Daily trend data (Line Chart)
+    daily_pipeline = [
+        {"$match": base_query},
+        {"$group": {
+            "_id": {
+                "date": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                "status": "$status"
+            },
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id.date": 1}}
+    ]
+    
+    daily_raw = await db.notification_queue.aggregate(daily_pipeline).to_list(500)
+    
+    # Process into chart format
+    daily_data = {}
+    for item in daily_raw:
+        date = item["_id"]["date"]
+        status = item["_id"]["status"]
+        if date not in daily_data:
+            daily_data[date] = {"date": date, "sent": 0, "failed": 0, "pending": 0, "total": 0}
+        daily_data[date][status] = item["count"]
+        daily_data[date]["total"] += item["count"]
+    
+    # Fill missing dates
+    line_chart_data = []
+    current = start_date
+    while current <= datetime.now(timezone.utc):
+        date_str = current.strftime("%Y-%m-%d")
+        if date_str in daily_data:
+            line_chart_data.append(daily_data[date_str])
+        else:
+            line_chart_data.append({"date": date_str, "sent": 0, "failed": 0, "pending": 0, "total": 0})
+        current += timedelta(days=1)
+    
+    # 2. Category breakdown (Bar Chart)
+    category_pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}}},
+        {"$group": {
+            "_id": "$category",
+            "total": {"$sum": 1},
+            "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+            "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}}
+        }}
+    ]
+    
+    category_raw = await db.notification_queue.aggregate(category_pipeline).to_list(10)
+    
+    bar_chart_data = []
+    for item in category_raw:
+        cat = item["_id"] or "unknown"
+        bar_chart_data.append({
+            "category": cat.upper() if cat else "OTHER",
+            "total": item["total"],
+            "sent": item["sent"],
+            "failed": item["failed"],
+            "success_rate": round((item["sent"] / item["total"]) * 100, 1) if item["total"] > 0 else 0
+        })
+    
+    # Sort by total
+    bar_chart_data.sort(key=lambda x: x["total"], reverse=True)
+    
+    # 3. Status distribution (for Pie chart if needed)
+    status_pipeline = [
+        {"$match": base_query},
+        {"$group": {
+            "_id": "$status",
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    status_raw = await db.notification_queue.aggregate(status_pipeline).to_list(10)
+    
+    pie_chart_data = []
+    total_count = sum(s["count"] for s in status_raw)
+    for item in status_raw:
+        pie_chart_data.append({
+            "name": (item["_id"] or "unknown").title(),
+            "value": item["count"],
+            "percentage": round((item["count"] / total_count) * 100, 1) if total_count > 0 else 0
+        })
+    
+    # 4. Summary stats
+    total_sent = sum(1 for d in line_chart_data for _ in range(d.get("sent", 0)))
+    total_failed = sum(1 for d in line_chart_data for _ in range(d.get("failed", 0)))
+    total_all = sum(d.get("total", 0) for d in line_chart_data)
+    
+    # Actually calculate from raw data
+    sent_count = await db.notification_queue.count_documents({**base_query, "status": "sent"})
+    failed_count = await db.notification_queue.count_documents({**base_query, "status": "failed"})
+    total_count = await db.notification_queue.count_documents(base_query)
+    
+    return {
+        "success": True,
+        "period_days": days,
+        "category_filter": category,
+        "line_chart": {
+            "data": line_chart_data,
+            "keys": ["sent", "failed", "pending", "total"]
+        },
+        "bar_chart": {
+            "data": bar_chart_data,
+            "keys": ["total", "sent", "failed"]
+        },
+        "pie_chart": {
+            "data": pie_chart_data
+        },
+        "summary": {
+            "total": total_count,
+            "sent": sent_count,
+            "failed": failed_count,
+            "success_rate": round((sent_count / total_count) * 100, 1) if total_count > 0 else 0
+        }
+    }
+
+
+@router.get("/analytics/delivery-trends")
+async def get_delivery_trends(
+    days: int = Query(30, ge=7, le=90),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get delivery trend data for advanced charts"""
+    
+    db = get_database()
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Weekly aggregation for longer periods
+    if days > 14:
+        # Group by week
+        pipeline = [
+            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$group": {
+                "_id": {
+                    "week": {"$week": "$created_at"},
+                    "year": {"$year": "$created_at"}
+                },
+                "total": {"$sum": 1},
+                "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+                "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}},
+                "opened": {"$sum": {"$cond": [{"$eq": ["$delivery_status", "opened"]}, 1, 0]}},
+                "clicked": {"$sum": {"$cond": [{"$eq": ["$delivery_status", "clicked"]}, 1, 0]}}
+            }},
+            {"$sort": {"_id.year": 1, "_id.week": 1}}
+        ]
+    else:
+        # Daily for shorter periods
+        pipeline = [
+            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                "total": {"$sum": 1},
+                "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+                "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}},
+                "opened": {"$sum": {"$cond": [{"$eq": ["$delivery_status", "opened"]}, 1, 0]}},
+                "clicked": {"$sum": {"$cond": [{"$eq": ["$delivery_status", "clicked"]}, 1, 0]}}
+            }},
+            {"$sort": {"_id": 1}}
+        ]
+    
+    raw_data = await db.notification_queue.aggregate(pipeline).to_list(100)
+    
+    trend_data = []
+    for item in raw_data:
+        if days > 14:
+            label = f"W{item['_id']['week']}"
+        else:
+            label = item["_id"]
+        
+        sent = item["sent"]
+        total = item["total"]
+        opened = item["opened"]
+        clicked = item["clicked"]
+        
+        trend_data.append({
+            "period": label,
+            "total": total,
+            "sent": sent,
+            "failed": item["failed"],
+            "delivery_rate": round((sent / total) * 100, 1) if total > 0 else 0,
+            "open_rate": round((opened / sent) * 100, 1) if sent > 0 else 0,
+            "click_rate": round((clicked / sent) * 100, 1) if sent > 0 else 0
+        })
+    
+    return {
+        "success": True,
+        "period_days": days,
+        "granularity": "weekly" if days > 14 else "daily",
+        "trends": trend_data
+    }

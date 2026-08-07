@@ -2430,3 +2430,48 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/frontend/src/components/admin/TemplateSettings.js` - Added 4 new tabs, 3 dialogs (1540+ lines total)
 
 ---
+
+### Template System Phase 5 - WhatsApp, Alert Emails, Analytics Charts
+**Date**: August 7, 2026  
+**Status**: 🟢 DONE
+
+#### 1. WhatsApp Integration (Twilio - Mock Mode)
+- Full WhatsApp messaging service with Twilio SDK support
+- 6 pre-built templates: Booking Confirmation, Payment Reminder, Flight Reminder, Complaint Update, Discount Code, OTP Verification
+- Mock mode for testing (no real messages sent)
+- Variable replacement in templates
+- Bulk send support (up to 100 recipients)
+- APIs: `GET /whatsapp/status`, `GET /whatsapp/templates`, `POST /whatsapp/send`, `POST /whatsapp/send-bulk`
+- **Note:** Currently in MOCK MODE. To enable real sending, configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER in backend/.env
+
+#### 2. Alert Email Notifications
+- Gmail SMTP integration for alert emails
+- Beautiful HTML email templates with metric details
+- Multiple recipients support (comma-separated)
+- Auto-send when performance threshold is crossed
+- Manual "Run Check Now" button in Alerts tab
+- APIs: `POST /alerts/trigger-check` (manually trigger all alerts)
+
+#### 3. Analytics Charts (recharts)
+- **Line Chart**: Daily delivery trend (sent/failed/total)
+- **Bar Chart**: Category-wise performance comparison
+- Period selector: 7d / 14d / 30d
+- Real-time data from notification_queue collection
+- Summary stats: Total, Delivered, Failed, Success Rate
+- APIs: `GET /analytics/chart-data`, `GET /analytics/delivery-trends`
+
+#### Frontend UI Updates:
+- WhatsApp status card in Alerts tab with "Send Test" button
+- WhatsApp Send Dialog: Phone input, template selector, JSON variables
+- Enhanced Analytics tab with Line + Bar charts using recharts
+- Period selector (7d/14d/30d) for chart data
+- "Run Check Now" button for manual alert triggering
+
+#### Files Added:
+- `/app/backend/services/whatsapp_service.py` - WhatsApp messaging service (350+ lines)
+
+#### Files Modified:
+- `/app/backend/routes/template_routes.py` - Added 8 new endpoints (4500+ lines total)
+- `/app/frontend/src/components/admin/TemplateSettings.js` - Added charts, WhatsApp dialog (1770+ lines total)
+
+---
