@@ -1895,3 +1895,62 @@ Based on Documents [1], [2], [3], [4], [5] requirements, created comprehensive d
 
 
 All APIs tested via curl with valid JWT token. Frontend linting passed. Ready for production use.
+
+---
+
+## Aug 7, 2026 - Complaint & CSS API Routes Implementation
+
+### Completed Routes Registration
+
+#### 1. **Complaint Management API** (`/api/complaints/*`) - ✅ DONE
+Routes registered in `server.py`. Full complaint lifecycle:
+- `POST /file` - Customer files complaint
+- `GET /my-complaints` - Customer views their complaints  
+- `POST /operator/respond` - Operator responds (2hr deadline)
+- `GET /operator/against-me` - Operator views complaints against them
+- `POST /admin/investigate` - Admin submits investigation & decision
+- `GET /admin/dashboard` - Admin complaint stats
+- `GET /admin/all` - Admin views all complaints with filters
+- `GET /penalties/operator/{id}` - View operator penalties
+- `POST /penalties/{id}/mark-paid` - Mark penalty as paid
+
+**Auto-penalty rules (Document [5]):**
+- 1 serious complaint = ₹10,000
+- 2 complaints in 30 days = ₹20,000 + 7-day suspension
+- 3+ complaints in 60 days = Delisting
+
+#### 2. **CSS Calculator API** (`/api/css/*`) - ✅ DONE
+Customer Satisfaction Score monitoring:
+- `POST /calculate` - Calculate monthly CSS for operator
+- `GET /operator/{id}` - Get CSS history
+- `GET /leaderboard` - Admin CSS leaderboard
+- `POST /bulk-calculate` - Batch calculate for all operators
+
+**CSS score thresholds:**
+- Below 70: Rating drop warning
+- Below 60: Temporary suspension (7-14 days)
+- Below 50: Automatic delisting
+
+#### 3. **Corporate API** (`/api/corporate/*`) - ✅ Working
+Pre-existing routes verified working with backward-compatible models.
+
+### Technical Changes:
+1. **Fixed model imports** - `models/__init__.py` now dynamically imports from parent `models.py` for backward compatibility
+2. **Fixed route prefixes** - Removed `/api` from route prefixes (was causing double `/api/api/...`)
+3. **Server.py updated** - Added imports and include_router() for complaint_routes and css_routes
+
+### Files Modified:
+- `/app/backend/models/__init__.py` - Added backward compatibility layer
+- `/app/backend/routes/complaint_routes.py` - Fixed prefix
+- `/app/backend/routes/css_routes.py` - Fixed prefix
+- `/app/backend/server.py` - Added route imports and registration
+
+### Testing:
+All APIs tested via curl with admin JWT token from `/api/auth/dev/quick-admin-token`:
+```bash
+curl -X GET "$API_URL/api/complaints/admin/dashboard" -H "Authorization: Bearer $TOKEN"
+curl -X GET "$API_URL/api/css/leaderboard" -H "Authorization: Bearer $TOKEN"
+curl -X GET "$API_URL/api/corporate/list" 
+```
+All returning valid JSON responses.
+

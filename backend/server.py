@@ -160,6 +160,9 @@ from routes import ai_repositioning_routes
 from routes import vre_routes
 # API Control Center - Centralized API Management
 from routes import api_control_routes
+# Complaint Management & CSS Calculator
+from routes import complaint_routes
+from routes import css_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -425,6 +428,10 @@ api_router.include_router(vre_routes.router)
 
 # API Control Center - Centralized API Management
 api_router.include_router(api_control_routes.router)
+
+# Complaint Management & CSS Calculator
+api_router.include_router(complaint_routes.router)
+api_router.include_router(css_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

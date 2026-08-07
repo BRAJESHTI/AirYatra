@@ -13,6 +13,23 @@ Modules:
 - vre_models: Verification Rule Engine
 """
 
+# ============= BACKWARD COMPATIBILITY =============
+# Import all models from the original models.py file (located at /app/backend/models.py)
+# This ensures existing routes that use "from models import X" continue to work
+import sys
+import importlib.util
+
+# Load the original models.py as a module
+_original_models_path = "/app/backend/models.py"
+_spec = importlib.util.spec_from_file_location("_original_models", _original_models_path)
+_original_models = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_original_models)
+
+# Export all public names from original models.py
+for _name in dir(_original_models):
+    if not _name.startswith('_'):
+        globals()[_name] = getattr(_original_models, _name)
+
 # Document Vault Models
 from .document_vault_models import (
     # Enums

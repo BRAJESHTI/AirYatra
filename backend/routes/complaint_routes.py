@@ -23,7 +23,7 @@ from models.complaint_penalty_models import (
     OperatorResponseCreate, PenaltyCreate
 )
 
-router = APIRouter(prefix="/api/complaints", tags=["Complaint Management"])
+router = APIRouter(prefix="/complaints", tags=["Complaint Management"])
 
 # ============= HELPER FUNCTIONS =============
 

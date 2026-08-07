@@ -21,7 +21,7 @@ from models.complaint_penalty_models import (
     CSSCalculationRequest, CSSResponse
 )
 
-router = APIRouter(prefix="/api/css", tags=["Customer Satisfaction Score"])
+router = APIRouter(prefix="/css", tags=["Customer Satisfaction Score"])
 
 # ============= HELPER FUNCTIONS =============
 
