@@ -2743,3 +2743,57 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/frontend/src/components/admin/EmailTemplateEditor.js` - Added Charts, Campaigns views, EmailCampaignManager component (now 750+ lines)
 
 ---
+
+### Phase 8: PayPal Payment Gateway (Aug 7, 2026)
+
+#### PayPal Integration 🟢 DONE
+- **Mode**: Sandbox/Test (MOCK mode when credentials not configured)
+- **Supported**: International payments (USD, EUR, GBP, CAD, AUD)
+- **Note**: PayPal does not support INR - amounts auto-converted to USD
+
+#### Features:
+1. **Create Order** - `POST /api/payments/paypal/create-order`
+   - INR to USD conversion (₹83 = $1 approx)
+   - Returns approval_url for PayPal checkout
+   
+2. **Capture Payment** - `POST /api/payments/paypal/capture-order`
+   - Captures approved payment
+   - Updates booking status to paid/confirmed
+   - Records transaction with payer details
+
+3. **Webhook Support** - `POST /api/payments/paypal/webhook`
+   - PAYMENT.CAPTURE.COMPLETED
+   - PAYMENT.CAPTURE.DENIED
+   - CHECKOUT.ORDER.APPROVED
+
+4. **Admin Dashboard** 
+   - `GET /api/payments/paypal/admin/orders` - List all orders
+   - `GET /api/payments/paypal/admin/transactions` - List transactions with totals
+
+5. **Frontend Component** - `PayPalPaymentButton.js`
+   - PayPal SDK integration (@paypal/react-paypal-js)
+   - Mock mode UI (when credentials not configured)
+   - INR/USD display with conversion
+   - Success/Error callbacks
+
+#### Configuration:
+```env
+# backend/.env
+PAYPAL_CLIENT_ID=your_client_id
+PAYPAL_CLIENT_SECRET=your_client_secret
+PAYPAL_MODE=sandbox  # or 'live'
+```
+
+#### Files Added:
+- `/app/backend/services/paypal_service.py` (250 lines) - PayPal SDK wrapper with mock support
+- `/app/backend/routes/paypal_routes.py` (350 lines) - Payment endpoints
+- `/app/frontend/src/components/payments/PayPalPaymentButton.js` (250 lines) - React component
+
+#### To Enable Real Payments:
+1. Go to https://developer.paypal.com/
+2. Create Sandbox or Live app
+3. Get Client ID and Secret
+4. Add to backend/.env
+5. Restart backend
+
+---

@@ -125,6 +125,8 @@ from routes import ai_pricing_routes
 from routes import content_routes
 # Razorpay Payment Gateway
 from routes import razorpay_routes
+# PayPal Payment Gateway
+from routes import paypal_routes
 # AI Sales Advisor
 from routes import ai_sales_routes
 # AI Report Generator
@@ -376,6 +378,9 @@ api_router.include_router(ai_pricing_routes.router)
 
 # Razorpay Payment Gateway
 api_router.include_router(razorpay_routes.router)
+
+# PayPal Payment Gateway
+api_router.include_router(paypal_routes.router)
 
 # AI Sales Advisor
 api_router.include_router(ai_sales_routes.router)
