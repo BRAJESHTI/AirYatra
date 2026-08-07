@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw } from 'lucide-react';
+import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { customerAPI, feedbackAPI } from '../../services/api';
 import { toast } from 'sonner';
+import ComplaintForm from './ComplaintForm';
 
 function MyTrips({ user }) {
   const [trips, setTrips] = useState([]);
@@ -14,6 +15,7 @@ function MyTrips({ user }) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showQuotesDialog, setShowQuotesDialog] = useState(false);
+  const [showComplaintDialog, setShowComplaintDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [isEmergency, setIsEmergency] = useState(false);
   const [reviewData, setReviewData] = useState({ overall_rating: 5, comment: '', recommend: true });
@@ -362,6 +364,18 @@ function MyTrips({ user }) {
                     <X className="h-4 w-4 mr-1" /> Cancel
                   </Button>
                 )}
+                {/* File Complaint Button - show for completed, confirmed, or in_progress trips */}
+                {['completed', 'confirmed', 'in_progress', 'payment_completed'].includes(trip.status) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                    onClick={() => { setSelectedTrip(trip); setShowComplaintDialog(true); }}
+                    data-testid="file-complaint-btn"
+                  >
+                    <Flag className="h-4 w-4 mr-1" /> File Complaint
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
@@ -597,6 +611,17 @@ function MyTrips({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Complaint Filing Dialog */}
+      <ComplaintForm
+        isOpen={showComplaintDialog}
+        onClose={() => { setShowComplaintDialog(false); setSelectedTrip(null); }}
+        booking={selectedTrip}
+        onSuccess={() => {
+          toast.success('Complaint filed! You will be notified of the decision.');
+          loadTrips();
+        }}
+      />
     </div>
   );
 }

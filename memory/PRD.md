@@ -1954,3 +1954,60 @@ curl -X GET "$API_URL/api/corporate/list"
 ```
 All returning valid JSON responses.
 
+---
+
+## Aug 7, 2026 - Frontend UI Components for Complaints, CSS, Document Vault
+
+### Completed Components
+
+#### 1. **Complaint Filing UI** (`ComplaintForm.js`) - ✅ DONE
+Location: `/app/frontend/src/components/customer/ComplaintForm.js`
+- Customer-facing complaint form dialog integrated into MyTrips.js
+- Features:
+  - Subject and description fields with validation
+  - Category selection (safety, service quality, delay, etc.)
+  - Severity levels (low to critical)
+  - File attachment support (up to 5 files, JPG/PNG/PDF)
+  - Bilingual labels (English/Hindi)
+- Shows "File Complaint" button on completed/confirmed trips
+
+#### 2. **CSS Dashboard Widget** (`CSSWidget.js`) - ✅ DONE
+Location: `/app/frontend/src/components/operator/CSSWidget.js`
+- Integrated into OperatorERP.js dashboard
+- Features:
+  - Current CSS score with color-coded health indicators
+  - Score trend visualization (improving/declining/stable)
+  - Score history timeline (last 6 months)
+  - Threshold warnings (<70 warning, <60 suspension risk, <50 delisting)
+  - Tips to improve CSS score
+  - Compact mode for sidebars
+
+#### 3. **Document Vault Admin** (`DocumentVaultAdmin.js`) - ✅ DONE
+Location: `/app/frontend/src/components/admin/DocumentVaultAdmin.js`
+- Added to AdminDashboard under "Document Master" menu
+- Features:
+  - Document list with filters (category, status, search)
+  - Stats cards (total, pending, verified, expiring, expired)
+  - Upload dialog for new documents
+  - Verify/Reject workflow for pending docs
+  - View document details dialog
+  - Delete functionality with confirmation
+  - Pagination support
+- Uses existing `/api/vault/*` backend endpoints
+
+### Files Created:
+- `/app/frontend/src/components/customer/ComplaintForm.js`
+- `/app/frontend/src/components/operator/CSSWidget.js`
+- `/app/frontend/src/components/admin/DocumentVaultAdmin.js`
+
+### Files Modified:
+- `/app/frontend/src/components/customer/MyTrips.js` - Added ComplaintForm import and "File Complaint" button
+- `/app/frontend/src/components/operator/OperatorERP.js` - Added CSSWidget import and integration
+- `/app/frontend/src/pages/AdminDashboard.js` - Added DocumentVaultAdmin to nav and render
+
+### Testing:
+- All components lint clean
+- Admin dashboard loads successfully
+- Backend APIs verified working via curl
+- No runtime errors detected
+

@@ -100,6 +100,8 @@ import AdminVerificationEngine from '@/components/admin/AdminVerificationEngine'
 // API Control Center
 import APIControlCenter from '@/components/admin/APIControlCenter';
 import MapCacheSettings from '@/components/admin/MapCacheSettings';
+// Document Vault Admin
+import DocumentVaultAdmin from '@/components/admin/DocumentVaultAdmin';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -244,6 +246,7 @@ const navGroups = [
     label: 'Document Master / दस्तावेज़ मास्टर',
     icon: Shield,
     items: [
+      { id: 'document_vault', label: 'Document Vault / दस्तावेज़ वॉल्ट', icon: FileText, highlight: true },
       { id: 'verification_engine', label: 'Verification Engine / सत्यापन इंजन', icon: Shield, highlight: true },
       { id: 'compliance_dashboard', label: 'AI Compliance Monitor / अनुपालन', icon: Shield, highlight: true },
       { id: 'verification_queue', label: 'Verification Queue / सत्यापन', icon: CheckSquare, highlight: true },
@@ -406,6 +409,8 @@ function AdminDashboard({ user, onLogout }) {
         return <APIControlCenter />;
       case 'map_cache':
         return <MapCacheSettings />;
+      case 'document_vault':
+        return <DocumentVaultAdmin />;
       case 'twilio':
         return <TwilioIntegration />;
       case 'tally':

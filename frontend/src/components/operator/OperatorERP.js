@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plane, BookOpen, Wrench, AlertTriangle, Plus, Loader2, CheckCircle2, Gauge, Fuel, TrendingUp, Download, UserCheck, BadgeIndianRupee, FileCheck, Trash2 } from 'lucide-react';
+import { Plane, BookOpen, Wrench, AlertTriangle, Plus, Loader2, CheckCircle2, Gauge, Fuel, TrendingUp, Download, UserCheck, BadgeIndianRupee, FileCheck, Trash2, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import api, { operatorAPI } from '../../services/api';
 import { toast } from 'sonner';
+import CSSWidget from './CSSWidget';
 
 const SEV = {
   doc_expired: { chip: 'bg-red-500/20 text-red-400 border-red-500/40', label: 'DOC EXPIRED' },
@@ -212,6 +213,35 @@ function OperatorERP() {
           </div>
         ))}
       </div>
+
+      {/* CSS Widget - Customer Satisfaction Score */}
+      {overview?.operator_id && (
+        <div className="grid lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <CSSWidget operatorId={overview.operator_id} compact={false} />
+          </div>
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-blue-400" />
+              Quick Tips / त्वरित सुझाव
+            </h3>
+            <ul className="space-y-2 text-sm text-slate-400">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>Respond to complaints within 2 hours to avoid penalties</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>CSS below 60 triggers suspension, below 50 triggers delisting</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>Maintain 4+ star rating to boost your CSS score</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Advanced Analytics */}
       {analytics && (
