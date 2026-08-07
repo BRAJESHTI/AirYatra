@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Map as MapIcon, Bot, HardDrive, Database, Percent, Menu, Server, Flag } from 'lucide-react';
+import { LogOut, Plane, LayoutDashboard, Users, Calendar, FileText, DollarSign, Shield, AlertTriangle, BarChart3, Settings, PieChart, UserCog, Ban, CheckSquare, Building2, TrendingUp, MessageSquare, Clock, Bell, MapPin, TreePine, Gift, Headphones, Key, Globe, Phone, Navigation, Wallet, CreditCard, Star, Cloud, Route, Siren, BookOpen, Calculator, Radio, FileCheck, Package, ChevronDown, ChevronRight, Briefcase, Cog, Users2, Map, Map as MapIcon, Bot, HardDrive, Database, Percent, Menu, Server, Flag, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI } from '@/services/api';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -114,6 +114,10 @@ import TemplateSettings from '@/components/admin/TemplateSettings';
 import LegalDocsAdmin from '@/components/admin/LegalDocsAdmin';
 // Email Click Heatmap
 import EmailClickHeatmap from '@/components/admin/EmailClickHeatmap';
+// Booking Calendar
+import BookingCalendar from '@/components/admin/BookingCalendar';
+// Email A/B Testing
+import EmailABTesting from '@/components/admin/EmailABTesting';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -250,6 +254,8 @@ const navGroups = [
       { id: 'template_settings', label: 'Template Settings / टेम्पलेट', icon: FileText, highlight: true },
       { id: 'legal_docs', label: 'Legal Docs / कानूनी दस्तावेज़', icon: Shield, highlight: true },
       { id: 'email_heatmap', label: 'Email Analytics / ईमेल हीटमैप', icon: BarChart3, highlight: true },
+      { id: 'booking_calendar', label: 'Booking Calendar / कैलेंडर', icon: Calendar, highlight: true },
+      { id: 'email_ab_testing', label: 'A/B Testing / टेस्टिंग', icon: FlaskConical, highlight: true },
       { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
       { id: 'webhooks', label: 'Webhooks', icon: Globe },
       { id: 'call_recording', label: 'Call Recording', icon: Phone },
@@ -379,6 +385,10 @@ function AdminDashboard({ user, onLogout }) {
         return <LegalDocsAdmin />;
       case 'email_heatmap':
         return <EmailClickHeatmap />;
+      case 'booking_calendar':
+        return <BookingCalendar userRole={user?.roles?.[0]} />;
+      case 'email_ab_testing':
+        return <EmailABTesting />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features

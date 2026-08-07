@@ -489,6 +489,14 @@ api_router.include_router(exchange_rate_routes.router)
 from routes import firebase_push_routes
 api_router.include_router(firebase_push_routes.router)
 
+# Stripe Payments (Multi-Currency)
+from routes import stripe_routes
+api_router.include_router(stripe_routes.router)
+
+# Email A/B Testing
+from routes import email_ab_test_routes
+api_router.include_router(email_ab_test_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 

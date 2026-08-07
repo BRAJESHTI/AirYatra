@@ -3081,3 +3081,94 @@ PAYPAL_MODE=sandbox  # or 'live'
 
 ---
 
+
+
+### Session: August 7, 2026 (Fork Session 2 - Part 3) - Multi-Currency, A/B Testing, Invoice & Calendar
+
+#### Completed in This Session:
+
+##### 1. Multi-Currency Stripe Checkout 🟢 DONE
+- **Backend Service**: `/app/backend/services/stripe_service.py`
+  - Supports 8 currencies: USD, EUR, GBP, AUD, CAD, SGD, AED, JPY
+  - Checkout Session creation with redirect URLs
+  - PaymentIntent for custom Stripe Elements
+  - Session verification
+  - Refund support
+- **API Routes**: `/app/backend/routes/stripe_routes.py`
+  - `GET /api/stripe/status` - Service status (TEST/LIVE mode)
+  - `POST /api/stripe/create-checkout` - Create checkout session
+  - `POST /api/stripe/verify-session` - Verify payment
+  - `POST /api/stripe/create-payment-intent` - Custom payment
+  - `POST /api/stripe/refund` - Create refund
+- **Test Key**: `sk_test_emergent` (configured)
+- **Gateway Routing**: INR → Razorpay, Other currencies → Stripe
+
+##### 2. Email A/B Testing 🟢 DONE
+- **Backend Service**: `/app/backend/services/email_ab_test_service.py`
+  - Create tests with 2 variants (different subject lines)
+  - Consistent recipient assignment (same email always gets same variant)
+  - Auto-winner selection based on open_rate or click_rate
+  - Pause/Resume/Delete tests
+  - Track sent/opens/clicks per variant
+- **API Routes**: `/app/backend/routes/email_ab_test_routes.py`
+  - `POST /api/email-ab-tests/create` - Create new test
+  - `GET /api/email-ab-tests/list` - List all tests
+  - `GET /api/email-ab-tests/{id}` - Get test results
+  - `POST /api/email-ab-tests/{id}/select-winner` - Manual winner
+  - `POST /api/email-ab-tests/{id}/pause` / `resume`
+- **Frontend**: `/app/frontend/src/components/admin/EmailABTesting.js`
+  - Create test modal with variant A/B inputs
+  - Side-by-side variant comparison
+  - Stats: Sent, Opens %, Clicks %
+  - Select A/B buttons for manual winner
+  - Admin tab: "A/B Testing / टेस्टिंग"
+
+##### 3. GST Invoice PDF Download 🟢 DONE
+- **Backend Service**: `/app/backend/services/gst_invoice_service.py`
+  - GST-compliant tax invoice
+  - Company GSTIN, PAN, CIN details
+  - HSN/SAC code (996411 for air transport)
+  - CGST+SGST or IGST breakup
+  - Amount in words (Indian numbering)
+  - QR code for verification
+  - Professional PDF layout with reportlab
+- **API Endpoints** (added to invoice_routes.py):
+  - `GET /api/invoices/download/{invoice_id}` - Download PDF
+  - `GET /api/invoices/download-by-booking/{booking_id}` - Download by booking
+- **PDF Features**:
+  - AirYatra branded header
+  - Customer billing details
+  - Flight details section
+  - Tax breakup table
+  - Payment status
+  - Terms & conditions
+  - QR code for digital verification
+
+##### 4. Booking Calendar View 🟢 DONE
+- **Frontend**: `/app/frontend/src/components/admin/BookingCalendar.js`
+  - Monthly calendar grid with day headers
+  - Today highlighted with orange border
+  - Booking indicators on dates
+  - Status filter (All/Confirmed/Pending/Completed/Cancelled)
+  - Stats cards showing counts per status
+  - Click date to see bookings list
+  - Click booking to see detail modal
+  - Route display with plane icon
+  - Navigation: Previous/Next month, Today button
+  - Admin tab: "Booking Calendar / कैलेंडर"
+
+#### Files Added:
+- `/app/backend/services/stripe_service.py`
+- `/app/backend/routes/stripe_routes.py`
+- `/app/backend/services/email_ab_test_service.py`
+- `/app/backend/routes/email_ab_test_routes.py`
+- `/app/backend/services/gst_invoice_service.py`
+- `/app/frontend/src/components/admin/BookingCalendar.js`
+- `/app/frontend/src/components/admin/EmailABTesting.js`
+
+#### Admin Dashboard New Tabs:
+- Booking Calendar / कैलेंडर
+- A/B Testing / टेस्टिंग
+
+---
+

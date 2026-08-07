@@ -403,3 +403,149 @@ async def get_gst_report(
         "total_gst": round(total_cgst + total_sgst + total_igst, 2),
         "invoices": invoices
     }
+
+
+
+# ==================== GST INVOICE PDF DOWNLOAD ====================
+
+from fastapi.responses import StreamingResponse
+from services.gst_invoice_service import gst_invoice_generator
+
+
+@router.get("/download/{invoice_id}")
+async def download_invoice_pdf(
+    invoice_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Download GST-compliant tax invoice as PDF.
+    
+    Features:
+    - Company GSTIN and details
+    - Customer billing info
+    - HSN/SAC codes
+    - GST breakup (CGST+SGST or IGST)
+    - QR code for verification
+    - Amount in words
+    """
+    # Find invoice
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Check authorization
+    user_roles = current_user.get("roles", [])
+    is_admin = any(r in user_roles for r in ["admin", "super_admin", "operator", "finance"])
+    
+    if not is_admin and invoice.get("customer_id") != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="Not authorized to access this invoice")
+    
+    # Get customer details
+    customer = await db.users.find_one({"id": invoice.get("customer_id")}, {"_id": 0})
+    
+    # Get booking if linked
+    booking = None
+    if invoice.get("booking_id"):
+        booking = await db.inquiries.find_one({"id": invoice.get("booking_id")}, {"_id": 0})
+        if not booking:
+            booking = await db.bookings.find_one({"id": invoice.get("booking_id")}, {"_id": 0})
+    
+    # Prepare invoice data for PDF
+    invoice_data = {
+        "invoice_number": invoice.get("invoice_number", f"INV-{invoice_id[:8]}"),
+        "invoice_date": invoice.get("created_at", datetime.now()).strftime("%d-%m-%Y") if isinstance(invoice.get("created_at"), datetime) else str(invoice.get("created_at", ""))[:10],
+        "booking_id": invoice.get("booking_id", invoice_id),
+        "customer_name": invoice.get("customer_name") or (customer.get("full_name", customer.get("name", "Customer")) if customer else "Customer"),
+        "customer_address": invoice.get("billing_address", {}).get("full_address", "Address not provided") if isinstance(invoice.get("billing_address"), dict) else "Address not provided",
+        "customer_gstin": invoice.get("customer_gstin", customer.get("gstin", "") if customer else ""),
+        "customer_email": customer.get("email", "") if customer else invoice.get("customer_email", ""),
+        "customer_phone": customer.get("phone", "") if customer else invoice.get("customer_phone", ""),
+        "from_city": booking.get("from_city", "Mumbai") if booking else "Mumbai",
+        "to_city": booking.get("to_city", "Destination") if booking else "Destination",
+        "departure_date": booking.get("departure_date", "") if booking else "",
+        "aircraft_type": booking.get("aircraft_type", "Helicopter") if booking else "Helicopter",
+        "passenger_count": booking.get("passenger_count", 1) if booking else 1,
+        "pnr": booking.get("pnr", invoice_id[:8].upper()) if booking else invoice_id[:8].upper(),
+        "base_amount": float(invoice.get("taxable_amount", invoice.get("subtotal", 0))),
+        "gst_amount": float(invoice.get("cgst", 0)) + float(invoice.get("sgst", 0)) + float(invoice.get("igst", 0)),
+        "total_amount": float(invoice.get("total_amount", invoice.get("grand_total", 0))),
+        "payment_method": invoice.get("payment_method", "Online"),
+        "transaction_id": invoice.get("transaction_id", "N/A"),
+        "payment_date": datetime.now().strftime("%d-%m-%Y"),
+        "is_interstate": float(invoice.get("igst", 0)) > 0
+    }
+    
+    # Generate PDF
+    pdf_buffer = gst_invoice_generator.generate_invoice(invoice_data)
+    
+    filename = f"AirYatra_Invoice_{invoice_data['invoice_number'].replace('/', '_')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cache-Control": "no-cache"
+        }
+    )
+
+
+@router.get("/download-by-booking/{booking_id}")
+async def download_invoice_by_booking(
+    booking_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Download invoice PDF by booking ID.
+    Creates invoice record if not exists.
+    """
+    # Find or create invoice for booking
+    invoice = await db.invoices.find_one({"booking_id": booking_id}, {"_id": 0})
+    
+    if not invoice:
+        # Get booking to create invoice
+        booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+        if not booking:
+            booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Check authorization
+        user_roles = current_user.get("roles", [])
+        is_admin = any(r in user_roles for r in ["admin", "super_admin", "operator"])
+        
+        if not is_admin and booking.get("user_id") != current_user.get("id"):
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # Create invoice record
+        total_amount = float(booking.get("total_amount", booking.get("amount", 0)))
+        gst_rate = 0.05
+        taxable = total_amount / (1 + gst_rate)
+        gst = total_amount - taxable
+        
+        invoice = {
+            "id": str(uuid4()),
+            "invoice_number": generate_invoice_number("TAX"),
+            "invoice_type": "tax_invoice",
+            "booking_id": booking_id,
+            "customer_id": booking.get("user_id"),
+            "customer_name": booking.get("customer_name", "Customer"),
+            "subtotal": round(taxable, 2),
+            "taxable_amount": round(taxable, 2),
+            "cgst": round(gst / 2, 2),
+            "sgst": round(gst / 2, 2),
+            "igst": 0,
+            "total_amount": round(total_amount, 2),
+            "grand_total": round(total_amount, 2),
+            "status": "paid",
+            "created_at": datetime.now(timezone.utc)
+        }
+        
+        await db.invoices.insert_one(invoice)
+    
+    # Now download using invoice ID
+    return await download_invoice_pdf(invoice["id"], current_user, db)
