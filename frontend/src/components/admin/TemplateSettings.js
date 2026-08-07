@@ -7,7 +7,9 @@ import {
   BarChart3, TrendingUp, Calendar, GitBranch, Beaker, Languages,
   Timer, Bell, ArrowRight, Award, Target, Percent, History,
   RotateCcw, Shield, CheckSquare, XSquare, MessageCircle, Sparkles,
-  Lightbulb, Wand2, FileCheck, FileClock, AlertCircle, PlayCircle
+  Lightbulb, Wand2, FileCheck, FileClock, AlertCircle, PlayCircle,
+  BookOpen, Library, TestTube2, Activity, Package, Star, Import, 
+  Gauge, AlertOctagon, Filter, ExternalLink, Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +73,24 @@ export default function TemplateSettings() {
   const [notificationQueue, setNotificationQueue] = useState([]);
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [bestPractices, setBestPractices] = useState(null);
+  
+  // Phase 4 States
+  const [libraryTemplates, setLibraryTemplates] = useState([]);
+  const [libraryFilters, setLibraryFilters] = useState({ category: '', tag: '', search: '', sort: 'popularity' });
+  const [alerts, setAlerts] = useState([]);
+  const [alertHistory, setAlertHistory] = useState([]);
+  const [deliveryReports, setDeliveryReports] = useState({ reports: [], stats: {} });
+  const [sandboxHistory, setSandboxHistory] = useState([]);
+  const [showSandboxDialog, setShowSandboxDialog] = useState(false);
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [sandboxRecipient, setSandboxRecipient] = useState('');
+  const [sandboxLanguage, setSandboxLanguage] = useState('en');
+  const [alertConfig, setAlertConfig] = useState({
+    metric: 'delivery_rate',
+    threshold: 90,
+    comparison: 'below',
+    notify_emails: ''
+  });
   
   // Config
   const [templateVariables, setTemplateVariables] = useState({});
@@ -163,6 +183,40 @@ export default function TemplateSettings() {
     } catch (err) { console.error(err); }
   }, [activeCategory]);
 
+  // Phase 4 Load Functions
+  const loadLibrary = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (libraryFilters.category) params.append('category', libraryFilters.category);
+      if (libraryFilters.tag) params.append('tag', libraryFilters.tag);
+      if (libraryFilters.search) params.append('search', libraryFilters.search);
+      params.append('sort_by', libraryFilters.sort);
+      const res = await api.get(`/templates/library/browse?${params.toString()}`);
+      setLibraryTemplates(res.data.templates || []);
+    } catch (err) { console.error(err); }
+  }, [libraryFilters]);
+
+  const loadAlerts = useCallback(async () => {
+    try {
+      const [alertsRes, historyRes] = await Promise.all([
+        api.get('/templates/alerts/list'),
+        api.get('/templates/alerts/history?days=7')
+      ]);
+      setAlerts(alertsRes.data.alerts || []);
+      setAlertHistory(historyRes.data.history || []);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  const loadDeliveryReports = useCallback(async () => {
+    try {
+      const res = await api.get('/templates/delivery-reports?days=7&limit=100');
+      setDeliveryReports({
+        reports: res.data.reports || [],
+        stats: res.data.stats || {}
+      });
+    } catch (err) { console.error(err); }
+  }, []);
+
   useEffect(() => { loadVariables(); }, [loadVariables]);
 
   useEffect(() => {
@@ -171,7 +225,10 @@ export default function TemplateSettings() {
     else if (activeTab === 'scheduled') loadScheduled();
     else if (activeTab === 'approvals') loadPendingApprovals();
     else if (activeTab === 'queue') loadNotificationQueue();
-  }, [activeTab, loadTemplates, loadAnalytics, loadScheduled, loadPendingApprovals, loadNotificationQueue]);
+    else if (activeTab === 'library') loadLibrary();
+    else if (activeTab === 'alerts') loadAlerts();
+    else if (activeTab === 'delivery') loadDeliveryReports();
+  }, [activeTab, loadTemplates, loadAnalytics, loadScheduled, loadPendingApprovals, loadNotificationQueue, loadLibrary, loadAlerts, loadDeliveryReports]);
 
   // Handlers
   const handleCreate = () => {
@@ -425,6 +482,79 @@ export default function TemplateSettings() {
     } catch (err) { toast.error('Schedule save failed'); }
   };
 
+  // Phase 4 Handlers
+  const handleImportLibraryTemplate = async (libraryId, customName) => {
+    try {
+      const params = customName ? `?custom_name=${encodeURIComponent(customName)}` : '';
+      const res = await api.post(`/templates/library/${libraryId}/import${params}`);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        loadLibrary();
+        loadTemplates();
+      } else {
+        toast.info(res.data.message);
+      }
+    } catch (err) { toast.error('Import failed'); }
+  };
+
+  const handleConfigureAlert = async () => {
+    try {
+      const params = new URLSearchParams({
+        metric: alertConfig.metric,
+        threshold: alertConfig.threshold,
+        comparison: alertConfig.comparison
+      });
+      if (alertConfig.notify_emails) {
+        alertConfig.notify_emails.split(',').forEach(e => params.append('notify_emails', e.trim()));
+      }
+      if (selectedTemplate) params.append('template_id', selectedTemplate.template_id);
+      await api.post(`/templates/alerts/configure?${params.toString()}`);
+      toast.success('Alert configured');
+      setShowAlertDialog(false);
+      loadAlerts();
+    } catch (err) { toast.error('Alert config failed'); }
+  };
+
+  const handleDeleteAlert = async (alertId) => {
+    if (!confirm('Delete this alert?')) return;
+    try {
+      await api.delete(`/templates/alerts/${alertId}`);
+      toast.success('Alert deleted');
+      loadAlerts();
+    } catch (err) { toast.error('Delete failed'); }
+  };
+
+  const handleSandboxTest = async () => {
+    if (!sandboxRecipient) { toast.error('Enter recipient'); return; }
+    try {
+      const res = await api.post(`/templates/${selectedTemplate.template_id}/sandbox/test?test_recipient=${encodeURIComponent(sandboxRecipient)}&language=${sandboxLanguage}`);
+      toast.success(res.data.message);
+      setShowSandboxDialog(false);
+      loadSandboxHistory(selectedTemplate.template_id);
+    } catch (err) { toast.error('Test failed'); }
+  };
+
+  const loadSandboxHistory = async (templateId) => {
+    try {
+      const res = await api.get(`/templates/${templateId}/sandbox/history`);
+      setSandboxHistory(res.data.history || []);
+    } catch (err) { console.error(err); }
+  };
+
+  const openSandboxDialog = (template) => {
+    setSelectedTemplate(template);
+    setSandboxRecipient('');
+    setSandboxLanguage('en');
+    loadSandboxHistory(template.template_id);
+    setShowSandboxDialog(true);
+  };
+
+  const openAlertDialog = (template = null) => {
+    setSelectedTemplate(template);
+    setAlertConfig({ metric: 'delivery_rate', threshold: 90, comparison: 'below', notify_emails: '' });
+    setShowAlertDialog(true);
+  };
+
   const insertVariable = (variable) => {
     const fieldMap = { en: 'content', hi: 'content_hindi', mr: 'content_marathi', gu: 'content_gujarati', ta: 'content_tamil' };
     const field = fieldMap[activeLang] || 'content';
@@ -665,6 +795,260 @@ export default function TemplateSettings() {
     </div>
   );
 
+  // Phase 4 Render Functions
+  const renderLibrary = () => (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <Label className="text-xs mb-1">Category</Label>
+            <select value={libraryFilters.category} onChange={(e) => setLibraryFilters({ ...libraryFilters, category: e.target.value })} className="px-3 py-2 border rounded-lg">
+              <option value="">All Categories</option>
+              {Object.entries(CATEGORY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+          <div className="flex-1 max-w-md">
+            <Label className="text-xs mb-1">Search</Label>
+            <Input placeholder="Search templates..." value={libraryFilters.search} onChange={(e) => setLibraryFilters({ ...libraryFilters, search: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs mb-1">Sort By</Label>
+            <select value={libraryFilters.sort} onChange={(e) => setLibraryFilters({ ...libraryFilters, sort: e.target.value })} className="px-3 py-2 border rounded-lg">
+              <option value="popularity">Popularity</option>
+              <option value="downloads">Downloads</option>
+              <option value="rating">Rating</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+          <Button variant="outline" onClick={loadLibrary}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+      </div>
+
+      {/* Library Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {libraryTemplates.map(template => (
+          <div key={template.library_id} className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-3">
+                <span className={`px-2 py-1 rounded text-xs text-white ${CATEGORY_CONFIG[template.category]?.color || 'bg-slate-500'}`}>
+                  {template.category?.toUpperCase()}
+                </span>
+                {template.is_featured && <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />}
+              </div>
+              <h3 className="font-semibold mb-1">{template.name}</h3>
+              <p className="text-sm text-slate-500 line-clamp-2 mb-3">{template.description}</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {template.tags?.slice(0, 3).map(tag => (
+                  <span key={tag} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded">{tag}</span>
+                ))}
+              </div>
+              <div className="flex justify-between items-center text-sm text-slate-500">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1"><Download className="h-3 w-3" />{template.downloads}</span>
+                  <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-500" />{template.rating}</span>
+                </div>
+                <span className="text-xs text-purple-500">{template.popularity}% popular</span>
+              </div>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t flex gap-2">
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => {
+                const content = template.content?.replace(/<[^>]*>/g, '').substring(0, 200);
+                alert(`Preview:\n\n${content}...`);
+              }}>
+                <Eye className="h-4 w-4 mr-1" />Preview
+              </Button>
+              <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600" onClick={() => handleImportLibraryTemplate(template.library_id)}>
+                <Download className="h-4 w-4 mr-1" />Import
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {libraryTemplates.length === 0 && (
+        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border">
+          <Package className="h-12 w-12 mx-auto text-slate-300 mb-2" />
+          <p className="text-slate-500">No templates found in library</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderAlerts = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Performance Alerts</h2>
+        <Button onClick={() => openAlertDialog()} className="bg-orange-500 hover:bg-orange-600">
+          <Plus className="h-4 w-4 mr-2" />Configure Alert
+        </Button>
+      </div>
+
+      {/* Alert Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <Bell className="h-6 w-6 text-blue-500 mb-2" />
+          <p className="text-2xl font-bold">{alerts.length}</p>
+          <p className="text-sm text-slate-500">Active Alerts</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" />
+          <p className="text-2xl font-bold">{alertHistory.length}</p>
+          <p className="text-sm text-slate-500">Triggered (7d)</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <Gauge className="h-6 w-6 text-green-500 mb-2" />
+          <p className="text-2xl font-bold">{alerts.filter(a => a.metric === 'delivery_rate').length}</p>
+          <p className="text-sm text-slate-500">Delivery Alerts</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+          <Activity className="h-6 w-6 text-purple-500 mb-2" />
+          <p className="text-2xl font-bold">{alerts.filter(a => a.metric === 'open_rate').length}</p>
+          <p className="text-sm text-slate-500">Open Rate Alerts</p>
+        </div>
+      </div>
+
+      {/* Active Alerts */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h3 className="font-semibold">Active Alert Rules</h3>
+          <Button variant="outline" size="sm" onClick={loadAlerts}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+        {alerts.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">
+            <Bell className="h-12 w-12 mx-auto text-slate-300 mb-2" />
+            No alerts configured
+          </div>
+        ) : (
+          <div className="divide-y">
+            {alerts.map(alert => (
+              <div key={alert.alert_id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium flex items-center gap-2">
+                    {alert.metric.replace('_', ' ').toUpperCase()}
+                    <span className={`px-2 py-0.5 text-xs rounded ${alert.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100'}`}>
+                      {alert.is_active ? 'Active' : 'Paused'}
+                    </span>
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    Alert when {alert.comparison} {alert.threshold}%
+                    {alert.template_id && ` • Template: ${alert.template_id}`}
+                  </p>
+                  <p className="text-xs text-slate-400">Triggered {alert.trigger_count} times</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteAlert(alert.alert_id)} className="text-red-500">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Alert History */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold flex items-center gap-2">
+            <History className="h-5 w-5" />Alert History (7 days)
+          </h3>
+        </div>
+        <div className="max-h-60 overflow-y-auto divide-y">
+          {alertHistory.length === 0 ? (
+            <p className="p-4 text-center text-slate-500 text-sm">No alerts triggered recently</p>
+          ) : alertHistory.map((h, i) => (
+            <div key={i} className="p-3 flex items-center justify-between text-sm">
+              <div>
+                <p className="font-medium">{h.metric?.replace('_', ' ')}</p>
+                <p className="text-slate-500">Value: {h.actual_value}% (threshold: {h.threshold}%)</p>
+              </div>
+              <span className="text-xs text-slate-400">{new Date(h.triggered_at).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDelivery = () => (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        {[
+          { label: 'Total', value: deliveryReports.stats.total || 0, color: 'bg-slate-500', icon: Send },
+          { label: 'Delivered', value: deliveryReports.stats.delivered || 0, color: 'bg-green-500', icon: CheckCircle2 },
+          { label: 'Opened', value: deliveryReports.stats.opened || 0, color: 'bg-blue-500', icon: Eye },
+          { label: 'Clicked', value: deliveryReports.stats.clicked || 0, color: 'bg-purple-500', icon: ExternalLink },
+          { label: 'Failed', value: deliveryReports.stats.failed || 0, color: 'bg-red-500', icon: AlertTriangle },
+          { label: 'Bounced', value: deliveryReports.stats.bounced || 0, color: 'bg-orange-500', icon: AlertOctagon }
+        ].map(stat => (
+          <div key={stat.label} className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
+            <stat.icon className={`h-5 w-5 ${stat.color.replace('bg-', 'text-')} mb-2`} />
+            <p className="text-2xl font-bold">{stat.value}</p>
+            <p className="text-sm text-slate-500">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Rates */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-green-500" />Delivery Rate
+          </h3>
+          <div className="text-center py-4">
+            <p className="text-5xl font-bold text-green-500">{deliveryReports.stats.delivery_rate || 0}%</p>
+            <p className="text-sm text-slate-500 mt-2">Messages Successfully Delivered</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Eye className="h-5 w-5 text-blue-500" />Open Rate
+          </h3>
+          <div className="text-center py-4">
+            <p className="text-5xl font-bold text-blue-500">{deliveryReports.stats.open_rate || 0}%</p>
+            <p className="text-sm text-slate-500 mt-2">Recipients Opened Messages</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Reports */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h3 className="font-semibold">Recent Delivery Reports (7 days)</h3>
+          <Button variant="outline" size="sm" onClick={loadDeliveryReports}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+        {deliveryReports.reports.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">
+            <Inbox className="h-12 w-12 mx-auto text-slate-300 mb-2" />
+            No delivery reports yet
+          </div>
+        ) : (
+          <div className="max-h-96 overflow-y-auto divide-y">
+            {deliveryReports.reports.slice(0, 50).map(report => (
+              <div key={report.report_id} className="p-3 flex items-center justify-between text-sm">
+                <div>
+                  <p className="font-medium">{report.message_id?.substring(0, 20)}...</p>
+                  <p className="text-slate-500">{report.provider || 'Unknown'}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    report.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                    report.status === 'opened' ? 'bg-blue-100 text-blue-700' :
+                    report.status === 'clicked' ? 'bg-purple-100 text-purple-700' :
+                    report.status === 'failed' ? 'bg-red-100 text-red-700' :
+                    'bg-slate-100'
+                  }`}>{report.status}</span>
+                  <span className="text-xs text-slate-400">{new Date(report.received_at).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -686,8 +1070,11 @@ export default function TemplateSettings() {
       <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         {[
           { id: 'templates', label: 'Templates', icon: FileText },
+          { id: 'library', label: 'Library', icon: BookOpen },
           { id: 'approvals', label: 'Approvals', icon: Shield, badge: pendingApprovals.length },
-          { id: 'queue', label: 'Send Queue', icon: Send },
+          { id: 'queue', label: 'Queue', icon: Send },
+          { id: 'delivery', label: 'Delivery', icon: Activity },
+          { id: 'alerts', label: 'Alerts', icon: Bell },
           { id: 'analytics', label: 'Analytics', icon: BarChart3 },
           { id: 'scheduled', label: 'Scheduled', icon: Calendar },
         ].map(tab => (
@@ -703,6 +1090,9 @@ export default function TemplateSettings() {
       {activeTab === 'queue' && renderQueue()}
       {activeTab === 'analytics' && renderAnalytics()}
       {activeTab === 'scheduled' && renderScheduled()}
+      {activeTab === 'library' && renderLibrary()}
+      {activeTab === 'alerts' && renderAlerts()}
+      {activeTab === 'delivery' && renderDelivery()}
 
       {activeTab === 'templates' && (
         <>
@@ -774,6 +1164,7 @@ export default function TemplateSettings() {
                       <div className="flex items-center gap-1 flex-wrap">
                         <Button variant="ghost" size="sm" onClick={() => handlePreview(template)} title="Preview"><Eye className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(template)} title="Edit"><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => openSandboxDialog(template)} title="Sandbox Test"><TestTube2 className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => handleViewHistory(template)} title="History"><History className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => handleGetAISuggestions(template)} title="AI Suggestions"><Sparkles className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => handleConfigureSchedule(template)} title="Schedule"><Calendar className="h-4 w-4" /></Button>
@@ -1027,6 +1418,126 @@ export default function TemplateSettings() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
             <Button onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sandbox Test Dialog */}
+      <Dialog open={showSandboxDialog} onOpenChange={setShowSandboxDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle><TestTube2 className="h-5 w-5 inline mr-2 text-purple-500" />Sandbox Test</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <p className="text-sm text-purple-700">
+                <strong>Template:</strong> {selectedTemplate?.name}<br />
+                <strong>Category:</strong> {selectedTemplate?.category?.toUpperCase()}
+              </p>
+            </div>
+            <div>
+              <Label>Test Recipient *</Label>
+              <Input 
+                value={sandboxRecipient} 
+                onChange={(e) => setSandboxRecipient(e.target.value)} 
+                placeholder={selectedTemplate?.category === 'email' ? 'email@example.com' : '+91XXXXXXXXXX'}
+                className="mt-1"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                {selectedTemplate?.category === 'email' ? 'Enter email address' : 'Enter phone number'}
+              </p>
+            </div>
+            <div>
+              <Label>Language</Label>
+              <select value={sandboxLanguage} onChange={(e) => setSandboxLanguage(e.target.value)} className="w-full px-3 py-2 border rounded-lg mt-1">
+                {Object.entries(LANGUAGE_CONFIG).map(([code, lang]) => (
+                  <option key={code} value={code}>{lang.flag} {lang.name}</option>
+                ))}
+              </select>
+            </div>
+            {sandboxHistory.length > 0 && (
+              <div>
+                <Label className="mb-2 block">Recent Tests</Label>
+                <div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+                  {sandboxHistory.slice(0, 5).map(test => (
+                    <div key={test.test_id} className="p-2 text-sm flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{test.test_recipient}</p>
+                        <p className="text-xs text-slate-500">{test.language} • {new Date(test.tested_at).toLocaleString()}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-xs ${test.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-slate-100'}`}>
+                        {test.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSandboxDialog(false)}>Cancel</Button>
+            <Button onClick={handleSandboxTest} className="bg-purple-500 hover:bg-purple-600">
+              <PlayCircle className="h-4 w-4 mr-2" />Send Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Configuration Dialog */}
+      <Dialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle><Bell className="h-5 w-5 inline mr-2 text-orange-500" />Configure Alert</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {selectedTemplate && (
+              <div className="p-3 bg-orange-50 rounded-lg text-sm">
+                <strong>Template:</strong> {selectedTemplate.name}
+              </div>
+            )}
+            <div>
+              <Label>Metric *</Label>
+              <select value={alertConfig.metric} onChange={(e) => setAlertConfig({ ...alertConfig, metric: e.target.value })} className="w-full px-3 py-2 border rounded-lg mt-1">
+                <option value="delivery_rate">Delivery Rate</option>
+                <option value="open_rate">Open Rate</option>
+                <option value="click_rate">Click Rate</option>
+                <option value="bounce_rate">Bounce Rate</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Comparison</Label>
+                <select value={alertConfig.comparison} onChange={(e) => setAlertConfig({ ...alertConfig, comparison: e.target.value })} className="w-full px-3 py-2 border rounded-lg mt-1">
+                  <option value="below">Falls Below</option>
+                  <option value="above">Goes Above</option>
+                </select>
+              </div>
+              <div>
+                <Label>Threshold (%)</Label>
+                <Input 
+                  type="number" 
+                  value={alertConfig.threshold} 
+                  onChange={(e) => setAlertConfig({ ...alertConfig, threshold: parseInt(e.target.value) || 0 })}
+                  min={0} max={100}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Notify Emails (comma separated)</Label>
+              <Input 
+                value={alertConfig.notify_emails} 
+                onChange={(e) => setAlertConfig({ ...alertConfig, notify_emails: e.target.value })}
+                placeholder="admin@example.com, team@example.com"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAlertDialog(false)}>Cancel</Button>
+            <Button onClick={handleConfigureAlert} className="bg-orange-500 hover:bg-orange-600">
+              <Bell className="h-4 w-4 mr-2" />Save Alert
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

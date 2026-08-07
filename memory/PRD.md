@@ -2369,3 +2369,64 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/backend/routes/template_routes.py` - Added all new endpoints
 - `/app/frontend/src/components/admin/TemplateSettings.js` - Complete UI overhaul
 
+
+### Template Settings Phase 4 - Library, Alerts, Sandbox, Delivery Reports
+**Date**: August 7, 2026  
+**Status**: 🟢 DONE
+
+#### 1. Template Library & Import
+- Pre-built template marketplace with 5 seeded templates (Welcome SMS, Booking Confirmation, Payment Receipt, Flight Reminder Email, Complaint Resolution WhatsApp)
+- Browse by category, search, sort (popularity/downloads/rating/name)
+- Featured templates with star badges
+- One-click import to your templates (starts as Draft, needs approval)
+- Template preview before import
+- Bulk import support (up to 20 templates)
+- APIs: `GET /library/browse`, `GET /library/{id}`, `POST /library/{id}/import`, `POST /library/import-bulk`
+
+#### 2. Performance Alerts
+- Configure alerts for key metrics: Delivery Rate, Open Rate, Click Rate, Bounce Rate
+- Threshold-based triggers (above/below X%)
+- Per-template or global alerts
+- Email notifications to configured addresses
+- Alert trigger history (7 days)
+- Auto-check scheduler support
+- APIs: `POST /alerts/configure`, `GET /alerts/list`, `DELETE /alerts/{id}`, `GET /alerts/history`, `POST /alerts/check`
+
+#### 3. Delivery Reports
+- Real-time webhook receiver for SMS/Email/WhatsApp providers
+- Status tracking: Delivered, Opened, Clicked, Failed, Bounced
+- Delivery rate & open rate calculations
+- Per-template delivery statistics
+- 7-day report history with filters
+- Provider-wise breakdown support
+- APIs: `POST /webhook/delivery-report`, `GET /delivery-reports`, `GET /{template_id}/delivery-stats`
+
+#### 4. Testing Sandbox
+- Test templates before going live
+- Language selection for multi-language testing
+- Custom test data injection
+- Rendered preview with variable replacement
+- Test history tracking per template
+- Bulk test support (up to 10 templates)
+- APIs: `POST /{template_id}/sandbox/test`, `GET /{template_id}/sandbox/history`, `POST /sandbox/bulk-test`
+
+#### Frontend UI Updates:
+- 8 main tabs: Templates | Library | Approvals | Queue | Delivery | Alerts | Analytics | Scheduled
+- Library tab: Grid view with import buttons, filters, sorting
+- Alerts tab: KPI stats, active alert rules, trigger history
+- Delivery tab: Status-wise stats, delivery/open rates, recent reports
+- Sandbox dialog: Recipient input, language selector, test history
+- Alert config dialog: Metric, threshold, comparison, notification emails
+- TestTube2 icon button added to template action buttons
+
+#### Database Collections Added:
+- `delivery_reports` - Webhook delivery status tracking
+- `template_alerts` - Alert configuration
+- `alert_history` - Alert trigger log
+- `template_sandbox_tests` - Sandbox test records
+
+#### Files Modified:
+- `/app/backend/routes/template_routes.py` - Added 12 new endpoints (4031 lines total)
+- `/app/frontend/src/components/admin/TemplateSettings.js` - Added 4 new tabs, 3 dialogs (1540+ lines total)
+
+---
