@@ -2530,3 +2530,32 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/frontend/src/components/admin/TemplateSettings.js` - Added export buttons, status cards (1820+ lines)
 
 ---
+
+### Alert Email Branding Update
+**Date**: August 7, 2026  
+**Status**: 🟢 DONE
+
+#### AirYatra Branded Alert Email Template
+- Premium dark theme with gradient backgrounds
+- AirYatra logo section with helicopter icon 🚁
+- Dynamic severity badges (CRITICAL/WARNING) with color coding
+- Large metric display with glowing effects
+- Detailed alert configuration card
+- CTA button linking to admin dashboard
+- Professional footer with tagline "Elevating India's Aviation Experience"
+- Responsive design for all email clients
+- IST timezone for Indian users
+
+#### Design Features:
+- Orange (#f97316) primary brand color
+- Dark slate background (#0f172a, #1e293b)
+- Gradient headers and buttons
+- Card-based information layout
+- Severity-based coloring (red for critical, orange for warning)
+- Shimmer animation on header (CSS)
+- Box shadows for depth
+
+#### Files Modified:
+- `/app/backend/routes/template_routes.py` - Updated `send_alert_email()` function with branded HTML template
+
+---

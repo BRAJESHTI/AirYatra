@@ -4160,7 +4160,7 @@ async def send_alert_email(
     metric_value: float,
     template_name: str = None
 ):
-    """Send alert notification email"""
+    """Send alert notification email with AirYatra branding"""
     if not EMAIL_AVAILABLE:
         return {"success": False, "error": "Email service not available"}
     
@@ -4183,75 +4183,371 @@ async def send_alert_email(
     metric_name = alert["metric"].replace("_", " ").title()
     threshold = alert["threshold"]
     comparison = "below" if alert["comparison"] == "below" else "above"
+    alert_severity = "critical" if (comparison == "below" and metric_value < threshold - 10) or (comparison == "above" and metric_value > threshold + 10) else "warning"
+    severity_color = "#dc2626" if alert_severity == "critical" else "#f97316"
+    severity_label = "CRITICAL" if alert_severity == "critical" else "WARNING"
     
-    subject = f"🚨 Template Alert: {metric_name} is {comparison} {threshold}%"
+    subject = f"🚁 AirYatra Alert: {metric_name} {comparison} {threshold}% [{severity_label}]"
     
     html_body = f"""
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #ffffff; margin: 0; padding: 20px; }}
-        .container {{ max-width: 600px; margin: 0 auto; background: #16213e; border-radius: 16px; overflow: hidden; }}
-        .header {{ background: linear-gradient(135deg, #ef4444, #dc2626); padding: 30px; text-align: center; }}
-        .header h1 {{ margin: 0; font-size: 24px; }}
-        .content {{ padding: 30px; }}
-        .alert-box {{ background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 15px 0; border-left: 4px solid #ef4444; }}
-        .metric {{ font-size: 48px; font-weight: bold; color: #ef4444; text-align: center; margin: 20px 0; }}
-        .info-row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a4e; }}
-        .label {{ color: #94a3b8; }}
-        .value {{ color: #ffffff; font-weight: 600; }}
-        .footer {{ background: #0f0f1e; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }}
-        .btn {{ display: inline-block; background: #f97316; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 10px 0; }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ 
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; 
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); 
+            color: #f8fafc; 
+            margin: 0; 
+            padding: 40px 20px;
+            min-height: 100vh;
+        }}
+        .container {{ 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); 
+            border-radius: 24px; 
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }}
+        
+        /* Header with AirYatra Branding */
+        .header {{ 
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%); 
+            padding: 35px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }}
+        .header::before {{
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: shimmer 3s infinite;
+        }}
+        @keyframes shimmer {{
+            0%, 100% {{ transform: rotate(0deg); }}
+            50% {{ transform: rotate(180deg); }}
+        }}
+        .logo-section {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }}
+        .logo-icon {{
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }}
+        .logo-text {{
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }}
+        .header-subtitle {{
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 8px;
+            position: relative;
+            z-index: 1;
+        }}
+        
+        /* Alert Badge */
+        .alert-badge {{
+            display: inline-block;
+            background: {severity_color};
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            position: relative;
+            z-index: 1;
+        }}
+        
+        /* Content */
+        .content {{ 
+            padding: 40px 30px;
+        }}
+        
+        /* Metric Display */
+        .metric-card {{
+            background: linear-gradient(145deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 25px;
+        }}
+        .metric-label {{
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }}
+        .metric-value {{
+            font-size: 64px;
+            font-weight: 800;
+            color: {severity_color};
+            line-height: 1;
+            text-shadow: 0 0 40px rgba(239, 68, 68, 0.3);
+        }}
+        .metric-unit {{
+            font-size: 24px;
+            color: {severity_color};
+            opacity: 0.8;
+        }}
+        .metric-description {{
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 15px;
+        }}
+        
+        /* Details Card */
+        .details-card {{
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }}
+        .details-header {{
+            background: rgba(249, 115, 22, 0.1);
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .details-header-icon {{
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }}
+        .details-header-title {{
+            font-size: 16px;
+            font-weight: 600;
+            color: #f97316;
+        }}
+        .details-body {{
+            padding: 5px 0;
+        }}
+        .detail-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }}
+        .detail-row:last-child {{
+            border-bottom: none;
+        }}
+        .detail-label {{
+            font-size: 14px;
+            color: #94a3b8;
+        }}
+        .detail-value {{
+            font-size: 14px;
+            font-weight: 600;
+            color: #f8fafc;
+        }}
+        .detail-value.critical {{
+            color: {severity_color};
+        }}
+        
+        /* CTA Button */
+        .cta-section {{
+            text-align: center;
+            margin: 30px 0;
+        }}
+        .cta-btn {{
+            display: inline-block;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            padding: 16px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 10px 30px rgba(249, 115, 22, 0.3);
+            transition: all 0.3s ease;
+        }}
+        .cta-btn:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(249, 115, 22, 0.4);
+        }}
+        
+        /* Info Text */
+        .info-text {{
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }}
+        .info-text strong {{
+            color: #3b82f6;
+        }}
+        
+        /* Footer */
+        .footer {{
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }}
+        .footer-logo {{
+            font-size: 20px;
+            font-weight: 700;
+            color: #f97316;
+            margin-bottom: 10px;
+        }}
+        .footer-tagline {{
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 15px;
+        }}
+        .footer-links {{
+            margin-bottom: 15px;
+        }}
+        .footer-link {{
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 12px;
+            margin: 0 10px;
+        }}
+        .footer-link:hover {{
+            color: #f97316;
+        }}
+        .footer-copyright {{
+            font-size: 11px;
+            color: #475569;
+        }}
+        .unsubscribe {{
+            font-size: 11px;
+            color: #475569;
+            margin-top: 10px;
+        }}
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header with AirYatra Branding -->
         <div class="header">
-            <h1>🚨 Performance Alert Triggered</h1>
+            <div class="logo-section">
+                <div class="logo-icon">🚁</div>
+                <span class="logo-text">AirYatra</span>
+            </div>
+            <div class="header-subtitle">India's Aviation Operating System</div>
+            <div class="alert-badge">⚠️ {severity_label} ALERT</div>
         </div>
+        
+        <!-- Content -->
         <div class="content">
-            <div class="alert-box">
-                <h3 style="margin-top:0; color:#ef4444;">Alert Details</h3>
-                <div class="metric">{metric_value:.1f}%</div>
-                <p style="text-align:center; color:#94a3b8;">Current {metric_name}</p>
-            </div>
-            
-            <div class="alert-box">
-                <div class="info-row">
-                    <span class="label">Metric:</span>
-                    <span class="value">{metric_name}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Threshold:</span>
-                    <span class="value">{comparison.title()} {threshold}%</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Current Value:</span>
-                    <span class="value" style="color:#ef4444;">{metric_value:.1f}%</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Template:</span>
-                    <span class="value">{template_name or 'All Templates (Global)'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Triggered At:</span>
-                    <span class="value">{datetime.now().strftime('%d %b %Y, %I:%M %p')}</span>
+            <!-- Metric Display -->
+            <div class="metric-card">
+                <div class="metric-label">Current {metric_name}</div>
+                <div class="metric-value">{metric_value:.1f}<span class="metric-unit">%</span></div>
+                <div class="metric-description">
+                    Threshold: {comparison} {threshold}% • Triggered at {datetime.now().strftime('%I:%M %p IST')}
                 </div>
             </div>
             
-            <p style="text-align:center;">
-                <a href="#" class="btn">View Dashboard →</a>
-            </p>
+            <!-- Alert Details -->
+            <div class="details-card">
+                <div class="details-header">
+                    <div class="details-header-icon">📊</div>
+                    <span class="details-header-title">Alert Configuration</span>
+                </div>
+                <div class="details-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Metric</span>
+                        <span class="detail-value">{metric_name}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Threshold</span>
+                        <span class="detail-value">{comparison.title()} {threshold}%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Current Value</span>
+                        <span class="detail-value critical">{metric_value:.1f}%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Template</span>
+                        <span class="detail-value">{template_name or 'All Templates (Global)'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Alert ID</span>
+                        <span class="detail-value">{alert.get('alert_id', 'N/A')}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Triggered</span>
+                        <span class="detail-value">{datetime.now().strftime('%d %b %Y, %I:%M %p IST')}</span>
+                    </div>
+                </div>
+            </div>
             
-            <p style="color:#94a3b8; font-size:14px;">
-                This alert was triggered because the {metric_name.lower()} fell {comparison} your configured threshold of {threshold}%.
-                Review your template performance and take necessary action.
-            </p>
+            <!-- CTA -->
+            <div class="cta-section">
+                <a href="https://aviation-erp-2.preview.emergentagent.com/admin" class="cta-btn">
+                    View Dashboard →
+                </a>
+            </div>
+            
+            <!-- Info -->
+            <div class="info-text">
+                <strong>Why this alert?</strong> The {metric_name.lower()} has fallen {comparison} your configured threshold of {threshold}%. 
+                This may indicate delivery issues, provider problems, or content that needs optimization. 
+                Please review your template performance in the admin dashboard.
+            </div>
         </div>
+        
+        <!-- Footer -->
         <div class="footer">
-            <p>AirYatra Template Management System</p>
-            <p>You're receiving this because you're configured for alert notifications.</p>
+            <div class="footer-logo">🚁 AirYatra</div>
+            <div class="footer-tagline">Elevating India's Aviation Experience</div>
+            <div class="footer-links">
+                <a href="#" class="footer-link">Dashboard</a>
+                <a href="#" class="footer-link">Templates</a>
+                <a href="#" class="footer-link">Analytics</a>
+                <a href="#" class="footer-link">Settings</a>
+            </div>
+            <div class="footer-copyright">
+                © 2026 AirYatra Aviation Pvt Ltd. All rights reserved.
+            </div>
+            <div class="unsubscribe">
+                You're receiving this because you're configured for alert notifications.
+            </div>
         </div>
     </div>
 </body>
