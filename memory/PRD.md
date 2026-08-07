@@ -2475,3 +2475,58 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/frontend/src/components/admin/TemplateSettings.js` - Added charts, WhatsApp dialog (1770+ lines total)
 
 ---
+
+### Template System Phase 6 - Push Notifications, Export, Scheduler, Twilio Live
+**Date**: August 7, 2026  
+**Status**: 🟢 DONE
+
+#### 1. Firebase Push Notifications (Mock Mode)
+- FCM integration for web push notifications
+- 6 pre-built templates: booking_confirmed, payment_received, flight_reminder, alert_triggered, new_inquiry, complaint_update
+- Send to device token, topic, or multiple devices (up to 1000)
+- Mock mode for testing (no real push sent)
+- APIs: `GET /push/status`, `GET /push/templates`, `POST /push/send`
+- **Note:** Currently in MOCK MODE. To enable real push, configure FCM_SERVER_KEY in backend/.env
+
+#### 2. CSV/PDF Export for Analytics
+- Export delivery reports as CSV
+- Export notification queue as CSV
+- Export analytics chart data as CSV
+- Export full analytics report as PDF (with tables, stats, formatted)
+- Download buttons added to Analytics tab
+- APIs: `GET /export/delivery-reports`, `GET /export/notification-queue`, `GET /export/analytics-csv`, `GET /export/analytics-pdf`, `GET /export/alerts`
+
+#### 3. Scheduled Alert Checks (APScheduler)
+- Background job running every 1 hour (configurable)
+- Auto-checks all active alerts against thresholds
+- Sends email + push notification when threshold breached
+- Logs to alert_history collection
+- Scheduler status visible in Alerts tab
+- APIs: `GET /scheduler/status`, `POST /scheduler/run-now`
+- **Note:** Scheduler auto-starts on server startup
+
+#### 4. Twilio Live Mode Setup
+- Added env variables to backend/.env:
+  - `TWILIO_ACCOUNT_SID=` (empty - fill with your Twilio SID)
+  - `TWILIO_AUTH_TOKEN=` (empty - fill with your Twilio token)
+  - `TWILIO_WHATSAPP_NUMBER=` (empty - fill with your WhatsApp number)
+  - `WHATSAPP_MOCK_MODE=true` (set to `false` for live)
+- Also added: `FCM_SERVER_KEY=`, `FCM_MOCK_MODE=true`, `ALERT_CHECK_INTERVAL_HOURS=1`, `ALERT_SCHEDULER_ENABLED=true`
+
+#### Frontend UI Updates:
+- Analytics tab: CSV/PDF export buttons
+- Alerts tab: Scheduler status card, Push notification status card
+- Status badges showing ACTIVE/INACTIVE, MOCK MODE indicators
+
+#### Files Added:
+- `/app/backend/services/push_notification_service.py` - Firebase FCM service (300+ lines)
+- `/app/backend/services/alert_scheduler_service.py` - APScheduler background jobs (200+ lines)
+- `/app/backend/services/export_service.py` - CSV/PDF export utilities (400+ lines)
+
+#### Files Modified:
+- `/app/backend/routes/template_routes.py` - Added 12 new endpoints (5100+ lines total)
+- `/app/backend/server.py` - Added alert scheduler startup/shutdown
+- `/app/backend/.env` - Added Twilio, FCM, Scheduler config variables
+- `/app/frontend/src/components/admin/TemplateSettings.js` - Added export buttons, status cards (1820+ lines)
+
+---

@@ -104,6 +104,8 @@ export default function TemplateSettings() {
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappTemplate, setWhatsappTemplate] = useState('booking_confirmation');
   const [whatsappVariables, setWhatsappVariables] = useState({});
+  const [schedulerStatus, setSchedulerStatus] = useState(null);
+  const [pushStatus, setPushStatus] = useState(null);
   
   // Chart colors
   const CHART_COLORS = ['#f97316', '#22c55e', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
@@ -256,7 +258,19 @@ export default function TemplateSettings() {
     } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => { loadVariables(); loadWhatsAppStatus(); }, [loadVariables, loadWhatsAppStatus]);
+  // Scheduler & Push Status
+  const loadSchedulerStatus = useCallback(async () => {
+    try {
+      const [schedulerRes, pushRes] = await Promise.all([
+        api.get('/templates/scheduler/status'),
+        api.get('/templates/push/status')
+      ]);
+      setSchedulerStatus(schedulerRes.data);
+      setPushStatus(pushRes.data);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  useEffect(() => { loadVariables(); loadWhatsAppStatus(); loadSchedulerStatus(); }, [loadVariables, loadWhatsAppStatus, loadSchedulerStatus]);
 
   useEffect(() => {
     if (activeTab === 'templates') loadTemplates();
@@ -767,17 +781,23 @@ export default function TemplateSettings() {
   const renderAnalytics = () => (
     <div className="space-y-6">
       {/* Period Selector */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-orange-500" />Template Analytics
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {[7, 14, 30].map(d => (
             <Button key={d} size="sm" variant={chartDays === d ? "default" : "outline"} onClick={() => setChartDays(d)} className={chartDays === d ? 'bg-orange-500' : ''}>
               {d}d
             </Button>
           ))}
           <Button variant="outline" size="sm" onClick={loadChartData}><RefreshCw className="h-4 w-4" /></Button>
+          <Button variant="outline" size="sm" onClick={() => window.open(`${process.env.REACT_APP_BACKEND_URL}/api/templates/export/analytics-csv?days=${chartDays}`, '_blank')} title="Export CSV">
+            <Download className="h-4 w-4 mr-1" />CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.open(`${process.env.REACT_APP_BACKEND_URL}/api/templates/export/analytics-pdf?days=${chartDays}`, '_blank')} className="text-red-600 border-red-300" title="Export PDF">
+            <FileText className="h-4 w-4 mr-1" />PDF
+          </Button>
         </div>
       </div>
 
@@ -1049,6 +1069,49 @@ export default function TemplateSettings() {
           </div>
         </div>
       )}
+
+      {/* Scheduler & Push Notification Status */}
+      <div className="grid md:grid-cols-2 gap-4">
+        {schedulerStatus && (
+          <div className={`rounded-xl p-4 border ${schedulerStatus.running ? 'bg-blue-50 border-blue-200' : 'bg-slate-50'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className={`h-6 w-6 ${schedulerStatus.running ? 'text-blue-500' : 'text-slate-400'}`} />
+                <div>
+                  <h4 className="font-semibold">Alert Scheduler</h4>
+                  <p className="text-sm text-slate-500">
+                    {schedulerStatus.running ? `Running every ${schedulerStatus.interval_hours}h` : 'Not running'}
+                    {schedulerStatus.jobs?.[0]?.next_run && (
+                      <span className="ml-2 text-xs text-blue-600">Next: {new Date(schedulerStatus.jobs[0].next_run).toLocaleTimeString()}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2 py-1 rounded text-xs ${schedulerStatus.running ? 'bg-blue-500 text-white' : 'bg-slate-200'}`}>
+                {schedulerStatus.running ? 'ACTIVE' : 'INACTIVE'}
+              </span>
+            </div>
+          </div>
+        )}
+        {pushStatus && (
+          <div className={`rounded-xl p-4 border ${pushStatus.available ? 'bg-purple-50 border-purple-200' : 'bg-slate-50'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell className={`h-6 w-6 ${pushStatus.available ? 'text-purple-500' : 'text-slate-400'}`} />
+                <div>
+                  <h4 className="font-semibold">Push Notifications</h4>
+                  <p className="text-sm text-slate-500">
+                    Firebase FCM | {pushStatus.mock_mode ? 'Mock Mode' : 'Live'}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2 py-1 rounded text-xs ${pushStatus.status === 'active' ? 'bg-purple-500 text-white' : 'bg-slate-200'}`}>
+                {pushStatus.status?.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Alert Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -4147,10 +4147,11 @@ async def send_bulk_whatsapp(
 
 # Try to import email service
 try:
-    from services.email_service import send_email
+    from services.email_service import email_service
     EMAIL_AVAILABLE = True
 except ImportError:
     EMAIL_AVAILABLE = False
+    email_service = None
     print("Email service not available for alerts")
 
 
@@ -4261,7 +4262,7 @@ async def send_alert_email(
     sent_count = 0
     for recipient in recipients:
         try:
-            await send_email(recipient, subject, html_body)
+            await email_service.send_email(recipient, subject, html_body)
             sent_count += 1
         except Exception as e:
             print(f"Failed to send alert email to {recipient}: {e}")
@@ -4591,4 +4592,431 @@ async def get_delivery_trends(
         "period_days": days,
         "granularity": "weekly" if days > 14 else "daily",
         "trends": trend_data
+    }
+
+
+
+# ==================== PUSH NOTIFICATIONS ====================
+
+# Try to import push notification service
+try:
+    from services.push_notification_service import push_service, send_templated_push, PUSH_TEMPLATES
+    PUSH_AVAILABLE = True
+except ImportError:
+    PUSH_AVAILABLE = False
+    print("Push notification service not available")
+
+
+@router.get("/push/status")
+async def get_push_status(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get push notification service status"""
+    if not PUSH_AVAILABLE:
+        return {"success": True, "available": False, "message": "Push service not configured"}
+    
+    return {
+        "success": True,
+        "available": True,
+        **push_service.get_status()
+    }
+
+
+@router.get("/push/templates")
+async def get_push_templates(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get available push notification templates"""
+    if not PUSH_AVAILABLE:
+        return {"success": False, "error": "Push service not available"}
+    
+    templates = []
+    for tid, template in PUSH_TEMPLATES.items():
+        templates.append({
+            "id": tid,
+            "title": template["title"],
+            "body": template["body"],
+            "topic": template.get("topic", "general")
+        })
+    
+    return {
+        "success": True,
+        "templates": templates,
+        "total": len(templates)
+    }
+
+
+@router.post("/push/send")
+async def send_push_notification(
+    device_token: str = Query(None, description="Device token (optional if topic provided)"),
+    topic: str = Query(None, description="Topic name (optional if device_token provided)"),
+    template_id: str = Query(None, description="Template ID (optional)"),
+    title: str = Query(None, description="Custom title"),
+    body: str = Query(None, description="Custom body"),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Send push notification"""
+    if not PUSH_AVAILABLE:
+        return {"success": False, "error": "Push service not available"}
+    
+    if template_id:
+        result = await send_templated_push(template_id, device_token, topic)
+    elif title and body:
+        if device_token:
+            result = await push_service.send_to_device(device_token, title, body)
+        elif topic:
+            result = await push_service.send_to_topic(topic, title, body)
+        else:
+            return {"success": False, "error": "Provide device_token or topic"}
+    else:
+        return {"success": False, "error": "Provide template_id or title+body"}
+    
+    # Log to database
+    db = get_database()
+    log_entry = {
+        "notification_id": result.get("notification_id"),
+        "type": "push",
+        "device_token": device_token,
+        "topic": topic,
+        "template_id": template_id,
+        "title": title,
+        "body": body,
+        "status": result.get("status"),
+        "mock_mode": result.get("mock_mode"),
+        "created_by": current_user.get("id"),
+        "created_at": datetime.now(timezone.utc)
+    }
+    await db.push_notifications.insert_one(log_entry)
+    
+    return result
+
+
+# ==================== EXPORT ANALYTICS ====================
+
+from fastapi.responses import StreamingResponse
+
+# Try to import export service
+try:
+    from services.export_service import export_service
+    EXPORT_AVAILABLE = True
+except ImportError:
+    EXPORT_AVAILABLE = False
+    print("Export service not available")
+
+
+@router.get("/export/delivery-reports")
+async def export_delivery_reports_csv(
+    days: int = Query(7, ge=1, le=30),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Export delivery reports as CSV"""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Export service not available")
+    
+    db = get_database()
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Get reports
+    reports = await db.delivery_reports.find(
+        {"received_at": {"$gte": start_date}}
+    ).sort("received_at", -1).to_list(5000)
+    
+    # Convert ObjectId to string
+    for r in reports:
+        r.pop("_id", None)
+        if r.get("received_at"):
+            r["received_at"] = r["received_at"].isoformat()
+    
+    # Get stats
+    stats = {
+        "total": len(reports),
+        "delivered": sum(1 for r in reports if r.get("status") == "delivered"),
+        "opened": sum(1 for r in reports if r.get("status") == "opened"),
+        "failed": sum(1 for r in reports if r.get("status") == "failed")
+    }
+    
+    # Generate CSV
+    csv_output = export_service.export_delivery_reports_csv(reports, stats)
+    
+    filename = f"delivery_reports_{days}d_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    return StreamingResponse(
+        iter([csv_output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/export/notification-queue")
+async def export_notification_queue_csv(
+    days: int = Query(7, ge=1, le=30),
+    status: str = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Export notification queue as CSV"""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Export service not available")
+    
+    db = get_database()
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    query = {"created_at": {"$gte": start_date}}
+    if status:
+        query["status"] = status
+    
+    queue_items = await db.notification_queue.find(query).sort("created_at", -1).to_list(5000)
+    
+    # Clean data
+    for item in queue_items:
+        item.pop("_id", None)
+        if item.get("created_at"):
+            item["created_at"] = item["created_at"].isoformat()
+        if item.get("sent_at"):
+            item["sent_at"] = item["sent_at"].isoformat()
+        if item.get("scheduled_at"):
+            item["scheduled_at"] = item["scheduled_at"].isoformat()
+    
+    csv_output = export_service.export_notification_queue_csv(queue_items)
+    
+    filename = f"notification_queue_{days}d_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    return StreamingResponse(
+        iter([csv_output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/export/analytics-csv")
+async def export_analytics_csv(
+    days: int = Query(7, ge=1, le=30),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Export analytics chart data as CSV"""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Export service not available")
+    
+    db = get_database()
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Get chart data (reuse existing logic)
+    base_query = {"created_at": {"$gte": start_date}}
+    
+    # Daily trend
+    daily_pipeline = [
+        {"$match": base_query},
+        {"$group": {
+            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+            "total": {"$sum": 1},
+            "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+            "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}},
+            "pending": {"$sum": {"$cond": [{"$eq": ["$status", "pending"]}, 1, 0]}}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    daily_raw = await db.notification_queue.aggregate(daily_pipeline).to_list(100)
+    line_data = [{"date": d["_id"], **{k: v for k, v in d.items() if k != "_id"}} for d in daily_raw]
+    
+    # Category breakdown
+    category_pipeline = [
+        {"$match": base_query},
+        {"$group": {
+            "_id": "$category",
+            "total": {"$sum": 1},
+            "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+            "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}}
+        }}
+    ]
+    category_raw = await db.notification_queue.aggregate(category_pipeline).to_list(10)
+    bar_data = []
+    for item in category_raw:
+        cat = item["_id"] or "unknown"
+        bar_data.append({
+            "category": cat.upper(),
+            "total": item["total"],
+            "sent": item["sent"],
+            "failed": item["failed"],
+            "success_rate": round((item["sent"] / item["total"]) * 100, 1) if item["total"] > 0 else 0
+        })
+    
+    # Summary
+    sent_count = await db.notification_queue.count_documents({**base_query, "status": "sent"})
+    failed_count = await db.notification_queue.count_documents({**base_query, "status": "failed"})
+    total_count = await db.notification_queue.count_documents(base_query)
+    
+    summary = {
+        "total": total_count,
+        "sent": sent_count,
+        "failed": failed_count,
+        "success_rate": round((sent_count / total_count) * 100, 1) if total_count > 0 else 0
+    }
+    
+    csv_output = export_service.export_chart_data_csv(line_data, bar_data, summary)
+    
+    filename = f"analytics_{days}d_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    return StreamingResponse(
+        iter([csv_output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/export/analytics-pdf")
+async def export_analytics_pdf(
+    days: int = Query(7, ge=1, le=30),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Export analytics report as PDF"""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Export service not available")
+    
+    db = get_database()
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    base_query = {"created_at": {"$gte": start_date}}
+    
+    # Gather all data
+    daily_pipeline = [
+        {"$match": base_query},
+        {"$group": {
+            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+            "total": {"$sum": 1},
+            "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+            "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    daily_raw = await db.notification_queue.aggregate(daily_pipeline).to_list(100)
+    line_data = [{"date": d["_id"], **{k: v for k, v in d.items() if k != "_id"}} for d in daily_raw]
+    
+    category_pipeline = [
+        {"$match": base_query},
+        {"$group": {
+            "_id": "$category",
+            "total": {"$sum": 1},
+            "sent": {"$sum": {"$cond": [{"$eq": ["$status", "sent"]}, 1, 0]}},
+            "failed": {"$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}}
+        }}
+    ]
+    category_raw = await db.notification_queue.aggregate(category_pipeline).to_list(10)
+    bar_data = []
+    for item in category_raw:
+        cat = item["_id"] or "unknown"
+        bar_data.append({
+            "category": cat.upper(),
+            "total": item["total"],
+            "sent": item["sent"],
+            "failed": item["failed"],
+            "success_rate": round((item["sent"] / item["total"]) * 100, 1) if item["total"] > 0 else 0
+        })
+    
+    sent_count = await db.notification_queue.count_documents({**base_query, "status": "sent"})
+    failed_count = await db.notification_queue.count_documents({**base_query, "status": "failed"})
+    total_count = await db.notification_queue.count_documents(base_query)
+    
+    summary = {
+        "total": total_count,
+        "sent": sent_count,
+        "failed": failed_count,
+        "success_rate": round((sent_count / total_count) * 100, 1) if total_count > 0 else 0
+    }
+    
+    # Get top templates
+    top_templates = await db.notification_templates.find().sort("usage_count", -1).limit(5).to_list(5)
+    for t in top_templates:
+        t.pop("_id", None)
+    
+    # Generate PDF
+    pdf_buffer = export_service.export_analytics_pdf(
+        title="AirYatra Template Analytics Report",
+        period_days=days,
+        summary=summary,
+        line_data=line_data,
+        bar_data=bar_data,
+        top_templates=top_templates
+    )
+    
+    filename = f"analytics_report_{days}d_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/export/alerts")
+async def export_alerts_csv(
+    days: int = Query(7, ge=1, le=30),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Export alerts and history as CSV"""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Export service not available")
+    
+    db = get_database()
+    
+    # Get active alerts
+    alerts = await db.template_alerts.find().to_list(100)
+    for a in alerts:
+        a.pop("_id", None)
+    
+    # Get history
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    history = await db.alert_history.find(
+        {"triggered_at": {"$gte": start_date}}
+    ).sort("triggered_at", -1).to_list(500)
+    
+    for h in history:
+        h.pop("_id", None)
+        if h.get("triggered_at"):
+            h["triggered_at"] = h["triggered_at"].isoformat()
+    
+    csv_output = export_service.export_alerts_csv(alerts, history)
+    
+    filename = f"alerts_export_{days}d_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    return StreamingResponse(
+        iter([csv_output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# ==================== SCHEDULER STATUS ====================
+
+try:
+    from services.alert_scheduler_service import get_scheduler_status, run_alert_check_now
+    SCHEDULER_AVAILABLE = True
+except ImportError:
+    SCHEDULER_AVAILABLE = False
+
+
+@router.get("/scheduler/status")
+async def get_alert_scheduler_status(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get alert scheduler status"""
+    if not SCHEDULER_AVAILABLE:
+        return {"success": True, "available": False, "message": "Scheduler not available"}
+    
+    return {
+        "success": True,
+        "available": True,
+        **get_scheduler_status()
+    }
+
+
+@router.post("/scheduler/run-now")
+async def trigger_scheduler_run(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger scheduler to run alert check now"""
+    if not SCHEDULER_AVAILABLE:
+        return {"success": False, "error": "Scheduler not available"}
+    
+    triggered = run_alert_check_now()
+    return {
+        "success": triggered,
+        "message": "Alert check scheduled to run immediately" if triggered else "Failed to trigger"
     }

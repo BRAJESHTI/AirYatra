@@ -9,6 +9,15 @@ import logging
 from database import connect_to_mongo, close_mongo_connection
 from scheduler import start_scheduler, stop_scheduler
 
+# Alert Scheduler for Template Performance Alerts
+try:
+    from services.alert_scheduler_service import start_scheduler as start_alert_scheduler, stop_scheduler as stop_alert_scheduler
+    ALERT_SCHEDULER_AVAILABLE = True
+except ImportError:
+    ALERT_SCHEDULER_AVAILABLE = False
+    start_alert_scheduler = lambda: None
+    stop_alert_scheduler = lambda: None
+
 # High-Performance Modules (50K+ users)
 from ultra_performance_middleware import (
     FastCacheMiddleware,
@@ -520,6 +529,14 @@ async def startup_event():
     
     start_scheduler()
     
+    # Start Alert Scheduler for Template Performance Monitoring
+    if ALERT_SCHEDULER_AVAILABLE:
+        try:
+            start_alert_scheduler()
+            logger.info("Alert scheduler started for template performance monitoring")
+        except Exception as e:
+            logger.warning(f"Alert scheduler start warning: {e}")
+    
     logger.info("AirYatra API started - Ready for 50K+ concurrent users!")
 
 # Shutdown event
@@ -527,6 +544,8 @@ async def startup_event():
 async def shutdown_event():
     logger.info("Shutting down AirYatra API...")
     stop_scheduler()
+    if ALERT_SCHEDULER_AVAILABLE:
+        stop_alert_scheduler()
     await close_mongo_connection()
     logger.info("AirYatra API shut down successfully")
 
