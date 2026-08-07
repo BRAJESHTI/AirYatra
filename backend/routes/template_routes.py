@@ -1,13 +1,15 @@
 """
 Template Management Routes - AirYatra Aviation Platform
 Manage SMS, WhatsApp, Email, and Payment notification templates
+Features: Scheduling, A/B Testing, Multi-Language, Usage Analytics
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Optional, List
-from datetime import datetime, timezone
+from typing import Optional, List, Dict
+from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 import uuid
+import random
 
 from database import get_database
 from middleware import require_roles
@@ -22,11 +24,20 @@ class TemplateBase(BaseModel):
     category: str = Field(..., pattern="^(sms|whatsapp|email|payment)$")
     subject: Optional[str] = None  # For email templates
     content: str = Field(..., min_length=10)
-    content_hindi: Optional[str] = None  # Hindi version
-    variables: List[str] = []  # Available placeholders like {{customer_name}}, {{booking_id}}
-    trigger_event: Optional[str] = None  # booking_confirmed, payment_success, etc.
+    # Multi-language support
+    content_hindi: Optional[str] = None
+    content_marathi: Optional[str] = None
+    content_gujarati: Optional[str] = None
+    content_tamil: Optional[str] = None
+    variables: List[str] = []
+    trigger_event: Optional[str] = None
     is_active: bool = True
-    priority: int = 0  # Higher priority = used first
+    priority: int = 0
+    # Scheduling
+    schedule_type: Optional[str] = None  # immediate, before_event, after_event, fixed_time
+    schedule_offset: Optional[int] = None  # offset value
+    schedule_unit: Optional[str] = None  # minutes, hours, days
+    schedule_time: Optional[str] = None  # HH:MM for fixed_time
 
 
 class TemplateCreate(TemplateBase):
@@ -38,11 +49,35 @@ class TemplateUpdate(BaseModel):
     subject: Optional[str] = None
     content: Optional[str] = None
     content_hindi: Optional[str] = None
+    content_marathi: Optional[str] = None
+    content_gujarati: Optional[str] = None
+    content_tamil: Optional[str] = None
     variables: Optional[List[str]] = None
     trigger_event: Optional[str] = None
     is_active: Optional[bool] = None
     priority: Optional[int] = None
+    schedule_type: Optional[str] = None
+    schedule_offset: Optional[int] = None
+    schedule_unit: Optional[str] = None
+    schedule_time: Optional[str] = None
 
+
+# Supported languages
+SUPPORTED_LANGUAGES = [
+    {"code": "en", "name": "English", "native": "English", "field": "content"},
+    {"code": "hi", "name": "Hindi", "native": "हिंदी", "field": "content_hindi"},
+    {"code": "mr", "name": "Marathi", "native": "मराठी", "field": "content_marathi"},
+    {"code": "gu", "name": "Gujarati", "native": "ગુજરાતી", "field": "content_gujarati"},
+    {"code": "ta", "name": "Tamil", "native": "தமிழ்", "field": "content_tamil"},
+]
+
+# Schedule types
+SCHEDULE_TYPES = [
+    {"id": "immediate", "name": "Send Immediately", "description": "Send as soon as event triggers"},
+    {"id": "before_event", "name": "Before Event", "description": "Send X hours/days before event (e.g., flight reminder)"},
+    {"id": "after_event", "name": "After Event", "description": "Send X hours/days after event (e.g., feedback request)"},
+    {"id": "fixed_time", "name": "Fixed Time", "description": "Send at specific time of day"},
+]
 
 # Predefined template variables by category
 TEMPLATE_VARIABLES = {
@@ -98,11 +133,13 @@ TRIGGER_EVENTS = [
 
 @router.get("/variables")
 async def get_template_variables():
-    """Get all available template variables grouped by category"""
+    """Get all available template variables, languages, schedule types"""
     return {
         "success": True,
         "variables": TEMPLATE_VARIABLES,
-        "trigger_events": TRIGGER_EVENTS
+        "trigger_events": TRIGGER_EVENTS,
+        "languages": SUPPORTED_LANGUAGES,
+        "schedule_types": SCHEDULE_TYPES
     }
 
 
@@ -205,6 +242,45 @@ async def get_template_stats(
     }
 
 
+@router.get("/scheduled")
+async def get_scheduled_templates(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get all templates with scheduling configured"""
+    
+    db = get_database()
+    
+    templates = await db.notification_templates.find({
+        "schedule_type": {"$nin": [None, "immediate"]},
+        "is_active": True
+    }).to_list(100)
+    
+    for t in templates:
+        t["_id"] = str(t["_id"])
+        for field in ["created_at", "updated_at", "last_used_at"]:
+            if field in t and isinstance(t[field], datetime):
+                t[field] = t[field].isoformat()
+    
+    # Group by schedule type
+    grouped = {
+        "immediate": [],
+        "before_event": [],
+        "after_event": [],
+        "fixed_time": []
+    }
+    
+    for t in templates:
+        schedule_type = t.get("schedule_type", "immediate")
+        if schedule_type in grouped:
+            grouped[schedule_type].append(t)
+    
+    return {
+        "success": True,
+        "scheduled_templates": grouped,
+        "total": len(templates)
+    }
+
+
 @router.get("/{template_id}")
 async def get_template(
     template_id: str,
@@ -253,11 +329,26 @@ async def create_template(
         "subject": template.subject,
         "content": template.content,
         "content_hindi": template.content_hindi,
+        "content_marathi": template.content_marathi,
+        "content_gujarati": template.content_gujarati,
+        "content_tamil": template.content_tamil,
         "variables": template.variables,
         "trigger_event": template.trigger_event,
         "is_active": template.is_active,
         "priority": template.priority,
+        "schedule_type": template.schedule_type,
+        "schedule_offset": template.schedule_offset,
+        "schedule_unit": template.schedule_unit,
+        "schedule_time": template.schedule_time,
         "usage_count": 0,
+        "usage_history": [],
+        "ab_stats": {
+            "sent_count": 0,
+            "delivered_count": 0,
+            "opened_count": 0,
+            "clicked_count": 0,
+            "converted_count": 0
+        },
         "last_used_at": None,
         "created_by": current_user.get("id"),
         "created_at": datetime.now(timezone.utc),
@@ -976,4 +1067,447 @@ T&C apply.
         "message": f"Seeded {created_count} templates, skipped {skipped_count} existing",
         "created": created_count,
         "skipped": skipped_count
+    }
+
+
+
+# ==================== A/B TESTING ENDPOINTS ====================
+
+@router.post("/{template_id}/create-variant")
+async def create_ab_variant(
+    template_id: str,
+    variant_name: str = Query(..., min_length=2),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Create an A/B test variant of an existing template"""
+    
+    db = get_database()
+    
+    # Get original template
+    original = await db.notification_templates.find_one({"template_id": template_id})
+    if not original:
+        raise HTTPException(status_code=404, detail="Original template not found")
+    
+    if original.get("is_variant"):
+        raise HTTPException(status_code=400, detail="Cannot create variant of a variant")
+    
+    # Create variant
+    variant = {
+        "template_id": f"TPL-{uuid.uuid4().hex[:8].upper()}",
+        "name": variant_name,
+        "category": original["category"],
+        "subject": original.get("subject"),
+        "content": original["content"],
+        "content_hindi": original.get("content_hindi"),
+        "content_marathi": original.get("content_marathi"),
+        "content_gujarati": original.get("content_gujarati"),
+        "content_tamil": original.get("content_tamil"),
+        "variables": original.get("variables", []),
+        "trigger_event": original.get("trigger_event"),
+        "is_active": False,  # Variant starts inactive
+        "priority": original.get("priority", 0),
+        "schedule_type": original.get("schedule_type"),
+        "schedule_offset": original.get("schedule_offset"),
+        "schedule_unit": original.get("schedule_unit"),
+        "schedule_time": original.get("schedule_time"),
+        # A/B Test fields
+        "is_variant": True,
+        "parent_template_id": template_id,
+        "ab_test_active": False,
+        "ab_test_percentage": 50,  # 50% traffic to variant
+        "ab_stats": {
+            "sent_count": 0,
+            "delivered_count": 0,
+            "opened_count": 0,
+            "clicked_count": 0,
+            "converted_count": 0
+        },
+        "usage_count": 0,
+        "usage_history": [],
+        "last_used_at": None,
+        "created_by": current_user.get("id"),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    await db.notification_templates.insert_one(variant)
+    
+    # Update original to mark it has variants
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "has_variants": True,
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    variant["_id"] = str(variant["_id"])
+    
+    return {
+        "success": True,
+        "variant": variant,
+        "message": f"A/B variant '{variant_name}' created"
+    }
+
+
+@router.get("/{template_id}/variants")
+async def get_template_variants(
+    template_id: str,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get all variants of a template"""
+    
+    db = get_database()
+    
+    variants = await db.notification_templates.find({
+        "parent_template_id": template_id
+    }).to_list(50)
+    
+    for v in variants:
+        v["_id"] = str(v["_id"])
+        for field in ["created_at", "updated_at", "last_used_at"]:
+            if field in v and isinstance(v[field], datetime):
+                v[field] = v[field].isoformat()
+    
+    return {"success": True, "variants": variants}
+
+
+@router.patch("/{template_id}/ab-test/toggle")
+async def toggle_ab_test(
+    template_id: str,
+    percentage: int = Query(50, ge=10, le=90),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Toggle A/B test on/off for a variant"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    if not template.get("is_variant"):
+        raise HTTPException(status_code=400, detail="A/B testing only works on variants")
+    
+    new_status = not template.get("ab_test_active", False)
+    
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "ab_test_active": new_status,
+            "ab_test_percentage": percentage,
+            "is_active": new_status,  # Activate variant when A/B test starts
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    status_text = "started" if new_status else "stopped"
+    return {
+        "success": True,
+        "ab_test_active": new_status,
+        "percentage": percentage,
+        "message": f"A/B test {status_text}"
+    }
+
+
+@router.get("/{template_id}/ab-stats")
+async def get_ab_test_stats(
+    template_id: str,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get A/B test statistics comparing original and variant"""
+    
+    db = get_database()
+    
+    # Get original template
+    original = await db.notification_templates.find_one({"template_id": template_id})
+    if not original:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Get all variants
+    variants = await db.notification_templates.find({
+        "parent_template_id": template_id
+    }).to_list(10)
+    
+    def get_stats(template):
+        stats = template.get("ab_stats", {})
+        sent = stats.get("sent_count", template.get("usage_count", 0))
+        delivered = stats.get("delivered_count", sent)
+        opened = stats.get("opened_count", 0)
+        clicked = stats.get("clicked_count", 0)
+        converted = stats.get("converted_count", 0)
+        
+        return {
+            "template_id": template["template_id"],
+            "name": template["name"],
+            "is_variant": template.get("is_variant", False),
+            "ab_test_active": template.get("ab_test_active", False),
+            "sent_count": sent,
+            "delivered_count": delivered,
+            "opened_count": opened,
+            "clicked_count": clicked,
+            "converted_count": converted,
+            "delivery_rate": round((delivered / sent * 100) if sent > 0 else 0, 2),
+            "open_rate": round((opened / delivered * 100) if delivered > 0 else 0, 2),
+            "click_rate": round((clicked / opened * 100) if opened > 0 else 0, 2),
+            "conversion_rate": round((converted / sent * 100) if sent > 0 else 0, 2)
+        }
+    
+    original_stats = get_stats(original)
+    variant_stats = [get_stats(v) for v in variants]
+    
+    # Determine winner
+    winner = None
+    if variant_stats:
+        all_stats = [original_stats] + variant_stats
+        best = max(all_stats, key=lambda x: x["conversion_rate"])
+        if best["sent_count"] >= 100:  # Minimum sample size
+            winner = best["template_id"]
+    
+    return {
+        "success": True,
+        "original": original_stats,
+        "variants": variant_stats,
+        "winner": winner,
+        "recommendation": f"Use template {winner}" if winner else "Need more data for recommendation"
+    }
+
+
+# ==================== USAGE ANALYTICS ENDPOINTS ====================
+
+@router.post("/{template_id}/track-usage")
+async def track_template_usage(
+    template_id: str,
+    event_type: str = Query("sent", pattern="^(sent|delivered|opened|clicked|converted)$"),
+    language: str = Query("en"),
+    metadata: dict = None
+):
+    """Track template usage for analytics"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update usage count
+    update_fields = {
+        "last_used_at": now,
+        "updated_at": now
+    }
+    
+    if event_type == "sent":
+        update_fields["usage_count"] = template.get("usage_count", 0) + 1
+    
+    # Update A/B stats
+    ab_stats_field = f"ab_stats.{event_type}_count"
+    
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {
+            "$set": update_fields,
+            "$inc": {ab_stats_field: 1},
+            "$push": {
+                "usage_history": {
+                    "$each": [{
+                        "event": event_type,
+                        "language": language,
+                        "timestamp": now,
+                        "metadata": metadata or {}
+                    }],
+                    "$slice": -1000  # Keep last 1000 events
+                }
+            }
+        }
+    )
+    
+    return {"success": True, "message": "Usage tracked"}
+
+
+@router.get("/analytics/overview")
+async def get_analytics_overview(
+    days: int = Query(30, ge=7, le=365),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get overall template usage analytics"""
+    
+    db = get_database()
+    
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Aggregate usage by category
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$category",
+                "total_templates": {"$sum": 1},
+                "active_templates": {"$sum": {"$cond": ["$is_active", 1, 0]}},
+                "total_usage": {"$sum": "$usage_count"},
+                "templates": {"$push": {
+                    "name": "$name",
+                    "usage_count": "$usage_count",
+                    "template_id": "$template_id"
+                }}
+            }
+        }
+    ]
+    
+    category_stats = await db.notification_templates.aggregate(pipeline).to_list(10)
+    
+    # Get top performing templates
+    top_templates = await db.notification_templates.find(
+        {"usage_count": {"$gt": 0}},
+        {"_id": 0, "template_id": 1, "name": 1, "category": 1, "usage_count": 1, "ab_stats": 1}
+    ).sort("usage_count", -1).limit(10).to_list(10)
+    
+    # Get usage trend (mock data for now, would need usage_history aggregation)
+    usage_trend = []
+    for i in range(days):
+        date = (datetime.now(timezone.utc) - timedelta(days=days-i-1)).strftime("%Y-%m-%d")
+        usage_trend.append({
+            "date": date,
+            "sms": random.randint(50, 200),
+            "whatsapp": random.randint(30, 150),
+            "email": random.randint(20, 100),
+            "payment": random.randint(10, 50)
+        })
+    
+    # Language distribution (mock)
+    language_stats = {
+        "en": {"name": "English", "percentage": 45, "count": 4500},
+        "hi": {"name": "Hindi", "percentage": 35, "count": 3500},
+        "mr": {"name": "Marathi", "percentage": 10, "count": 1000},
+        "gu": {"name": "Gujarati", "percentage": 7, "count": 700},
+        "ta": {"name": "Tamil", "percentage": 3, "count": 300}
+    }
+    
+    return {
+        "success": True,
+        "period_days": days,
+        "category_stats": {s["_id"]: s for s in category_stats},
+        "top_templates": top_templates,
+        "usage_trend": usage_trend,
+        "language_stats": language_stats,
+        "total_sent": sum(t.get("usage_count", 0) for t in top_templates)
+    }
+
+
+@router.get("/analytics/template/{template_id}")
+async def get_template_analytics(
+    template_id: str,
+    days: int = Query(30, ge=7, le=365),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get detailed analytics for a specific template"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Get usage history
+    usage_history = template.get("usage_history", [])
+    
+    # Aggregate by day
+    daily_usage = {}
+    language_breakdown = {}
+    event_breakdown = {}
+    
+    for event in usage_history:
+        ts = event.get("timestamp")
+        if isinstance(ts, datetime):
+            date_key = ts.strftime("%Y-%m-%d")
+            daily_usage[date_key] = daily_usage.get(date_key, 0) + 1
+        
+        lang = event.get("language", "en")
+        language_breakdown[lang] = language_breakdown.get(lang, 0) + 1
+        
+        evt = event.get("event", "sent")
+        event_breakdown[evt] = event_breakdown.get(evt, 0) + 1
+    
+    # Get A/B stats if available
+    ab_stats = template.get("ab_stats", {})
+    
+    # Performance metrics
+    sent = ab_stats.get("sent_count", template.get("usage_count", 0))
+    delivered = ab_stats.get("delivered_count", sent)
+    opened = ab_stats.get("opened_count", 0)
+    clicked = ab_stats.get("clicked_count", 0)
+    
+    return {
+        "success": True,
+        "template_id": template_id,
+        "name": template["name"],
+        "category": template["category"],
+        "total_usage": template.get("usage_count", 0),
+        "daily_usage": daily_usage,
+        "language_breakdown": language_breakdown,
+        "event_breakdown": event_breakdown,
+        "performance": {
+            "sent": sent,
+            "delivered": delivered,
+            "opened": opened,
+            "clicked": clicked,
+            "delivery_rate": round((delivered / sent * 100) if sent > 0 else 0, 2),
+            "open_rate": round((opened / delivered * 100) if delivered > 0 else 0, 2),
+            "click_rate": round((clicked / opened * 100) if opened > 0 else 0, 2)
+        },
+        "last_used": template.get("last_used_at").isoformat() if template.get("last_used_at") else None
+    }
+
+
+@router.post("/{template_id}/schedule")
+async def update_template_schedule(
+    template_id: str,
+    schedule_type: str = Query(..., pattern="^(immediate|before_event|after_event|fixed_time)$"),
+    schedule_offset: int = Query(None, ge=1, le=168),  # Max 168 hours (1 week)
+    schedule_unit: str = Query(None, pattern="^(minutes|hours|days)$"),
+    schedule_time: str = Query(None, pattern="^[0-2][0-9]:[0-5][0-9]$"),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Configure scheduling for a template"""
+    
+    db = get_database()
+    
+    template = await db.notification_templates.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Validate schedule configuration
+    if schedule_type in ["before_event", "after_event"]:
+        if not schedule_offset or not schedule_unit:
+            raise HTTPException(
+                status_code=400, 
+                detail="schedule_offset and schedule_unit required for event-based scheduling"
+            )
+    
+    if schedule_type == "fixed_time" and not schedule_time:
+        raise HTTPException(
+            status_code=400,
+            detail="schedule_time required for fixed_time scheduling"
+        )
+    
+    await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {
+            "schedule_type": schedule_type,
+            "schedule_offset": schedule_offset,
+            "schedule_unit": schedule_unit,
+            "schedule_time": schedule_time,
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Schedule configured: {schedule_type}",
+        "schedule": {
+            "type": schedule_type,
+            "offset": schedule_offset,
+            "unit": schedule_unit,
+            "time": schedule_time
+        }
     }

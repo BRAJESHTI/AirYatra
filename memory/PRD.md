@@ -2237,3 +2237,58 @@ Features:
 
 #### Admin Dashboard Location:
 Settings & System → Template Settings / टेम्पलेट
+
+---
+
+## Session: August 7, 2026 (Part 3)
+
+### Enhanced Template Features - Scheduling, A/B Testing, Multi-Language, Analytics
+
+**Status**: ✅ DONE (All 4 Features Implemented)
+
+#### 1. Scheduled Templates
+- Schedule types: `immediate`, `before_event`, `after_event`, `fixed_time`
+- Configure offset (1-168 hours) and unit (minutes/hours/days)
+- Fixed time scheduling for daily notifications (e.g., 09:00)
+- API: `POST /templates/{id}/schedule`, `GET /templates/scheduled`
+
+#### 2. A/B Template Testing
+- Create variants from existing templates
+- Configure traffic split percentage (10-90%)
+- Track performance metrics: sent, delivered, opened, clicked, converted
+- Auto-determine winner based on conversion rate
+- APIs: `POST /templates/{id}/create-variant`, `PATCH /templates/{id}/ab-test/toggle`, `GET /templates/{id}/ab-stats`
+
+#### 3. Multi-Language Templates
+- 5 languages supported: English, Hindi, Marathi, Gujarati, Tamil
+- Language tabs in create/edit dialog
+- Language indicators on template list
+- Content stored in separate fields: content, content_hindi, content_marathi, content_gujarati, content_tamil
+
+#### 4. Usage Analytics Dashboard
+- Overview tab with total sent, category breakdown
+- 30-day usage trend chart
+- Language distribution pie chart
+- Top performing templates ranking
+- Per-template analytics: `GET /templates/analytics/overview`, `GET /templates/analytics/template/{id}`
+- Usage tracking: `POST /templates/{id}/track-usage`
+
+#### Frontend UI Enhancements:
+- 3 main tabs: Templates, Usage Analytics, Scheduled
+- Category stat cards with live counts
+- Template list with badges: Active/Inactive, Scheduled, A/B Variant, Testing
+- A/B Stats dialog with winner highlight
+- Schedule configuration dialog
+- Language flag indicators on templates
+
+#### API Endpoints Added:
+- `GET /templates/variables` - Now includes languages and schedule_types
+- `GET /templates/scheduled` - List scheduled templates grouped by type
+- `POST /templates/{id}/schedule` - Configure template schedule
+- `POST /templates/{id}/create-variant` - Create A/B test variant
+- `GET /templates/{id}/variants` - List variants of a template
+- `PATCH /templates/{id}/ab-test/toggle` - Start/stop A/B test
+- `GET /templates/{id}/ab-stats` - A/B test comparison stats
+- `POST /templates/{id}/track-usage` - Track template usage events
+- `GET /templates/analytics/overview` - Usage analytics dashboard
+- `GET /templates/analytics/template/{id}` - Per-template analytics
