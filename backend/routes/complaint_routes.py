@@ -5,7 +5,7 @@ Full investigation workflow with operator response tracking
 Based on Document [5] requirements:
 - AirYatra investigates independently
 - AirYatra decides right/wrong (not Operator)
-- Operator must respond within 2 hours
+- Operator must respond within 24 hours
 - No appeal allowed
 """
 
@@ -22,6 +22,16 @@ from models.complaint_penalty_models import (
     ComplaintCreate, ComplaintUpdate, ComplaintInvestigationCreate,
     OperatorResponseCreate, PenaltyCreate
 )
+
+# Import notification service
+try:
+    from services.complaint_notification_service import (
+        notify_complaint_filed, notify_operator_response,
+        notify_complaint_decision, notify_penalty_issued
+    )
+    NOTIFICATIONS_ENABLED = True
+except ImportError:
+    NOTIFICATIONS_ENABLED = False
 
 router = APIRouter(prefix="/complaints", tags=["Complaint Management"])
 
@@ -226,8 +236,12 @@ async def file_complaint(
     
     await db.complaints.insert_one(complaint)
     
-    # TODO: Send notification to operator (SMS/Email/WhatsApp)
-    # TODO: Send notification to AirYatra investigation team
+    # Send notifications to operator, customer confirmation, and admins
+    if NOTIFICATIONS_ENABLED:
+        try:
+            await notify_complaint_filed(complaint)
+        except Exception as e:
+            print(f"Notification error: {e}")  # Log but don't fail the request
     
     return {
         "success": True,
@@ -352,7 +366,14 @@ async def operator_respond_to_complaint(
     if is_late:
         response["penalty_issued"] = True
         response["penalty_amount"] = 5000
-        response["penalty_reason"] = "Late response (exceeded 2-hour deadline)"
+        response["penalty_reason"] = "Late response (exceeded 24-hour deadline)"
+    
+    # Send notification to customer about operator response
+    if NOTIFICATIONS_ENABLED:
+        try:
+            await notify_operator_response(complaint, response_data.response_text, is_late)
+        except Exception as e:
+            print(f"Notification error: {e}")
     
     return response
 
@@ -474,6 +495,15 @@ async def submit_investigation(
             response["suspension_days"] = penalty.get("suspension_duration_days")
         if penalty.get("delisting_triggered"):
             response["operator_delisted"] = True
+    
+    # Send notifications to both parties about the decision
+    if NOTIFICATIONS_ENABLED:
+        try:
+            await notify_complaint_decision(complaint, investigation.decision.value, penalty)
+            if penalty:
+                await notify_penalty_issued(complaint["operator_id"], penalty)
+        except Exception as e:
+            print(f"Notification error: {e}")
     
     return response
 

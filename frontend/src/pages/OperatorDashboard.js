@@ -33,6 +33,7 @@ import CrewSchedulingBoard from '../components/operator/CrewSchedulingBoard';
 import MaintenanceCostTracker from '../components/operator/MaintenanceCostTracker';
 import PilotDocumentUpload from '../components/operator/PilotDocumentUpload';
 import OperatorComplaintInbox from '../components/operator/OperatorComplaintInbox';
+import PenaltyDashboard from '../components/operator/PenaltyDashboard';
 import { OperatorAuctions } from '../components/auction/AuctionDashboard';
 import { OperatorFleetDashboard } from '../components/aircraft/AircraftCatalog';
 
@@ -57,6 +58,7 @@ const navGroups = [
     items: [
       { id: 'inquiries', label: 'All Inquiries / सभी पूछताछ', icon: MessageSquare, path: '/operator/inquiries' },
       { id: 'complaints', label: 'Complaints / शिकायतें', icon: Flag, path: '/operator/complaints', highlight: true },
+      { id: 'penalties', label: 'Penalties / जुर्माने', icon: DollarSign, path: '/operator/penalties', highlight: true },
       { id: 'live-auctions', label: 'Live Auctions / लाइव नीलामी', icon: Gavel, path: '/operator/auctions', highlight: true },
       { id: 'quotes', label: 'Quote Requests / कोटेशन', icon: DollarSign, path: '/operator/quotes', highlight: true },
       { id: 'journey-otp', label: 'Journey OTP / यात्रा OTP', icon: Key, path: '/operator/journey-otp', highlight: true },
@@ -277,6 +279,7 @@ function OperatorDashboard({ user, onLogout }) {
               <Route path="aircraft-catalog" element={<OperatorFleetDashboard />} />
               <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
               <Route path="complaints" element={<OperatorComplaintInbox user={user} />} />
+              <Route path="penalties" element={<PenaltyDashboard operatorId={operator?.id} />} />
               <Route path="auctions" element={<OperatorAuctions />} />
               <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />
               <Route path="pilots" element={<PilotManagement operator={operator} />} />

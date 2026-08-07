@@ -2063,3 +2063,62 @@ Location: `/app/frontend/src/components/operator/OperatorComplaintInbox.js`
 - Customer Complaints page loads successfully with stats and empty state
 - Backend APIs verified working (my-complaints, operator/against-me)
 - Lint passed for all files
+
+
+---
+
+## Aug 7, 2026 - Complaint Notifications, Penalty Dashboard & WhatsApp CRM
+
+### 1. Complaint Notification Service - ✅ DONE
+Location: `/app/backend/services/complaint_notification_service.py`
+Features:
+- **notify_complaint_filed()** - Sends urgent notification to operator, confirmation to customer, alert to admins
+- **notify_operator_response()** - Notifies customer when operator responds
+- **notify_complaint_decision()** - Sends decision to both parties (upheld/dismissed/partial)
+- **notify_deadline_warning()** - Sends warnings at 12h, 6h, 2h marks
+- **notify_penalty_issued()** - Alerts operator about penalties/suspension/delisting
+- **check_complaint_deadlines()** - Background task for deadline monitoring
+
+Integrated into complaint_routes.py - notifications fire automatically on:
+- Complaint filing
+- Operator response
+- Admin decision
+
+### 2. Penalty Dashboard Widget - ✅ DONE
+Location: `/app/frontend/src/components/operator/PenaltyDashboard.js`
+Features:
+- Stats cards (Total, Unpaid Amount, Paid Amount, Overdue)
+- Urgent warning banner for overdue penalties
+- Expandable penalty cards with full details
+- Pay Now button for unpaid penalties
+- Policy info section
+- Compact mode for sidebar widget
+Route: `/operator/penalties`
+
+### 3. WhatsApp CRM Admin UI - ✅ DONE
+Location: `/app/frontend/src/components/admin/WhatsAppCRM.js`
+Features:
+- Conversation list with search and category filters
+- Real-time chat interface
+- Message templates for common scenarios (Booking, Complaint, Payment, etc.)
+- Quick replies for support agents
+- Template variable filling dialog
+- New chat via WhatsApp Web
+- Connection status indicator
+Route: Admin Dashboard → Integrations → WhatsApp CRM
+
+### Files Created:
+- `/app/backend/services/complaint_notification_service.py`
+- `/app/backend/services/__init__.py`
+- `/app/frontend/src/components/operator/PenaltyDashboard.js`
+- `/app/frontend/src/components/admin/WhatsAppCRM.js`
+
+### Files Modified:
+- `/app/backend/routes/complaint_routes.py` - Added notification imports and triggers
+- `/app/frontend/src/pages/OperatorDashboard.js` - Added PenaltyDashboard import, nav item, route
+- `/app/frontend/src/pages/AdminDashboard.js` - Added WhatsAppCRM import, nav item, render case
+
+### Testing:
+- All linting passed ✅
+- Backend server running ✅
+- WhatsApp CRM UI verified via screenshot ✅

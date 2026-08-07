@@ -102,6 +102,8 @@ import APIControlCenter from '@/components/admin/APIControlCenter';
 import MapCacheSettings from '@/components/admin/MapCacheSettings';
 // Document Vault Admin
 import DocumentVaultAdmin from '@/components/admin/DocumentVaultAdmin';
+// WhatsApp CRM
+import WhatsAppCRM from '@/components/admin/WhatsAppCRM';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -260,6 +262,7 @@ const navGroups = [
     label: 'Integrations / इंटीग्रेशन',
     icon: HardDrive,
     items: [
+      { id: 'whatsapp_crm', label: 'WhatsApp CRM / व्हाट्सएप', icon: MessageSquare, highlight: true },
       { id: 'api_control_center', label: 'API Control Center / API नियंत्रण', icon: Server, highlight: true },
       { id: 'map_cache', label: 'Offline Map Cache / ऑफलाइन मैप', icon: MapIcon, highlight: true },
       { id: 'partners', label: 'Partner API Platform', icon: Key, highlight: true },
@@ -411,6 +414,8 @@ function AdminDashboard({ user, onLogout }) {
         return <MapCacheSettings />;
       case 'document_vault':
         return <DocumentVaultAdmin />;
+      case 'whatsapp_crm':
+        return <WhatsAppCRM />;
       case 'twilio':
         return <TwilioIntegration />;
       case 'tally':
