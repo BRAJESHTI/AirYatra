@@ -2686,3 +2686,60 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/backend/routes/admin_booking_management_routes.py` - Added auto email on status change
 
 ---
+
+### Phase 7: Email Advanced Features (Aug 7, 2026)
+
+#### 1. Real-time Tracking Charts 🟢 DONE
+- **Location**: Email Editor → Analytics view toggle
+- **Charts**:
+  - Area Chart: Daily email trends (Sent/Opened/Clicked) with gradient fills
+  - Bar Chart: Template performance comparison (horizontal)
+  - Rate Cards: Open Rate & Click Rate with industry benchmarks
+- **Library**: Recharts (AreaChart, BarChart, ResponsiveContainer)
+- **API**: `GET /api/email-campaigns/analytics/trends?days=30`, `GET /api/email-campaigns/analytics/templates?days=30`
+
+#### 2. Scheduled Email Campaigns 🟢 DONE
+- **Location**: Email Editor → Campaigns view toggle
+- **Features**:
+  - Create campaign: Name, Subject, Template, Audience, Schedule datetime
+  - Audience types: All Customers, Active (90d), Inactive, VIP Members
+  - Campaign status: Draft → Scheduled → Sending → Completed/Failed
+  - Actions: Schedule, Send Now, Cancel
+  - Stats tracking: Total recipients, Sent, Opened, Clicked
+- **Backend**: Background task execution via FastAPI BackgroundTasks
+- **API**: `GET/POST /api/email-campaigns/campaigns`, `POST /campaigns/{id}/schedule`, `POST /campaigns/{id}/send-now`, `POST /campaigns/{id}/cancel`
+
+#### 3. A/B Testing Emails 🟢 DONE
+- **Location**: Campaign creation dialog (checkbox toggle)
+- **Features**:
+  - Enable A/B Testing toggle
+  - Variant B Subject input
+  - 50/50 audience split
+  - Variant stats tracking (sent/opened/clicked per variant)
+  - Winner calculation based on open rate (5% minimum difference)
+  - A/B Test badge on campaign rows
+- **Service**: `ABTestingService.split_audience()`, `calculate_winner()`
+- **API**: `GET /api/email-campaigns/campaigns/{id}/ab-results`
+
+#### 4. Email Unsubscribe Flow 🟢 DONE
+- **Public Pages** (no login required):
+  - `/api/email-campaigns/unsubscribe/{token}` - Unsubscribe confirmation page
+  - `/api/email-campaigns/unsubscribe/{token}?manage=true` - Preferences management page
+- **Preference Types**:
+  - Marketing & Promotions
+  - Booking Updates
+  - Flight Reminders
+  - Newsletters & Tips
+- **Email Footer**: Auto-injected unsubscribe link in all campaign emails
+- **Collection**: `email_preferences` (email, token, preferences, unsubscribed_all)
+- **API**: `POST /unsubscribe/{token}`, `PUT /unsubscribe/{token}/preferences`
+
+#### Files Added:
+- `/app/backend/services/email_campaign_service.py` (280 lines) - Campaign, Preference, A/B Testing services
+- `/app/backend/routes/email_campaign_routes.py` (650 lines) - Campaign, Unsubscribe, Analytics endpoints
+
+#### Files Modified:
+- `/app/backend/server.py` - Added email_campaign_routes import and router
+- `/app/frontend/src/components/admin/EmailTemplateEditor.js` - Added Charts, Campaigns views, EmailCampaignManager component (now 750+ lines)
+
+---

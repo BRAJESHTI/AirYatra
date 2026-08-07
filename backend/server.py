@@ -174,6 +174,8 @@ from routes import complaint_routes
 from routes import css_routes
 # Discount Management
 from routes import discount_routes
+# Email Campaign Management
+from routes import email_campaign_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -446,6 +448,9 @@ api_router.include_router(css_routes.router)
 
 # Discount Management
 api_router.include_router(discount_routes.router)
+
+# Email Campaign Management
+api_router.include_router(email_campaign_routes.router)
 
 # Template Management
 from routes import template_routes
