@@ -131,6 +131,8 @@ from routes import paypal_routes
 from routes import cashfree_routes
 # Legal Documents Management
 from routes import legal_documents_routes
+# Payment Receipts
+from routes import receipt_routes
 # Unified Refund System
 from routes import unified_refund_routes
 # AI Sales Advisor
@@ -393,6 +395,9 @@ api_router.include_router(cashfree_routes.router)
 
 # Legal Documents Management
 api_router.include_router(legal_documents_routes.router)
+
+# Payment Receipts
+api_router.include_router(receipt_routes.router)
 
 # Unified Refund System
 api_router.include_router(unified_refund_routes.router)

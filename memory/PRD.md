@@ -2876,3 +2876,75 @@ PAYPAL_MODE=sandbox  # or 'live'
 - `/app/backend/.env` - Added Cashfree config
 
 ---
+
+### Phase 10: Payment UX Enhancements (Aug 7, 2026)
+
+#### 1. Currency Selector Component 🟢 DONE
+- **Component**: `CurrencySelector.js` (250 lines)
+- **Features**:
+  - Dropdown with flags (🇮🇳🇺🇸🇪🇺🇬🇧🇦🇺)
+  - Live conversion display
+  - Fixed exchange rates (INR base)
+  - Currencies: INR, USD, EUR, GBP, AUD, CAD, SGD, AED
+- **Helper Functions**:
+  - `convertCurrency(amount, from, to)` - Convert between currencies
+  - `formatCurrency(amount, code)` - Format with symbol
+- **Sub-components**:
+  - `CurrencyDisplay` - Inline conversion
+  - `CurrencyConversionCard` - Multi-currency comparison
+  - `CurrencyBadge` - Mini badge
+
+#### 2. Payment Receipt PDF 🟢 DONE
+- **Service**: `payment_receipt_service.py` (400+ lines)
+- **Routes**: `receipt_routes.py` (200 lines)
+- **Features**:
+  - Branded AirYatra header with logo emoji
+  - Customer & booking details sections
+  - Payment breakdown (base + GST)
+  - USD/INR conversion for PayPal
+  - QR code for verification
+  - Professional footer with company details
+- **Receipt Types**:
+  - Payment receipt (success)
+  - Refund receipt (cancellation)
+- **Endpoints**:
+  - `GET /api/receipts/payment/{transaction_id}` - Download payment PDF
+  - `GET /api/receipts/refund/{refund_id}` - Download refund PDF
+  - `GET /api/receipts/booking/{booking_id}` - Download by booking
+
+#### 3. Legal Docs Admin UI 🟢 DONE
+- **Component**: `LegalDocsAdmin.js` (550+ lines)
+- **Features**:
+  - Visual stats cards per document type
+  - Filter by document type
+  - Search documents
+  - Create/Edit with HTML rich text
+  - Version management (V1 → V2)
+  - Draft/Publish workflow
+  - Preview modal
+  - Multi-language support (en/hi/mr)
+- **Document Types**: Terms, Refund Policy, Privacy, Operator Agreement, Booking Terms, Safety, Cookie Policy
+
+#### 4. Refund History Page 🟢 DONE
+- **Component**: `RefundHistory.js` (350 lines)
+- **Features**:
+  - Summary stats (Total refunds, amount, completed, processing)
+  - Search by ID/booking/reason
+  - Status badges (Completed/Processing/Failed)
+  - Expandable details with deduction breakdown
+  - Download refund receipt button
+  - Processing time info note
+- **Status Tracking**: Initiated → Processing → Completed/Failed
+
+#### Files Added:
+- `/app/frontend/src/components/payments/CurrencySelector.js`
+- `/app/backend/services/payment_receipt_service.py`
+- `/app/backend/routes/receipt_routes.py`
+- `/app/frontend/src/components/admin/LegalDocsAdmin.js`
+- `/app/frontend/src/components/customer/RefundHistory.js`
+
+#### Files Modified:
+- `/app/backend/server.py` - Added receipt routes
+- `/app/backend/requirements.txt` - Added qrcode[pil]
+
+---
