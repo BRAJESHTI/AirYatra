@@ -183,8 +183,8 @@ async def file_complaint(
     complaint_id = generate_complaint_id()
     complaint_number = generate_complaint_number()
     
-    # Operator must respond within 2 hours
-    response_deadline = datetime.utcnow() + timedelta(hours=2)
+    # Operator must respond within 24 hours
+    response_deadline = datetime.utcnow() + timedelta(hours=24)
     
     complaint = {
         "complaint_id": complaint_id,
@@ -235,7 +235,7 @@ async def file_complaint(
         "complaint_number": complaint_number,
         "message": "Complaint filed successfully / शिकायत दर्ज हो गई",
         "operator_response_deadline": response_deadline.isoformat(),
-        "message_hi": "आपकी शिकायत दर्ज हो गई है। ऑपरेटर को 2 घंटे में जवाब देना होगा।"
+        "message_hi": "आपकी शिकायत दर्ज हो गई है। ऑपरेटर को 24 घंटे में जवाब देना होगा।"
     }
 
 

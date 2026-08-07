@@ -2011,3 +2011,55 @@ Location: `/app/frontend/src/components/admin/DocumentVaultAdmin.js`
 - Backend APIs verified working via curl
 - No runtime errors detected
 
+
+
+---
+
+## Aug 7, 2026 - Customer Complaint List & Operator Response UI
+
+### Completed Components
+
+#### 1. **Customer Complaint List View** (`MyComplaints.js`) - ✅ DONE
+Location: `/app/frontend/src/components/customer/MyComplaints.js`
+- Dedicated page for customers to track all filed complaints
+- Features:
+  - Stats cards (Total, Open/In-Progress, Resolved)
+  - Search and status filter
+  - Complaint cards with status badges, severity, category
+  - Expandable timeline showing progression
+  - Detailed dialog view with full complaint history
+  - Bilingual labels (English/Hindi)
+- Route: `/customer/complaints`
+
+#### 2. **Operator Complaint Inbox** (`OperatorComplaintInbox.js`) - ✅ DONE
+Location: `/app/frontend/src/components/operator/OperatorComplaintInbox.js`
+- Operator dashboard to manage complaints against them
+- Features:
+  - Urgent alert banner for pending responses
+  - Pending complaints filter with count
+  - Expandable complaint cards
+  - Response submission dialog (min 50 chars)
+  - Action taken field
+  - Accept responsibility checkbox
+  - Deadline countdown timer
+  - Late response warning
+- Route: `/operator/complaints`
+
+### Backend Changes:
+- Updated complaint deadline from 2 hours to **24 hours** per user request
+
+### Files Created:
+- `/app/frontend/src/components/customer/MyComplaints.js`
+- `/app/frontend/src/components/operator/OperatorComplaintInbox.js`
+
+### Files Modified:
+- `/app/frontend/src/pages/CustomerDashboard.js` - Added MyComplaints import, nav item, and render case
+- `/app/frontend/src/pages/OperatorDashboard.js` - Added OperatorComplaintInbox import, nav item, and route
+- `/app/frontend/src/App.js` - Added /customer/complaints route
+- `/app/frontend/src/components/customer/ComplaintForm.js` - Updated deadline text to 24 hours
+- `/app/backend/routes/complaint_routes.py` - Changed response deadline to 24 hours
+
+### Testing:
+- Customer Complaints page loads successfully with stats and empty state
+- Backend APIs verified working (my-complaints, operator/against-me)
+- Lint passed for all files

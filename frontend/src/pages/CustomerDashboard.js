@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
 import MyTrips from '../components/customer/MyTrips';
+import MyComplaints from '../components/customer/MyComplaints';
 import ChatWidget from '../components/customer/ChatWidget';
 import CustomerProfile from '../components/customer/CustomerProfile';
 import ReferAndEarn from '../components/customer/ReferAndEarn';
@@ -62,6 +63,7 @@ const navGroups = [
     label: 'Support / सहायता',
     icon: HelpCircle,
     items: [
+      { id: 'complaints', label: 'My Complaints / शिकायतें', icon: Flag, path: '/customer/complaints', highlight: true },
       { id: 'messages', label: 'Messages / संदेश', icon: MessageSquare, path: '/customer/messages' },
       { id: 'help', label: 'Help Center / मदद', icon: HelpCircle, path: '/customer/help' },
     ]
@@ -98,6 +100,7 @@ function CustomerDashboard({ user, onLogout }) {
   useEffect(() => {
     const path = location.pathname;
     if (path.includes('/trips')) setActiveTab('trips');
+    else if (path.includes('/complaints')) setActiveTab('complaints');
     else if (path.includes('/listings')) setActiveTab('mylistings');
     else if (path.includes('/investments')) setActiveTab('investments');
     else if (path.includes('/watchlist')) setActiveTab('watchlist');
@@ -190,6 +193,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <FlightPriceHistory user={user} />;
       case 'route-suggestions':
         return <RouteSuggestions user={user} />;
+      case 'complaints':
+        return <MyComplaints user={user} />;
       case 'auctions':
         return <CustomerAuctions />;
       case 'compare':

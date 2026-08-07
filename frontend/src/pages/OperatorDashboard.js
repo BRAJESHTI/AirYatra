@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload, Menu, Gavel } from 'lucide-react';
+import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload, Menu, Gavel, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -32,6 +32,7 @@ import PilotAssignmentCalendar from '../components/operator/PilotAssignmentCalen
 import CrewSchedulingBoard from '../components/operator/CrewSchedulingBoard';
 import MaintenanceCostTracker from '../components/operator/MaintenanceCostTracker';
 import PilotDocumentUpload from '../components/operator/PilotDocumentUpload';
+import OperatorComplaintInbox from '../components/operator/OperatorComplaintInbox';
 import { OperatorAuctions } from '../components/auction/AuctionDashboard';
 import { OperatorFleetDashboard } from '../components/aircraft/AircraftCatalog';
 
@@ -55,6 +56,7 @@ const navGroups = [
     icon: Briefcase,
     items: [
       { id: 'inquiries', label: 'All Inquiries / सभी पूछताछ', icon: MessageSquare, path: '/operator/inquiries' },
+      { id: 'complaints', label: 'Complaints / शिकायतें', icon: Flag, path: '/operator/complaints', highlight: true },
       { id: 'live-auctions', label: 'Live Auctions / लाइव नीलामी', icon: Gavel, path: '/operator/auctions', highlight: true },
       { id: 'quotes', label: 'Quote Requests / कोटेशन', icon: DollarSign, path: '/operator/quotes', highlight: true },
       { id: 'journey-otp', label: 'Journey OTP / यात्रा OTP', icon: Key, path: '/operator/journey-otp', highlight: true },
@@ -274,6 +276,7 @@ function OperatorDashboard({ user, onLogout }) {
               <Route path="fleet" element={<OperatorFleetDashboard />} />
               <Route path="aircraft-catalog" element={<OperatorFleetDashboard />} />
               <Route path="inquiries" element={<InquiryInbox operator={operator} />} />
+              <Route path="complaints" element={<OperatorComplaintInbox user={user} />} />
               <Route path="auctions" element={<OperatorAuctions />} />
               <Route path="quotes" element={<ReviseQuoteManager operator={operator} />} />
               <Route path="pilots" element={<PilotManagement operator={operator} />} />

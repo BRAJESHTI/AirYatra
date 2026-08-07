@@ -259,7 +259,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
           <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-sm">
             <p className="text-orange-400 font-medium">Important / महत्वपूर्ण:</p>
             <ul className="text-slate-400 text-xs mt-1 space-y-1">
-              <li>• Operator must respond within 2 hours / ऑपरेटर को 2 घंटे में जवाब देना होगा</li>
+              <li>• Operator must respond within 24 hours / ऑपरेटर को 24 घंटे में जवाब देना होगा</li>
               <li>• AirYatra will investigate independently / एयरयात्रा स्वतंत्र रूप से जांच करेगा</li>
               <li>• Decision is final - no appeal / निर्णय अंतिम है</li>
             </ul>
