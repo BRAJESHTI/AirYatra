@@ -485,6 +485,10 @@ api_router.include_router(template_routes.router)
 from routes import exchange_rate_routes
 api_router.include_router(exchange_rate_routes.router)
 
+# Firebase Push Notifications
+from routes import firebase_push_routes
+api_router.include_router(firebase_push_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 

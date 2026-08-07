@@ -17,6 +17,54 @@ except ImportError:
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
+
+@router.get("/gateway-status")
+async def get_payment_gateway_status(db=Depends(get_database)):
+    """Get payment gateway configuration status"""
+    import os
+    
+    razorpay_key = os.environ.get("RAZORPAY_KEY_ID", "")
+    razorpay_secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
+    
+    razorpay_configured = bool(razorpay_key and razorpay_secret and len(razorpay_key) > 10)
+    razorpay_mode = "LIVE" if razorpay_key.startswith("rzp_live") else "TEST" if razorpay_key.startswith("rzp_test") else "UNKNOWN"
+    
+    # Check if Razorpay client can be initialized
+    razorpay_client_ready = False
+    if razorpay_configured:
+        try:
+            import razorpay
+            client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
+            razorpay_client_ready = True
+        except:
+            pass
+    
+    return {
+        "success": True,
+        "gateways": {
+            "razorpay": {
+                "configured": razorpay_configured,
+                "mode": razorpay_mode,
+                "key_preview": razorpay_key[:15] + "..." if razorpay_key else None,
+                "client_ready": razorpay_client_ready
+            },
+            "stripe": {
+                "configured": bool(os.environ.get("STRIPE_SECRET_KEY", "")),
+                "mode": "TEST" if "test" in os.environ.get("STRIPE_SECRET_KEY", "").lower() else "LIVE"
+            },
+            "paypal": {
+                "configured": bool(os.environ.get("PAYPAL_CLIENT_ID", "")),
+                "mode": "SANDBOX"  # Always sandbox for now
+            },
+            "cashfree": {
+                "configured": bool(os.environ.get("CASHFREE_APP_ID", "")),
+                "mode": "SANDBOX"
+            }
+        },
+        "primary_gateway": "razorpay" if razorpay_configured else "mock"
+    }
+
+
 class CreateOrderRequest(BaseModel):
     booking_id: str
     amount: float  # Amount in INR

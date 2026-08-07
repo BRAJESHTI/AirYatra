@@ -112,6 +112,8 @@ import BulkDiscountUpload from '@/components/admin/BulkDiscountUpload';
 import TemplateSettings from '@/components/admin/TemplateSettings';
 // Legal Documents Admin
 import LegalDocsAdmin from '@/components/admin/LegalDocsAdmin';
+// Email Click Heatmap
+import EmailClickHeatmap from '@/components/admin/EmailClickHeatmap';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -247,6 +249,7 @@ const navGroups = [
       { id: 'settings', label: 'Global Settings', icon: Settings },
       { id: 'template_settings', label: 'Template Settings / टेम्पलेट', icon: FileText, highlight: true },
       { id: 'legal_docs', label: 'Legal Docs / कानूनी दस्तावेज़', icon: Shield, highlight: true },
+      { id: 'email_heatmap', label: 'Email Analytics / ईमेल हीटमैप', icon: BarChart3, highlight: true },
       { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
       { id: 'webhooks', label: 'Webhooks', icon: Globe },
       { id: 'call_recording', label: 'Call Recording', icon: Phone },
@@ -374,6 +377,8 @@ function AdminDashboard({ user, onLogout }) {
         return <TemplateSettings />;
       case 'legal_docs':
         return <LegalDocsAdmin />;
+      case 'email_heatmap':
+        return <EmailClickHeatmap />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features

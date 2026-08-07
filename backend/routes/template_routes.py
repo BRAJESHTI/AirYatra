@@ -5754,7 +5754,204 @@ async def get_email_tracking_details(
     }
 
 
-# ==================== MULTI-LANGUAGE ENDPOINTS ====================
+@router.get("/email/click-heatmap")
+async def get_email_click_heatmap(
+    days: int = Query(30, ge=1, le=90, description="Days to analyze"),
+    email_type: str = Query(None, description="Filter by email type"),
+    template_name: str = Query(None, description="Filter by template"),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """
+    Get click heatmap data showing which links get the most clicks.
+    Returns aggregated click counts per URL/link across all emails.
+    
+    Useful for:
+    - Understanding which CTAs perform best
+    - Optimizing email content placement
+    - Identifying popular destinations
+    """
+    if not TRACKING_AVAILABLE:
+        return {"success": False, "error": "Tracking not available"}
+    
+    db = get_database()
+    
+    # Build match filter
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    match_filter = {"clicked_at": {"$gte": cutoff}}
+    
+    # Aggregate clicks by URL
+    pipeline = [
+        {"$match": match_filter},
+        {
+            "$group": {
+                "_id": "$original_url",
+                "total_clicks": {"$sum": 1},
+                "unique_emails": {"$addToSet": "$tracking_id"},
+                "link_ids": {"$addToSet": "$link_id"},
+                "first_click": {"$min": "$clicked_at"},
+                "last_click": {"$max": "$clicked_at"}
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "url": "$_id",
+                "total_clicks": 1,
+                "unique_email_count": {"$size": "$unique_emails"},
+                "link_variants": {"$size": "$link_ids"},
+                "first_click": 1,
+                "last_click": 1
+            }
+        },
+        {"$sort": {"total_clicks": -1}},
+        {"$limit": 50}
+    ]
+    
+    url_clicks = await db.email_clicks.aggregate(pipeline).to_list(50)
+    
+    # Get total stats
+    total_clicks = sum(item["total_clicks"] for item in url_clicks)
+    
+    # Categorize URLs for heatmap
+    categorized = []
+    for item in url_clicks:
+        url = item["url"]
+        category = "other"
+        
+        # Auto-categorize based on URL patterns
+        if "booking" in url.lower() or "book" in url.lower():
+            category = "booking"
+        elif "track" in url.lower() or "status" in url.lower():
+            category = "tracking"
+        elif "profile" in url.lower() or "account" in url.lower():
+            category = "account"
+        elif "offer" in url.lower() or "promo" in url.lower() or "discount" in url.lower():
+            category = "promo"
+        elif "unsubscribe" in url.lower():
+            category = "unsubscribe"
+        elif "help" in url.lower() or "support" in url.lower() or "faq" in url.lower():
+            category = "support"
+        elif "app" in url.lower() or "download" in url.lower():
+            category = "app_download"
+        
+        # Calculate percentage
+        percentage = round((item["total_clicks"] / total_clicks * 100), 1) if total_clicks > 0 else 0
+        
+        categorized.append({
+            **item,
+            "category": category,
+            "percentage": percentage,
+            "heat_level": "hot" if percentage > 20 else "warm" if percentage > 10 else "mild" if percentage > 5 else "cold"
+        })
+    
+    # Category summary
+    category_summary = {}
+    for item in categorized:
+        cat = item["category"]
+        if cat not in category_summary:
+            category_summary[cat] = {"clicks": 0, "urls": 0}
+        category_summary[cat]["clicks"] += item["total_clicks"]
+        category_summary[cat]["urls"] += 1
+    
+    # Daily click trend
+    daily_pipeline = [
+        {"$match": match_filter},
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": {"format": "%Y-%m-%d", "date": "$clicked_at"}
+                },
+                "clicks": {"$sum": 1}
+            }
+        },
+        {"$sort": {"_id": 1}},
+        {"$limit": days}
+    ]
+    
+    daily_trend = await db.email_clicks.aggregate(daily_pipeline).to_list(days)
+    
+    return {
+        "success": True,
+        "period_days": days,
+        "total_clicks": total_clicks,
+        "unique_urls_clicked": len(url_clicks),
+        "heatmap_data": categorized,
+        "category_summary": category_summary,
+        "daily_trend": [{"date": d["_id"], "clicks": d["clicks"]} for d in daily_trend],
+        "top_performing_links": categorized[:5],
+        "insights": {
+            "most_clicked_category": max(category_summary.items(), key=lambda x: x[1]["clicks"])[0] if category_summary else None,
+            "avg_clicks_per_url": round(total_clicks / len(url_clicks), 1) if url_clicks else 0
+        }
+    }
+
+
+@router.get("/email/click-heatmap/by-template")
+async def get_click_heatmap_by_template(
+    template_name: str = Query(..., description="Template name to analyze"),
+    days: int = Query(30, ge=1, le=90),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get click heatmap for a specific email template"""
+    if not TRACKING_AVAILABLE:
+        return {"success": False, "error": "Tracking not available"}
+    
+    db = get_database()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Get tracking IDs for this template
+    tracking_ids = await db.email_tracking.distinct(
+        "tracking_id",
+        {"template_name": template_name, "sent_at": {"$gte": cutoff}}
+    )
+    
+    if not tracking_ids:
+        return {
+            "success": True,
+            "template_name": template_name,
+            "message": "No tracking data found for this template",
+            "heatmap_data": []
+        }
+    
+    # Get clicks for these tracking IDs
+    pipeline = [
+        {"$match": {"tracking_id": {"$in": tracking_ids}}},
+        {
+            "$group": {
+                "_id": "$original_url",
+                "total_clicks": {"$sum": 1},
+                "unique_emails": {"$addToSet": "$tracking_id"}
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "url": "$_id",
+                "total_clicks": 1,
+                "unique_email_count": {"$size": "$unique_emails"}
+            }
+        },
+        {"$sort": {"total_clicks": -1}},
+        {"$limit": 20}
+    ]
+    
+    url_clicks = await db.email_clicks.aggregate(pipeline).to_list(20)
+    total_clicks = sum(item["total_clicks"] for item in url_clicks)
+    
+    # Add percentage and heat level
+    for item in url_clicks:
+        item["percentage"] = round((item["total_clicks"] / total_clicks * 100), 1) if total_clicks > 0 else 0
+        item["heat_level"] = "hot" if item["percentage"] > 25 else "warm" if item["percentage"] > 10 else "cold"
+    
+    return {
+        "success": True,
+        "template_name": template_name,
+        "period_days": days,
+        "total_emails_tracked": len(tracking_ids),
+        "total_clicks": total_clicks,
+        "heatmap_data": url_clicks,
+        "click_rate": round(total_clicks / len(tracking_ids), 2) if tracking_ids else 0
+    }
 
 try:
     from services.email_multilang_service import (
