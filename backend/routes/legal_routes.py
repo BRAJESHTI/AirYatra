@@ -669,3 +669,207 @@ async def verify_booking_consent(
         "consent_id": consent["id"],
         "accepted_at": consent["accepted_at"].isoformat() if isinstance(consent["accepted_at"], datetime) else consent["accepted_at"]
     }
+
+
+
+# ==================== BULK DOCUMENT IMPORT ====================
+
+from fastapi import UploadFile, File
+from services.document_parser_service import document_parser
+
+
+@router.get("/import/supported-types")
+async def get_supported_file_types():
+    """Get list of supported file types for bulk import"""
+    return {
+        "success": True,
+        "supported_extensions": document_parser.get_supported_types(),
+        "max_file_size_mb": 10,
+        "note": "Word (.docx) and PDF files are supported for bulk import"
+    }
+
+
+@router.post("/import/parse")
+async def parse_document_for_import(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Parse uploaded Word/PDF document and extract content for preview.
+    Does NOT save to database - just returns parsed content for review.
+    
+    Admin can then confirm and save to legal documents.
+    """
+    # Check file type
+    filename = file.filename or "unknown"
+    ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    
+    if ext not in document_parser.get_supported_types():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {ext}. Supported: {', '.join(document_parser.get_supported_types())}"
+        )
+    
+    # Check file size (10MB limit)
+    file_content = await file.read()
+    file_size_mb = len(file_content) / (1024 * 1024)
+    
+    if file_size_mb > 10:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large ({file_size_mb:.1f}MB). Maximum size: 10MB"
+        )
+    
+    # Parse document
+    result = document_parser.parse_file(file_content, filename)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to parse document"))
+    
+    return {
+        "success": True,
+        "parsed": result,
+        "message": "Document parsed successfully. Review the content and confirm to save.",
+        "message_hi": "दस्तावेज़ सफलतापूर्वक पार्स किया गया। सामग्री की समीक्षा करें और सेव करने के लिए कन्फर्म करें।"
+    }
+
+
+@router.post("/import/confirm")
+async def confirm_document_import(
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Confirm and save parsed document to legal_documents collection.
+    
+    Expected data:
+    {
+        "doc_type": "terms_conditions",  # Required
+        "title": "Terms & Conditions",   # Required
+        "content": "<html>...</html>",   # HTML content from parser
+        "version": "1.0",
+        "language": "en",
+        "is_draft": true
+    }
+    """
+    # Validate required fields
+    doc_type = data.get("doc_type")
+    title = data.get("title")
+    content = data.get("content")
+    
+    if not doc_type or not title or not content:
+        raise HTTPException(status_code=400, detail="doc_type, title, and content are required")
+    
+    # Validate doc_type
+    valid_types = [
+        "terms_conditions", "privacy_policy", "refund_policy",
+        "operator_agreement", "booking_terms", "safety_guidelines", "cookie_policy"
+    ]
+    
+    if doc_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid doc_type. Must be one of: {', '.join(valid_types)}"
+        )
+    
+    # Create document record
+    doc_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    document = {
+        "id": doc_id,
+        "doc_type": doc_type,
+        "title": title,
+        "content": content,
+        "version": data.get("version", "1.0"),
+        "language": data.get("language", "en"),
+        "is_draft": data.get("is_draft", True),
+        "effective_date": data.get("effective_date"),
+        "created_at": now,
+        "updated_at": now,
+        "created_by": current_user.get("id"),
+        "created_by_name": current_user.get("name") or current_user.get("email"),
+        "import_source": "bulk_upload",
+        "import_filename": data.get("original_filename")
+    }
+    
+    await db.legal_documents.insert_one(document)
+    
+    return {
+        "success": True,
+        "document_id": doc_id,
+        "doc_type": doc_type,
+        "title": title,
+        "is_draft": document["is_draft"],
+        "message": f"Document '{title}' imported successfully as draft.",
+        "message_hi": f"दस्तावेज़ '{title}' ड्राफ्ट के रूप में सफलतापूर्वक इंपोर्ट किया गया।"
+    }
+
+
+@router.post("/import/bulk")
+async def bulk_import_documents(
+    files: List[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Parse multiple documents at once for bulk review.
+    Returns parsed content for each file.
+    """
+    results = []
+    
+    for file in files:
+        filename = file.filename or "unknown"
+        ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        
+        if ext not in document_parser.get_supported_types():
+            results.append({
+                "filename": filename,
+                "success": False,
+                "error": f"Unsupported file type: {ext}"
+            })
+            continue
+        
+        try:
+            file_content = await file.read()
+            file_size_mb = len(file_content) / (1024 * 1024)
+            
+            if file_size_mb > 10:
+                results.append({
+                    "filename": filename,
+                    "success": False,
+                    "error": f"File too large ({file_size_mb:.1f}MB)"
+                })
+                continue
+            
+            result = document_parser.parse_file(file_content, filename)
+            
+            if result.get("success"):
+                results.append({
+                    "filename": filename,
+                    "success": True,
+                    "parsed": result
+                })
+            else:
+                results.append({
+                    "filename": filename,
+                    "success": False,
+                    "error": result.get("error", "Parse failed")
+                })
+                
+        except Exception as e:
+            results.append({
+                "filename": filename,
+                "success": False,
+                "error": str(e)
+            })
+    
+    successful = sum(1 for r in results if r.get("success"))
+    
+    return {
+        "success": True,
+        "total_files": len(files),
+        "successful": successful,
+        "failed": len(files) - successful,
+        "results": results
+    }

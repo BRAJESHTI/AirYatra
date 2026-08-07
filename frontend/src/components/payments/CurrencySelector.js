@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Globe, ChevronDown, RefreshCw, TrendingUp, TrendingDown, 
-  DollarSign, Info, Check 
+  DollarSign, Info, Check, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import api from '../../services/api';
 
 /**
  * Currency Configuration with symbols and flags
@@ -26,34 +27,80 @@ const CURRENCIES = {
 };
 
 /**
- * Fixed exchange rates (INR base)
- * In production, use live rates API
+ * Fallback exchange rates (INR base) - Used when API is unavailable
  */
-const EXCHANGE_RATES = {
+const FALLBACK_RATES = {
   INR: 1,
-  USD: 0.012,      // 1 INR = 0.012 USD
-  EUR: 0.011,      // 1 INR = 0.011 EUR
-  GBP: 0.0095,     // 1 INR = 0.0095 GBP
-  AUD: 0.018,      // 1 INR = 0.018 AUD
-  CAD: 0.016,      // 1 INR = 0.016 CAD
-  SGD: 0.016,      // 1 INR = 0.016 SGD
-  AED: 0.044,      // 1 INR = 0.044 AED
+  USD: 0.012,
+  EUR: 0.011,
+  GBP: 0.0095,
+  AUD: 0.018,
+  CAD: 0.016,
+  SGD: 0.016,
+  AED: 0.044,
+};
+
+// Cache for exchange rates
+let cachedRates = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in ms
+
+/**
+ * Fetch live exchange rates from backend
+ */
+export const fetchLiveRates = async (forceRefresh = false) => {
+  // Check cache first
+  if (!forceRefresh && cachedRates && cacheTimestamp) {
+    const age = Date.now() - cacheTimestamp;
+    if (age < CACHE_DURATION) {
+      return { rates: cachedRates, source: 'cache', success: true };
+    }
+  }
+  
+  try {
+    const response = await api.get('/exchange-rates/', { params: { refresh: forceRefresh } });
+    if (response.data.success && response.data.rates) {
+      cachedRates = response.data.rates;
+      cacheTimestamp = Date.now();
+      return { 
+        rates: response.data.rates, 
+        source: response.data.source || 'live',
+        success: true 
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to fetch live rates, using fallback:', error.message);
+  }
+  
+  return { rates: FALLBACK_RATES, source: 'fallback', success: true };
+};
+
+/**
+ * Get current exchange rates (cached or fallback)
+ */
+export const getExchangeRates = () => {
+  return cachedRates || FALLBACK_RATES;
 };
 
 /**
  * Convert amount between currencies
  */
-export const convertCurrency = (amount, fromCurrency, toCurrency) => {
+export const convertCurrency = (amount, fromCurrency, toCurrency, rates = null) => {
   if (fromCurrency === toCurrency) return amount;
   
+  const exchangeRates = rates || getExchangeRates();
+  
   // Convert to INR first, then to target
+  const fromRate = exchangeRates[fromCurrency] || 1;
+  const toRate = exchangeRates[toCurrency] || 1;
+  
   const inrAmount = fromCurrency === 'INR' 
     ? amount 
-    : amount / EXCHANGE_RATES[fromCurrency];
+    : amount / fromRate;
   
   const targetAmount = toCurrency === 'INR'
     ? inrAmount
-    : inrAmount * EXCHANGE_RATES[toCurrency];
+    : inrAmount * toRate;
   
   return parseFloat(targetAmount.toFixed(2));
 };
@@ -90,18 +137,41 @@ export default function CurrencySelector({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [convertedAmount, setConvertedAmount] = useState(baseAmount);
+  const [rates, setRates] = useState(null);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [rateSource, setRateSource] = useState('fallback');
+
+  // Fetch live rates on mount
+  useEffect(() => {
+    const loadRates = async () => {
+      setRatesLoading(true);
+      const result = await fetchLiveRates();
+      setRates(result.rates);
+      setRateSource(result.source);
+      setRatesLoading(false);
+    };
+    loadRates();
+  }, []);
 
   // Update converted amount when currency or base amount changes
   useEffect(() => {
     if (baseAmount && selectedCurrency) {
-      const converted = convertCurrency(baseAmount, 'INR', selectedCurrency);
+      const converted = convertCurrency(baseAmount, 'INR', selectedCurrency, rates);
       setConvertedAmount(converted);
     }
-  }, [baseAmount, selectedCurrency]);
+  }, [baseAmount, selectedCurrency, rates]);
 
   const handleSelect = (currencyCode) => {
     onCurrencyChange?.(currencyCode);
     setIsOpen(false);
+  };
+
+  const handleRefreshRates = async () => {
+    setRatesLoading(true);
+    const result = await fetchLiveRates(true);
+    setRates(result.rates);
+    setRateSource(result.source);
+    setRatesLoading(false);
   };
 
   const currentCurrency = CURRENCIES[selectedCurrency] || CURRENCIES.INR;
@@ -128,13 +198,28 @@ export default function CurrencySelector({
             <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[200px]">
+        <DropdownMenuContent align="start" className="w-[220px]">
+          {/* Rate source indicator */}
+          <div className="px-2 py-1.5 border-b flex items-center justify-between">
+            <span className="text-xs text-slate-500">
+              Rates: {rateSource === 'live' ? '🟢 Live' : rateSource === 'cache' ? '🟡 Cached' : '🔴 Offline'}
+            </span>
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleRefreshRates(); }}
+              className="text-xs text-orange-500 hover:underline flex items-center gap-1"
+              disabled={ratesLoading}
+            >
+              <RefreshCw className={`h-3 w-3 ${ratesLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+          
           {availableCurrencies.map((code) => {
             const currency = CURRENCIES[code];
             if (!currency) return null;
             
             const isSelected = code === selectedCurrency;
-            const converted = baseAmount ? convertCurrency(baseAmount, 'INR', code) : null;
+            const converted = baseAmount ? convertCurrency(baseAmount, 'INR', code, rates) : null;
             
             return (
               <DropdownMenuItem
@@ -177,6 +262,7 @@ export default function CurrencySelector({
               </p>
             )}
           </div>
+          {ratesLoading && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
         </div>
       )}
     </div>
@@ -220,11 +306,28 @@ export function CurrencyConversionCard({
   currencies = ['USD', 'EUR', 'GBP'],
   className = ''
 }) {
+  const [rates, setRates] = useState(null);
+  const [rateSource, setRateSource] = useState('fallback');
+
+  useEffect(() => {
+    const loadRates = async () => {
+      const result = await fetchLiveRates();
+      setRates(result.rates);
+      setRateSource(result.source);
+    };
+    loadRates();
+  }, []);
+
   return (
     <div className={`p-4 bg-white dark:bg-slate-800 rounded-xl border ${className}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <Globe className="h-5 w-5 text-orange-500" />
-        <h4 className="font-semibold">Currency Conversion</h4>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Globe className="h-5 w-5 text-orange-500" />
+          <h4 className="font-semibold">Currency Conversion</h4>
+        </div>
+        <span className="text-xs text-slate-500">
+          {rateSource === 'live' ? '🟢 Live' : rateSource === 'cache' ? '🟡 Cached' : '🔴 Static'}
+        </span>
       </div>
       
       {/* Base Amount */}
@@ -239,7 +342,7 @@ export function CurrencyConversionCard({
       <div className="space-y-2">
         {currencies.map(code => {
           if (code === baseCurrency) return null;
-          const converted = convertCurrency(baseAmount, baseCurrency, code);
+          const converted = convertCurrency(baseAmount, baseCurrency, code, rates);
           const currency = CURRENCIES[code];
           
           return (
@@ -258,7 +361,7 @@ export function CurrencyConversionCard({
       
       <p className="text-xs text-slate-400 mt-3 flex items-center gap-1">
         <Info className="h-3 w-3" />
-        Rates are approximate and may vary
+        {rateSource === 'live' ? 'Live rates updated hourly' : 'Rates may vary at checkout'}
       </p>
     </div>
   );

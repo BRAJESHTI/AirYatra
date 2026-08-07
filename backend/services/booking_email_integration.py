@@ -16,10 +16,14 @@ try:
     from services.email_tracking_service import email_tracking_service, create_email_tracking_record
     from services.email_multilang_service import detect_user_language, get_translation
     from services.email_service import email_service
+    from services.payment_receipt_service import PaymentReceiptGenerator
     SERVICES_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Some email services not available: {e}")
     SERVICES_AVAILABLE = False
+
+# Initialize receipt generator
+receipt_generator = PaymentReceiptGenerator() if SERVICES_AVAILABLE else None
 
 
 class BookingEmailIntegration:
@@ -113,9 +117,10 @@ class BookingEmailIntegration:
         payment: Dict[str, Any],
         booking: Dict[str, Any],
         customer: Dict[str, Any],
-        db = None
+        db = None,
+        attach_pdf: bool = True
     ) -> Dict[str, Any]:
-        """Send payment receipt email after successful payment"""
+        """Send payment receipt email after successful payment, optionally with PDF attachment"""
         
         if not self.enabled:
             return {"success": False, "error": "Email services not available"}
@@ -146,7 +151,56 @@ class BookingEmailIntegration:
             tracking_id = email_tracking_service.generate_tracking_id(payment.get("transaction_id"))
             tracked_html = email_tracking_service.inject_tracking_into_html(email_data["html"], tracking_id)
             
-            await email_service.send_email(customer_email, email_data["subject"], tracked_html)
+            # Generate PDF receipt if requested
+            pdf_attachment = None
+            if attach_pdf and receipt_generator:
+                try:
+                    # Prepare receipt data
+                    receipt_data = {
+                        "transaction_id": payment.get("transaction_id", payment.get("id", "TXN-UNKNOWN")),
+                        "booking_id": booking.get("booking_id", "N/A"),
+                        "customer_name": customer.get("name", customer.get("full_name", "Valued Customer")),
+                        "customer_email": customer_email,
+                        "customer_phone": customer.get("phone", "N/A"),
+                        "from_city": booking.get("from_city", booking.get("origin", "N/A")),
+                        "to_city": booking.get("to_city", booking.get("destination", "N/A")),
+                        "departure_date": booking.get("departure_date", booking.get("date", "N/A")),
+                        "aircraft_type": booking.get("aircraft_type", "Helicopter"),
+                        "operator_name": booking.get("operator_name", "AirYatra Partner"),
+                        "passenger_count": booking.get("passenger_count", booking.get("passengers", 1)),
+                        "payment_method": payment.get("method", payment.get("payment_method", "Online")),
+                        "base_amount": float(payment.get("base_amount", payment.get("amount", 0))),
+                        "gst_amount": float(payment.get("gst_amount", 0)),
+                        "total_amount": float(payment.get("amount", 0)),
+                        "currency": payment.get("currency", "INR"),
+                        "payment_date": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+                        "status": "SUCCESS",
+                        "pnr": booking.get("pnr")
+                    }
+                    
+                    pdf_buffer = receipt_generator.generate_receipt(receipt_data)
+                    pdf_attachment = pdf_buffer.getvalue()
+                    logger.info(f"PDF receipt generated for transaction {receipt_data['transaction_id']}")
+                except Exception as pdf_err:
+                    logger.warning(f"Failed to generate PDF receipt: {pdf_err}")
+                    # Continue without PDF attachment
+            
+            # Send email with or without attachment
+            if pdf_attachment:
+                transaction_id = payment.get("transaction_id", payment.get("id", "UNKNOWN"))
+                filename = f"AirYatra_Receipt_{transaction_id[:8]}.pdf"
+                await email_service.send_email_with_attachment(
+                    to_email=customer_email,
+                    subject=email_data["subject"],
+                    html_content=tracked_html,
+                    attachment_content=pdf_attachment,
+                    attachment_filename=filename,
+                    attachment_type="application/pdf"
+                )
+                logger.info(f"Payment receipt email with PDF sent to {customer_email}")
+            else:
+                await email_service.send_email(customer_email, email_data["subject"], tracked_html)
+                logger.info(f"Payment receipt email (no PDF) sent to {customer_email}")
             
             if db:
                 tracking_record = create_email_tracking_record(
@@ -156,11 +210,17 @@ class BookingEmailIntegration:
                     subject=email_data["subject"],
                     template_name="payment_receipt",
                     booking_id=booking.get("booking_id"),
-                    user_id=customer.get("id")
+                    user_id=customer.get("id"),
+                    metadata={"has_pdf_attachment": pdf_attachment is not None}
                 )
                 await db.email_tracking.insert_one(tracking_record)
             
-            return {"success": True, "tracking_id": tracking_id, "recipient": customer_email}
+            return {
+                "success": True, 
+                "tracking_id": tracking_id, 
+                "recipient": customer_email,
+                "pdf_attached": pdf_attachment is not None
+            }
             
         except Exception as e:
             logger.error(f"Failed to send payment receipt: {e}")

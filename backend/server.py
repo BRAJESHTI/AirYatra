@@ -481,6 +481,10 @@ api_router.include_router(email_campaign_routes.router)
 from routes import template_routes
 api_router.include_router(template_routes.router)
 
+# Exchange Rate Service
+from routes import exchange_rate_routes
+api_router.include_router(exchange_rate_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 

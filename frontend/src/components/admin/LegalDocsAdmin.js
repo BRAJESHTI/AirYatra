@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   FileText, Plus, Edit, Trash2, Eye, Save, X, Check, 
   Globe, Clock, CheckCircle2, AlertCircle, Copy, History,
   ChevronDown, ChevronRight, Loader2, RefreshCw, Search,
-  BookOpen, Shield, Scale, FileCheck, Scroll
+  BookOpen, Shield, Scale, FileCheck, Scroll, Upload, FileUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +41,12 @@ export default function LegalDocsAdmin() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [activeType, setActiveType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-
+  
+  // Bulk import state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importParsedData, setImportParsedData] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
   // Editor state
   const [editorData, setEditorData] = useState({
     doc_type: '',
@@ -182,6 +187,69 @@ export default function LegalDocsAdmin() {
     }
   };
 
+  // Bulk Import Functions
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setImporting(true);
+    setShowImportModal(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await api.post('/legal/import/parse', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      if (res.data.success) {
+        setImportParsedData({
+          ...res.data.parsed,
+          original_filename: file.name
+        });
+        toast.success('Document parsed! Review and save below.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to parse document');
+      setShowImportModal(false);
+    }
+    
+    setImporting(false);
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importParsedData) return;
+    
+    setImporting(true);
+    
+    try {
+      const payload = {
+        doc_type: importParsedData.detected_doc_type || 'terms_conditions',
+        title: importParsedData.suggested_title || importParsedData.original_filename || 'Imported Document',
+        content: importParsedData.html_content,
+        version: '1.0',
+        is_draft: true,
+        original_filename: importParsedData.original_filename
+      };
+      
+      const res = await api.post('/legal/import/confirm', payload);
+      
+      if (res.data.success) {
+        toast.success(`Document "${res.data.title}" imported as draft!`);
+        setShowImportModal(false);
+        setImportParsedData(null);
+        loadData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save document');
+    }
+    
+    setImporting(false);
+  };
+
   const filteredDocs = documents.filter(doc => {
     if (activeType !== 'all' && doc.doc_type !== activeType) return false;
     if (searchTerm) {
@@ -226,6 +294,21 @@ export default function LegalDocsAdmin() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => fileInputRef.current?.click()}
+            className="border-orange-500 text-orange-500 hover:bg-orange-50"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import Word/PDF
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx,.doc,.pdf"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <Button onClick={() => handleCreateNew()} className="bg-orange-500 hover:bg-orange-600">
             <Plus className="h-4 w-4 mr-2" />
             New Document
@@ -525,6 +608,145 @@ export default function LegalDocsAdmin() {
             }}>
               <Edit className="h-4 w-4 mr-2" />Edit
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Document Modal */}
+      <Dialog open={showImportModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowImportModal(false);
+          setImportParsedData(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileUp className="h-5 w-5 text-orange-500" />
+              Import Document / दस्तावेज़ इंपोर्ट करें
+            </DialogTitle>
+          </DialogHeader>
+
+          {importing && !importParsedData ? (
+            <div className="py-12 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-orange-500 mb-4" />
+              <p className="text-slate-500">Parsing document...</p>
+            </div>
+          ) : importParsedData ? (
+            <div className="space-y-4 py-4">
+              {/* Parsed Metadata */}
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 text-green-700 mb-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span className="font-semibold">Document Parsed Successfully!</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-slate-500">File</p>
+                    <p className="font-medium">{importParsedData.filename}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Type</p>
+                    <p className="font-medium">{importParsedData.file_type?.toUpperCase()}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Detected Document Type</p>
+                    <p className="font-medium">
+                      {importParsedData.detected_doc_type 
+                        ? importParsedData.detected_doc_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                        : 'Unknown - Please select below'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Word Count</p>
+                    <p className="font-medium">{importParsedData.metadata?.word_count || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Document Type *</Label>
+                  <select
+                    className="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-800"
+                    value={importParsedData.detected_doc_type || ''}
+                    onChange={(e) => setImportParsedData({
+                      ...importParsedData,
+                      detected_doc_type: e.target.value
+                    })}
+                  >
+                    <option value="">Select type...</option>
+                    {documentTypes.map(type => (
+                      <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Title *</Label>
+                  <Input
+                    value={importParsedData.suggested_title || ''}
+                    onChange={(e) => setImportParsedData({
+                      ...importParsedData,
+                      suggested_title: e.target.value
+                    })}
+                    placeholder="Document title"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Content Preview */}
+              <div>
+                <Label>Content Preview (Editable HTML)</Label>
+                <textarea
+                  className="w-full mt-1 p-3 border rounded-lg bg-white dark:bg-slate-800 min-h-[200px] font-mono text-sm"
+                  value={importParsedData.html_content || ''}
+                  onChange={(e) => setImportParsedData({
+                    ...importParsedData,
+                    html_content: e.target.value
+                  })}
+                />
+              </div>
+
+              {/* Rendered Preview */}
+              <details className="border rounded-lg">
+                <summary className="p-3 cursor-pointer font-medium flex items-center gap-2">
+                  <Eye className="h-4 w-4" /> Preview Rendered HTML
+                </summary>
+                <div 
+                  className="p-4 prose dark:prose-invert max-w-none border-t"
+                  dangerouslySetInnerHTML={{ __html: importParsedData.html_content || '' }}
+                />
+              </details>
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <FileUp className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500">Select a Word (.docx) or PDF file to import</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowImportModal(false);
+              setImportParsedData(null);
+            }}>
+              Cancel
+            </Button>
+            {importParsedData && (
+              <Button 
+                onClick={handleConfirmImport}
+                disabled={importing || !importParsedData.detected_doc_type || !importParsedData.suggested_title}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</>
+                ) : (
+                  <><Save className="h-4 w-4 mr-2" />Save as Draft</>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

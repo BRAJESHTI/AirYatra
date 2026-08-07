@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Smartphone, Building2, Wallet, Calendar, Check, Loader2, Ticket, X } from 'lucide-react';
+import { CreditCard, Smartphone, Building2, Wallet, Calendar, Check, Loader2, Ticket, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api, { paymentsAPI, bookingAPI } from '../../services/api';
 import { toast } from 'sonner';
+import CurrencySelector, { formatCurrency, convertCurrency } from '../payments/CurrencySelector';
 
 function PaymentCheckout({ bookingId, amount, onSuccess, onCancel }) {
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -15,6 +16,7 @@ function PaymentCheckout({ bookingId, amount, onSuccess, onCancel }) {
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applying, setApplying] = useState(false);
   const [myVouchers, setMyVouchers] = useState([]);
+  const [selectedCurrency, setSelectedCurrency] = useState('INR');
 
   const discount = appliedVoucher ? Math.min(appliedVoucher.value, amount) : 0;
   const finalAmount = Math.max(discount > 0 ? 1 : 0, amount - discount) || amount;
@@ -158,19 +160,45 @@ function PaymentCheckout({ bookingId, amount, onSuccess, onCancel }) {
         <p className="text-slate-400 mt-1">Secure payment powered by Razorpay</p>
       </div>
 
+      {/* Currency Selector */}
+      <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700" data-testid="currency-selector-section">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-orange-400" />
+            <span className="text-white font-medium text-sm">Display Currency / मुद्रा चुनें</span>
+          </div>
+          <CurrencySelector
+            selectedCurrency={selectedCurrency}
+            onCurrencyChange={setSelectedCurrency}
+            baseAmount={finalAmount}
+            showConversion={false}
+            size="sm"
+          />
+        </div>
+      </div>
+
       {/* Amount Display */}
       <div className="p-6 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 text-center" data-testid="payment-amount-card">
         <p className="text-slate-400">Total Amount</p>
         {discount > 0 ? (
           <>
-            <p className="text-slate-500 line-through text-lg mt-2" data-testid="original-amount">₹{amount.toLocaleString()}</p>
-            <p className="text-4xl font-bold text-white" data-testid="final-amount">₹{finalAmount.toLocaleString()}</p>
+            <p className="text-slate-500 line-through text-lg mt-2" data-testid="original-amount">
+              {formatCurrency(amount, selectedCurrency)}
+            </p>
+            <p className="text-4xl font-bold text-white" data-testid="final-amount">
+              {formatCurrency(convertCurrency(finalAmount, 'INR', selectedCurrency), selectedCurrency)}
+            </p>
             <p className="text-green-400 text-sm mt-1" data-testid="discount-line">
-              🎫 Voucher discount: −₹{discount.toLocaleString()}
+              Voucher discount: −{formatCurrency(convertCurrency(discount, 'INR', selectedCurrency), selectedCurrency)}
             </p>
           </>
         ) : (
-          <p className="text-4xl font-bold text-white mt-2" data-testid="final-amount">₹{amount.toLocaleString()}</p>
+          <p className="text-4xl font-bold text-white mt-2" data-testid="final-amount">
+            {formatCurrency(convertCurrency(amount, 'INR', selectedCurrency), selectedCurrency)}
+          </p>
+        )}
+        {selectedCurrency !== 'INR' && (
+          <p className="text-xs text-slate-500 mt-1">≈ ₹{finalAmount.toLocaleString('en-IN')} INR</p>
         )}
         <p className="text-sm text-slate-400 mt-1">Including all taxes</p>
       </div>

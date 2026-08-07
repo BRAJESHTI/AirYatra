@@ -110,6 +110,8 @@ import ComplaintAnalytics from '@/components/admin/ComplaintAnalytics';
 import BulkDiscountUpload from '@/components/admin/BulkDiscountUpload';
 // Template Settings
 import TemplateSettings from '@/components/admin/TemplateSettings';
+// Legal Documents Admin
+import LegalDocsAdmin from '@/components/admin/LegalDocsAdmin';
 
 // Organized Navigation Structure - 8 Main Categories
 const navGroups = [
@@ -244,6 +246,7 @@ const navGroups = [
     items: [
       { id: 'settings', label: 'Global Settings', icon: Settings },
       { id: 'template_settings', label: 'Template Settings / टेम्पलेट', icon: FileText, highlight: true },
+      { id: 'legal_docs', label: 'Legal Docs / कानूनी दस्तावेज़', icon: Shield, highlight: true },
       { id: 'api_keys', label: 'API Keys (GST/PAN)', icon: Key },
       { id: 'webhooks', label: 'Webhooks', icon: Globe },
       { id: 'call_recording', label: 'Call Recording', icon: Phone },
@@ -369,6 +372,8 @@ function AdminDashboard({ user, onLogout }) {
         return <ComplaintAnalytics />;
       case 'template_settings':
         return <TemplateSettings />;
+      case 'legal_docs':
+        return <LegalDocsAdmin />;
       case 'fleet_maintenance':
         return <FleetMaintenance />;
       // Priority 3 Features

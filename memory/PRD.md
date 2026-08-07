@@ -2948,3 +2948,100 @@ PAYPAL_MODE=sandbox  # or 'live'
 - `/app/backend/requirements.txt` - Added qrcode[pil]
 
 ---
+
+
+### Session: August 7, 2026 (Fork Session 2) - Payment & Legal Management Wiring
+
+#### Completed in This Session:
+
+##### 1. Component Wiring into Main Pages 🟢 DONE
+- **CurrencySelector** wired into `PaymentCheckout.js`
+  - Added currency dropdown with live rates indicator (🟢 Live / 🟡 Cached / 🔴 Offline)
+  - Amount display shows converted value in selected currency
+  - Refresh button to force-fetch latest rates
+- **LegalDocsAdmin** wired into `AdminDashboard.js`
+  - New sidebar item: "Legal Docs / कानूनी दस्तावेज़" under Settings & System
+  - Tab ID: `legal_docs`
+- **RefundHistory** wired into `CustomerDashboard.js`
+  - New sidebar item: "Refund History / रिफंड" under Rewards & Offers
+  - Route added: `/customer/refunds`
+
+##### 2. Email Receipt PDF Attachment 🟢 DONE
+- Modified `booking_email_integration.py` to auto-attach PDF receipt
+- `send_payment_receipt()` now generates and attaches PDF using `PaymentReceiptGenerator`
+- PDF includes: QR code, transaction details, booking info, payment breakdown
+- Falls back gracefully if PDF generation fails
+- Tracking record includes `has_pdf_attachment` metadata
+
+##### 3. Live Exchange Rates API 🟢 DONE
+- **Backend Service**: `/app/backend/services/exchange_rate_service.py`
+  - Fetches from exchangerate-api.com (free tier, no key needed)
+  - Caches for 1 hour
+  - Fallback to static rates if API unavailable
+- **API Routes**: `/app/backend/routes/exchange_rate_routes.py`
+  - `GET /api/exchange-rates/` - Get all rates (INR base)
+  - `GET /api/exchange-rates/convert` - Convert between currencies
+  - `GET /api/exchange-rates/currencies` - List supported currencies with metadata
+- **Frontend Integration**: Updated `CurrencySelector.js`
+  - `fetchLiveRates()` - Fetches from backend API
+  - Displays rate source indicator (Live/Cached/Fallback)
+  - Refresh button to force update
+  - `CurrencyConversionCard` also uses live rates
+
+##### 4. Bulk Document Import (Word/PDF) 🟢 DONE
+- **Backend Parser**: `/app/backend/services/document_parser_service.py`
+  - Parses `.docx` using python-docx library
+  - Parses `.pdf` using PyPDF2 library
+  - Extracts plain text and generates HTML
+  - Auto-detects document type from content keywords
+  - Extracts metadata (author, title, word count, page count)
+- **API Endpoints** (in `legal_routes.py`):
+  - `GET /api/legal/import/supported-types` - List supported file types
+  - `POST /api/legal/import/parse` - Parse single file for preview
+  - `POST /api/legal/import/confirm` - Save parsed document to DB
+  - `POST /api/legal/import/bulk` - Parse multiple files
+- **Frontend UI**: Updated `LegalDocsAdmin.js`
+  - "Import Word/PDF" button with file picker
+  - Import modal with:
+    - Parse status indicator
+    - Metadata display (file, type, word count)
+    - Editable document type and title
+    - HTML content textarea
+    - Rendered preview (collapsible)
+    - Save as Draft button
+- **Dependencies Added**: python-docx, PyPDF2, lxml
+
+#### Files Added:
+- `/app/backend/services/exchange_rate_service.py`
+- `/app/backend/routes/exchange_rate_routes.py`
+- `/app/backend/services/document_parser_service.py`
+
+#### Files Modified:
+- `/app/frontend/src/components/customer/PaymentCheckout.js` - CurrencySelector integration
+- `/app/frontend/src/pages/AdminDashboard.js` - LegalDocsAdmin nav item
+- `/app/frontend/src/pages/CustomerDashboard.js` - RefundHistory nav item + route
+- `/app/frontend/src/App.js` - Added /customer/refunds route
+- `/app/frontend/src/components/payments/CurrencySelector.js` - Live rates API
+- `/app/frontend/src/components/admin/LegalDocsAdmin.js` - Bulk import UI
+- `/app/backend/services/booking_email_integration.py` - PDF attachment
+- `/app/backend/routes/legal_routes.py` - Bulk import endpoints
+- `/app/backend/server.py` - Exchange rate routes registration
+- `/app/backend/requirements.txt` - Added python-docx, PyPDF2, lxml
+
+---
+
+## Upcoming Tasks (Next Session)
+
+### P1 - High Priority
+1. **WhatsApp Integration (Twilio)** - Wire live credentials
+2. **Firebase Push Notifications** - Wire live credentials
+
+### P2 - Medium Priority
+3. **Payment Gateway Live Mode** - Razorpay/Stripe live credentials
+4. **Multi-Language Email Templates** - Hindi/Marathi support
+
+### Backlog
+- eKYC Live Integration (Sandbox.co.in)
+- Advanced Analytics with ML
+- Route Optimization AI
+- Predictive Maintenance Alerts

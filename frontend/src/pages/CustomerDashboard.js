@@ -26,6 +26,7 @@ import TwoFactorSetup from '../components/auth/TwoFactorSetup';
 import { CustomerAuctions } from '../components/auction/AuctionDashboard';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 import { AircraftComparison } from '../components/aircraft/AircraftComparison';
+import RefundHistory from '../components/customer/RefundHistory';
 
 // Organized Navigation Structure - 4 Main Categories
 const navGroups = [
@@ -52,6 +53,7 @@ const navGroups = [
     icon: Gift,
     items: [
       { id: 'payments', label: 'Payment History / भुगतान', icon: CreditCard, path: '/customer/payments', highlight: true },
+      { id: 'refunds', label: 'Refund History / रिफंड', icon: Wallet, path: '/customer/refunds', highlight: true },
       { id: 'refer', label: 'Refer & Earn / रेफर करें', icon: Gift, path: '/customer/refer' },
       { id: 'investments', label: 'My Investments / मेरा निवेश', icon: PieChart, path: '/customer/investments' },
       { id: 'wallet', label: 'My Wallet / वॉलेट', icon: Wallet, path: '/customer/wallet' },
@@ -109,6 +111,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/refer')) setActiveTab('refer');
     else if (path.includes('/loyalty')) setActiveTab('loyalty');
     else if (path.includes('/payments')) setActiveTab('payments');
+    else if (path.includes('/refunds')) setActiveTab('refunds');
     else if (path.includes('/stats')) setActiveTab('stats');
     else if (path.includes('/price-trends')) setActiveTab('price-trends');
     else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
@@ -187,6 +190,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <LoyaltyRewards user={user} />;
       case 'payments':
         return <CustomerPaymentHistory user={user} />;
+      case 'refunds':
+        return <RefundHistory userId={user?.id} />;
       case 'stats':
         return <CustomerBookingStats user={user} />;
       case 'price-trends':
