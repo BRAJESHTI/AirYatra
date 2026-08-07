@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict
 from datetime import datetime, timezone
@@ -7,6 +7,13 @@ from database import get_database
 from middleware import get_current_user
 from services.payment_service import payment_service
 from services.notification_service import notification_service
+
+# Email integration for booking confirmation
+try:
+    from services.booking_email_integration import on_booking_confirmed, on_payment_success
+    BOOKING_EMAIL_AVAILABLE = True
+except ImportError:
+    BOOKING_EMAIL_AVAILABLE = False
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -182,6 +189,35 @@ async def verify_payment(
                 customer_email=current_user.get("email"),
                 customer_phone=current_user.get("phone")
             )
+            
+            # Send booking confirmation email with tracking
+            if BOOKING_EMAIL_AVAILABLE:
+                try:
+                    customer = {
+                        "id": current_user.get("id"),
+                        "name": current_user.get("full_name", current_user.get("name", "Valued Customer")),
+                        "email": current_user.get("email"),
+                        "phone": current_user.get("phone"),
+                        "preferences": current_user.get("preferences", {})
+                    }
+                    
+                    # Send booking confirmation email
+                    email_result = await on_booking_confirmed(booking, customer, db)
+                    
+                    # Send payment receipt email
+                    if payment_order:
+                        payment_data = {
+                            "transaction_id": request.razorpay_payment_id,
+                            "amount": payment_order.get("amount"),
+                            "method": "Razorpay",
+                            "gst_amount": str(round(float(payment_order.get("amount", 0)) * 0.18 / 1.18, 2))
+                        }
+                        await on_payment_success(payment_data, booking, customer, db)
+                    
+                    result["email_sent"] = email_result.get("success", False)
+                except Exception as e:
+                    # Don't fail payment verification if email fails
+                    result["email_error"] = str(e)
     
     return result
 

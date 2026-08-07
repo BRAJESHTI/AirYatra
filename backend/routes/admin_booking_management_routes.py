@@ -8,6 +8,17 @@ from models import UserRole
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Email integration for booking status changes
+try:
+    from services.booking_email_integration import (
+        on_booking_confirmed, on_booking_cancelled, 
+        on_booking_rescheduled, on_flight_completed
+    )
+    BOOKING_EMAIL_AVAILABLE = True
+except ImportError:
+    BOOKING_EMAIL_AVAILABLE = False
+
 router = APIRouter(prefix="/admin/bookings-management", tags=["Admin - Booking Management"])
 
 # ============== ADVANCED BOOKING MANAGEMENT ==============
@@ -218,6 +229,31 @@ async def emergency_override_booking(
         "is_critical": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
+    
+    # Send email notifications based on status change
+    if BOOKING_EMAIL_AVAILABLE:
+        try:
+            # Get updated booking and customer info
+            updated_booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+            customer_id = updated_booking.get("customer_id") or updated_booking.get("user_id")
+            customer = await db.users.find_one({"id": customer_id}, {"_id": 0})
+            
+            if customer and updated_booking:
+                if override_action == "cancel":
+                    refund_amount = str(updated_booking.get("total_amount", "0"))
+                    await on_booking_cancelled(
+                        updated_booking, customer, override_reason, 
+                        refund_amount, "Admin Override", db
+                    )
+                    logger.info(f"Cancellation email sent for booking {booking_id}")
+                elif override_action == "complete":
+                    await on_flight_completed(updated_booking, customer, {}, db)
+                    logger.info(f"Completion email sent for booking {booking_id}")
+                elif override_action == "status_change" and new_data.get("new_status") == "confirmed":
+                    await on_booking_confirmed(updated_booking, customer, db)
+                    logger.info(f"Confirmation email sent for booking {booking_id}")
+        except Exception as e:
+            logger.error(f"Failed to send email for booking {booking_id}: {e}")
     
     return {"message": f"Emergency override applied: {override_action}"}
 

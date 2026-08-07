@@ -9,8 +9,9 @@ import {
   RotateCcw, Shield, CheckSquare, XSquare, MessageCircle, Sparkles,
   Lightbulb, Wand2, FileCheck, FileClock, AlertCircle, PlayCircle,
   BookOpen, Library, TestTube2, Activity, Package, Star, Import, 
-  Gauge, AlertOctagon, Filter, ExternalLink, Inbox, PhoneCall
+  Gauge, AlertOctagon, Filter, ExternalLink, Inbox, PhoneCall, Palette
 } from 'lucide-react';
+import EmailTemplateEditor from './EmailTemplateEditor';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell 
@@ -1298,6 +1299,7 @@ export default function TemplateSettings() {
       <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         {[
           { id: 'templates', label: 'Templates', icon: FileText },
+          { id: 'email-editor', label: 'Email Editor', icon: Palette },
           { id: 'library', label: 'Library', icon: BookOpen },
           { id: 'approvals', label: 'Approvals', icon: Shield, badge: pendingApprovals.length },
           { id: 'queue', label: 'Queue', icon: Send },
@@ -1314,6 +1316,7 @@ export default function TemplateSettings() {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'email-editor' && <EmailTemplateEditor />}
       {activeTab === 'approvals' && renderApprovals()}
       {activeTab === 'queue' && renderQueue()}
       {activeTab === 'analytics' && renderAnalytics()}

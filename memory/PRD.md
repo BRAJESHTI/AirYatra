@@ -2603,3 +2603,86 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/backend/routes/template_routes.py` - Added 4 new endpoints (5500+ lines total)
 
 ---
+
+### Phase 6: Email System Enhancement (Aug 7, 2026)
+
+#### 1. Email Template Editor UI 🟢 DONE
+- **Component**: `EmailTemplateEditor.js` (343 lines)
+- **Location**: Admin → Template Settings → Email Editor tab
+- **Features**:
+  - Template selection panel (8 AirYatra branded templates)
+  - Live preview with iframe rendering
+  - Dark/Light theme toggle
+  - Multi-language selector (English, Hindi, Marathi, Tamil, Gujarati)
+  - Analytics cards (Sent, Opened, Clicked, Open Rate, Click Rate)
+  - Send Test Email dialog
+  - Copy HTML to clipboard
+  - Per-template stats (when available)
+  - Refresh button for real-time updates
+
+#### 2. Email Tracking Service 🟢 DONE
+- **File**: `/app/backend/services/email_tracking_service.py` (218 lines)
+- **Features**:
+  - Open tracking via 1x1 transparent GIF pixel
+  - Click tracking with link wrapping
+  - Unique tracking ID generation (ET-xxxx format)
+  - HTML injection for automatic tracking
+  - Analytics calculation (open rate, click rate, click-to-open rate)
+  - Daily and template-wise breakdown
+
+#### 3. Email Tracking API Endpoints 🟢 DONE
+- `GET /api/templates/email/track/open?tid=xxx` - Pixel tracking (returns 1x1 GIF)
+- `GET /api/templates/email/track/click?tid=xxx&lid=xxx&url=xxx` - Click tracking + redirect
+- `GET /api/templates/email/analytics?days=30` - Email analytics dashboard
+- `GET /api/templates/email/tracking/{tracking_id}` - Specific email tracking details
+
+#### 4. Multi-Language Email Service 🟢 DONE
+- **File**: `/app/backend/services/email_multilang_service.py` (575 lines)
+- **Languages**: English (en), Hindi (hi), Marathi (mr), Tamil (ta), Gujarati (gu)
+- **Translations for**:
+  - Common strings (namaste, thank_you, booking_id, etc.)
+  - Booking Confirmation template
+  - Flight Reminder template
+  - Flight Cancelled template
+  - OTP Verification template
+- **API**: `GET /api/templates/email/languages` - List supported languages
+- **API**: `GET /api/templates/email/translations/{template}?lang=hi` - Get translations
+
+#### 5. Booking Email Integration 🟢 DONE
+- **File**: `/app/backend/services/booking_email_integration.py` (436 lines)
+- **Auto-triggers on**:
+  - Booking confirmed (payment success)
+  - Payment receipt
+  - Flight reminder (24h before)
+  - Flight rescheduled
+  - Flight cancelled
+  - Flight completed (thank you)
+- **Integration Points**:
+  - `payment_routes.py` - Auto-send confirmation + receipt on payment
+  - `admin_booking_management_routes.py` - Auto-send on status change
+- **Event Hooks**:
+  - `on_booking_confirmed(booking, customer, db)`
+  - `on_payment_success(payment, booking, customer, db)`
+  - `on_booking_rescheduled(booking, customer, old, new, reason, db)`
+  - `on_booking_cancelled(booking, customer, reason, refund, by, db)`
+  - `on_flight_completed(booking, customer, details, db)`
+
+#### 6. Manual Email Trigger Endpoints 🟢 DONE
+- `POST /api/templates/email/trigger/booking-confirmed?booking_id=xxx`
+- `POST /api/templates/email/trigger/payment-receipt?booking_id=xxx&transaction_id=xxx&amount=xxx`
+- `POST /api/templates/email/trigger/flight-reminder?booking_id=xxx`
+- `POST /api/templates/email/trigger/flight-cancelled?booking_id=xxx&reason=xxx&refund_amount=xxx`
+
+#### Files Added:
+- `/app/backend/services/email_tracking_service.py`
+- `/app/backend/services/email_multilang_service.py`
+- `/app/backend/services/booking_email_integration.py`
+- `/app/frontend/src/components/admin/EmailTemplateEditor.js`
+
+#### Files Modified:
+- `/app/frontend/src/components/admin/TemplateSettings.js` - Added Email Editor tab
+- `/app/backend/routes/template_routes.py` - Added tracking, multilang, trigger endpoints (5944 lines total)
+- `/app/backend/routes/payment_routes.py` - Added auto email on payment success
+- `/app/backend/routes/admin_booking_management_routes.py` - Added auto email on status change
+
+---

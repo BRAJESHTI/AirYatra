@@ -5629,3 +5629,315 @@ async def test_alert_email_trigger(
         "threshold": threshold,
         "details": result
     }
+
+
+
+# ==================== EMAIL TRACKING ENDPOINTS ====================
+
+from fastapi.responses import Response
+
+try:
+    from services.email_tracking_service import (
+        email_tracking_service, get_email_analytics,
+        create_email_tracking_record, create_click_record
+    )
+    TRACKING_AVAILABLE = True
+except ImportError:
+    TRACKING_AVAILABLE = False
+
+
+@router.get("/email/track/open")
+async def track_email_open(
+    tid: str = Query(..., description="Tracking ID"),
+    t: int = Query(None, description="Timestamp")
+):
+    """Track email open via 1x1 pixel"""
+    if not TRACKING_AVAILABLE:
+        return Response(content=email_tracking_service.get_pixel_response(), media_type="image/gif")
+    
+    db = get_database()
+    
+    # Update tracking record
+    result = await db.email_tracking.update_one(
+        {"tracking_id": tid},
+        {
+            "$set": {
+                "opened": True,
+                "opened_at": datetime.now(timezone.utc)
+            },
+            "$inc": {"open_count": 1}
+        }
+    )
+    
+    # Return 1x1 transparent GIF
+    return Response(
+        content=email_tracking_service.get_pixel_response(),
+        media_type="image/gif",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+    )
+
+
+@router.get("/email/track/click")
+async def track_email_click(
+    tid: str = Query(..., description="Tracking ID"),
+    lid: str = Query(..., description="Link ID"),
+    url: str = Query(..., description="Original URL")
+):
+    """Track email link click and redirect"""
+    if TRACKING_AVAILABLE:
+        db = get_database()
+        
+        # Update tracking record
+        await db.email_tracking.update_one(
+            {"tracking_id": tid},
+            {
+                "$set": {
+                    "clicked": True,
+                    "clicked_at": datetime.now(timezone.utc)
+                },
+                "$inc": {"click_count": 1},
+                "$push": {"clicked_links": {"link_id": lid, "url": url, "clicked_at": datetime.now(timezone.utc)}}
+            }
+        )
+        
+        # Log click event
+        click_record = create_click_record(tid, lid, url)
+        await db.email_clicks.insert_one(click_record)
+    
+    # Redirect to original URL
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=url, status_code=302)
+
+
+@router.get("/email/analytics")
+async def get_email_tracking_analytics(
+    days: int = Query(30, ge=1, le=90),
+    template_name: str = None,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get email open/click analytics"""
+    if not TRACKING_AVAILABLE:
+        return {"success": False, "error": "Tracking not available"}
+    
+    db = get_database()
+    analytics = await get_email_analytics(db, days, template_name)
+    
+    return {
+        "success": True,
+        **analytics
+    }
+
+
+@router.get("/email/tracking/{tracking_id}")
+async def get_email_tracking_details(
+    tracking_id: str,
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get tracking details for a specific email"""
+    if not TRACKING_AVAILABLE:
+        return {"success": False, "error": "Tracking not available"}
+    
+    db = get_database()
+    
+    record = await db.email_tracking.find_one({"tracking_id": tracking_id}, {"_id": 0})
+    
+    if not record:
+        return {"success": False, "error": "Tracking record not found"}
+    
+    # Get click details
+    clicks = await db.email_clicks.find({"tracking_id": tracking_id}, {"_id": 0}).to_list(100)
+    
+    return {
+        "success": True,
+        "tracking": record,
+        "clicks": clicks
+    }
+
+
+# ==================== MULTI-LANGUAGE ENDPOINTS ====================
+
+try:
+    from services.email_multilang_service import (
+        SUPPORTED_LANGUAGES, get_translation, get_email_translation
+    )
+    MULTILANG_AVAILABLE = True
+except ImportError:
+    MULTILANG_AVAILABLE = False
+
+
+@router.get("/email/languages")
+async def get_supported_languages(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get list of supported email languages"""
+    if not MULTILANG_AVAILABLE:
+        return {"success": False, "error": "Multi-language not available"}
+    
+    return {
+        "success": True,
+        "languages": [
+            {"code": code, **info}
+            for code, info in SUPPORTED_LANGUAGES.items()
+        ],
+        "total": len(SUPPORTED_LANGUAGES)
+    }
+
+
+@router.get("/email/translations/{template_name}")
+async def get_template_translations(
+    template_name: str,
+    lang: str = Query("en"),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Get translations for a specific template"""
+    if not MULTILANG_AVAILABLE:
+        return {"success": False, "error": "Multi-language not available"}
+    
+    translations = get_email_translation(template_name, lang)
+    
+    if not translations:
+        return {
+            "success": False,
+            "error": f"Translations not found for {template_name} in {lang}"
+        }
+    
+    return {
+        "success": True,
+        "template": template_name,
+        "language": lang,
+        "translations": translations
+    }
+
+
+# ==================== BOOKING EMAIL INTEGRATION ENDPOINTS ====================
+
+try:
+    from services.booking_email_integration import (
+        booking_email_integration,
+        on_booking_confirmed, on_payment_success,
+        on_booking_rescheduled, on_booking_cancelled, on_flight_completed
+    )
+    BOOKING_EMAIL_AVAILABLE = True
+except ImportError:
+    BOOKING_EMAIL_AVAILABLE = False
+
+
+@router.post("/email/trigger/booking-confirmed")
+async def trigger_booking_confirmation_email(
+    booking_id: str = Query(...),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger booking confirmation email"""
+    if not BOOKING_EMAIL_AVAILABLE:
+        return {"success": False, "error": "Booking email integration not available"}
+    
+    db = get_database()
+    
+    # Get booking
+    booking = await db.bookings.find_one({"booking_id": booking_id})
+    if not booking:
+        booking = await db.bookings.find_one({"id": booking_id})
+    if not booking:
+        return {"success": False, "error": "Booking not found"}
+    
+    # Get customer
+    customer_id = booking.get("customer_id") or booking.get("user_id")
+    customer = await db.users.find_one({"id": customer_id})
+    if not customer:
+        customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        return {"success": False, "error": "Customer not found"}
+    
+    # Send email
+    result = await on_booking_confirmed(booking, customer, db)
+    
+    return result
+
+
+@router.post("/email/trigger/payment-receipt")
+async def trigger_payment_receipt_email(
+    booking_id: str = Query(...),
+    transaction_id: str = Query(...),
+    amount: str = Query(...),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger payment receipt email"""
+    if not BOOKING_EMAIL_AVAILABLE:
+        return {"success": False, "error": "Booking email integration not available"}
+    
+    db = get_database()
+    
+    # Get booking
+    booking = await db.bookings.find_one({"booking_id": booking_id})
+    if not booking:
+        return {"success": False, "error": "Booking not found"}
+    
+    # Get customer
+    customer_id = booking.get("customer_id") or booking.get("user_id")
+    customer = await db.users.find_one({"id": customer_id})
+    if not customer:
+        return {"success": False, "error": "Customer not found"}
+    
+    # Create payment object
+    payment = {
+        "transaction_id": transaction_id,
+        "amount": amount,
+        "method": "Manual Trigger",
+        "gst_amount": str(round(float(amount) * 0.18, 2))
+    }
+    
+    result = await on_payment_success(payment, booking, customer, db)
+    
+    return result
+
+
+@router.post("/email/trigger/flight-reminder")
+async def trigger_flight_reminder_email(
+    booking_id: str = Query(...),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger flight reminder email"""
+    if not BOOKING_EMAIL_AVAILABLE:
+        return {"success": False, "error": "Booking email integration not available"}
+    
+    db = get_database()
+    
+    booking = await db.bookings.find_one({"booking_id": booking_id})
+    if not booking:
+        return {"success": False, "error": "Booking not found"}
+    
+    customer_id = booking.get("customer_id") or booking.get("user_id")
+    customer = await db.users.find_one({"id": customer_id})
+    if not customer:
+        return {"success": False, "error": "Customer not found"}
+    
+    result = await booking_email_integration.send_flight_reminder(booking, customer, None, db)
+    
+    return result
+
+
+@router.post("/email/trigger/flight-cancelled")
+async def trigger_cancellation_email(
+    booking_id: str = Query(...),
+    reason: str = Query("Operational requirements"),
+    refund_amount: str = Query("0"),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Manually trigger flight cancellation email"""
+    if not BOOKING_EMAIL_AVAILABLE:
+        return {"success": False, "error": "Booking email integration not available"}
+    
+    db = get_database()
+    
+    booking = await db.bookings.find_one({"booking_id": booking_id})
+    if not booking:
+        return {"success": False, "error": "Booking not found"}
+    
+    customer_id = booking.get("customer_id") or booking.get("user_id")
+    customer = await db.users.find_one({"id": customer_id})
+    if not customer:
+        return {"success": False, "error": "Customer not found"}
+    
+    result = await on_booking_cancelled(booking, customer, reason, refund_amount, "Admin", db)
+    
+    return result
