@@ -2559,3 +2559,47 @@ Settings & System → Template Settings / टेम्पलेट
 - `/app/backend/routes/template_routes.py` - Updated `send_alert_email()` function with branded HTML template
 
 ---
+
+### AirYatra Branded Email Templates System
+**Date**: August 7, 2026  
+**Status**: 🟢 DONE
+
+#### 8 Premium Email Templates Created:
+
+| # | Template | Description | Subject Example |
+|---|----------|-------------|-----------------|
+| 1 | **Booking Confirmation** | Sent when booking confirmed | 🚁 Booking Confirmed! #AY-2026-08-12345 |
+| 2 | **Payment Receipt** | After successful payment | 🧾 Payment Receipt \| ₹48,500 |
+| 3 | **Flight Reminder (24h)** | Day before flight | 🔔 Flight Tomorrow! Mumbai → Shirdi |
+| 4 | **Flight Rescheduled** | When flight timing changes | 📅 Flight Rescheduled \| New: 12 Aug |
+| 5 | **Flight Cancelled** | When flight is cancelled | ❌ Flight Cancelled \| Refund Initiated |
+| 6 | **Flight Completed** | Thank you after flight | ✈️ Thank You for Flying! |
+| 7 | **Inquiry Received** | When inquiry submitted | 📩 Inquiry Received \| Kochi → Munnar |
+| 8 | **OTP Verification** | For login/signup/payment | 🔐 Your AirYatra OTP: 847293 |
+
+#### Design Features (All Templates):
+- Premium dark theme with gradient backgrounds (#0f172a → #1e293b)
+- Light theme option (`?theme=light`)
+- AirYatra helicopter logo 🚁 with orange branding
+- Mobile-responsive design (media queries for < 600px)
+- Card-based information layout
+- Color-coded badges (Success/Warning/Error/Info)
+- Large price displays with ₹ formatting
+- CTA buttons with gradient orange
+- Professional footer with company details
+- Pre-flight checklist (reminder email)
+- Discount codes for cancelled/completed flights
+
+#### New API Endpoints:
+- `GET /email-templates/list` - List all 8 templates
+- `GET /email-templates/preview/{template}?theme=dark|light` - Preview with sample data
+- `POST /email-templates/send-test?template_name=...&recipient_email=...` - Send test email
+- `POST /email-templates/test-alert-trigger?recipient_email=...` - Test alert email
+
+#### Files Added:
+- `/app/backend/services/branded_email_templates.py` - 8 template functions (750+ lines)
+
+#### Files Modified:
+- `/app/backend/routes/template_routes.py` - Added 4 new endpoints (5500+ lines total)
+
+---

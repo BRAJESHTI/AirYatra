@@ -5316,3 +5316,316 @@ async def trigger_scheduler_run(
         "success": triggered,
         "message": "Alert check scheduled to run immediately" if triggered else "Failed to trigger"
     }
+
+
+
+# ==================== BRANDED EMAIL TEMPLATES ====================
+
+try:
+    from services.branded_email_templates import (
+        get_branded_email, list_branded_templates, 
+        booking_confirmation_email, payment_receipt_email, 
+        flight_reminder_email, flight_rescheduled_email,
+        flight_cancelled_email, flight_completed_email,
+        inquiry_received_email, otp_email
+    )
+    BRANDED_TEMPLATES_AVAILABLE = True
+except ImportError:
+    BRANDED_TEMPLATES_AVAILABLE = False
+    print("Branded email templates not available")
+
+
+@router.get("/email-templates/list")
+async def get_email_templates_list(
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """List all available branded email templates"""
+    if not BRANDED_TEMPLATES_AVAILABLE:
+        return {"success": False, "error": "Branded templates not available"}
+    
+    return {
+        "success": True,
+        "templates": list_branded_templates(),
+        "total": len(list_branded_templates())
+    }
+
+
+@router.get("/email-templates/preview/{template_name}")
+async def preview_email_template(
+    template_name: str,
+    theme: str = Query("dark", enum=["dark", "light"]),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Preview a branded email template with sample data"""
+    if not BRANDED_TEMPLATES_AVAILABLE:
+        return {"success": False, "error": "Branded templates not available"}
+    
+    # Sample data for each template
+    sample_data = {
+        "booking_confirmation": {
+            "customer_name": "Rajesh Kumar",
+            "booking_id": "AY-2026-08-12345",
+            "from_city": "Mumbai",
+            "to_city": "Shirdi",
+            "departure_date": "15 August 2026",
+            "departure_time": "08:30 AM",
+            "passenger_count": 4,
+            "total_amount": "48,500",
+            "payment_status": "Paid",
+            "aircraft_type": "Bell 407",
+            "operator_name": "Pawan Hans",
+            "pnr": "PHAY12345",
+            "theme": theme
+        },
+        "payment_receipt": {
+            "customer_name": "Priya Sharma",
+            "booking_id": "AY-2026-08-54321",
+            "transaction_id": "TXN-789456123",
+            "amount": "32,000",
+            "payment_method": "UPI - Google Pay",
+            "payment_date": "07 Aug 2026, 03:45 PM",
+            "from_city": "Delhi",
+            "to_city": "Dehradun",
+            "gst_amount": "4,881",
+            "invoice_number": "INV-2026-08-00123",
+            "theme": theme
+        },
+        "flight_reminder": {
+            "customer_name": "Amit Patel",
+            "booking_id": "AY-2026-08-67890",
+            "from_city": "Bengaluru",
+            "to_city": "Coorg",
+            "departure_date": "08 August 2026",
+            "departure_time": "07:00 AM",
+            "helipad_name": "HAL Helipad, Bengaluru",
+            "helipad_address": "HAL Airport Road, Kodihalli, Bengaluru - 560017",
+            "reporting_time": "06:30 AM",
+            "passenger_count": 2,
+            "theme": theme
+        },
+        "flight_rescheduled": {
+            "customer_name": "Sneha Reddy",
+            "booking_id": "AY-2026-08-11111",
+            "from_city": "Chennai",
+            "to_city": "Tirupati",
+            "old_date": "10 August 2026",
+            "old_time": "06:00 AM",
+            "new_date": "12 August 2026",
+            "new_time": "07:30 AM",
+            "reason": "Scheduled maintenance of aircraft",
+            "theme": theme
+        },
+        "flight_cancelled": {
+            "customer_name": "Vikram Singh",
+            "booking_id": "AY-2026-08-22222",
+            "from_city": "Jaipur",
+            "to_city": "Udaipur",
+            "departure_date": "09 August 2026",
+            "cancellation_reason": "Adverse weather conditions",
+            "refund_amount": "25,500",
+            "refund_status": "Processing",
+            "refund_timeline": "5-7 business days",
+            "cancelled_by": "Operator",
+            "theme": theme
+        },
+        "flight_completed": {
+            "customer_name": "Meera Joshi",
+            "booking_id": "AY-2026-07-33333",
+            "from_city": "Pune",
+            "to_city": "Mahabaleshwar",
+            "flight_date": "06 August 2026",
+            "flight_duration": "25 minutes",
+            "pilot_name": "Ravi Sharma",
+            "theme": theme
+        },
+        "inquiry_received": {
+            "customer_name": "Arjun Nair",
+            "inquiry_id": "INQ-2026-08-44444",
+            "from_city": "Kochi",
+            "to_city": "Munnar",
+            "travel_date": "20 August 2026",
+            "passenger_count": 6,
+            "estimated_price": "65,000",
+            "theme": theme
+        },
+        "otp": {
+            "customer_name": "Kavita Mehta",
+            "otp": "847293",
+            "purpose": "login",
+            "validity_minutes": 10,
+            "theme": theme
+        }
+    }
+    
+    if template_name not in sample_data:
+        return {
+            "success": False,
+            "error": f"Template '{template_name}' not found",
+            "available_templates": list(sample_data.keys())
+        }
+    
+    result = get_branded_email(template_name, **sample_data[template_name])
+    
+    if not result:
+        return {"success": False, "error": "Failed to generate template"}
+    
+    return {
+        "success": True,
+        "template_name": template_name,
+        "theme": theme,
+        "subject": result["subject"],
+        "html": result["html"]
+    }
+
+
+@router.post("/email-templates/send-test")
+async def send_test_branded_email(
+    template_name: str = Query(...),
+    recipient_email: str = Query(...),
+    theme: str = Query("dark", enum=["dark", "light"]),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Send a test branded email to specified recipient"""
+    if not BRANDED_TEMPLATES_AVAILABLE:
+        return {"success": False, "error": "Branded templates not available"}
+    
+    if not EMAIL_AVAILABLE:
+        return {"success": False, "error": "Email service not available"}
+    
+    # Use same sample data as preview
+    sample_data = {
+        "booking_confirmation": {
+            "customer_name": "Test User",
+            "booking_id": "AY-TEST-12345",
+            "from_city": "Mumbai",
+            "to_city": "Shirdi",
+            "departure_date": "15 August 2026",
+            "departure_time": "08:30 AM",
+            "passenger_count": 4,
+            "total_amount": "48,500",
+            "theme": theme
+        },
+        "payment_receipt": {
+            "customer_name": "Test User",
+            "booking_id": "AY-TEST-54321",
+            "transaction_id": "TXN-TEST-789456",
+            "amount": "32,000",
+            "payment_method": "UPI",
+            "payment_date": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+            "from_city": "Delhi",
+            "to_city": "Dehradun",
+            "gst_amount": "4,881",
+            "theme": theme
+        },
+        "flight_reminder": {
+            "customer_name": "Test User",
+            "booking_id": "AY-TEST-67890",
+            "from_city": "Bengaluru",
+            "to_city": "Coorg",
+            "departure_date": "Tomorrow",
+            "departure_time": "07:00 AM",
+            "helipad_name": "Test Helipad",
+            "helipad_address": "Test Address, City - 000000",
+            "reporting_time": "06:30 AM",
+            "passenger_count": 2,
+            "theme": theme
+        },
+        "flight_rescheduled": {
+            "customer_name": "Test User",
+            "booking_id": "AY-TEST-11111",
+            "from_city": "Chennai",
+            "to_city": "Tirupati",
+            "old_date": "10 Aug 2026",
+            "old_time": "06:00 AM",
+            "new_date": "12 Aug 2026",
+            "new_time": "07:30 AM",
+            "reason": "Test reschedule reason",
+            "theme": theme
+        },
+        "flight_cancelled": {
+            "customer_name": "Test User",
+            "booking_id": "AY-TEST-22222",
+            "from_city": "Jaipur",
+            "to_city": "Udaipur",
+            "departure_date": "09 Aug 2026",
+            "cancellation_reason": "Test cancellation",
+            "refund_amount": "25,500",
+            "theme": theme
+        },
+        "flight_completed": {
+            "customer_name": "Test User",
+            "booking_id": "AY-TEST-33333",
+            "from_city": "Pune",
+            "to_city": "Mahabaleshwar",
+            "flight_date": "Today",
+            "flight_duration": "25 minutes",
+            "theme": theme
+        },
+        "inquiry_received": {
+            "customer_name": "Test User",
+            "inquiry_id": "INQ-TEST-44444",
+            "from_city": "Kochi",
+            "to_city": "Munnar",
+            "travel_date": "20 Aug 2026",
+            "passenger_count": 6,
+            "theme": theme
+        },
+        "otp": {
+            "customer_name": "Test User",
+            "otp": "123456",
+            "purpose": "login",
+            "theme": theme
+        }
+    }
+    
+    if template_name not in sample_data:
+        return {"success": False, "error": f"Template '{template_name}' not found"}
+    
+    result = get_branded_email(template_name, **sample_data[template_name])
+    
+    if not result:
+        return {"success": False, "error": "Failed to generate template"}
+    
+    # Send email
+    try:
+        await email_service.send_email(recipient_email, result["subject"], result["html"])
+        return {
+            "success": True,
+            "message": f"Test email sent to {recipient_email}",
+            "template": template_name,
+            "subject": result["subject"]
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/email-templates/test-alert-trigger")
+async def test_alert_email_trigger(
+    recipient_email: str = Query(..., description="Email to send test alert to"),
+    metric: str = Query("delivery_rate"),
+    current_value: float = Query(75.5),
+    threshold: float = Query(90.0),
+    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+):
+    """Send a test alert email to verify the branded template"""
+    
+    # Create mock alert
+    mock_alert = {
+        "alert_id": "ALT-TEST-001",
+        "metric": metric,
+        "threshold": threshold,
+        "comparison": "below",
+        "notify_emails": [recipient_email]
+    }
+    
+    # Send alert email
+    result = await send_alert_email(mock_alert, current_value, "Test Template")
+    
+    return {
+        "success": result.get("success", False),
+        "message": f"Test alert email sent to {recipient_email}" if result.get("success") else "Failed to send",
+        "metric": metric,
+        "current_value": current_value,
+        "threshold": threshold,
+        "details": result
+    }
