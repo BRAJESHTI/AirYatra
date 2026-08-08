@@ -5,7 +5,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Check, AlertCircle, 
   Briefcase, Target, Navigation, Calculator, Send, Loader2,
   UserCircle, Mail, Weight, Luggage, Baby, UserPlus, Building2, TreePine, DollarSign, Gift, Tag,
-  FileText, Scale, AlertTriangle, PenTool, ExternalLink, Lock, Siren
+  FileText, Scale, AlertTriangle, PenTool, ExternalLink, Lock, Siren, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -775,6 +775,35 @@ function BookingPage({ user }) {
     }
     
     return { total: Math.max(0, total), discounts };
+  };
+
+  const handleMarketplaceSearch = () => {
+    if (!allConsentsAccepted) {
+      toast.error('Please accept all consents first');
+      return;
+    }
+    const pickup = formData.pickup_landing_point;
+    const drop = formData.drop_landing_point;
+    const payload = {
+      aircraft_type: formData.aircraft_type,
+      from_location: pickup?.city || pickup?.landing_point_name || formData.pickup_location,
+      to_location: drop?.city || drop?.landing_point_name || formData.drop_location,
+      pickup_latitude: pickup?.latitude,
+      pickup_longitude: pickup?.longitude,
+      drop_latitude: drop?.latitude,
+      drop_longitude: drop?.longitude,
+      travel_date: formData.departure_date,
+      travel_time: formData.pickup_time || '09:00',
+      passengers: (parseInt(formData.adults_male) || 0) + (parseInt(formData.adults_female) || 0) + (parseInt(formData.children_count) || 0) || 1,
+      booking_type: formData.booking_type || 'one_way',
+      consents_accepted: {
+        ...consents,
+        accepted_at: new Date().toISOString(),
+        version: 'v1.0',
+      },
+    };
+    sessionStorage.setItem('marketplace_search', JSON.stringify(payload));
+    navigate('/marketplace/results');
   };
 
   const handleSubmitInquiry = async () => {
@@ -1998,17 +2027,41 @@ function BookingPage({ user }) {
       </div>
       {/* =============== END MANDATORY CONSENTS =============== */}
 
-      {/* Submit Inquiry */}
+      {/* PRIMARY: Instant Marketplace Search & Book */}
       <Button
+        onClick={handleMarketplaceSearch}
+        disabled={!allConsentsAccepted}
+        data-testid="marketplace-search-btn"
+        className={`w-full py-6 text-lg ${
+          !allConsentsAccepted
+            ? 'bg-slate-600 cursor-not-allowed'
+            : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/25'
+        }`}
+      >
+        {!allConsentsAccepted ? (
+          <>
+            <AlertCircle className="h-5 w-5 mr-2" />
+            Accept All Consents to Continue
+          </>
+        ) : (
+          <>
+            <Search className="h-5 w-5 mr-2" />
+            Find Aircraft & Book Instantly
+          </>
+        )}
+      </Button>
+      <p className="text-center text-slate-500 text-xs -mt-2">
+        Compare all operators with live prices • Instant confirmation • 15-min price lock
+      </p>
+
+      {/* SECONDARY: Traditional Inquiry */}
+      <Button
+        variant="outline"
         onClick={handleSubmitInquiry}
         disabled={submitting || !priceEstimate || !allConsentsAccepted}
         data-testid="submit-inquiry-btn"
-        className={`w-full py-6 text-lg ${
-          !allConsentsAccepted 
-            ? 'bg-slate-600 cursor-not-allowed' 
-            : permissionRequired 
-              ? 'bg-yellow-500 hover:bg-yellow-600' 
-              : 'bg-orange-500 hover:bg-orange-600'
+        className={`w-full py-5 border-slate-600 text-slate-300 hover:bg-slate-800 ${
+          permissionRequired ? 'border-yellow-500/50 text-yellow-400' : ''
         }`}
       >
         {submitting ? (
@@ -2016,15 +2069,10 @@ function BookingPage({ user }) {
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             {t('bookingForm.submitting')}
           </>
-        ) : !allConsentsAccepted ? (
-          <>
-            <AlertCircle className="h-5 w-5 mr-2" />
-            Accept All Consents to Continue
-          </>
         ) : (
           <>
             <Send className="h-5 w-5 mr-2" />
-            {permissionRequired ? t('bookingForm.submitApproval') : t('bookingForm.generateInquiry')}
+            {permissionRequired ? t('bookingForm.submitApproval') : 'Send Traditional Inquiry (operators will quote)'}
           </>
         )}
       </Button>

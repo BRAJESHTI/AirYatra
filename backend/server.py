@@ -163,6 +163,7 @@ from routes import fixed_route_pricing_routes
 from routes import legal_routes
 # AI Reverse Auction - Phase 2
 from routes import auction_routes
+from routes import marketplace_routes
 # Aircraft Catalog & Price Breakup - Phase 3-5
 from routes import aircraft_catalog_routes
 from routes import price_breakup_routes
@@ -444,6 +445,7 @@ api_router.include_router(legal_routes.router)
 
 # AI Reverse Auction - Phase 2
 api_router.include_router(auction_routes.router)
+api_router.include_router(marketplace_routes.router)
 
 # Aircraft Catalog & Price Breakup - Phase 3-5
 api_router.include_router(aircraft_catalog_routes.router)

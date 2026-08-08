@@ -18,6 +18,7 @@ const RegionalManagerDashboard = lazy(() => import('./pages/RegionalManagerDashb
 const HelipadOwnerDashboard = lazy(() => import('./pages/HelipadOwnerDashboard'));
 const BookingPage = lazy(() => import('./pages/BookingPage'));
 const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+const MarketplaceResults = lazy(() => import('./pages/MarketplaceResults'));
 const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 // New Role-based Dashboards - lazy loaded
 const HRDashboard = lazy(() => import('./pages/HRDashboard'));
@@ -231,6 +232,10 @@ function App() {
         <Route
           path="/customer/payment/:inquiryId"
           element={user && user.roles.includes('customer') ? <PaymentPage user={user} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/marketplace/results"
+          element={user && user.roles.includes('customer') ? <MarketplaceResults user={user} /> : <Navigate to="/login" />}
         />
         <Route
           path="/operator/*"
