@@ -32,6 +32,7 @@ import {
   bookingPurposeOptions,
   bookingSteps,
   udanPrakarMultipliers,
+  serviceTypeMultipliers,
   defaultPricingSettings,
   villageLandingDocuments,
   getOptionLabel,
@@ -490,7 +491,9 @@ function BookingPage({ user }) {
     // Aircraft type multiplier
     const multiplier = formData.aircraft_type === 'chartered_plane' 
       ? (settings.plane_multiplier || 1.5) 
-      : (settings.helicopter_multiplier || 1);
+      : formData.aircraft_type === 'helicopter'
+        ? (settings.helicopter_multiplier || 1)
+        : (serviceTypeMultipliers[formData.aircraft_type] || 1);
     
     // Udan Prakar based pricing - using imported multipliers from config
     const udanMultiplier = udanPrakarMultipliers[formData.udan_prakar] || 1;
@@ -913,27 +916,49 @@ function BookingPage({ user }) {
   // Render Step 1: Passengers & Aircraft Selection
   const renderPassengersStep = () => (
     <div className="space-y-6">
-      {/* Aircraft Type Selection */}
+      {/* Service Category Selection */}
       <div>
         <Label className="text-white text-lg mb-4 block">
-          {t('bookingForm.selectAircraftType')} <span className="text-red-500">*</span>
+          Choose Your Service <span className="text-red-500">*</span>
         </Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {aircraftTypes.map(type => (
-            <button
-              key={type.value}
-              onClick={() => handleInputChange('aircraft_type', type.value)}
-              className={`p-6 rounded-xl border-2 transition-all text-left ${
-                formData.aircraft_type === type.value
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-              }`}
-            >
-              <span className="text-4xl mb-3 block">{type.icon}</span>
-              <span className="text-white font-semibold block">{t(`options.${type.value}`)}</span>
-              <span className="text-slate-400 text-sm">{t('bookingForm.maxPassengers', { count: type.maxPassengers })}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {aircraftTypes.map(type => {
+            const isSelected = formData.aircraft_type === type.value;
+            return (
+              <button
+                key={type.value}
+                data-testid={`service-${type.value}`}
+                onClick={() => handleInputChange('aircraft_type', type.value)}
+                className={`relative rounded-xl border-2 overflow-hidden text-left transition-all duration-200 group ${
+                  isSelected
+                    ? 'border-orange-500 shadow-lg shadow-orange-500/25'
+                    : 'border-slate-700 hover:border-slate-500 hover:-translate-y-0.5'
+                }`}
+              >
+                <div className="relative h-28 sm:h-32 overflow-hidden">
+                  <img
+                    src={type.image}
+                    alt={type.label}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/30 to-transparent" />
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 h-6 w-6 bg-orange-500 rounded-full flex items-center justify-center shadow">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                </div>
+                <div className={`p-3 ${isSelected ? 'bg-orange-500/10' : 'bg-slate-800/70'}`}>
+                  <span className={`font-semibold block text-sm sm:text-base leading-tight ${isSelected ? 'text-orange-300' : 'text-white'}`}>
+                    {type.label}
+                  </span>
+                  <span className="text-slate-400 text-xs block mt-1">{type.description}</span>
+                  <span className="text-slate-500 text-xs block mt-0.5">Up to {type.maxPassengers} {type.value === 'cargo' ? 'crew' : 'passengers'}</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1395,8 +1420,11 @@ function BookingPage({ user }) {
             {bookingTypes.find(t => t.value === formData.booking_type)?.label || formData.booking_type}
           </div>
           
-          <div className="text-slate-400">{t('bookingForm.aircraftTypeLabel')}</div>
-          <div className="text-white">{formData.aircraft_type === 'helicopter' ? '🚁' : '✈️'} {t(`options.${formData.aircraft_type || 'helicopter'}`)}</div>
+          <div className="text-slate-400">Service</div>
+          <div className="text-white">
+            {aircraftTypes.find(a => a.value === formData.aircraft_type)?.icon || '🚁'}{' '}
+            {aircraftTypes.find(a => a.value === formData.aircraft_type)?.label || formData.aircraft_type}
+          </div>
           
           <div className="text-slate-400">{t('bookingForm.totalPassengersLabel')}</div>
           <div className="text-white">{formData.total_passengers} {t('bookingForm.adults')} + {formData.children_count} {t('bookingForm.childrenLabel')}</div>

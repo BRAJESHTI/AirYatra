@@ -1,0 +1,77 @@
+{
+  "summary": "Iteration 46 — Customer portal + new 6-category service booking feature. Backend: 22/23 pytest passed (created /app/backend/tests/test_customer_portal_e2e.py). All 6 new aircraft_type values (helicopter, chartered_plane, air_ambulance, yacht_cruiser, cargo, joy_ride) accept POST /api/bookings/inquiry and persist correctly (verified by GET .../status). Frontend: Full E2E booking submission with ALL 4 steps completed successfully twice (yacht_cruiser + helicopter). All 6 service cards render with images (naturalWidth=1264) and correct English labels+descriptions. Bookings navigate to /customer/inquiry/{id}. Customer portal audit of 13 subroutes: all pages load, no blank screens.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/customer/booking-stats", "issue": "500 AttributeError: 'NoneType' object has no attribute 'get' at customer_routes.py:721 — `trip.get('accepted_quote', {}).get('amount')` crashes when accepted_quote is explicitly None (which is the default on new inquiries). Fix: `(trip.get('accepted_quote') or {}).get('amount')`. This breaks any customer stats/dashboard widget that consumes this endpoint.", "priority": "HIGH"},
+      {"endpoint": "/api/payments/transactions/{inquiry_id}", "issue": "Returns 500 for freshly created inquiries when opened via /customer/inquiry/{id} — fired twice (once per new booking) during E2E. Frontend InquiryStatus.js polls it. Should return 404 or empty list, not 500.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "/api/refunds/my-refunds", "issue": "Returns 404 — frontend page (/customer/refunds) calls this non-existent path. The working endpoint is /api/customer/refunds. Update frontend or add alias."},
+      {"endpoint": "/api/admin/documents/types", "issue": "Called from /customer/profile (or KYC) page → 403 Forbidden for customer role. Either customer UI should not call an admin endpoint, or a public/customer-scoped variant is needed."},
+      {"endpoint": "Email template — booking inquiry confirmation", "issue": "Subject sent as literal `🚁 Your Helicopter Booking Inquiry #{inquiry_id} - AirYatra` — `{inquiry_id}` placeholder is not interpolated, AND subject hard-codes 'Helicopter' even for yacht_cruiser/cargo/air_ambulance/joy_ride inquiries. Confirmed in backend.err.log across all 6 test bookings."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "InquiryStatus.js — Aircraft field in Booking Details card", "issue": "For yacht_cruiser inquiries, header shows 'Aircraft: ✈️ Plane' instead of 'Luxury Yacht / Cruiser'. Bottom Booking Summary correctly shows '🛥️ Luxury Yacht / Cruiser' but the top-level Aircraft label falls back to 'Plane' for any non-helicopter service. Also shows wrong ✈️ icon. Needs a mapping over all 6 aircraftTypes labels/icons.", "selector": "InquiryStatus header Aircraft field", "priority": "HIGH"},
+      {"component": "MyTrips.js — page subtitle", "issue": "Says 'View and manage your helicopter bookings' — outdated copy after adding 5 new service categories. Should be 'View and manage your bookings' or 'View and manage your flights/charters'.", "selector": "/customer/trips", "priority": "MEDIUM"},
+      {"component": "BookingPage.js Step-1 Helicopter Charter image", "issue": "The /services/helicopter.jpg used for Helicopter Charter card shows an airplane-in-city-skyline photo — visually the wrong subject (looks like a private jet). Users cannot easily distinguish helicopter vs jet card. Recommend replacing asset with an actual helicopter photo.", "selector": "[data-testid='service-helicopter'] img", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Inquiry Status page polling", "issue": "500 from /api/payments/transactions/{id} appears in browser console/network on every new inquiry open — see backend critical items.", "affected_selectors": ["/customer/inquiry/{id}"]},
+      {"flow": "Refund history page", "issue": "GET /api/refunds/my-refunds → 404. Refund list still renders but network shows error.", "affected_selectors": ["/customer/refunds"]}
+    ],
+    "design_issues": [
+      {"screen": "BookingPage Step 3 & Step 4 (Route + Price)", "issues": [
+        "Hindi/Devanagari remnants remain after main agent's English-only cleanup: pickup/drop search placeholder 'Search city, airport, helipad... / शहर, एयरपोर्ट खोजें...'",
+        "'Landing charges applicable / लैंडिंग शुल्क लागू' badge on selected landing point",
+        "'Referral & Discounts / रेफरल और छूट' heading + 'Referral Code (Friend's Code) / रेफरल कोड' label + 'Promo Code / प्रोमो कोड' label",
+        "'Get 10% off on your first booking! / पहली बुकिंग पर 10% छूट!' hint",
+        "'Mandatory Consents / अनिवार्य सहमतियाँ' + '* Required / आवश्यक' labels",
+        "All 5 consent cards contain a Devanagari translation line under the English description (Terms & Conditions/Operator & Flight Conditions/Platform Role/Information Accuracy/Electronic Consent)",
+        "'Accepted / स्वीकृत: 5 / 5' counter + 'All Consents Accepted / सभी सहमतियाँ स्वीकृत' badge",
+        "'Accept All Consents to Continue / आगे बढ़ने के लिए सभी सहमतियाँ स्वीकार करें' disabled-state hint"
+      ]},
+      {"screen": "BookingPage step indicator", "issues": ["Step 2 title still reads 'बुकिंग प्रकार' (Devanagari) in bookingSteps config (bookingConfig.js line 219). Steps 1/3/4 titles are already bilingual English/Hindi but step 2 has no English."]},
+      {"screen": "InquiryStatus (/customer/inquiry/{id}) — post-submission page", "issues": [
+        "Top-level 'Aircraft: Plane' with ✈️ icon is wrong for non-helicopter services (see UI bug above).",
+        "'Flight Type' summary displays raw value 'point_to_point' instead of humanized label 'Point-to-Point'.",
+        "'Purpose' shows raw value 'business' instead of humanized 'Business Meeting'."
+      ]},
+      {"screen": "Booking Submit button label", "issues": ["Main CTA is 'Generate Inquiry' — inconsistent with review request wording 'Submit Inquiry' and with success toast 'Inquiry submitted!'. Consider standardising to 'Submit Inquiry'."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_customer_portal_e2e.py",
+    "/app/test_reports/pytest/customer_portal_e2e.xml"
+  ],
+  "action_items": [
+    "Fix /api/customer/booking-stats NoneType crash: change `trip.get('accepted_quote', {})` to `(trip.get('accepted_quote') or {})` at customer_routes.py:721 (and audit similar patterns).",
+    "Fix /api/payments/transactions/{inquiry_id} 500 for inquiries with no payments — should return empty list or 404 gracefully.",
+    "InquiryStatus.js: map aircraft_type value → label+icon using aircraftTypes from bookingConfig; do not default to 'Plane'/✈️.",
+    "MyTrips.js: change subtitle 'View and manage your helicopter bookings' to a service-agnostic string.",
+    "Replace /services/helicopter.jpg with an actual helicopter photo (current asset looks like a jet on a city skyline).",
+    "Frontend /customer/refunds page: call /api/customer/refunds (not /api/refunds/my-refunds).",
+    "Customer profile page should not call /api/admin/documents/types (or expose a customer-safe alias).",
+    "Fix booking-inquiry confirmation email subject: interpolate {inquiry_id}; use aircraft_type-based label instead of hard-coded 'Helicopter'.",
+    "Remove remaining Hindi/Devanagari text from BookingPage Step 3, Step 4 (search placeholders, referral/promo labels, all 5 consent cards, counter, hints) and from InquiryStatus flight-type/purpose value humanization.",
+    "bookingConfig.js line 219: replace step 2 title 'बुकिंग प्रकार' with English (e.g. 'Booking Type')."
+  ],
+  "critical_code_review_comments": [
+    "customer_routes.py:721 — `trip.get('accepted_quote', {}).get(...)` is unsafe. The default-value form of dict.get is NOT used when the stored value is explicitly None (which is set at inquiry creation time in booking_routes.py:207). Use `(trip.get('accepted_quote') or {}).get(...)`. Grep the codebase for the same anti-pattern.",
+    "InquiryStatus.js — hard-codes 'Plane' as fallback aircraft label instead of consulting shared aircraftTypes; will regress every time a new service category is added.",
+    "MyTrips.js — subtitle 'helicopter bookings' hard-coded; will confuse users booking yacht/cargo/etc.",
+    "booking_routes.py — no validation that aircraft_type is one of the 6 allowed values; a client can post an arbitrary string and it will be persisted. Consider Pydantic Enum validation.",
+    "Email service — subject template literal `#{inquiry_id}` uses `{}` syntax but seems not to be `.format()`ed; also aircraft-agnostic subject line."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_customer_portal_e2e.py"
+  ],
+  "success_rate": {"backend": "95.6% (22/23 pytest)", "frontend": "E2E booking submission 2/2 services succeeded end-to-end; portal 13/13 routes render; 4 backend calls fail from UI (500 booking-stats, 500 payments/transactions, 404 refunds/my-refunds, 403 admin/documents/types)"},
+  "seed_data_creation": "Created 8 test inquiries via API (one per aircraft_type + 2 via UI). Cleaned up in pytest teardown by deleting from Mongo (inquiries + operator_inquiries) using MONGO_URL + DB_NAME=airyatra_db. UI-created inquiries (2) remain in DB — IDs cb9ef2fc-76b1-44d4-9646-ee98dcc6cb9d (yacht) and 0ffc6eab-7df7-49a9-bb54-0b9fca745618 (helicopter) — safe to keep or delete manually.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123 (per /app/memory/test_credentials.md)",
+  "context_for_next_testing_agent": "Booking Step 2 uses native <select> for Flight Type / Booking For / Booking Purpose (options: point_to_point, self, business). Booking Step 3 pickup/drop use `<button>Mumbai...</button>` autosuggest from /api/landing/public/search?query=. Booking Step 4 has 5 clickable consent cards (not <input type=checkbox>); after clicking all 5, the 'Submit Inquiry' button is labeled 'Generate Inquiry'. Backend /api/customer/booking-stats crashes on NoneType accepted_quote — main dashboard widgets depend on it. Verified aircraft_type persistence for all 6 values via GET /api/bookings/inquiry/{id}/status.",
+  "rca_of_the_issue": "booking-stats 500: at customer_routes.py:721, `dict.get('accepted_quote', {})` returns None (not {}) because inquiries are stored with `accepted_quote: None` (see booking_routes.py:207). Chained `.get('amount')` then raises AttributeError. InquiryStatus 'Plane' bug: InquiryStatus.js has a hard-coded fallback rendering pipe that maps only 'helicopter' → 'Helicopter/🚁' and everything else → 'Plane/✈️'; needs to consume aircraftTypes[] to render label+icon by aircraft_type value. Email subject bug: template string uses `#{inquiry_id}` but Python .format only interpolates `{inquiry_id}` — the leading `#` outside braces is fine, but sending it literally suggests the subject was concatenated as raw literal, not formatted."
+}

@@ -3,9 +3,65 @@
 
 // Aircraft Types
 export const aircraftTypes = [
-  { value: 'helicopter', label: 'Helicopter / हेलीकॉप्टर', icon: '🚁', maxPassengers: 6 },
-  { value: 'chartered_plane', label: 'Chartered Plane / चार्टर्ड प्लेन', icon: '✈️', maxPassengers: 19 },
+  {
+    value: 'helicopter',
+    label: 'Helicopter Charter',
+    description: 'Bell, Airbus, AW, Robinson',
+    icon: '🚁',
+    maxPassengers: 6,
+    image: '/services/helicopter.jpg'
+  },
+  {
+    value: 'chartered_plane',
+    label: 'Private Jet',
+    description: 'Light, midsize & heavy jets',
+    icon: '✈️',
+    maxPassengers: 19,
+    image: '/services/private_jet.jpg'
+  },
+  {
+    value: 'air_ambulance',
+    label: 'Air Ambulance',
+    description: 'Medical emergency flights',
+    icon: '🚑',
+    maxPassengers: 6,
+    image: '/services/air_ambulance.jpg'
+  },
+  {
+    value: 'yacht_cruiser',
+    label: 'Luxury Yacht / Cruiser',
+    description: 'Private yacht & cruise charters',
+    icon: '🛥️',
+    maxPassengers: 30,
+    image: '/services/yacht_cruiser.jpg'
+  },
+  {
+    value: 'cargo',
+    label: 'Cargo Aircraft / Ship',
+    description: 'Cargo & logistics transport',
+    icon: '📦',
+    maxPassengers: 4,
+    image: '/services/cargo.jpg'
+  },
+  {
+    value: 'joy_ride',
+    label: 'Scenic / Joy Ride',
+    description: 'Tourism & sightseeing flights',
+    icon: '🏔️',
+    maxPassengers: 6,
+    image: '/services/joy_ride.jpg'
+  }
 ];
+
+// Price multiplier per service category (chartered_plane/helicopter can be overridden by admin pricing settings)
+export const serviceTypeMultipliers = {
+  helicopter: 1,
+  chartered_plane: 1.5,
+  air_ambulance: 1.8,
+  yacht_cruiser: 1.2,
+  cargo: 1.3,
+  joy_ride: 0.8
+};
 
 // ============ 9 BOOKING TYPES (NEW) ============
 // Matches backend BOOKING_TYPES from aircraft_catalog_routes.py

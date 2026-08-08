@@ -24,6 +24,7 @@ export {
   bookingPurposeOptions,
   bookingSteps,
   udanPrakarMultipliers,
+  serviceTypeMultipliers,
   defaultPricingSettings,
   villageLandingDocuments,
   getOptionLabel,
