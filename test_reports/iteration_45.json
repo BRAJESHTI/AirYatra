@@ -1,0 +1,36 @@
+{
+  "summary": "Full backend + frontend regression of Task 1 (Payment page English-only) and Task 2 (Corporate Portal: my-account resolution, employee booking, auto-approve, pending approval, approve/reject actions, GST PDF, employee mgmt, policy guards). Created /app/backend/tests/test_corporate_portal.py with 14 pytest cases - all pass. Playwright UI test verified corporate login, dashboard rendering with TechVista + APPROVED badge + 6 tabs, bookings tab, new-booking form with auto-approve (Vikram 15k -> Confirmed + GST PDF), pending flow (Sneha 70k -> Pending Approval + Approvals tab badge=1), approve action via APR-* button, reject action shows 'Booking rejected' toast and pending count decrements to 0, GST PDF download returns valid %PDF (3198 bytes for CB-DEMO01), employees tab lists 4 seeded employees with toggle buttons, and payment page (/customer/payment/paytest-inquiry-001) contains ZERO Devanagari characters in rendered body.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/corporate/booking/create, /api/corporate/bookings/{cid}, /api/corporate/approvals/action, /api/corporate/invoice/{id}/gst, /api/corporate/employees/{cid}", "issue": "These corporate endpoints are UNAUTHENTICATED (accept any caller once corporate_id/approver_id are known). Existing design per main agent note, but any authenticated corp admin from another company could enumerate/mutate another corporate's data by guessing CORP-DEMO26 style IDs. Recommend wrapping with Depends(get_current_user) + ownership check."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_corporate_portal.py",
+    "/app/test_reports/pytest/corporate_portal.xml"
+  ],
+  "action_items": [
+    "(Optional/security) Add auth + corporate ownership guard on unauthenticated corporate endpoints (booking/create, bookings, approvals/action, invoice/gst, employees, my-account is already protected)."
+  ],
+  "critical_code_review_comments": [
+    "corporate_routes.py: All corporate CRUD/approval/invoice endpoints (except /my-account) are unauthenticated and only rely on client-supplied corporate_id/approver_id. approver_id='CORP-ADMIN' accepts anyone without validating the caller belongs to that corporate. This is IDOR-adjacent and worth fixing.",
+    "corporate_routes.py: policy check uses employee.travel_budget - budget_used; department budget on booking_doc.department is decremented via $inc even if no department budget doc exists (upsert not done in _apply_corporate_booking_spend). No functional break, just a silent no-op for departments without a budget row.",
+    "PaymentPage.js / PaymentSuccessPage.js: verified 0 Devanagari code points via regex scan; rendered body via Playwright also had 0 - Task 1 done."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_corporate_portal.py"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (7/7 UI flows)"},
+  "seed_data_creation": "Re-seeded CORP-DEMO26 via /app/backend/scripts/seed_corporate_demo.py during testing to reset employee budget counters. New test bookings created under TEST_ prefixed purpose values.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "corporate@airyatra.co.in / Corporate@123 (CORP-DEMO26 admin), customer@airyatra.co.in / Customer@123",
+  "context_for_next_testing_agent": "test_corporate_portal.py is idempotent-ish but consumes employee budget on each run because approved bookings $inc budget_used. Before re-running, run: cd /app/backend && python3 scripts/seed_corporate_demo.py. The Sneha (MKT001) approval-limit is 20k and policy auto_approve_below is 25k, so amounts >25k with Sneha will produce pending approvals. Vikram (OPS001) approval_limit=50k. Corporate endpoints except /my-account are unauthenticated by design.",
+  "rca_of_the_issue": "N/A - no regressions found. Initial reject test failure was budget-consumption side-effect from earlier approve test (Sneha's budget shrinks each run); resolved by using amount just above the 25k policy auto-approve threshold (26k) and reseeding."
+}

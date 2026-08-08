@@ -6,9 +6,11 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from typing import List, Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
+from pydantic import BaseModel
 import uuid
 import secrets
 from database import get_database
+from middleware import get_current_user
 from models import (
     CorporateCreate, CorporateUpdate, EmployeeCreate, EmployeeUpdate,
     DepartmentBudget, BookingApprovalCreate, ApprovalAction, TravelPolicy,
@@ -24,6 +26,32 @@ def generate_corporate_id() -> str:
 def generate_employee_code(corporate_id: str) -> str:
     """Generate unique employee code"""
     return f"{corporate_id[:8]}-EMP-{secrets.token_hex(3).upper()}"
+
+# ============ MY CORPORATE ACCOUNT (Auth) ============
+
+@router.get("/my-account")
+async def get_my_corporate_account(current_user: dict = Depends(get_current_user)):
+    """Resolve corporate account for the logged-in user (corp admin or employee)"""
+    db = get_database()
+    email = current_user.get("email")
+
+    employee = None
+    corporate = await db.corporates.find_one({"admin_email": email}, {"_id": 0})
+    if not corporate:
+        employee = await db.corporate_employees.find_one({"email": email, "is_active": True}, {"_id": 0})
+        if employee:
+            corporate = await db.corporates.find_one({"corporate_id": employee["corporate_id"]}, {"_id": 0})
+
+    if not corporate:
+        return {"success": True, "corporate": None}
+
+    corporate["credit_available"] = corporate.get("credit_limit", 0) - corporate.get("credit_used", 0)
+    return {
+        "success": True,
+        "corporate": corporate,
+        "employee_code": (employee or {}).get("employee_code", "CORP-ADMIN"),
+        "corp_role": (employee or {}).get("role", "admin"),
+    }
 
 # ============ CORPORATE ACCOUNT MANAGEMENT ============
 
@@ -468,34 +496,209 @@ async def process_approval(action: ApprovalAction, approver_id: str = Query(...)
     """Approve or reject a booking request"""
     db = get_database()
     
-    # Get approver details
-    approver = await db.corporate_employees.find_one({"employee_code": approver_id})
-    if not approver or approver["role"] not in ["admin", "manager", "approver"]:
-        raise HTTPException(status_code=403, detail="Not authorized to approve bookings")
+    # Get approver details (CORP-ADMIN = corporate account owner)
+    if approver_id == "CORP-ADMIN":
+        approver_name = "Corporate Admin"
+    else:
+        approver = await db.corporate_employees.find_one({"employee_code": approver_id})
+        if not approver or approver["role"] not in ["admin", "manager", "approver"]:
+            raise HTTPException(status_code=403, detail="Not authorized to approve bookings")
+        approver_name = approver["name"]
+    
+    approval = await db.booking_approvals.find_one({"approval_id": action.approval_id}, {"_id": 0})
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    if approval.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Approval already processed")
     
     now = datetime.utcnow()
+    new_status = "approved" if action.action == "approve" else "rejected"
     
-    update_data = {
-        "status": "approved" if action.action == "approve" else "rejected",
-        "approver_id": approver_id,
-        "approver_name": approver["name"],
-        "approved_at": now if action.action == "approve" else None,
-        "rejection_reason": action.comments if action.action == "reject" else None,
-        "updated_at": now
-    }
-    
-    result = await db.booking_approvals.update_one(
+    await db.booking_approvals.update_one(
         {"approval_id": action.approval_id, "status": "pending"},
-        {"$set": update_data}
+        {"$set": {
+            "status": new_status,
+            "approver_id": approver_id,
+            "approver_name": approver_name,
+            "approved_at": now if new_status == "approved" else None,
+            "rejection_reason": action.comments if new_status == "rejected" else None,
+            "updated_at": now
+        }}
     )
     
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Approval request not found or already processed")
+    # Sync linked corporate booking + spend counters
+    booking = await db.corporate_bookings.find_one({"id": approval.get("booking_id")}, {"_id": 0})
+    if booking:
+        await db.corporate_bookings.update_one(
+            {"id": booking["id"]},
+            {"$set": {
+                "status": "confirmed" if new_status == "approved" else "rejected",
+                "approval_status": new_status,
+                "updated_at": now
+            }}
+        )
+        if new_status == "approved":
+            await _apply_corporate_booking_spend(db, booking)
     
     return {
         "success": True,
-        "message": f"Booking {action.action}d successfully"
+        "message": f"Booking {new_status}"
     }
+
+# ============ CORPORATE BOOKING MANAGEMENT ============
+
+class CorporateBookingCreate(BaseModel):
+    corporate_id: str
+    employee_code: str
+    from_location: str
+    to_location: str
+    travel_date: str
+    travel_time: Optional[str] = "09:00"
+    passengers: int = 1
+    aircraft_type: str = "helicopter"
+    purpose: str
+    urgency: str = "normal"
+    estimated_amount: float
+
+
+async def _apply_corporate_booking_spend(db, booking: dict):
+    """Update employee + corporate spend counters for an approved booking"""
+    amount = booking.get("final_price", 0)
+    await db.corporate_employees.update_one(
+        {"employee_code": booking["employee_code"]},
+        {"$inc": {"budget_used": amount, "bookings_count": 1, "total_spend": amount}},
+    )
+    await db.corporates.update_one(
+        {"corporate_id": booking["corporate_id"]},
+        {"$inc": {"total_bookings": 1, "total_spend": amount, "credit_used": amount}},
+    )
+    await db.department_budgets.update_one(
+        {"corporate_id": booking["corporate_id"], "department": booking.get("department")},
+        {"$inc": {"budget_used": amount}},
+    )
+
+
+@router.post("/booking/create")
+async def create_corporate_booking(req: CorporateBookingCreate):
+    """Create employee booking with policy checks + approval workflow"""
+    db = get_database()
+
+    corporate = await db.corporates.find_one({"corporate_id": req.corporate_id}, {"_id": 0})
+    if not corporate:
+        raise HTTPException(status_code=404, detail="Corporate account not found")
+
+    employee = await db.corporate_employees.find_one(
+        {"employee_code": req.employee_code, "corporate_id": req.corporate_id, "is_active": True}, {"_id": 0}
+    )
+    if not employee:
+        raise HTTPException(status_code=404, detail="Active employee not found")
+
+    policy = await db.travel_policies.find_one({"corporate_id": req.corporate_id}, {"_id": 0}) or {}
+    max_amount = policy.get("max_booking_amount", 500000)
+    if req.estimated_amount > max_amount:
+        raise HTTPException(status_code=400, detail=f"Amount exceeds travel policy limit of Rs.{max_amount:,.0f}")
+
+    budget_remaining = employee.get("travel_budget", 0) - employee.get("budget_used", 0)
+    if req.estimated_amount > budget_remaining:
+        raise HTTPException(status_code=400, detail=f"Employee travel budget exceeded. Remaining: Rs.{budget_remaining:,.0f}")
+
+    auto_approved = (
+        req.estimated_amount <= policy.get("auto_approve_below", 0)
+        or not employee.get("requires_approval", True)
+        or req.estimated_amount <= employee.get("approval_limit", 0)
+    )
+
+    now = datetime.utcnow()
+    booking_id = str(uuid.uuid4())
+    booking_number = f"CB-{secrets.token_hex(3).upper()}"
+    base_fare = round(req.estimated_amount / 1.18, 2)
+    gst_amount = round(req.estimated_amount - base_fare, 2)
+
+    booking_doc = {
+        "id": booking_id,
+        "booking_number": booking_number,
+        "corporate_id": req.corporate_id,
+        "employee_code": req.employee_code,
+        "employee_name": employee.get("name"),
+        "department": employee.get("department"),
+        "passenger_name": employee.get("name"),
+        "from_location": req.from_location,
+        "to_location": req.to_location,
+        "travel_date": req.travel_date,
+        "travel_time": req.travel_time,
+        "passengers": req.passengers,
+        "aircraft_type": req.aircraft_type,
+        "purpose": req.purpose,
+        "urgency": req.urgency,
+        "final_price": req.estimated_amount,
+        "pricing": {
+            "base_fare": base_fare,
+            "gst_rate": 18,
+            "gst_amount": gst_amount,
+            "total_amount": req.estimated_amount,
+        },
+        "status": "confirmed" if auto_approved else "pending_approval",
+        "approval_status": "auto_approved" if auto_approved else "pending",
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.corporate_bookings.insert_one(booking_doc)
+    booking_doc.pop("_id", None)
+
+    approval_doc = None
+    if auto_approved:
+        await _apply_corporate_booking_spend(db, booking_doc)
+    else:
+        approval_doc = {
+            "approval_id": f"APR-{uuid.uuid4().hex[:8].upper()}",
+            "corporate_id": req.corporate_id,
+            "booking_id": booking_id,
+            "booking_number": booking_number,
+            "employee_id": req.employee_code,
+            "employee_name": employee.get("name"),
+            "department": employee.get("department"),
+            "route": f"{req.from_location} -> {req.to_location}",
+            "travel_date": req.travel_date,
+            "amount": req.estimated_amount,
+            "purpose": req.purpose,
+            "urgency": req.urgency,
+            "status": "pending",
+            "approver_id": None,
+            "approver_name": None,
+            "approved_at": None,
+            "rejection_reason": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.booking_approvals.insert_one(approval_doc)
+        approval_doc.pop("_id", None)
+
+    return {
+        "success": True,
+        "auto_approved": auto_approved,
+        "message": "Booking auto-approved and confirmed" if auto_approved else "Booking sent for approval",
+        "booking": booking_doc,
+        "approval": approval_doc,
+    }
+
+
+@router.get("/bookings/{corporate_id}")
+async def list_corporate_bookings(
+    corporate_id: str,
+    status: Optional[str] = None,
+    employee_code: Optional[str] = None,
+    limit: int = 100,
+):
+    """List all employee bookings for a corporate"""
+    db = get_database()
+    query = {"corporate_id": corporate_id}
+    if status:
+        query["status"] = status
+    if employee_code:
+        query["employee_code"] = employee_code
+    bookings = await db.corporate_bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(length=limit)
+    return {"success": True, "count": len(bookings), "bookings": bookings}
+
 
 # ============ TRAVEL POLICY ============
 
@@ -845,13 +1048,18 @@ async def generate_gst_invoice(
     if not corporate.get("gst_number"):
         raise HTTPException(status_code=400, detail="Corporate account does not have GST number")
     
-    # Get booking
-    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    # Get booking (corporate bookings first, then platform bookings/inquiries)
+    booking = await db.corporate_bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
     if not booking:
         booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+    
+    if booking.get("approval_status") in ["pending", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invoice available only for approved bookings")
     
     # Determine if interstate (different state than corporate)
     booking_state = booking.get("to_location", "").split("(")[0].strip() if "(" in booking.get("to_location", "") else ""
@@ -879,133 +1087,3 @@ async def generate_gst_invoice(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
-
-
-# ============ APPROVAL WORKFLOW ============
-
-@router.get("/approvals/pending/{corporate_id}")
-async def get_pending_approvals(corporate_id: str):
-    """Get all pending booking approvals for a corporate"""
-    db = get_database()
-    
-    approvals = await db.corporate_approvals.find(
-        {"corporate_id": corporate_id, "status": "pending"},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    
-    # Enrich with booking details
-    for approval in approvals:
-        booking = await db.bookings.find_one(
-            {"id": approval.get("booking_id")},
-            {"_id": 0, "from_location": 1, "to_location": 1, "travel_date": 1, "final_price": 1}
-        )
-        if not booking:
-            booking = await db.inquiries.find_one(
-                {"id": approval.get("booking_id")},
-                {"_id": 0, "from_location": 1, "to_location": 1, "travel_date": 1, "estimated_price": 1}
-            )
-        approval["booking"] = booking
-    
-    return {"success": True, "approvals": approvals}
-
-
-@router.post("/approvals/action")
-async def process_approval(action: ApprovalAction):
-    """Approve or reject a booking request"""
-    db = get_database()
-    
-    approval = await db.corporate_approvals.find_one(
-        {"id": action.approval_id},
-        {"_id": 0}
-    )
-    
-    if not approval:
-        raise HTTPException(status_code=404, detail="Approval request not found")
-    
-    if approval.get("status") != "pending":
-        raise HTTPException(status_code=400, detail="Approval already processed")
-    
-    now = datetime.utcnow()
-    
-    # Update approval status
-    await db.corporate_approvals.update_one(
-        {"id": action.approval_id},
-        {"$set": {
-            "status": action.action,  # "approved" or "rejected"
-            "actioned_by": action.approver_id,
-            "actioned_at": now,
-            "comments": action.comments
-        }}
-    )
-    
-    # If approved, update booking status
-    if action.action == "approved":
-        await db.bookings.update_one(
-            {"id": approval.get("booking_id")},
-            {"$set": {
-                "corporate_approved": True,
-                "approval_status": "approved",
-                "approved_at": now
-            }}
-        )
-        await db.inquiries.update_one(
-            {"id": approval.get("booking_id")},
-            {"$set": {
-                "corporate_approved": True,
-                "approval_status": "approved",
-                "approved_at": now
-            }}
-        )
-    
-    return {
-        "success": True,
-        "message": f"Booking {action.action}",
-        "approval_id": action.approval_id
-    }
-
-
-@router.post("/approvals/request")
-async def request_booking_approval(
-    booking_id: str = Body(...),
-    corporate_id: str = Body(...),
-    employee_id: str = Body(...),
-    amount: float = Body(...),
-    reason: str = Body(None)
-):
-    """Request approval for a booking that exceeds employee limit"""
-    db = get_database()
-    
-    # Get employee and their manager
-    employee = await db.corporate_employees.find_one(
-        {"employee_code": employee_id},
-        {"_id": 0}
-    )
-    
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    # Create approval request
-    approval_id = f"APPR-{secrets.token_hex(4).upper()}"
-    now = datetime.utcnow()
-    
-    approval_doc = {
-        "id": approval_id,
-        "corporate_id": corporate_id,
-        "booking_id": booking_id,
-        "employee_id": employee_id,
-        "employee_name": employee.get("name"),
-        "department": employee.get("department"),
-        "amount": amount,
-        "reason": reason,
-        "status": "pending",
-        "created_at": now,
-        "expires_at": now + timedelta(days=3)  # 3 days to approve
-    }
-    
-    await db.corporate_approvals.insert_one(approval_doc)
-    
-    return {
-        "success": True,
-        "message": "Approval request submitted",
-        "approval_id": approval_id
-    }

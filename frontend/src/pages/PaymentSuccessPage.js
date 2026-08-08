@@ -103,7 +103,7 @@ export default function PaymentSuccessPage() {
               <div className="absolute inset-0 h-16 w-16 mx-auto rounded-full bg-orange-400/20 animate-ping" />
             </div>
             <h1 className="text-xl font-bold text-white">Confirming your payment...</h1>
-            <p className="text-slate-400 text-sm mt-2">भुगतान की पुष्टि हो रही है — please wait, don't close this page</p>
+            <p className="text-slate-400 text-sm mt-2">Please wait, don't close this page</p>
             <div className="mt-6 flex justify-center gap-1">
               {[0, 1, 2].map(i => (
                 <div 
@@ -142,7 +142,7 @@ export default function PaymentSuccessPage() {
               Payment Successful! 
               <span className="inline-block animate-bounce ml-2">🎉</span>
             </h1>
-            <p className="text-green-400 font-medium">भुगतान सफल — booking confirmed!</p>
+            <p className="text-green-400 font-medium">Your booking is confirmed!</p>
             
             {/* Amount display with animation */}
             {txn?.amount && (
@@ -156,7 +156,7 @@ export default function PaymentSuccessPage() {
             
             <p className="text-slate-500 text-sm mt-4 flex items-center justify-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Confirmation email aapko bhej diya gaya hai
+              Confirmation email has been sent to you
             </p>
             
             <div className="mt-6 space-y-3">
@@ -166,7 +166,7 @@ export default function PaymentSuccessPage() {
                 data-testid="view-booking-btn"
               >
                 <Plane className="h-5 w-5 mr-2" />
-                View Booking / बुकिंग देखें
+                View Booking
               </Button>
               
               <Button 
@@ -188,13 +188,13 @@ export default function PaymentSuccessPage() {
                   } catch (e) { 
                     // Receipt download requires authentication
                     console.warn('Receipt download failed - login required:', e.message);
-                    alert('Please login to download receipt / रसीद डाउनलोड करने के लिए लॉगिन करें');
+                    alert('Please login to download receipt');
                   }
                 }}
                 className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10 h-11"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download Receipt (PDF) / रसीद डाउनलोड
+                Download Receipt (PDF)
               </Button>
               
               <Button 
@@ -216,7 +216,7 @@ export default function PaymentSuccessPage() {
             <h1 className="text-xl font-bold text-white">
               Payment {state === 'error' ? 'session not found' : 'failed / expired'}
             </h1>
-            <p className="text-slate-400 text-sm mt-2">Koi charge nahi hua hai. Dobara try karein.</p>
+            <p className="text-slate-400 text-sm mt-2">No charge was made. Please try again.</p>
             <Button 
               onClick={() => navigate(txn?.booking_id ? `/customer/payment/${txn.booking_id}` : '/customer')} 
               className="w-full mt-6 bg-orange-500 hover:bg-orange-600"
@@ -231,7 +231,7 @@ export default function PaymentSuccessPage() {
             <AlertCircle className="h-16 w-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
             <h1 className="text-xl font-bold text-white">Still processing...</h1>
             <p className="text-slate-400 text-sm mt-2">
-              Payment status confirm hone mein time lag raha hai. Aapki booking par status apne aap update ho jayega.
+              Payment confirmation is taking longer than usual. Your booking status will update automatically.
             </p>
             <Button 
               onClick={() => navigate('/customer')} 
