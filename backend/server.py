@@ -38,7 +38,7 @@ from security_middleware import limiter, init_security_middleware
 
 # Import route modules
 from routes import auth_routes, booking_routes, quote_routes, fleet_routes
-from routes import document_routes, admin_routes, ai_routes, payment_routes, operator_routes
+from routes import document_routes, admin_routes, ai_routes, operator_routes
 from routes import pilot_document_routes, aircraft_document_routes
 from routes import flight_record_routes, fuel_record_routes, live_tracking_routes, landing_permission_routes
 from routes import admin_landing_permission_routes, admin_settlement_routes, admin_audit_routes
@@ -257,7 +257,6 @@ api_router.include_router(fleet_routes.router)
 api_router.include_router(document_routes.router)
 api_router.include_router(admin_routes.router)
 api_router.include_router(ai_routes.router)
-api_router.include_router(payment_routes.router)
 api_router.include_router(operator_routes.router)
 api_router.include_router(pilot_document_routes.router)
 api_router.include_router(aircraft_document_routes.router)
