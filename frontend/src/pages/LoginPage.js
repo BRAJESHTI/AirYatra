@@ -198,12 +198,25 @@ function LoginPage({ setUser }) {
       const status = error.response?.status;
       const detail = error.response?.data?.detail;
       
+      // Safely extract error message (handle both string and object detail)
+      const getMessage = (d) => {
+        if (typeof d === 'string') return d;
+        if (d && typeof d === 'object') return d.message || d.error || 'Authentication failed';
+        return 'Authentication failed. Please try again.';
+      };
+      
       if (status === 429) {
         toast.error('⚠️ Too many login attempts. Please wait a minute and try again. / बहुत सारे लॉगिन प्रयास। कृपया एक मिनट प्रतीक्षा करें।');
       } else if (status === 401) {
         toast.error('❌ Incorrect email or password. / गलत ईमेल या पासवर्ड।');
+      } else if (status === 423) {
+        // Account locked
+        const lockMessage = detail?.lockout_until 
+          ? `🔒 Account locked until ${new Date(detail.lockout_until).toLocaleTimeString()}. / खाता लॉक है।`
+          : '🔒 Account temporarily locked. Please try again later. / खाता अस्थायी रूप से लॉक है।';
+        toast.error(lockMessage);
       } else {
-        toast.error(detail || 'Authentication failed. Please try again.');
+        toast.error(getMessage(detail));
       }
     } finally {
       setLoading(false);
