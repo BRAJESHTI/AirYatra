@@ -71,6 +71,18 @@ class LoginShieldAI:
         db = get_database()
         now = datetime.now(timezone.utc)
         
+        # Check if Login Shield is globally disabled
+        settings = await db.security_settings.find_one({"type": "login_shield"})
+        if settings and not settings.get("enabled", True):
+            return {
+                "score": 0,
+                "level": "LOW",
+                "factors": [],
+                "action": {"force_otp": False, "block": False, "block_login": False, "alert": False},
+                "alerts": [],
+                "bypassed": True
+            }
+        
         risk_factors = []
         total_score = 0
         

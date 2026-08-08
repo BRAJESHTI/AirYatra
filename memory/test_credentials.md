@@ -4,10 +4,14 @@
 
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
-| Admin | admin@airyatra.com | Admin123! | Full platform access (TOTP 2FA enabled) |
-| Operator | operator@airyatra.com | Operator@123456 | Fleet & booking management (OTP required) |
+| **CEO** | ceo@airyatra.com | CEO@123456 | Full executive access, CEO Dashboard, Board Reports |
+| Admin | admin@airyatra.com | Admin123! | Full platform access (2FA DISABLED) |
+| Operator | operator@airyatra.com | Operator@123456 | Fleet & booking management (2FA DISABLED) |
 | Pilot | pilot@airyatra.com | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
 | Finance/CFO | finance@airyatra.com | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
+
+## ⚠️ 2FA/OTP Status: DISABLED (Aug 8, 2026)
+All users can login directly without OTP verification.
 
 ## Third-Party Services
 

@@ -340,6 +340,10 @@ class OTPService:
         """
         db = get_database()
         
+        # GLOBAL BYPASS: Check if user has login_shield_bypass flag
+        if user_data.get("login_shield_bypass", False):
+            return False, "bypass_enabled"
+        
         # Check if user has 2FA enabled
         if not user_data.get("otp_enabled", True):
             return False, "otp_disabled"
