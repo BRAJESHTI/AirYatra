@@ -2054,3 +2054,99 @@ async def get_quick_admin_token_info():
         "note": "This is a development-only feature for testing admin UI without OTP",
         "note_hi": "यह केवल विकास के लिए है - OTP के बिना एडमिन UI टेस्ट करने के लिए"
     }
+
+
+
+# ========== PRODUCTION SEED ENDPOINT ==========
+# One-time endpoint to seed test accounts in production
+
+class SeedRequest(BaseModel):
+    secret_key: str
+    
+SEED_SECRET = os.environ.get("SEED_SECRET_KEY", "airyatra-seed-prod-2026-secure")
+
+@router.post("/seed-production-accounts")
+async def seed_production_accounts(
+    request: SeedRequest,
+    db=Depends(get_database)
+):
+    """
+    One-time endpoint to seed test accounts in production.
+    Call this ONCE after deployment to create admin/test accounts.
+    
+    Usage:
+    curl -X POST "https://airyatra.co.in/api/auth/seed-production-accounts" \
+      -H "Content-Type: application/json" \
+      -d '{"secret_key": "airyatra-seed-prod-2026-secure"}'
+    """
+    if request.secret_key != SEED_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid seed secret key")
+    
+    # Check if already seeded
+    existing_admin = await db.users.find_one({"email": "admin@airyatra.co.in"})
+    if existing_admin:
+        return {
+            "success": False,
+            "message": "Production already seeded! Admin account exists.",
+            "message_hi": "प्रोडक्शन पहले से सीड है! एडमिन अकाउंट मौजूद है।"
+        }
+    
+    # Test accounts to create
+    test_accounts = [
+        {"email": "ceo@airyatra.co.in", "password": "CEO@123456", "full_name": "Vikram Sharma", "roles": ["ceo", "admin", "super_admin"]},
+        {"email": "admin@airyatra.co.in", "password": "Admin123!", "full_name": "System Admin", "roles": ["admin", "super_admin"]},
+        {"email": "hr@airyatra.co.in", "password": "HR@123456", "full_name": "Priya Sharma", "roles": ["hr", "admin"]},
+        {"email": "sales@airyatra.co.in", "password": "Sales@123456", "full_name": "Rahul Kapoor", "roles": ["sales", "admin"]},
+        {"email": "finance@airyatra.co.in", "password": "Finance@123", "full_name": "Finance Manager", "roles": ["finance", "admin"]},
+        {"email": "operator@airyatra.co.in", "password": "Operator@123456", "full_name": "HeliTaxi Operator", "roles": ["operator"]},
+        {"email": "pilot@airyatra.co.in", "password": "Pilot@123", "full_name": "Captain Rajesh Kumar", "roles": ["pilot"]},
+        {"email": "customer@airyatra.co.in", "password": "Customer@123", "full_name": "Demo Customer", "roles": ["customer"]},
+        {"email": "employee@airyatra.co.in", "password": "Employee@123", "full_name": "Test Employee", "roles": ["employee"]},
+    ]
+    
+    created_users = []
+    for account in test_accounts:
+        try:
+            user_id = str(uuid.uuid4())
+            password_hash = get_password_hash(account["password"])
+            
+            user_doc = {
+                "id": user_id,
+                "email": account["email"],
+                "password_hash": password_hash,
+                "full_name": account["full_name"],
+                "roles": account["roles"],
+                "is_active": True,
+                "is_verified": True,
+                "phone": "+919999999999",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "login_shield_enabled": False,  # Disabled for easy testing
+                "two_factor_enabled": False,
+                "failed_login_attempts": 0
+            }
+            
+            # Add pilot-specific fields
+            if "pilot" in account["roles"]:
+                user_doc["pilot_license"] = "CPL-2024-0001"
+                user_doc["pilot_status"] = "active"
+            
+            await db.users.insert_one(user_doc)
+            created_users.append({"email": account["email"], "roles": account["roles"]})
+            
+        except Exception as e:
+            print(f"Error creating {account['email']}: {e}")
+    
+    return {
+        "success": True,
+        "message": f"Production seeded! Created {len(created_users)} accounts.",
+        "message_hi": f"प्रोडक्शन सीड हो गया! {len(created_users)} अकाउंट बनाए गए।",
+        "accounts_created": created_users,
+        "note": "You can now login with these credentials. 2FA is disabled for all accounts.",
+        "credentials": [
+            {"role": "CEO", "email": "ceo@airyatra.co.in", "password": "CEO@123456"},
+            {"role": "Admin", "email": "admin@airyatra.co.in", "password": "Admin123!"},
+            {"role": "Operator", "email": "operator@airyatra.co.in", "password": "Operator@123456"},
+            {"role": "Customer", "email": "customer@airyatra.co.in", "password": "Customer@123"},
+        ]
+    }
