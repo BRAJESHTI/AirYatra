@@ -179,7 +179,7 @@ export const AircraftComparison = ({ onClose }) => {
       );
       setComparisonData(response.data);
       setActiveTab('overview');
-      toast.success('Comparison ready! / तुलना तैयार है!');
+      toast.success('Comparison ready!');
     } catch (error) {
       console.error('Comparison failed:', error);
       toast.error(error.response?.data?.detail || 'Comparison failed');
@@ -195,7 +195,7 @@ export const AircraftComparison = ({ onClose }) => {
           <div>
             <CardTitle className="text-white flex items-center gap-2">
               <Scale className="h-5 w-5 text-orange-400" />
-              AI Smart Comparison / स्मार्ट तुलना
+              AI Smart Comparison
             </CardTitle>
             <CardDescription>
               Compare up to 4 aircraft side-by-side to find the best option

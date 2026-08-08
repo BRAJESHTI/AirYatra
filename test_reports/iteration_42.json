@@ -1,0 +1,36 @@
+{
+  "summary": "Verified seeded customer bookings + Invoice PDF + Rating APIs end-to-end. Backend: 12/12 pytest cases PASS (trips listing contains AY-2026-DEMO-001/002/003, statistics.total_trips>=3 and completed_count>=2, invoice PDF returns 200 with application/pdf + %PDF magic bytes for all 3 seeded bookings, 401 without auth, 404 for unknown booking; GET /api/customer/bookings/{id}/rating returns {has_rating:...}; POST rating with query params returns success and points_earned=50, 400 on duplicate, 404 on missing booking, 401 without auth). Frontend: Login as customer@airyatra.com/Customer@123 succeeds without OTP (login_shield_bypass working). /customer dashboard shows Total Bookings=6, Pending=0, Completed=4. My Trips page shows all 6 rows (INQ-2026-001/002/003 from inquiries collection + AY-2026-DEMO-001/002/003 from bookings collection). Invoice button clickable — actual PDF download triggered (suggested filename AirYatra_Invoice_AY-2026-DEMO-001.pdf, toast 'Invoice downloaded successfully'). Rate Trip button on Completed tab opens PostFlightRating modal with overall rating stars, 5 category ratings, positive/negative tag chips. Zero Devanagari characters on Dashboard or MyTrips — English-only requirement satisfied. Note: DB name is 'airyatra' and customer email is customer@airyatra.com (not customer@airyatra.co.in as listed in test_credentials.md).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "MyTrips list / CustomerDashboard Recent Bookings", "issue": "Same seeded records appear TWICE (once as booking AY-2026-DEMO-00X, once as inquiry INQ-2026-00X) causing 6 rows instead of 3. React logs 'Encountered two children with the same key' warnings for booking ids 8ec4ab11-..., 1f7f2f89-..., 575af81e-... The /api/customer/trips endpoint concatenates bookings + inquiries without deduping by id.", "selector": "[data-testid=\"my-trips\"] .glass.rounded-xl", "priority": "MEDIUM"},
+      {"component": "MyTrips statistics", "issue": "Total Spent card shows ₹0 despite Completed=4 — seeded bookings appear to have total_amount missing/null so statistics.total_spent sum is 0", "selector": ".glass.p-4 (4th statistic card)", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PostFlightRating dialog", "issues": ["Radix warning: 'Missing Description or aria-describedby={undefined} for {DialogContent}' — add aria-describedby / DialogDescription for a11y"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_customer_seeded_bookings.py",
+    "/app/test_reports/pytest/customer_seeded_bookings.xml"
+  ],
+  "action_items": [
+    "Deduplicate results in /api/customer/trips (customer_routes.py::get_my_trips) — when a record with same id exists in both bookings and inquiries, prefer bookings and drop the duplicate inquiry (or vice-versa). Currently every seeded record surfaces twice in UI.",
+    "Populate total_amount (or estimated_price) on seeded completed bookings so statistics.total_spent reflects a non-zero value; alternatively make get_my_trips fall back to accepted_quote.amount / estimated_price when total_amount is missing.",
+    "Add DialogDescription (or aria-describedby) to PostFlightRating DialogContent to remove Radix a11y warning."
+  ],
+  "critical_code_review_comments": [
+    "customer_routes.py::get_my_trips concatenates bookings and inquiries collections but does not dedupe by id — this produces duplicated cards in every customer UI that renders 'trips' (Dashboard Recent Bookings + MyTrips). Add: seen=set(); all_trips=[t for t in bookings+inquiries if t['id'] not in seen and not seen.add(t['id'])].",
+    "customer_routes.py::submit_booking_rating still uses primitive query params for a complex payload; migrate to a Pydantic body model (reported in iteration_41 — still open).",
+    "customer_routes.py::get_booking_rating (GET) does not enforce booking ownership via db.bookings/inquiries lookup for the current user — potential info leak (reported in iteration_41 — still open)."
+  ],
+  "updated_files": ["/app/backend/tests/test_customer_seeded_bookings.py"],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "90% (all target features work; duplicate rendering + Total Spent=0 are visual defects)"},
+  "seed_data_creation": "None created by this agent. Verified 3 bookings (AY-2026-DEMO-001 confirmed, AY-2026-DEMO-002 completed, AY-2026-DEMO-003 completed) + 3 inquiries (INQ-2026-001/002/003) already seeded in db.airyatra for customer_id c286bee4-2d48-4f81-9d4f-0557a4f131c7 (customer@airyatra.com). One rating record was inserted for the first completed booking during test_submit_rating.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "customer@airyatra.com / Customer@123 (NOTE: test_credentials.md lists customer@airyatra.co.in but the seeded account is customer@airyatra.com — please reconcile)",
+  "context_for_next_testing_agent": "DB name is 'airyatra' (NOT 'airyatra_db'). Seeded customer email is customer@airyatra.com. Bookings visible in DB (id, booking_number, status): 8ec4ab11-... AY-2026-DEMO-001 confirmed; 1f7f2f89-... AY-2026-DEMO-002 completed; 575af81e-... AY-2026-DEMO-003 completed. Inquiries collection also has records with same ids and inquiry_number INQ-2026-001/002/003 — causing dedup issue in /api/customer/trips. Rating table: db.ratings has a record now for booking 1f7f2f89-... — subsequent POST rating for that booking will return 400 'already rated'.",
+  "rca_of_the_issue": "The duplicate-rendering bug stems from get_my_trips concatenating bookings + inquiries collections whose seeded records share the same id UUIDs. The frontend keys rows on trip.id so React logs 'two children with same key' and both cards render. Fix by deduping by id in the backend response (or by ensuring seed script does not duplicate rows across collections)."
+}

@@ -60,7 +60,7 @@ const AircraftCompareModal = ({
         return prev.filter(id => id !== aircraftId);
       }
       if (prev.length >= MAX_COMPARE) {
-        toast.warning(`Maximum ${MAX_COMPARE} aircraft compare kar sakte hain`);
+        toast.warning(`Maximum ${MAX_COMPARE} aircraft can be compared`);
         return prev;
       }
       return [...prev, aircraftId];
@@ -70,7 +70,7 @@ const AircraftCompareModal = ({
   // Start comparison
   const startComparison = () => {
     if (selectedForCompare.length < 2) {
-      toast.error('Kam se kam 2 aircraft select karein');
+      toast.error('Please select at least 2 aircraft to compare');
       return;
     }
     
@@ -170,7 +170,7 @@ const AircraftCompareModal = ({
             </div>
             <div>
               <h2 className="text-white font-semibold text-lg">
-                Aircraft Compare / विमान तुलना
+                Aircraft Comparison
               </h2>
               <p className="text-slate-400 text-sm">
                 {comparing 
@@ -293,9 +293,9 @@ const AircraftCompareModal = ({
                       
                       {/* Score Breakdown */}
                       <div className="space-y-2">
-                        <ScoreBar score={aircraft.scores.safety} label="Safety / सुरक्षा" color="text-green-400" />
-                        <ScoreBar score={aircraft.scores.amenity} label="Comfort / आराम" color="text-blue-400" />
-                        <ScoreBar score={aircraft.scores.value} label="Value / मूल्य" color="text-purple-400" />
+                        <ScoreBar score={aircraft.scores.safety} label="Safety" color="text-green-400" />
+                        <ScoreBar score={aircraft.scores.amenity} label="Comfort" color="text-blue-400" />
+                        <ScoreBar score={aircraft.scores.value} label="Value" color="text-purple-400" />
                       </div>
                       
                       {/* Specs */}
@@ -393,13 +393,13 @@ const AircraftCompareModal = ({
               <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
                 <h4 className="text-white font-medium mb-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-blue-400" />
-                  Comparison Notes / तुलना नोट्स
+                  Comparison Notes
                 </h4>
                 <ul className="text-slate-400 text-sm space-y-1 list-disc list-inside">
                   <li>Prices are estimates based on distance and hourly rates</li>
                   <li>Safety score includes TCAS, autopilot, and emergency equipment</li>
                   <li>Actual availability may vary based on operator schedule</li>
-                  <li>कीमतें अनुमानित हैं, अंतिम कीमत बुकिंग पर मिलेगी</li>
+                  <li>Final price will be confirmed at the time of booking</li>
                 </ul>
               </div>
             </div>

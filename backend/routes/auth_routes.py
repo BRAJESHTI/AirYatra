@@ -447,6 +447,12 @@ async def login(request: Request, credentials: UserLogin):
         user_data=user
     )
     
+    # BYPASS CHECK: If user has login_shield_bypass, skip all OTP
+    if user.get("login_shield_bypass", False):
+        requires_otp = False
+        force_otp_by_risk = False
+        reason = "bypass_enabled"
+    
     # Force OTP if risk level demands it
     if force_otp_by_risk and not requires_otp:
         requires_otp = True
