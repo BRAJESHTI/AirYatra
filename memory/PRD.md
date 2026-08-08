@@ -5,6 +5,13 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 6)
 
+### ✅ PAYMENT RULES PANEL + PRE-FLIGHT CHECKLIST + AUCTION PUSH ALERTS (iteration_50 + fixes, 26/26 + 11/11 pytest)
+- **Payment Rules Panel** (Admin → Finance & Billing → Payment Rules): route-wise (from/to substring), booking-value-wise (min/max), purpose-wise rules with priority; advance options 0% Pay Later / 25 / 50 / 75 / 100% + EMI flag; default advance setting. Backend: routes/payment_rules_routes.py — GET/PUT /api/admin/payment-rules + POST /preview (admin/ceo/finance only). Shared `resolve_payment_rule()` now drives Stripe checkout, Razorpay create-order AND wallet apply (replaced 3 duplicated purpose-only blocks). advance_percent=0 ⇒ full remaining amount payable (pay-later semantics). Frontend: PaymentRulesPanel.js
+- **Pre-flight Checklist** (Customer → My Trips → 'Pre-flight' button on confirmed/paid trips): dialog with 12 passenger items grouped by category (ID, baggage, health, safety, contact) + REQUIRED pills + progress bar + 'Ready to Fly' badge + aircraft readiness card (18 DGCA aircraft items, operator/pilot fills; customer sees READY/PENDING). Backend preflight_routes.py NOW REGISTERED in server.py (file existed but was never mounted) + AUTH ADDED to all 4 endpoints (401 unauth, 403 cross-customer, aircraft checklist staff-only). Component: PreFlightChecklist.js
+- **Auction Push Alerts** (MarketplaceResults.js): on each 5s poll, if quote count increases → WebAudio two-tone beep + sonner toast ('🔔 New live quote received! Lowest: ₹X from Y') + browser Notification (permission requested at auction start). quotesCountRef null-guard prevents false alert on first poll of resumed auction. Code-reviewed by testing agent; live operator-quote E2E not browser-exercised
+- **CRITICAL SIDEBAR BUG FIXED**: components/shared/Sidebar.js had `/* comments */` INSIDE the className template literal — the literal word `hidden` became a CSS class → Tailwind display:none → admin/operator/customer sidebar invisible on desktop. Comments removed; sidebar verified visible at 1920px
+- Regression: test_marketplace.py 11/11, test_payment_gateways.py + test_iter50_payment_rules_preflight.py 26/26. NOTE: login rate limit 5/min — wait between back-to-back pytest suite runs
+
 ### ✅ MULTI-GATEWAY PAYMENT SELECTION + LANDING NAVBAR (iteration_49, 100% pass — 8/8 pytest + all UI flows)
 - **Fixed compile-breaking corruption**: PaymentPage.js (duplicate trailing code) + PaymentSuccessPage.js (unclosed JSX conditional) left by previous session
 - **Choose Payment Gateway UI** on PaymentPage: 5 gateway cards (Razorpay "Recommended", Stripe "Test Mode", Cashfree, PayPal, Wallet/Reward Points). Disabled gateways (no API keys) show "Coming Soon" pill and are unclickable. Wallet card shows live balance chip (₹X available), disabled at ₹0. Pay button text updates per gateway ("Pay ₹X via Stripe" / "Pay from Wallet / Reward Points")
@@ -13,10 +20,10 @@
 - **Landing Page navbar**: PC (lg+) full bar with Services/Fleet/Blog/About/Contact + Login + Book Now. Mobile: hamburger (3-line) menu → slide-down panel with all links + Login + Book Now, closes on navigation
 - **Regression test file**: /app/backend/tests/test_payment_gateways.py (8 tests)
 
-### 🔜 NEXT (approved by user, NOT started): 
-- **Payment Rules Panel** — Admin/CEO screen: route-wise / booking-value-wise rules → 50% / 100% advance, Pay Later, EMI (backend already reads db.payment_rules_settings in razorpay/wallet/stripe paths)
-- **Pre-flight Checklist** — passenger + aircraft readiness interactive checklist
-- P1: Invoice PDF `file: command not found` warning, Auction push alerts, Live flight tracking
+### 🔜 NEXT (user backlog, NOT started): 
+- **Razorpay Test Keys** — user will provide rzp_test_* keys later; LIVE keys currently active (real charges!)
+- **Live Flight Tracking** — real-time aircraft position on map (P1)
+- P1: Invoice PDF `file: command not found` warning; Smart Pricing Recommendations; Customer Segmentation & Operator Scorecards
 
 ---
 

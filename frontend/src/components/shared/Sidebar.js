@@ -110,23 +110,7 @@ export const ResponsiveSidebar = ({
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`
-          bg-slate-900/50 border-r border-slate-800 overflow-y-auto overflow-x-hidden
-          transition-all duration-300 ease-in-out
-          
-          /* Width based on collapsed state */
-          ${effectiveCollapsed ? 'w-16' : 'w-72'}
-          
-          /* Mobile: Fixed, hidden when closed */
-          fixed lg:sticky lg:relative z-50 lg:z-auto
-          top-0 lg:top-[73px]
-          h-screen lg:h-[calc(100vh-73px)]
-          
-          /* Mobile: Hide completely when closed, show when open */
-          ${isMobileOpen ? 'left-0 translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          
-          ${className}
-        `}
+        className={`bg-slate-900/50 border-r border-slate-800 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out ${effectiveCollapsed ? 'w-16' : 'w-72'} fixed lg:sticky lg:relative z-50 lg:z-auto top-0 lg:top-[73px] h-screen lg:h-[calc(100vh-73px)] ${isMobileOpen ? 'left-0 translate-x-0' : '-translate-x-full lg:translate-x-0'} ${className}`}
       >
         {/* Mobile Close Button */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-slate-800">

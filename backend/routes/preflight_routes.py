@@ -77,7 +77,8 @@ AIRCRAFT_CHECKLIST = [
 
 
 @router.get("/checklist/{booking_id}")
-async def get_checklist(booking_id: str, checklist_type: str = "passenger"):
+async def get_checklist(booking_id: str, checklist_type: str = "passenger",
+                        current_user: dict = Depends(get_current_user)):
     """Get checklist for a booking"""
     db = get_database()
     
@@ -88,6 +89,7 @@ async def get_checklist(booking_id: str, checklist_type: str = "passenger"):
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+    _check_read_access(booking, current_user)
     
     # Get existing checklist progress
     checklist_doc = await db.preflight_checklists.find_one(
