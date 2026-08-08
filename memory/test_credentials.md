@@ -42,7 +42,7 @@ All users can login directly without OTP verification.
 - Integration Type: Managed OAuth (No API keys required)
 - Status: ACTIVE
 - Flow: 
-  1. User clicks "Google से Login करें"
+  1. User clicks "Sign in with Google"
   2. Redirect to https://auth.emergentagent.com/?redirect={callback}
   3. Google sign-in handled by Emergent
   4. Callback to /auth/google/callback#session_id=xxx
@@ -50,6 +50,7 @@ All users can login directly without OTP verification.
   6. Backend creates/updates user via POST /api/auth/google/emergent-callback
 - Backend Endpoint: POST /api/auth/google/emergent-callback
 - Settings Endpoint: GET /api/auth/google/settings
+- **SECURITY**: Backend ONLY accepts sessions verified by Emergent (200 OK). 404/invalid sessions are REJECTED.
 
 ## Quick Admin Login (DEV ONLY)
 | Setting | Value |
