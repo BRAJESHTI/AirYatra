@@ -3,6 +3,23 @@
 
 ---
 
+## Latest Updates (Aug 8, 2026 - Session 6)
+
+### ✅ MULTI-GATEWAY PAYMENT SELECTION + LANDING NAVBAR (iteration_49, 100% pass — 8/8 pytest + all UI flows)
+- **Fixed compile-breaking corruption**: PaymentPage.js (duplicate trailing code) + PaymentSuccessPage.js (unclosed JSX conditional) left by previous session
+- **Choose Payment Gateway UI** on PaymentPage: 5 gateway cards (Razorpay "Recommended", Stripe "Test Mode", Cashfree, PayPal, Wallet/Reward Points). Disabled gateways (no API keys) show "Coming Soon" pill and are unclickable. Wallet card shows live balance chip (₹X available), disabled at ₹0. Pay button text updates per gateway ("Pay ₹X via Stripe" / "Pay from Wallet / Reward Points")
+- **Wallet payment flow**: POST /api/payments/wallet/apply — debits wallet, creates payment_transactions (gateway=wallet), flips booking to paid/fully_paid, 403 non-owner / 404 invalid / 400 empty-wallet guards. GET /api/payments/gateways returns gateways + balance
+- **Razorpay checkout wired**: /api/razorpay/create-order (server-side amount via payment ledger, advance-rules aware) → Razorpay Checkout JS modal → /api/razorpay/verify-payment (signature verified, ledger synced) → /payment/success?gateway=razorpay. ⚠️ **LIVE keys (rzp_live_*) + webhook secret are in backend/.env — Razorpay is enabled and would charge REAL money.** Webhook /api/razorpay/webhook has mandatory signature verification
+- **Landing Page navbar**: PC (lg+) full bar with Services/Fleet/Blog/About/Contact + Login + Book Now. Mobile: hamburger (3-line) menu → slide-down panel with all links + Login + Book Now, closes on navigation
+- **Regression test file**: /app/backend/tests/test_payment_gateways.py (8 tests)
+
+### 🔜 NEXT (approved by user, NOT started): 
+- **Payment Rules Panel** — Admin/CEO screen: route-wise / booking-value-wise rules → 50% / 100% advance, Pay Later, EMI (backend already reads db.payment_rules_settings in razorpay/wallet/stripe paths)
+- **Pre-flight Checklist** — passenger + aircraft readiness interactive checklist
+- P1: Invoice PDF `file: command not found` warning, Auction push alerts, Live flight tracking
+
+---
+
 ## Latest Updates (Aug 8, 2026 - Session 5)
 
 ### ✅ PHASE 1: HYBRID MARKETPLACE BOOKING WORKFLOW (iteration_48, 100% pass — 11/11 pytest + all UI flows)
