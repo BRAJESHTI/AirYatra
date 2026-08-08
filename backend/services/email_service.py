@@ -37,7 +37,7 @@ SMTP_CONFIG = {
 EMAIL_TEMPLATES = {
     # ===== INQUIRY TEMPLATES =====
     "inquiry_customer": {
-        "subject": "🚁 Your Helicopter Booking Inquiry #{inquiry_id} - AirYatra",
+        "subject": "✈️ Your {{ service_label }} Booking Inquiry #{{ inquiry_id }} - AirYatra",
         "body": """
 <!DOCTYPE html>
 <html>
@@ -1479,6 +1479,14 @@ class EmailService:
         # Common data
         base_data = {
             "inquiry_id": inquiry_data.get("id", "")[:8].upper(),
+            "service_label": {
+                "helicopter": "Helicopter",
+                "chartered_plane": "Private Jet",
+                "air_ambulance": "Air Ambulance",
+                "yacht_cruiser": "Yacht / Cruiser",
+                "cargo": "Cargo",
+                "joy_ride": "Joy Ride",
+            }.get(inquiry_data.get("aircraft_type") or "helicopter", "Charter"),
             "customer_name": inquiry_data.get("customer_name", "Customer"),
             "customer_email": inquiry_data.get("customer_email", ""),
             "customer_phone": inquiry_data.get("customer_phone", ""),

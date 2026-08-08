@@ -635,7 +635,7 @@ async def get_payment_info(
                 can_pay_later = rule.get("can_pay_later", True)
                 break
     
-    total_amount = inquiry.get("accepted_quote", {}).get("amount") or inquiry.get("estimated_price", 0)
+    total_amount = (inquiry.get("accepted_quote") or {}).get("amount") or inquiry.get("estimated_price", 0)
     advance_amount = int(total_amount * advance_percent / 100)
     remaining_amount = total_amount - advance_amount
     
@@ -691,7 +691,7 @@ async def get_customer_booking_stats(
     for trip in all_trips:
         # Count paid/completed trips
         if trip.get("payment_status") in ["paid", "fully_paid"]:
-            amount = float(trip.get("accepted_quote", {}).get("amount") or trip.get("estimated_price") or 0)
+            amount = float((trip.get("accepted_quote") or {}).get("amount") or trip.get("estimated_price") or 0)
             total_spend += amount
             completed_flights += 1
             
@@ -718,7 +718,7 @@ async def get_customer_booking_stats(
             "from_location": trip.get("from_location", ""),
             "to_location": trip.get("to_location", ""),
             "departure_date": trip.get("departure_date", ""),
-            "amount": float(trip.get("accepted_quote", {}).get("amount") or trip.get("estimated_price") or 0),
+            "amount": float((trip.get("accepted_quote") or {}).get("amount") or trip.get("estimated_price") or 0),
             "status": trip.get("status", "pending"),
             "payment_status": trip.get("payment_status", "pending"),
         })

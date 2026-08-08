@@ -86,7 +86,7 @@ class VerificationAPIUpdate(BaseModel):
 async def get_document_types(
     category: Optional[str] = None, 
     active_only: bool = True,
-    current_user: dict = Depends(require_roles(["admin", "operator"]))
+    current_user: dict = Depends(require_roles(["admin", "operator", "customer", "pilot"]))
 ):
     """Get all document types, optionally filtered by category"""
     db = get_database()

@@ -15,25 +15,25 @@ const typeConfig = {
     icon: Plane, 
     color: 'text-blue-400', 
     bg: 'bg-blue-500/20',
-    label: 'Airport / एयरपोर्ट'
+    label: 'Airport'
   },
   govt_helipad: { 
     icon: Building2, 
     color: 'text-green-400', 
     bg: 'bg-green-500/20',
-    label: 'Govt Helipad / सरकारी हेलीपैड'
+    label: 'Govt Helipad'
   },
   private_helipad: { 
     icon: Building2, 
     color: 'text-purple-400', 
     bg: 'bg-purple-500/20',
-    label: 'Private Helipad / प्राइवेट हेलीपैड'
+    label: 'Private Helipad'
   },
   village_land: { 
     icon: TreePine, 
     color: 'text-orange-400', 
     bg: 'bg-orange-500/20',
-    label: 'Village Land / गांव की जमीन'
+    label: 'Village Land'
   },
 };
 
@@ -122,7 +122,7 @@ function LandingPointSelector({
           
           // Show warning for estimated locations
           if (data.source === 'estimated' || data.source === 'default_fallback') {
-            toast.warning('Approximate location detected. Verify coordinates. / अनुमानित स्थान। कृपया निर्देशांक सत्यापित करें।');
+            toast.warning('Approximate location detected. Verify coordinates.');
           }
         } else if (data.area || data.district) {
           // Fallback to direct fields
@@ -148,7 +148,7 @@ function LandingPointSelector({
             latitude: data.latitude || 20.5937,  // Center of India fallback
             longitude: data.longitude || 78.9629
           });
-          toast.warning('Location details limited. Please verify before booking. / स्थान विवरण सीमित। कृपया बुकिंग से पहले सत्यापित करें।');
+          toast.warning('Location details limited. Please verify before booking.');
         }
       } catch (error) {
         console.error('PIN code lookup error:', error);
@@ -161,7 +161,7 @@ function LandingPointSelector({
           latitude: 20.5937,  // Center of India
           longitude: 78.9629
         });
-        toast.warning('Could not verify PIN code. Please verify location manually. / पिन कोड सत्यापित नहीं हो सका। कृपया मैन्युअल रूप से स्थान सत्यापित करें।');
+        toast.warning('Could not verify PIN code. Please verify location manually.');
       } finally {
         setLoadingPincode(false);
       }
@@ -171,7 +171,7 @@ function LandingPointSelector({
   // Select village area as landing point
   const handleSelectVillageArea = () => {
     if (!villageData.area || !villageData.pincode) {
-      toast.error('Please enter valid PIN code / कृपया सही पिन कोड दर्ज करें');
+      toast.error('Please enter valid PIN code');
       return;
     }
 
@@ -196,7 +196,7 @@ function LandingPointSelector({
     setSearchTerm(`${villageData.area}, ${villageData.district}`);
     setShowDropdown(false);
     setShowVillageInput(false);
-    toast.success('Village area selected / गांव क्षेत्र चुना गया');
+    toast.success('Village area selected');
   };
 
   // Check availability for private helipads
@@ -290,7 +290,7 @@ function LandingPointSelector({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Search city, airport, helipad... / शहर, एयरपोर्ट खोजें..."
+          placeholder="Search city, airport, helipad..."
           value={searchTerm}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
@@ -383,10 +383,10 @@ function LandingPointSelector({
                   <AlertTriangle className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-yellow-400 text-sm font-medium">
-                      Permission Required / अनुमति आवश्यक
+                      Permission Required
                     </p>
                     <p className="text-yellow-400/70 text-xs">
-                      Admin approval needed before booking / बुकिंग से पहले एडमिन अप्रूवल जरूरी
+                      Admin approval needed before booking
                     </p>
                   </div>
                 </div>
@@ -395,7 +395,7 @@ function LandingPointSelector({
               {selectedPoint.rent_applicable && (
                 <p className="mt-2 text-green-400 text-sm flex items-center gap-1">
                   <DollarSign className="h-4 w-4" />
-                  Landing charges applicable / लैंडिंग शुल्क लागू
+                  Landing charges applicable
                 </p>
               )}
             </div>
@@ -408,7 +408,7 @@ function LandingPointSelector({
         <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-600 rounded-xl p-4">
           <div className="text-center mb-4">
             <MapPin className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-            <p className="text-slate-400">No landing points found / कोई लैंडिंग पॉइंट नहीं मिला</p>
+            <p className="text-slate-400">No landing points found</p>
           </div>
           
           {/* Select Village Area Option */}
@@ -424,9 +424,9 @@ function LandingPointSelector({
                 <TreePine className="h-5 w-5 text-orange-400" />
               </div>
               <div className="text-left flex-1">
-                <p className="text-orange-400 font-medium">Select Village Area / गांव क्षेत्र चुनें</p>
+                <p className="text-orange-400 font-medium">Select Village Area</p>
                 <p className="text-orange-400/70 text-xs">
-                  Enter PIN Code to select your village / पिन कोड दर्ज करें
+                  Enter PIN Code to select your village
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 text-orange-400 rotate-[-90deg]" />
@@ -443,7 +443,7 @@ function LandingPointSelector({
               <TreePine className="h-5 w-5 text-orange-400" />
             </div>
             <div>
-              <h4 className="text-orange-400 font-medium">Select Village Area / गांव क्षेत्र चुनें</h4>
+              <h4 className="text-orange-400 font-medium">Select Village Area</h4>
               <p className="text-orange-400/70 text-xs">
                 Enter your village PIN code to get location details
               </p>
@@ -453,7 +453,7 @@ function LandingPointSelector({
           {/* PIN Code Input */}
           <div className="space-y-3">
             <div>
-              <Label className="text-slate-300 text-sm mb-1 block">PIN Code / पिन कोड *</Label>
+              <Label className="text-slate-300 text-sm mb-1 block">PIN Code</Label>
               <div className="relative">
                 <Input
                   type="text"
@@ -490,9 +490,6 @@ function LandingPointSelector({
                   <p className="text-yellow-400 text-sm font-medium">Landing Permission Required</p>
                   <p className="text-yellow-400/70 text-xs">
                     Village landing requires documents: Collector NOC, Fire Dept, Police & SP/DCP Acknowledgments
-                  </p>
-                  <p className="text-yellow-400/70 text-xs">
-                    गांव लैंडिंग के लिए दस्तावेज़ आवश्यक: कलेक्टर NOC, फायर विभाग, पुलिस और SP/DCP पावती
                   </p>
                 </div>
               </div>

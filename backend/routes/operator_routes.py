@@ -403,7 +403,7 @@ async def get_operator_revenue_dashboard(user: dict = Depends(get_current_user))
     current_month = now.strftime("%Y-%m")
     
     for inq in completed_inquiries:
-        amount = float(inq.get("accepted_quote", {}).get("amount") or inq.get("estimated_price") or 0)
+        amount = float((inq.get("accepted_quote") or {}).get("amount") or inq.get("estimated_price") or 0)
         total_gross += amount
         
         # Check if this month
@@ -433,7 +433,7 @@ async def get_operator_revenue_dashboard(user: dict = Depends(get_current_user))
         paid_at = inq.get("paid_at") or inq.get("created_at") or ""
         month_key = paid_at[:7] if paid_at else ""
         if month_key in monthly_data:
-            amount = float(inq.get("accepted_quote", {}).get("amount") or inq.get("estimated_price") or 0)
+            amount = float((inq.get("accepted_quote") or {}).get("amount") or inq.get("estimated_price") or 0)
             monthly_data[month_key]["earnings"] += amount * (commission_rate / 100)
             monthly_data[month_key]["flights"] += 1
     

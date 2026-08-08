@@ -142,7 +142,7 @@ const en = {
     specialRequirementsPlaceholder: 'Any special requests or requirements...',
     submitting: 'Submitting...',
     submitApproval: 'Submit for Approval',
-    generateInquiry: 'Generate Inquiry',
+    generateInquiry: 'Submit Inquiry',
     approvalNote: 'Your inquiry requires admin approval for village landing.',
     inquiryNote: 'After inquiry, operators will review and send you their quotes.',
     formRestored: 'Form data restored!',

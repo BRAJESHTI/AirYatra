@@ -217,7 +217,7 @@ async def create_payment_link_checkout(
 
 async def _payment_ledger(db, booking: dict):
     """Total owed vs paid (voucher discounts credited as paid value)"""
-    total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+    total_amount = float((booking.get("accepted_quote") or {}).get("amount") or booking.get("estimated_price") or 0)
     txns = await db.payment_transactions.find(
         {"booking_id": booking["id"], "payment_status": "paid"}, {"_id": 0}
     ).sort("created_at", 1).to_list(50)

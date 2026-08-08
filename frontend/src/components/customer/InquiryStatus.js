@@ -13,6 +13,17 @@ import { toast } from 'sonner';
 import PassengerDetailsForm from './PassengerDetailsForm';
 import VillageLandingDocuments from './VillageLandingDocuments';
 
+const SERVICE_INFO = {
+  helicopter: { icon: '🚁', label: 'Helicopter Charter' },
+  chartered_plane: { icon: '✈️', label: 'Private Jet' },
+  air_ambulance: { icon: '🚑', label: 'Air Ambulance' },
+  yacht_cruiser: { icon: '🛥️', label: 'Luxury Yacht / Cruiser' },
+  cargo: { icon: '📦', label: 'Cargo Aircraft / Ship' },
+  joy_ride: { icon: '🏔️', label: 'Scenic / Joy Ride' },
+};
+
+const humanize = (s) => (s || '-').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 const STATUS_STEPS = [
   { id: 'pending_acceptance', label: 'Inquiry Sent', icon: Clock },
   { id: 'quote_received', label: 'Quotes Received', icon: Bell },
@@ -206,7 +217,7 @@ function InquiryStatus({ user }) {
             <div className="bg-slate-800/50 rounded-lg p-3">
               <p className="text-slate-400 text-xs mb-1">Aircraft</p>
               <p className="text-white font-bold text-sm flex items-center gap-1">
-                <Plane className="h-4 w-4 text-orange-400" /> {inquiry.aircraft_type === 'helicopter' ? 'Helicopter' : 'Plane'}
+                <Plane className="h-4 w-4 text-orange-400" /> {SERVICE_INFO[inquiry.aircraft_type]?.label || humanize(inquiry.aircraft_type)}
               </p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-3">
@@ -524,7 +535,7 @@ function InquiryStatus({ user }) {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-slate-500">Aircraft</p>
-              <p className="text-white">{inquiry.aircraft_type === 'helicopter' ? '🚁 Helicopter' : '✈️ Plane'}</p>
+              <p className="text-white">{SERVICE_INFO[inquiry.aircraft_type] ? `${SERVICE_INFO[inquiry.aircraft_type].icon} ${SERVICE_INFO[inquiry.aircraft_type].label}` : humanize(inquiry.aircraft_type)}</p>
             </div>
             <div>
               <p className="text-slate-500">Passengers</p>
@@ -532,7 +543,7 @@ function InquiryStatus({ user }) {
             </div>
             <div>
               <p className="text-slate-500">Flight Type</p>
-              <p className="text-white">{inquiry.udan_prakar}</p>
+              <p className="text-white">{humanize(inquiry.udan_prakar)}</p>
             </div>
             <div>
               <p className="text-slate-500">Date & Time</p>
@@ -540,7 +551,7 @@ function InquiryStatus({ user }) {
             </div>
             <div>
               <p className="text-slate-500">Purpose</p>
-              <p className="text-white">{inquiry.booking_purpose}</p>
+              <p className="text-white">{humanize(inquiry.booking_purpose)}</p>
             </div>
             <div>
               <p className="text-slate-500">Distance</p>

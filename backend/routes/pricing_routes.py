@@ -372,7 +372,7 @@ async def get_price_history(
     # Merge data
     all_prices = []
     for b in route_bookings:
-        price = float(b.get("accepted_quote", {}).get("amount") or b.get("estimated_price") or 0)
+        price = float((b.get("accepted_quote") or {}).get("amount") or b.get("estimated_price") or 0)
         if price > 0:
             all_prices.append({
                 "price": price,

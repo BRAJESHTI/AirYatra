@@ -150,6 +150,10 @@ async def create_inquiry(
     db = get_database()
     from datetime import timezone
     
+    ALLOWED_SERVICE_TYPES = {"helicopter", "chartered_plane", "air_ambulance", "yacht_cruiser", "cargo", "joy_ride"}
+    if inquiry_data.get("aircraft_type") not in ALLOWED_SERVICE_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid aircraft/service type")
+    
     inquiry_id = str(uuid.uuid4())
     inquiry_number = f"INQ{datetime.now(timezone.utc).strftime('%Y%m%d')}{inquiry_id[:6].upper()}"
     

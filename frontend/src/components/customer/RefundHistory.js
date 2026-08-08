@@ -35,10 +35,8 @@ export default function RefundHistory({ userId }) {
       console.error('Failed to load refunds:', err);
       // Try customer endpoint if admin fails
       try {
-        const res = await api.get('/refunds/my-refunds');
-        if (res.data.success) {
-          setRefunds(res.data.refunds || []);
-        }
+        const res = await api.get('/customer/refunds');
+        setRefunds(res.data.refunds || []);
       } catch {
         toast.error('Failed to load refund history');
       }

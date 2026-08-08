@@ -40,15 +40,15 @@ export const CustomerPriceBreakup = ({
   
   // Booking type labels
   const bookingTypeLabels = {
-    one_way: 'One Way / एकतरफा',
-    round_trip: 'Round Trip / वापसी यात्रा',
-    multi_city: 'Multi-City / बहु-शहर',
-    hourly_charter: 'Hourly Charter / प्रति घंटा',
-    daily_charter: 'Daily Charter / दैनिक',
-    multi_day: 'Multi-Day / बहु-दिवसीय',
-    group_booking: 'Group Booking / समूह बुकिंग',
-    emergency: 'Emergency / आपातकालीन',
-    event_based: 'Event Package / इवेंट पैकेज'
+    one_way: 'One Way',
+    round_trip: 'Round Trip',
+    multi_city: 'Multi-City',
+    hourly_charter: 'Hourly Charter',
+    daily_charter: 'Daily Charter',
+    multi_day: 'Multi-Day',
+    group_booking: 'Group Booking',
+    emergency: 'Emergency',
+    event_based: 'Event Package'
   };
 
   return (
@@ -56,7 +56,7 @@ export const CustomerPriceBreakup = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2">
           <Receipt className="h-5 w-5 text-orange-400" />
-          Price Breakup / मूल्य विवरण
+          Price Breakup
         </CardTitle>
         <CardDescription className="flex items-center gap-2">
           <Badge variant="outline" className="text-orange-400 border-orange-400">
@@ -76,7 +76,7 @@ export const CustomerPriceBreakup = ({
         <div className="bg-gradient-to-r from-orange-500/20 to-orange-600/10 rounded-lg p-4 border border-orange-500/30">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-slate-400 text-sm">Total Amount / कुल राशि</p>
+              <p className="text-slate-400 text-sm">Total Amount</p>
               <p className="text-3xl font-bold text-white">
                 ₹{grandTotal.toLocaleString('en-IN')}
               </p>
@@ -106,7 +106,7 @@ export const CustomerPriceBreakup = ({
           >
             <span className="text-white font-medium flex items-center gap-2">
               <Info className="h-4 w-4 text-orange-400" />
-              View Detailed Breakup / विस्तृत विवरण देखें
+              View Detailed Breakup
             </span>
             {isExpanded ? (
               <ChevronUp className="h-5 w-5 text-slate-400" />
@@ -121,7 +121,7 @@ export const CustomerPriceBreakup = ({
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Plane className="h-4 w-4 text-slate-400" />
-                  <span className="text-white">Base Fare / आधार किराया</span>
+                  <span className="text-white">Base Fare</span>
                 </div>
                 <span className="text-white font-medium">₹{basePrice.toLocaleString('en-IN')}</span>
               </div>
@@ -131,7 +131,7 @@ export const CustomerPriceBreakup = ({
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-slate-400" />
-                    <span className="text-slate-300">Landing Charges / लैंडिंग शुल्क</span>
+                    <span className="text-slate-300">Landing Charges</span>
                   </div>
                   <span className="text-slate-300">₹{landingCharges.toLocaleString('en-IN')}</span>
                 </div>
@@ -140,7 +140,7 @@ export const CustomerPriceBreakup = ({
               {/* Handling Charges */}
               {handlingCharges > 0 && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-300">Handling Charges / हैंडलिंग शुल्क</span>
+                  <span className="text-slate-300">Handling Charges</span>
                   <span className="text-slate-300">₹{handlingCharges.toLocaleString('en-IN')}</span>
                 </div>
               )}
@@ -150,7 +150,7 @@ export const CustomerPriceBreakup = ({
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-slate-400" />
-                    <span className="text-slate-300">Crew Charges / क्रू शुल्क</span>
+                    <span className="text-slate-300">Crew Charges</span>
                   </div>
                   <span className="text-slate-300">₹{crewCharges.toLocaleString('en-IN')}</span>
                 </div>
@@ -159,7 +159,7 @@ export const CustomerPriceBreakup = ({
               {/* Fuel Surcharge */}
               {fuelSurcharge > 0 && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-300">Fuel Surcharge / ईंधन अधिभार</span>
+                  <span className="text-slate-300">Fuel Surcharge</span>
                   <span className="text-slate-300">₹{fuelSurcharge.toLocaleString('en-IN')}</span>
                 </div>
               )}
@@ -167,14 +167,14 @@ export const CustomerPriceBreakup = ({
               {/* Other Charges */}
               {otherCharges > 0 && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-300">Other Charges / अन्य शुल्क</span>
+                  <span className="text-slate-300">Other Charges</span>
                   <span className="text-slate-300">₹{otherCharges.toLocaleString('en-IN')}</span>
                 </div>
               )}
               
               {/* Subtotal Line */}
               <div className="border-t border-slate-700 pt-2 flex justify-between items-center">
-                <span className="text-slate-400">Subtotal / उप-योग</span>
+                <span className="text-slate-400">Subtotal</span>
                 <span className="text-white">₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
               
@@ -183,19 +183,19 @@ export const CustomerPriceBreakup = ({
                 <>
                   {discount > 0 && (
                     <div className="flex justify-between items-center text-sm text-green-400">
-                      <span>Discount / छूट</span>
+                      <span>Discount</span>
                       <span>- ₹{discount.toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {voucherDiscount > 0 && (
                     <div className="flex justify-between items-center text-sm text-green-400">
-                      <span>Voucher Discount / वाउचर छूट</span>
+                      <span>Voucher Discount</span>
                       <span>- ₹{voucherDiscount.toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {walletUsed > 0 && (
                     <div className="flex justify-between items-center text-sm text-green-400">
-                      <span>Wallet Used / वॉलेट</span>
+                      <span>Wallet Used</span>
                       <span>- ₹{walletUsed.toLocaleString('en-IN')}</span>
                     </div>
                   )}
@@ -206,7 +206,7 @@ export const CustomerPriceBreakup = ({
               {platformFee > 0 && (
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-300">Service Fee / सेवा शुल्क</span>
+                    <span className="text-slate-300">Service Fee</span>
                     <span className="text-xs text-slate-500">(includes booking & support)</span>
                   </div>
                   <span className="text-slate-300">₹{platformFee.toLocaleString('en-IN')}</span>
@@ -221,7 +221,7 @@ export const CustomerPriceBreakup = ({
               
               {/* Grand Total */}
               <div className="border-t-2 border-orange-500/50 pt-3 flex justify-between items-center">
-                <span className="text-white font-semibold text-lg">Grand Total / कुल राशि</span>
+                <span className="text-white font-semibold text-lg">Grand Total</span>
                 <span className="text-orange-400 font-bold text-xl">₹{grandTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -234,7 +234,7 @@ export const CustomerPriceBreakup = ({
             <Lock className="h-5 w-5 text-blue-400" />
           </div>
           <div className="flex-1">
-            <p className="text-blue-400 font-medium text-sm">Price Lock / मूल्य लॉक</p>
+            <p className="text-blue-400 font-medium text-sm">Price Lock</p>
             <p className="text-slate-400 text-xs">
               Price locked for {priceLockMinutes} minutes. Complete payment to confirm.
             </p>

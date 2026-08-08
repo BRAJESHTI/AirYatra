@@ -168,6 +168,75 @@ class TestExtraCustomerEndpoints:
         assert r.status_code < 500, f"{path} returned {r.status_code}: {r.text[:300]}"
 
 
+# --- Iteration 47 RETEST: verify fixes for critical/minor issues ---
+class TestIteration47Fixes:
+    def test_booking_stats_returns_200(self, session, auth):
+        """FIX 1: booking-stats no longer 500s on inquiries with accepted_quote=None."""
+        r = session.get(f"{BASE_URL}/api/customer/booking-stats", timeout=30)
+        assert r.status_code == 200, f"booking-stats: {r.status_code} {r.text[:400]}"
+        body = r.json()
+        assert isinstance(body, dict)
+
+    def test_payments_transactions_fresh_inquiry_no_500(self, session, auth):
+        """FIX 2: /api/payments/transactions/{inquiry_id} returns 200 for unpaid inquiry."""
+        # Create a fresh inquiry
+        payload = {
+            "aircraft_type": "helicopter", "total_passengers": 1,
+            "adults_male": 1, "adults_female": 0, "children_count": 0,
+            "udan_prakar": "one_way", "booking_for": "self", "booking_purpose": "business",
+            "pickup_pincode": "400001", "pickup_location": "TEST_Mumbai",
+            "pickup_state": "Maharashtra", "pickup_district": "Mumbai",
+            "pickup_latitude": 19.09, "pickup_longitude": 72.87,
+            "drop_pincode": "110001", "drop_location": "TEST_Delhi",
+            "drop_state": "Delhi", "drop_district": "New Delhi",
+            "drop_latitude": 28.55, "drop_longitude": 77.10,
+            "departure_date": "2026-10-01", "pickup_time": "10:00",
+            "distance_km": 1150, "estimated_price": 500000,
+            "special_requirements": f"TEST_i47_{uuid.uuid4().hex[:6]}",
+        }
+        r = session.post(f"{BASE_URL}/api/bookings/inquiry", json=payload, timeout=45)
+        assert r.status_code == 200, r.text[:300]
+        inq_id = r.json()["inquiry_id"]
+
+        r2 = session.get(f"{BASE_URL}/api/payments/transactions/{inq_id}", timeout=30)
+        assert r2.status_code == 200, f"payments/transactions: {r2.status_code} {r2.text[:400]}"
+        # cleanup
+        try:
+            from pymongo import MongoClient
+            benv = dotenv_values("/app/backend/.env")
+            MongoClient(benv["MONGO_URL"])[benv.get("DB_NAME", "airyatra_db")].inquiries.delete_one({"id": inq_id})
+        except Exception:
+            pass
+
+    def test_customer_refunds_200(self, session, auth):
+        """FIX 3: /api/customer/refunds returns 200 (frontend fallback endpoint)."""
+        r = session.get(f"{BASE_URL}/api/customer/refunds", timeout=30)
+        assert r.status_code == 200, f"customer/refunds: {r.status_code} {r.text[:300]}"
+
+    def test_documents_types_customer_allowed(self, session, auth):
+        """FIX 4: GET /api/admin/documents/types?category=customer now allows customer role."""
+        r = session.get(f"{BASE_URL}/api/admin/documents/types?category=customer", timeout=30)
+        assert r.status_code == 200, f"documents/types: {r.status_code} {r.text[:300]}"
+
+    def test_invalid_service_type_rejected(self, session, auth):
+        """FIX 8: POST /api/bookings/inquiry with aircraft_type='rocket' → 400."""
+        payload = {
+            "aircraft_type": "rocket", "total_passengers": 1,
+            "adults_male": 1, "adults_female": 0, "children_count": 0,
+            "udan_prakar": "one_way", "booking_for": "self", "booking_purpose": "business",
+            "pickup_pincode": "400001", "pickup_location": "TEST_M",
+            "pickup_state": "Maharashtra", "pickup_district": "Mumbai",
+            "pickup_latitude": 19.09, "pickup_longitude": 72.87,
+            "drop_pincode": "110001", "drop_location": "TEST_D",
+            "drop_state": "Delhi", "drop_district": "New Delhi",
+            "drop_latitude": 28.55, "drop_longitude": 77.10,
+            "departure_date": "2026-10-01", "pickup_time": "10:00",
+            "distance_km": 1150, "estimated_price": 500000,
+        }
+        r = session.post(f"{BASE_URL}/api/bookings/inquiry", json=payload, timeout=30)
+        assert r.status_code == 400, f"expected 400 for rocket, got {r.status_code}: {r.text[:300]}"
+
+
 # --- Cleanup ---
 @pytest.fixture(scope="module", autouse=True)
 def cleanup(created_inquiry_ids):

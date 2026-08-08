@@ -184,41 +184,41 @@ export const bookingTypes = [
 export const udanPrakarOptions = [
   { value: 'one_hour', label: '1 Hour Flight / 1 घंटे की उड़ान', icon: '⏱️' },
   { value: 'two_hour', label: '2 Hour Flight / 2 घंटे की उड़ान', icon: '⏰' },
-  { value: 'half_day', label: 'Half Day / आधा दिन', icon: '🌤️' },
-  { value: 'full_day', label: 'Full Day / पूरा दिन', icon: '☀️' },
-  { value: 'multi_city', label: 'Multi-City / बहु-शहर', icon: '🗺️' },
-  { value: 'point_to_point', label: 'Point-to-Point / पॉइंट-टू-पॉइंट', icon: '📍' },
+  { value: 'half_day', label: 'Half Day', icon: '🌤️' },
+  { value: 'full_day', label: 'Full Day', icon: '☀️' },
+  { value: 'multi_city', label: 'Multi-City', icon: '🗺️' },
+  { value: 'point_to_point', label: 'Point-to-Point', icon: '📍' },
 ];
 
 // Booking For Options
 export const bookingForOptions = [
-  { value: 'self', label: 'Self / खुद के लिए', icon: '👤' },
-  { value: 'friend_family', label: 'Friend & Family / दोस्त और परिवार', icon: '👨‍👩‍👧' },
-  { value: 'company', label: 'Company / Corporate / कंपनी', icon: '🏢' },
-  { value: 'political', label: 'Political / VIP / राजनीतिक', icon: '🎖️' },
-  { value: 'other', label: 'Other / अन्य', icon: '📝' },
+  { value: 'self', label: 'Self', icon: '👤' },
+  { value: 'friend_family', label: 'Friend & Family', icon: '👨‍👩‍👧' },
+  { value: 'company', label: 'Company / Corporate', icon: '🏢' },
+  { value: 'political', label: 'Political / VIP', icon: '🎖️' },
+  { value: 'other', label: 'Other', icon: '📝' },
 ];
 
 // Booking Purpose Options
 export const bookingPurposeOptions = [
-  { value: 'wedding', label: 'Wedding / शादी', icon: '💒' },
-  { value: 'temple_yatra', label: 'Temple Yatra / मंदिर यात्रा', icon: '🛕' },
-  { value: 'company_tour', label: 'Corporate Tour / कॉर्पोरेट टूर', icon: '🏢' },
-  { value: 'election_tour', label: 'Election Campaign / चुनाव प्रचार', icon: '🗳️' },
-  { value: 'medical_emergency', label: 'Medical Emergency / मेडिकल', icon: '🏥' },
-  { value: 'film_shooting', label: 'Film Shooting / फिल्म शूटिंग', icon: '🎬' },
-  { value: 'general_tour', label: 'General Tour / सामान्य यात्रा', icon: '✈️' },
-  { value: 'pilgrimage', label: 'Pilgrimage / तीर्थ यात्रा', icon: '🙏' },
-  { value: 'business', label: 'Business Meeting / बिज़नेस', icon: '💼' },
-  { value: 'other', label: 'Other / अन्य', icon: '📝' },
+  { value: 'wedding', label: 'Wedding', icon: '💒' },
+  { value: 'temple_yatra', label: 'Temple Yatra', icon: '🛕' },
+  { value: 'company_tour', label: 'Corporate Tour', icon: '🏢' },
+  { value: 'election_tour', label: 'Election Campaign', icon: '🗳️' },
+  { value: 'medical_emergency', label: 'Medical Emergency', icon: '🏥' },
+  { value: 'film_shooting', label: 'Film Shooting', icon: '🎬' },
+  { value: 'general_tour', label: 'General Tour', icon: '✈️' },
+  { value: 'pilgrimage', label: 'Pilgrimage', icon: '🙏' },
+  { value: 'business', label: 'Business Meeting', icon: '💼' },
+  { value: 'other', label: 'Other', icon: '📝' },
 ];
 
 // Booking Steps Configuration
 export const bookingSteps = [
-  { id: 'passengers', title: 'यात्री / Passengers' },
-  { id: 'booking_type', title: 'बुकिंग प्रकार' },
-  { id: 'route', title: 'मार्ग / Route' },
-  { id: 'price_inquiry', title: 'मूल्य / Price' },
+  { id: 'passengers', title: 'Passengers' },
+  { id: 'booking_type', title: 'Booking Type' },
+  { id: 'route', title: 'Route' },
+  { id: 'price_inquiry', title: 'Price' },
 ];
 
 // Udan Prakar Pricing Multipliers
@@ -243,9 +243,9 @@ export const defaultPricingSettings = {
 
 // Village Landing Required Documents
 export const villageLandingDocuments = [
-  { key: 'collector_noc', label: 'Collector NOC / कलेक्टर NOC' },
-  { key: 'fire_dept', label: 'Fire Department Acknowledgment / फायर विभाग की पावती' },
-  { key: 'police_station', label: 'Local Police Station Acknowledgment / स्थानीय थाना की पावती' },
+  { key: 'collector_noc', label: 'Collector NOC' },
+  { key: 'fire_dept', label: 'Fire Department Acknowledgment' },
+  { key: 'police_station', label: 'Local Police Station Acknowledgment' },
   { key: 'sp_dcp', label: 'SP/DCP Acknowledgment / SP/DCP की पावती' },
 ];
 

@@ -78,7 +78,7 @@ async def get_payments_dashboard(
     total_pending = 0.0
     
     for booking in pending_balance_bookings:
-        total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+        total_amount = float((booking.get("accepted_quote") or {}).get("amount") or booking.get("estimated_price") or 0)
         if total_amount <= 0:
             continue
             
@@ -370,7 +370,7 @@ async def export_calendar_ical(
         dep_date = flight.get("departure_date", "")
         dep_time = flight.get("departure_time") or flight.get("pickup_time") or "09:00"
         payment_status = flight.get("payment_status", "pending") or "pending"
-        amount = flight.get("accepted_quote", {}).get("amount") if flight.get("accepted_quote") else flight.get("estimated_price") or 0
+        amount = (flight.get("accepted_quote") or {}).get("amount") if flight.get("accepted_quote") else flight.get("estimated_price") or 0
         
         if not dep_date:
             return []
@@ -458,7 +458,7 @@ async def send_bulk_payment_reminders(
     bookings_to_remind = []
     
     for booking in pending_bookings:
-        total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+        total_amount = float((booking.get("accepted_quote") or {}).get("amount") or booking.get("estimated_price") or 0)
         if total_amount <= 0:
             continue
         
@@ -643,7 +643,7 @@ async def generate_payment_link(
         raise HTTPException(status_code=400, detail="Advance payment not yet done")
     
     # Calculate remaining balance
-    total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+    total_amount = float((booking.get("accepted_quote") or {}).get("amount") or booking.get("estimated_price") or 0)
     txns = await db.payment_transactions.find(
         {"booking_id": booking_id, "payment_status": "paid"},
         {"_id": 0, "amount": 1, "voucher_discount": 1}
@@ -889,7 +889,7 @@ async def send_balance_reminder(
         raise HTTPException(status_code=400, detail="Advance payment not yet done")
     
     # Calculate remaining
-    total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+    total_amount = float((booking.get("accepted_quote") or {}).get("amount") or booking.get("estimated_price") or 0)
     txns = await db.payment_transactions.find(
         {"booking_id": booking_id, "payment_status": "paid"},
         {"_id": 0, "amount": 1, "voucher_discount": 1}
@@ -1050,7 +1050,7 @@ async def export_payments_csv(
         
         total_pending = 0
         for booking in pending_bookings:
-            total_amount = float(booking.get("accepted_quote", {}).get("amount") or booking.get("estimated_price") or 0)
+            total_amount = float((booking.get("accepted_quote") or {}).get("amount") or booking.get("estimated_price") or 0)
             if total_amount <= 0:
                 continue
             

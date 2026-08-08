@@ -203,7 +203,7 @@ function MyTrips({ user }) {
     <div className="max-w-4xl mx-auto" data-testid="my-trips">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white">My Trips</h1>
-        <p className="text-slate-400 mt-1">View and manage your helicopter bookings</p>
+        <p className="text-slate-400 mt-1">View and manage your bookings</p>
       </div>
 
       {/* Pending Quotes Alert */}
