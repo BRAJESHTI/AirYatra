@@ -9,7 +9,7 @@
 | Operator | operator@airyatra.co.in | Operator@123456 | Fleet & booking management (2FA DISABLED) |
 | Pilot | pilot@airyatra.co.in | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
 | Finance/CFO | finance@airyatra.co.in | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
-| Customer | customer@airyatra.co.in | Customer@123 | Demo customer account |
+| Customer | customer@airyatra.com | Customer@123 | Demo customer account, login_shield_bypass enabled |
 | HR | hr@airyatra.co.in | HR@123456 | Priya Sharma, HR Manager |
 | Sales | sales@airyatra.co.in | Sales@123456 | Rahul Kapoor, Sales Manager |
 | Employee | employee@airyatra.co.in | Employee@123 | EMP-0001, HRMS portal |

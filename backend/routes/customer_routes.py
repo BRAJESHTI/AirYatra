@@ -39,8 +39,23 @@ async def get_my_trips(
     for inquiry in inquiries:
         inquiry["source"] = "inquiry"
     
-    # Combine and sort by created_at
-    all_trips = bookings + inquiries
+    # DEDUPE: Prefer bookings over inquiries when same id exists in both
+    seen_ids = set()
+    all_trips = []
+    
+    # First add all bookings (higher priority)
+    for booking in bookings:
+        if booking["id"] not in seen_ids:
+            all_trips.append(booking)
+            seen_ids.add(booking["id"])
+    
+    # Then add inquiries only if not already seen
+    for inquiry in inquiries:
+        if inquiry["id"] not in seen_ids:
+            all_trips.append(inquiry)
+            seen_ids.add(inquiry["id"])
+    
+    # Sort by created_at
     all_trips.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     
     # Enrich with operator and aircraft info
@@ -81,7 +96,13 @@ async def get_my_trips(
             "upcoming_count": len(upcoming),
             "pending_count": len(pending),
             "completed_count": len(completed),
-            "total_spent": sum(t.get("total_amount", 0) for t in completed)
+            "total_spent": sum(
+                t.get("total_amount") or 
+                t.get("final_price") or 
+                t.get("pricing", {}).get("total_amount") or
+                t.get("estimated_price") or 0 
+                for t in completed
+            )
         }
     }
 

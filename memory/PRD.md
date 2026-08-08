@@ -5,6 +5,25 @@
 
 ## Latest Updates (Aug 8, 2026)
 
+### ✅ COMPLETED TODAY (Session 3):
+1. **Test Bookings Seeded for Customer Account**
+   - 3 test bookings: Mumbai→Pune (confirmed), Delhi→Jaipur (completed), Bangalore→Coorg (completed)
+   - Payments linked for each booking
+   - Total Spent: ₹1,009,890
+
+2. **Trips API Dedupe Fix**
+   - Fixed duplicate trips showing (bookings appeared in both collections)
+   - Total Spent now correctly calculated from completed bookings
+   - Proper fallback for pricing fields (total_amount → final_price → pricing.total_amount)
+
+3. **Aircraft Comparison Modal - English Only**
+   - Removed all Hindi text from AircraftCompareModal.js and AircraftComparison.js
+   - Labels: "Safety", "Comfort", "Value" (not Hindi translations)
+
+4. **Accessibility Fix**
+   - Added aria-describedby to PostFlightRating dialog
+   - DialogDescription component for screen readers
+
 ### ✅ COMPLETED TODAY (Session 2):
 1. **Customer Portal Phase 1 Features**
    - **Dynamic Pricing Breakdown Component** - `/components/customer/PricingBreakdown.js`

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { 
   Star, Plane, User, Shield, CreditCard, Heart,
   ThumbsUp, ThumbsDown, Camera, Send, CheckCircle,
@@ -259,12 +259,15 @@ const PostFlightRating = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="rating-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Star className="h-6 w-6 text-amber-400" />
             Rate Your Flight Experience
           </DialogTitle>
+          <DialogDescription id="rating-dialog-description" className="sr-only">
+            Rate your flight experience with star ratings, feedback tags, and an optional review
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
