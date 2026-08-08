@@ -15,35 +15,35 @@ import InvestorInterestSection from '../components/landing/InvestorInterestSecti
 const HERO_SLIDES = [
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1619659085985-f51a00f0160a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHw0fHxsdXh1cnklMjBwcml2YXRlJTIwamV0JTIwY2hhcnRlciUyMGF2aWF0aW9ufGVufDB8fHx8MTc4NTY3MjI4NHww&ixlib=rb-4.1.0&q=85",
+    image: "https://images.unsplash.com/photo-1619659085985-f51a00f0160a?w=1200&q=75&auto=format",
     title: "Premium Charter Flights",
     subtitle: "Experience luxury in the skies with our world-class fleet",
     titleHi: "प्रीमियम चार्टर फ्लाइट्स"
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1474302770737-173ee21bab63?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwzfHxsdXh1cnklMjBwcml2YXRlJTIwamV0JTIwY2hhcnRlciUyMGF2aWF0aW9ufGVufDB8fHx8MTc4NTY3MjI4NHww&ixlib=rb-4.1.0&q=85",
+    image: "https://images.unsplash.com/photo-1474302770737-173ee21bab63?w=1200&q=75&auto=format",
     title: "Private Jet Excellence",
     subtitle: "Your personal aircraft awaits for seamless journeys",
     titleHi: "प्राइवेट जेट एक्सीलेंस"
   },
   {
     id: 3,
-    image: "https://images.unsplash.com/photo-1782865423531-27f6fab92fe8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwyfHxoZWxpY29wdGVyJTIwYWVyaWFsJTIwdG91ciUyMGNpdHlzY2FwZXxlbnwwfHx8fDE3ODU2NzIyODl8MA&ixlib=rb-4.1.0&q=85",
+    image: "https://images.unsplash.com/photo-1782865423531-27f6fab92fe8?w=1200&q=75&auto=format",
     title: "Helicopter Services",
     subtitle: "City tours, transfers & emergency medical services",
     titleHi: "हेलीकॉप्टर सेवाएं"
   },
   {
     id: 4,
-    image: "https://images.unsplash.com/photo-1625513123245-fcb02d69ad12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBwcml2YXRlJTIwamV0JTIwY2hhcnRlciUyMGF2aWF0aW9ufGVufDB8fHx8MTc4NTY3MjI4NHww&ixlib=rb-4.1.0&q=85",
+    image: "https://images.unsplash.com/photo-1625513123245-fcb02d69ad12?w=1200&q=75&auto=format",
     title: "Luxury Interiors",
     subtitle: "Travel in comfort with premium cabin amenities",
     titleHi: "लग्जरी इंटीरियर्स"
   },
   {
     id: 5,
-    image: "https://images.unsplash.com/photo-1661954864180-e61dea14208a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBwcml2YXRlJTIwamV0JTIwY2hhcnRlciUyMGF2aWF0aW9ufGVufDB8fHx8MTc4NTY3MjI4NHww&ixlib=rb-4.1.0&q=85",
+    image: "https://images.unsplash.com/photo-1661954864180-e61dea14208a?w=1200&q=75&auto=format",
     title: "In-Flight Dining",
     subtitle: "Gourmet cuisine served at 40,000 feet",
     titleHi: "इन-फ्लाइट डाइनिंग"

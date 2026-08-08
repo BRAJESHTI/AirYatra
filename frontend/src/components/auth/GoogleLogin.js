@@ -56,17 +56,21 @@ function EmergentAuthCallback({ onLogin }) {
     try {
       // Extract session_id from URL hash (format: #session_id=xxx)
       const hash = window.location.hash;
+      console.log('Auth callback - URL hash:', hash);
+      
       const sessionIdMatch = hash.match(/session_id=([^&]+)/);
       
       if (!sessionIdMatch) {
-        console.error('No session_id found in URL');
+        console.error('No session_id found in URL hash:', hash);
         setStatus('error');
         return;
       }
       
       const sessionId = sessionIdMatch[1];
+      console.log('Extracted session_id:', sessionId);
       
       // Exchange session_id for user data via Emergent API
+      console.log('Calling Emergent API for session data...');
       const response = await fetch('https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data', {
         method: 'GET',
         headers: {
@@ -74,16 +78,22 @@ function EmergentAuthCallback({ onLogin }) {
         }
       });
       
+      console.log('Emergent API response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to exchange session for user data');
+        const errorText = await response.text();
+        console.error('Emergent API error:', errorText);
+        throw new Error(`Failed to exchange session for user data: ${response.status}`);
       }
       
       const emergentUserData = await response.json();
+      console.log('Emergent user data received:', emergentUserData?.email);
       
       // Now call our backend to create/login user
       const deviceInfo = getDeviceInfo();
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
+      console.log('Calling backend:', `${backendUrl}/api/auth/google/emergent-callback`);
       const loginResponse = await fetch(`${backendUrl}/api/auth/google/emergent-callback`, {
         method: 'POST',
         headers: {
@@ -96,8 +106,12 @@ function EmergentAuthCallback({ onLogin }) {
         })
       });
       
+      console.log('Backend response status:', loginResponse.status);
+      
       if (!loginResponse.ok) {
-        throw new Error('Failed to process login');
+        const errorText = await loginResponse.text();
+        console.error('Backend error:', errorText);
+        throw new Error(`Failed to process login: ${loginResponse.status}`);
       }
       
       const loginData = await loginResponse.json();
@@ -119,7 +133,21 @@ function EmergentAuthCallback({ onLogin }) {
       // Redirect based on role
       setTimeout(() => {
         const role = loginData.user.roles?.[0] || 'customer';
-        navigate(`/${role}`);
+        // Role to path mapping
+        const ROLE_HOME_PATH = {
+          customer: '/customer',
+          operator: '/operator',
+          admin: '/admin',
+          super_admin: '/admin',
+          ceo: '/admin?tab=ceo',
+          hr: '/hr',
+          sales: '/sales',
+          finance: '/finance',
+          support: '/support',
+          pilot: '/pilot-portal',
+          employee: '/employee',
+        };
+        navigate(ROLE_HOME_PATH[role] || '/customer');
       }, 1500);
       
     } catch (error) {
