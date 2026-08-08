@@ -42,7 +42,7 @@ class EmailTrackingService:
     def get_tracking_pixel_url(self, tracking_id: str, base_url: str = None) -> str:
         """Generate URL for open tracking pixel"""
         if not base_url:
-            base_url = TRACKING_CONFIG["base_url"] or "https://aviation-erp-2.preview.emergentagent.com"
+            base_url = TRACKING_CONFIG["base_url"] or "https://airyatra-corporate.preview.emergentagent.com"
         
         params = urlencode({"tid": tracking_id, "t": int(datetime.now(timezone.utc).timestamp())})
         return f"{base_url}{TRACKING_CONFIG['pixel_endpoint']}?{params}"
@@ -55,7 +55,7 @@ class EmailTrackingService:
     def wrap_link_for_tracking(self, original_url: str, tracking_id: str, link_id: str = None, base_url: str = None) -> str:
         """Wrap a link for click tracking"""
         if not base_url:
-            base_url = TRACKING_CONFIG["base_url"] or "https://aviation-erp-2.preview.emergentagent.com"
+            base_url = TRACKING_CONFIG["base_url"] or "https://airyatra-corporate.preview.emergentagent.com"
         
         if not link_id:
             link_id = hashlib.md5(original_url.encode()).hexdigest()[:8]

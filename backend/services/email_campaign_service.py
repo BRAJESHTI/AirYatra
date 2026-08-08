@@ -32,7 +32,7 @@ class EmailPreferenceService:
     def get_unsubscribe_url(self, token: str, base_url: str = None) -> str:
         """Generate unsubscribe URL"""
         if not base_url:
-            base_url = "https://aviation-erp-2.preview.emergentagent.com"
+            base_url = "https://airyatra-corporate.preview.emergentagent.com"
         return f"{base_url}/unsubscribe/{token}"
     
     def get_unsubscribe_html(self, token: str, base_url: str = None) -> str:

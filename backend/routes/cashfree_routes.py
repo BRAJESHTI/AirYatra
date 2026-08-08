@@ -84,7 +84,7 @@ async def create_cashfree_order(
     
     # Build return URL
     import os
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://aviation-erp-2.preview.emergentagent.com")
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://airyatra-corporate.preview.emergentagent.com")
     return_url = data.return_url or f"{base_url}/payment/cashfree/result?booking_id={data.booking_id}"
     notify_url = f"{base_url}/api/payments/cashfree/webhook"
     

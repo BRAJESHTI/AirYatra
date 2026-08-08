@@ -292,7 +292,7 @@ class AuctionNotificationService:
                  '<p style="margin: 5px 0;"><strong>Date:</strong> ' + data.get('date', data.get('journey_date', '')) + '</p>' +
                  '</div>' if data.get('origin') else ''}
                 
-                <a href="https://aviation-erp-2.preview.emergentagent.com/auctions" 
+                <a href="https://airyatra-corporate.preview.emergentagent.com/auctions" 
                    style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; 
                           text-decoration: none; border-radius: 6px; margin-top: 20px;">
                     View Auction Details
@@ -346,7 +346,7 @@ class AuctionNotificationService:
                 "origin": auction.get("origin"),
                 "destination": auction.get("destination"),
                 "date": auction.get("journey_date"),
-                "link": f"https://aviation-erp-2.preview.emergentagent.com/auctions/{auction.get('auction_id')}"
+                "link": f"https://airyatra-corporate.preview.emergentagent.com/auctions/{auction.get('auction_id')}"
             }
         )
     

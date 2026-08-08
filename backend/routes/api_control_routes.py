@@ -1826,7 +1826,7 @@ async def send_email_alerts(emails: List[str], alert: dict):
                 </div>
                 <div style="background: #1e293b; padding: 30px; border-radius: 0 0 10px 10px; color: #e2e8f0;">
                     <p style="font-size: 16px; line-height: 1.6;">{alert['message']}</p>
-                    <a href="https://aviation-erp-2.preview.emergentagent.com/admin?tab=api_control_center" 
+                    <a href="https://airyatra-corporate.preview.emergentagent.com/admin?tab=api_control_center" 
                        style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; 
                               text-decoration: none; border-radius: 6px; margin-top: 20px;">
                         View API Control Center

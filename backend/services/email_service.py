@@ -1759,7 +1759,7 @@ class EmailService:
         import os
         
         # Generate unlock URL
-        frontend_url = os.environ.get("FRONTEND_URL", "https://aviation-erp-2.preview.emergentagent.com")
+        frontend_url = os.environ.get("FRONTEND_URL", "https://airyatra-corporate.preview.emergentagent.com")
         unlock_url = f"{frontend_url}/unlock-account?email={to_email}&token={unlock_token}"
         
         data = {

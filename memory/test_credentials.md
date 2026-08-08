@@ -61,7 +61,7 @@ All users can login directly without OTP verification.
 
 **Usage:**
 ```bash
-curl -X POST "https://aviation-erp-2.preview.emergentagent.com/api/auth/dev/quick-admin-token" \
+curl -X POST "https://airyatra-corporate.preview.emergentagent.com/api/auth/dev/quick-admin-token" \
   -H "Content-Type: application/json" \
   -d '{"secret_key": "airyatra-dev-quick-login-2026"}'
 ```

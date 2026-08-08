@@ -213,7 +213,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware - SECURITY: Use specific origins, not '*' in production
 # Set CORS_ORIGINS in .env to restrict allowed origins
-allowed_origins = os.environ.get('CORS_ORIGINS', 'https://aviation-erp-2.preview.emergentagent.com').split(',')
+allowed_origins = os.environ.get('CORS_ORIGINS', 'https://airyatra-corporate.preview.emergentagent.com').split(',')
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

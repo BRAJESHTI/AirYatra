@@ -92,7 +92,7 @@ async def create_paypal_order(
     
     # Build return/cancel URLs
     import os
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://aviation-erp-2.preview.emergentagent.com")
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://airyatra-corporate.preview.emergentagent.com")
     return_url = data.return_url or f"{base_url}/payment/paypal/success?booking_id={data.booking_id}"
     cancel_url = data.cancel_url or f"{base_url}/payment/paypal/cancel?booking_id={data.booking_id}"
     

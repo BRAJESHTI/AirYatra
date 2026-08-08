@@ -86,7 +86,7 @@ async def create_stripe_checkout(
     
     # Get base URL for redirects
     import os
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://aviation-erp-2.preview.emergentagent.com")
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://airyatra-corporate.preview.emergentagent.com")
     
     # Create checkout session
     result = await stripe_service.create_checkout_session(

@@ -35,10 +35,10 @@ print('User ID: ' + userId);
 ### Step 2: Test Backend API
 ```bash
 # Test Google auth settings endpoint
-curl -X GET "https://aviation-erp-2.preview.emergentagent.com/api/auth/google/settings"
+curl -X GET "https://airyatra-corporate.preview.emergentagent.com/api/auth/google/settings"
 
 # Test auth/me endpoint with session
-curl -X GET "https://aviation-erp-2.preview.emergentagent.com/api/auth/me" \
+curl -X GET "https://airyatra-corporate.preview.emergentagent.com/api/auth/me" \
   -H "Authorization: Bearer YOUR_SESSION_TOKEN"
 ```
 
@@ -54,11 +54,11 @@ await page.context.add_cookies([{
     "secure": True,
     "sameSite": "None"
 }])
-await page.goto("https://aviation-erp-2.preview.emergentagent.com/customer")
+await page.goto("https://airyatra-corporate.preview.emergentagent.com/customer")
 ```
 
 ### Step 4: Manual OAuth Flow Test
-1. Go to: https://aviation-erp-2.preview.emergentagent.com/login
+1. Go to: https://airyatra-corporate.preview.emergentagent.com/login
 2. Click "Google से Login करें" button
 3. Should redirect to: https://auth.emergentagent.com/?redirect=...
 4. Complete Google sign-in

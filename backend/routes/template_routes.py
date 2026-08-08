@@ -4519,7 +4519,7 @@ async def send_alert_email(
             
             <!-- CTA -->
             <div class="cta-section">
-                <a href="https://aviation-erp-2.preview.emergentagent.com/admin" class="cta-btn">
+                <a href="https://airyatra-corporate.preview.emergentagent.com/admin" class="cta-btn">
                     View Dashboard →
                 </a>
             </div>
