@@ -41,7 +41,15 @@ export default function MarketplaceResults({ user }) {
   const [auction, setAuction] = useState(null);
   const [auctionLive, setAuctionLive] = useState(null);
   const [accepting, setAccepting] = useState(null);
+  const [tick, setTick] = useState(0);
   const pollRef = useRef(null);
+
+  useEffect(() => {
+    if (!auctionLive || auctionLive.status !== 'active') return;
+    setTick(auctionLive.seconds_left);
+    const t = setInterval(() => setTick((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [auctionLive]);
 
   useEffect(() => {
     const raw = sessionStorage.getItem('marketplace_search');
@@ -317,7 +325,7 @@ export default function MarketplaceResults({ user }) {
               <div className="text-right">
                 {auctionLive?.status === 'active' ? (
                   <>
-                    <CountdownTimer secondsLeft={auctionLive?.seconds_left ?? 0} />
+                    <CountdownTimer secondsLeft={tick} />
                     <p className="text-slate-500 text-xs">time remaining</p>
                   </>
                 ) : (

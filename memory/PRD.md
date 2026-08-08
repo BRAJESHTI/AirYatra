@@ -3,7 +3,26 @@
 
 ---
 
-## Latest Updates (Aug 8, 2026 - Session 4)
+## Latest Updates (Aug 8, 2026 - Session 5)
+
+### ✅ PHASE 1: HYBRID MARKETPLACE BOOKING WORKFLOW (iteration_48, 100% pass — 11/11 pytest + all UI flows)
+New DEFAULT booking experience (old inquiry model kept as secondary option):
+- **Flow**: 4-step wizard → "Find Aircraft & Book Instantly" (gradient CTA, consents required) → /marketplace/results
+- **AI Route & Feasibility Check**: distance (Haversine), flight time by service speed, warnings (heli >800km refuel, yacht weather)
+- **Compare & Book Marketplace** (mode=marketplace): all operators' aircraft cards — image, operator + AirYatra Verified badge, rating+flights, seats, pilot hours, cabin crew, WiFi/oxygen/meals/baggage, base city, ETA to pickup, transparent breakup (Base + Ferry + 5% fee + 18% GST), AI Pick banner (score = 0.5 price + 0.3 rating + 0.2 pilot exp) → Book Now → payable MKT booking (15-min price lock) → existing Stripe payment (50% advance)
+- **AI Smart Repositioning**: per-aircraft ferry charge = base→pickup km × ₹50/km (free ≤25km radius, admin-configurable via repositioning_engine settings)
+- **20-min AI Reverse Auction** (mode=auction when no aircraft/pricing): POST /marketplace/auction/start → operators notified → customer polls /marketplace/auction/{id}/live every 5s (smooth 1s local countdown) → live quotes sorted lowest-first with operator name enrichment → Accept & Pay → payable MKT booking. Auction also offered as optional "compete for lower price" on marketplace results
+- **Backend**: routes/marketplace_routes.py (search, book, auction start/live/accept — server-side price recompute, 403 guards). Fleet: 13 seeded aircraft (mkt-ac-001..013) across all 6 service categories via scripts/seed_marketplace_fleet.py
+- **Files**: MarketplaceResults.js (route /marketplace/results), BookingPage handleMarketplaceSearch, tests/test_marketplace.py (11 tests, reusable regression)
+- NOTE: auction operator quotes get GST added at submission (base×1.18); marketplace path adds fee+GST in _price_option — consistent totals, different composition
+
+### 🔜 PHASE 2 (approved by user, NOT started): Configurable Payment Engine
+- Admin/CEO panel: route-wise / booking-value-wise rules → 50% / 100% advance, No Advance (pay later), Full payment, EMI (activates when Razorpay keys arrive), Customer/Corporate credit limits
+- Razorpay + webhook verification pending user API keys (Stripe TEST working meanwhile)
+
+---
+
+## Session 4 Updates (Aug 8, 2026)
 
 ### ✅ SERVICE CATEGORIES + CUSTOMER PORTAL AUDIT (iterations 46-47, retest 100% pass)
 - **6 Service Categories with images** on Booking Step 1 (bookingConfig.js aircraftTypes): helicopter (Helicopter Charter), chartered_plane (Private Jet), air_ambulance, yacht_cruiser, cargo, joy_ride. Images at /frontend/public/services/*.jpg (AI-generated). serviceTypeMultipliers for pricing (heli 1x, jet 1.5x, ambulance 1.8x, yacht 1.2x, cargo 1.3x, joyride 0.8x). Backend validates via ALLOWED_SERVICE_TYPES (400 on invalid).
