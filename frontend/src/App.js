@@ -231,7 +231,7 @@ function App() {
         />
         <Route
           path="/admin/*"
-          element={user && (user.roles.includes('admin') || user.roles.includes('super_admin')) ? <AdminDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          element={user && (user.roles.includes('admin') || user.roles.includes('super_admin') || user.roles.includes('ceo')) ? <AdminDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route
           path="/regional/*"

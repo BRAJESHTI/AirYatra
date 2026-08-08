@@ -43,10 +43,31 @@ function LoginPage({ setUser }) {
     }
   }, [otpCooldown]);
 
+  // Role to dashboard path mapping
+  const ROLE_HOME_PATH = {
+    customer: '/customer',
+    operator: '/operator',
+    admin: '/admin',
+    super_admin: '/admin',
+    ceo: '/admin?tab=ceo',
+    hr: '/hr',
+    sales: '/sales',
+    finance: '/finance',
+    support: '/support',
+    pilot: '/pilot-portal',
+    employee: '/employee',
+    regional_manager: '/regional',
+    helipad_owner: '/helipad-owner',
+  };
+
+  const getHomePath = (role) => {
+    return ROLE_HOME_PATH[role] || '/customer';
+  };
+
   const handleGoogleSuccess = (data) => {
     setUser(data.user);
     const role = data.user.roles[0];
-    navigate(`/${role}`);
+    navigate(getHomePath(role));
   };
 
   const handleGoogleError = (error) => {
@@ -204,7 +225,7 @@ function LoginPage({ setUser }) {
     setUser(data.user);
     
     const role = data.user.roles[0];
-    navigate(`/${role}`);
+    navigate(getHomePath(role));
   };
 
   const handleOtpChange = (index, value) => {
