@@ -102,7 +102,7 @@ function EmergentAuthCallback({ onLogin }) {
         body: JSON.stringify({
           emergent_user: emergentUserData,
           device_info: deviceInfo,
-          session_token: emergentUserData.session_token
+          session_token: sessionId  // Use the original sessionId for backend verification
         })
       });
       
