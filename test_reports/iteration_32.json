@@ -1,0 +1,47 @@
+{
+  "summary": "End-to-end QA testing on preview URL https://aviation-erp-2.preview.emergentagent.com covering all 9 role logins, sub-page navigation, ASRE Smart Booking, Phone OTP, Google OAuth presence, logout, public pages, and role-based permissions. Previous CEO (/admin?tab=ceo) and Pilot (/pilot-portal) redirect bugs from iteration_31 are FIXED and verified — 9/9 roles now land on their correct dashboards via ROLE_HOME_PATH map in LoginPage.js. New issues found: (1) /customer/carbon returns 404 despite being linked in sidebar, (2) /contact public page returns 404, (3) Phone OTP fails because SMS_MOCK_MODE=false in backend/.env, causing real Twilio calls that error with 'unverified number' for the test phone +919999999999, (4) Invalid-login response returns 429 Too Many Requests instead of 401 (rate limiter/lockout kicks in aggressively; no error alert surfaces in UI, form silently stays on /login).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/phone/send-otp", "issue": "Backend calls real Twilio (SMS_MOCK_MODE=false in backend/.env) → 400 with 'The phone number is unverified. Trial accounts cannot send messages to unverified numbers'. Blocks Phone OTP login testing. Credentials doc says mock OTP 123456 should work — flip SMS_MOCK_MODE=true (or add per-env override) to unblock QA."},
+      {"endpoint": "POST /api/auth/phone/verify-otp", "issue": "Schema uses field name 'otp_code' but frontend sample uses 'otp'. Test client posting {'otp': '123456'} returned 422 'otp_code Field required'. Confirm frontend payload key matches backend Pydantic model."},
+      {"endpoint": "POST /api/auth/login", "issue": "Repeated invalid-password attempts return 429 immediately (rate limit / account lockout) with no 401 seen even after 30-second wait. UI shows no error banner — user experience is a silent no-op. Consider surfacing 429 message and lowering aggressiveness for benign form typos."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CustomerDashboard sidebar item 'Carbon Calculator' → /customer/carbon", "issue": "Route /customer/carbon is NOT declared in App.js (present routes: /customer/trips, /customer/refunds, /customer/auctions, /customer/smart-booking, etc.). Clicking the sidebar item lands on 404 NotFoundPage. The CarbonCalculator component IS imported inside CustomerDashboard.js and referenced in its case-switch but the deep-link route is missing.", "selector": "a[href='/customer/carbon']", "priority": "HIGH"},
+      {"component": "Public route /contact", "issue": "GET /contact renders 404 NotFoundPage. Landing page 'Contact' nav link uses in-page anchor href='#contact', so deep-linking or sharing /contact fails. Add a Route element for /contact OR remove /contact from the review scope.", "selector": "a[href='/contact']", "priority": "MEDIUM"},
+      {"component": "LoginPage invalid credentials", "issue": "Wrong password produces no visible error toast/alert; form silently stays on /login (backend returns 429 due to rate limiter). Users cannot tell login failed. Add explicit error banner rendering for 401 and 429.", "selector": "[role='alert'], .error", "priority": "MEDIUM"},
+      {"component": "AdminDashboard header", "issue": "Persistent red 'CRITICAL SECURITY ALERT — CRITICAL Risk Login Detected-hacker@test.com' banner still shown from previous iteration. Non-dismissible.", "selector": "text=CRITICAL SECURITY ALERT", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Phone OTP login", "issue": "UI 'Send OTP' click posts to /api/auth/phone/send-otp; backend returns 400 (Twilio unverified). No visible error toast in UI — silent failure. Root cause is backend env (SMS_MOCK_MODE=false), but the UI should still surface the error.", "affected_selectors": ["button:has-text('Send OTP')", "[data-testid*='phone']"]},
+      {"flow": "Customer /refunds page load", "issue": "Console: 'Failed to load refunds: AxiosError' and network 403 on refunds resource. Page still renders but with empty data."}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_32.json"],
+  "action_items": [
+    "Add <Route path='/customer/carbon' element={<CarbonCalculator/>} /> (or nested customer route) in App.js so sidebar link doesn't 404.",
+    "Add a public <Route path='/contact' ...> or remove /contact from user-facing tests (currently only #contact anchor exists on landing page).",
+    "Set SMS_MOCK_MODE=true in backend/.env for preview so mock OTP 123456 works, matching /app/memory/test_credentials.md.",
+    "Confirm phone verify-otp payload field name — backend expects 'otp_code'. Ensure frontend sends the same key.",
+    "Show a user-visible error message on LoginPage when POST /api/auth/login returns 401 or 429 (currently silent).",
+    "Investigate 403 on /customer/refunds fetch — either seed the endpoint or handle empty state cleanly.",
+    "Gate/remove the seeded 'hacker@test.com' CRITICAL SECURITY ALERT on AdminDashboard for preview."
+  ],
+  "critical_code_review_comments": [
+    "App.js: sidebar link exists for /customer/carbon but no matching <Route> — dead deep-link. Same class of bug fixed in iteration_31 for CEO. Consider a lint/test that iterates every sidebar item across dashboards and asserts a matching Route exists.",
+    "backend/.env has SMS_MOCK_MODE=false while service default is true and credentials doc promises mock OTP. Env is out of sync with documented QA workflow.",
+    "LoginPage: no error UI branch for 429; only handles generic failure without rendering an alert. Add explicit toast/inline error."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "auth 9/9 pass; phone OTP failing; ~85%", "frontend": "8/9 role dashboards fully clean (customer/carbon 404); public 5/6 (contact 404); ~90%"},
+  "seed_data_creation": "None. Used existing accounts in /app/memory/test_credentials.md.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "All 9 accounts in /app/memory/test_credentials.md authenticated successfully (200). Phone +919999999999 unusable until SMS_MOCK_MODE=true.",
+  "context_for_next_testing_agent": "iteration_31 CEO/Pilot 404 bugs are FIXED (verified 9/9 roles land on correct dashboard). Focus next retest on: (a) /customer/carbon route added and CarbonCalculator renders; (b) /contact public route; (c) SMS_MOCK_MODE=true → send-otp returns 200 with mock_otp:'123456' → verify-otp completes login with token; (d) Login form shows an error alert for wrong password / 429 lockout. Playwright login pattern: fill [data-testid=email-input]+[data-testid=password-input], click [data-testid=submit-btn], wait for URL change. Logout via [data-testid*=logout] works across all dashboards.",
+  "rca_of_the_issue": "1) /customer/carbon 404 — CustomerDashboard sidebar declares path:'/customer/carbon' and renders CarbonCalculator in its tab switch, but App.js has no <Route path='/customer/carbon'>, so React Router falls to the wildcard 404 route. Fix: add the route (or a wildcard /customer/* that delegates to CustomerDashboard). 2) /contact 404 — landing page uses href='#contact' anchor only; a top-level /contact route was never registered. 3) Phone OTP — sms_otp_service.SMS_MOCK_MODE defaults true, but /app/backend/.env explicitly sets SMS_MOCK_MODE=false, forcing real Twilio; trial number restrictions block +919999999999. Flip env to true or use a verified Twilio number for QA."
+}
