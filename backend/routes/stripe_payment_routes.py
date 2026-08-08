@@ -276,10 +276,12 @@ async def apply_wallet_payment(body: WalletApplyRequest, current_user: dict = De
     now = datetime.now(timezone.utc).isoformat()
 
     new_balance = round(balance - amount, 2)
-    await db.wallets.update_one(
-        {"user_id": current_user["id"]},
-        {"$set": {"balance": new_balance}, "$inc": {"total_used": amount}}
+    debit_result = await db.wallets.update_one(
+        {"user_id": current_user["id"], "balance": {"$gte": amount}},
+        {"$inc": {"balance": -amount, "total_used": amount}}
     )
+    if debit_result.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Wallet balance changed, please retry")
     await db.wallet_transactions.insert_one({
         "id": str(uuid4()),
         "user_id": current_user["id"],

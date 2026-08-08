@@ -19,8 +19,12 @@ def _is_staff(user: dict) -> bool:
     return bool(set(user.get("roles", [])).intersection(STAFF_ROLES))
 
 
+def _booking_owner_id(booking: dict):
+    return booking.get("customer_id") or booking.get("user_id")
+
+
 def _check_read_access(booking: dict, user: dict):
-    if booking.get("customer_id") == user.get("id") or _is_staff(user):
+    if _booking_owner_id(booking) == user.get("id") or _is_staff(user):
         return
     raise HTTPException(status_code=403, detail="Not authorized for this booking")
 
@@ -160,7 +164,7 @@ async def update_checklist_item(
     if checklist_type == "aircraft":
         if not _is_staff(current_user):
             raise HTTPException(status_code=403, detail="Only operator/pilot/admin can update aircraft checklist")
-    elif booking.get("customer_id") != current_user.get("id") and not _is_staff(current_user):
+    elif _booking_owner_id(booking) != current_user.get("id") and not _is_staff(current_user):
         raise HTTPException(status_code=403, detail="Only the booking owner can update the passenger checklist")
     checked_by = checked_by or current_user.get("email")
     
@@ -227,7 +231,7 @@ async def submit_checklist(submission: ChecklistSubmission,
     if submission.checklist_type == "aircraft":
         if not _is_staff(current_user):
             raise HTTPException(status_code=403, detail="Only operator/pilot/admin can submit aircraft checklist")
-    elif booking.get("customer_id") != current_user.get("id") and not _is_staff(current_user):
+    elif _booking_owner_id(booking) != current_user.get("id") and not _is_staff(current_user):
         raise HTTPException(status_code=403, detail="Only the booking owner can submit the passenger checklist")
     
     now = datetime.now(timezone.utc)

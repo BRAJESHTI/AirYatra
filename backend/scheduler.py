@@ -857,8 +857,8 @@ async def send_boarding_reminders():
                     continue
 
                 cl = await db.preflight_checklists.find_one(
-                    {"booking_id": booking["id"], "checklist_type": "passenger"}, {"_id": 0})
-                saved = (cl or {}).get("items", {})
+                    {"booking_id": booking["id"], "type": "passenger"}, {"_id": 0})
+                saved = {i.get("item_id"): i for i in (cl or {}).get("items", [])}
                 total = len(PASSENGER_CHECKLIST)
                 checked = sum(1 for it in PASSENGER_CHECKLIST if (saved.get(it["id"]) or {}).get("checked"))
                 pending_required = [it["item"] for it in PASSENGER_CHECKLIST

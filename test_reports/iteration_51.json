@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 51 — verified 3 code-review fixes. FIX 1 (scheduler boarding reminder checklist mismatch): PASS — scheduler.send_boarding_reminders now correctly reads {'type':'passenger','items':[...]} storage shape and builds the item_id→item dict; subject/body show accurate 'Checklist N/12 done' (verified 3/12). FIX 2 (wallet atomic debit): PASS — apply_wallet_payment uses conditional update_one({user_id, balance:$gte:amount}, $inc) with 409 on modified_count==0; 400 when balance is 0; 403 for another customer; wallet balance & total_used atomically updated. FIX 3 (preflight owner fallback + auth guards): PASS — _booking_owner_id() uses customer_id OR user_id fallback across all 3 endpoints; GET returns 401 unauth, 200 owner, 403 other customer; POST update aircraft = 403 customer / 200 operator; POST update passenger = 200 owner. Regression suites all green: payment_gateways 8/8, iter50_payment_rules_preflight 18/18, marketplace 11/11. All seeded/mutated data restored in teardown (wallet, inquiry paytest-inquiry-001, preflight_checklists doc). Payment rules remain default (no rules seeded).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter51_fixes.py",
+    "/app/test_reports/pytest/iter51_results.xml",
+    "/app/test_reports/pytest/iter51_regression_payments.xml",
+    "/app/test_reports/pytest/iter51_regression_iter50.xml",
+    "/app/test_reports/pytest/iter51_regression_marketplace.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "scheduler.py send_boarding_reminders: fix verified — query uses type='passenger' and builds saved={i['item_id']: i for i in cl['items']}, matching the storage shape written by preflight_routes.update_checklist_item. checked count and pending_required now reflect reality.",
+    "stripe_payment_routes.apply_wallet_payment: fix verified — atomic conditional debit prevents race on concurrent apply. new_balance is computed from pre-read balance, but the debit is authoritative via $inc; consistent as long as no other writer concurrently mutates balance in the same slice — acceptable for wallet semantics.",
+    "preflight_routes._booking_owner_id: fallback to user_id is correctly applied in _check_read_access (GET checklist, GET status) and both POST guards (update + submit). All 6 branches exercised."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter51_fixes.py"
+  ],
+  "success_rate": {"backend": "100% (47/47: 10 iter51 + 8 payments + 18 iter50 + 11 marketplace)", "frontend": "N/A (backend-only per request)"},
+  "seed_data_creation": "Temporarily seeded wallet balance=5000 for customer@airyatra.co.in and mutated paytest-inquiry-001 (departure_date=tomorrow-IST, status=confirmed, accepted_quote.amount=20000 if missing) + preflight_checklists.passenger with 3 checked items. All restored on teardown. Payment rules remain default {default_advance_percent:50, payment_rules:[]}.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123, loyaltytest@airyatra.co.in / Loyalty@123, operator@airyatra.co.in / Operator@123456, admin@airyatra.co.in / Admin123! — all worked.",
+  "context_for_next_testing_agent": "New test file /app/backend/tests/test_iter51_fixes.py covers the 3 fixes. It logs in 4 users session-scoped (respect 5/min limit — allow ~65s gap between separate suites). Scheduler test patches scheduler.datetime with a FakeDT class (12:30 UTC = 18:00 IST) and email_service.email_service.send_email via AsyncMock; runs `await connect_to_mongo()` first. All mutations restored in try/finally. To re-run in future, use: `pytest tests/test_iter51_fixes.py -v`.",
+  "rca_of_the_issue": "N/A — all three fixes verified working. No regressions detected."
+}
