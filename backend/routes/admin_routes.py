@@ -391,7 +391,7 @@ async def update_operator_location(operator_id: str, data: dict, user: dict = De
 
 @router.get("/bookings")
 async def get_all_bookings(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])), status: str = None, limit: int = 100):
-    """Get all bookings with optional status filter"""
+    """Get all bookings (bookings + inquiries merged) with customer & operator (aviation company) enrichment"""
     db = get_database()
     
     query = {}
@@ -399,19 +399,61 @@ async def get_all_bookings(user: dict = Depends(require_roles([UserRole.ADMIN, U
         query["status"] = status
     
     bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
-    
-    # Enrich with customer and operator details
+    inquiries = await db.inquiries.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+
+    seen_ids = {b.get("id") for b in bookings}
+    for inq in inquiries:
+        if inq.get("id") in seen_ids:
+            continue
+        inq["booking_number"] = inq.get("booking_number") or inq.get("inquiry_number")
+        inq["from_location"] = inq.get("from_location") or inq.get("pickup_location")
+        inq["to_location"] = inq.get("to_location") or inq.get("drop_location")
+        aq = inq.get("accepted_quote") or {}
+        inq["total_amount"] = inq.get("total_amount") or (aq.get("amount") if isinstance(aq, dict) else None) or inq.get("estimated_price") or 0
+        inq["source"] = "inquiry"
+        bookings.append(inq)
+
+    bookings.sort(key=lambda b: b.get("created_at") or "", reverse=True)
+    bookings = bookings[:limit]
+
+    # Batch enrich customers
+    customer_ids = {b.get("customer_id") for b in bookings if b.get("customer_id")}
+    customers = {}
+    if customer_ids:
+        async for c in db.users.find({"id": {"$in": list(customer_ids)}}, {"_id": 0, "id": 1, "full_name": 1, "email": 1, "phone": 1}):
+            customers[c["id"]] = c
+
+    # Batch enrich operators (aviation company names): operator_id may be operators.id OR users.id
+    operator_ids = set()
+    for b in bookings:
+        aq = b.get("accepted_quote") or {}
+        op_id = b.get("operator_id") or (aq.get("operator_id") if isinstance(aq, dict) else None)
+        if op_id:
+            b["_resolved_operator_id"] = op_id
+            operator_ids.add(op_id)
+    operators = {}
+    if operator_ids:
+        id_list = list(operator_ids)
+        async for op in db.operators.find({"$or": [{"id": {"$in": id_list}}, {"user_id": {"$in": id_list}}]},
+                                          {"_id": 0, "id": 1, "user_id": 1, "company_name": 1}):
+            if op.get("id"):
+                operators[op["id"]] = op.get("company_name")
+            if op.get("user_id"):
+                operators.setdefault(op["user_id"], op.get("company_name"))
+        missing = [i for i in id_list if i not in operators]
+        if missing:
+            async for u in db.users.find({"id": {"$in": missing}}, {"_id": 0, "id": 1, "full_name": 1, "company_name": 1}):
+                operators[u["id"]] = u.get("company_name") or u.get("full_name")
+
     for booking in bookings:
-        customer = await db.users.find_one({"id": booking["customer_id"]}, {"_id": 0})
+        customer = customers.get(booking.get("customer_id"))
         if customer:
-            booking["customer_name"] = customer.get("full_name")
-            booking["customer_email"] = customer.get("email")
-            booking["customer_phone"] = customer.get("phone")
-        
-        if booking.get("operator_id"):
-            operator = await db.operators.find_one({"id": booking["operator_id"]}, {"_id": 0})
-            if operator:
-                booking["operator_name"] = operator.get("company_name")
+            booking["customer_name"] = booking.get("customer_name") or customer.get("full_name")
+            booking["customer_email"] = booking.get("customer_email") or customer.get("email")
+            booking["customer_phone"] = booking.get("customer_phone") or customer.get("phone")
+        op_id = booking.pop("_resolved_operator_id", None)
+        if op_id and operators.get(op_id):
+            booking["operator_name"] = operators[op_id]
     
     return {"bookings": bookings}
 

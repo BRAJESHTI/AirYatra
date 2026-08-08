@@ -5,6 +5,12 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 6)
 
+### ✅ ADMIN BOOKING LIST — AVIATION COMPANY NAME + MERGED DATA (self-tested: curl + screenshot)
+- GET /api/admin/bookings now merges db.bookings + db.inquiries (39 records vs 10 stale before) — all MKT marketplace/auction bookings ab admin list me dikhte hain
+- Operator (aviation company) name enrichment: operator_id OR accepted_quote.operator_id → db.operators.company_name (id/user_id match) → users fallback; batch queries (no N+1)
+- UI (BookingManagement.js): aviation company name shown UNDER booking number (orange + Building2 icon, data-testid booking-operator-{id}) + Operator column + new status badges (payment_pending, quote_accepted, pending_quotes)
+- Inquiries field normalization: booking_number←inquiry_number, from/to←pickup/drop, total_amount←accepted_quote.amount/estimated_price
+
 ### ✅ CODEBASE CLEANUP (Level A + B, all regressions pass: 37/37 pytest + login/dashboard smoke)
 - **Level A (temp/artifacts)**: removed __pycache__, .pytest_cache, .ruff_cache, .screenshots, root testing-agent scripts (backend_test.py, pricing_engine_specific_tests.py), 47 old test_report iterations (kept 48-50), old pytest XMLs + screenshots
 - **Level B (dead code — 24 frontend files + 1 backend route)**: deleted unreferenced components: crm/ folder (CRMStatsCards/LeadsList/LeadModal — CRMDashboard is self-contained), payments/ folder (PaymentMethodSelector, PayPalPaymentButton, CurrencySelector — superseded by gateway UI in PaymentPage), pricing/PriceBreakup, documents/PDFDocumentViewer, analytics/{PredictiveMaintenance, RouteIntelligence, SmartHangarManagement} (UI was unreachable — backend /api/maintenance/ai, /api/analytics/routes, /api/hangar APIs still live), auth/RoleSelectionModal, customer/{BookingStatusTimeline, PaymentCheckout, PricingBreakdown}, shared/{Favorites, GlobalNotificationCenter, LoadingSkeleton, PriceCalculator, VoiceCommandButton}, services/{paymentService, referralService, index}. Backend: routes/payment_routes.py (old MOCK Razorpay /payments/create-order|verify|refund|methods — unused by frontend; real razorpay_routes.py untouched)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Eye, ArrowRightLeft, MapPin, User, Phone, Mail, Copy, Download, Trash2, FileText } from 'lucide-react';
+import { Search, RefreshCw, Eye, ArrowRightLeft, MapPin, User, Phone, Mail, Copy, Download, Trash2, FileText, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -80,6 +80,9 @@ function BookingManagement() {
       completed: 'bg-green-500/20 text-green-400',
       cancelled: 'bg-red-500/20 text-red-400',
       in_progress: 'bg-purple-500/20 text-purple-400',
+      payment_pending: 'bg-orange-500/20 text-orange-400',
+      quote_accepted: 'bg-cyan-500/20 text-cyan-400',
+      pending_quotes: 'bg-yellow-500/20 text-yellow-400',
     };
     return badges[status] || badges.pending;
   };
@@ -155,6 +158,12 @@ function BookingManagement() {
                 <tr key={booking.id} className="bg-slate-900/30 hover:bg-slate-900/50">
                   <td className="px-4 py-4">
                     <span className="text-white font-medium">{booking.booking_number || `#${booking.id?.slice(0, 8)}`}</span>
+                    <p className="text-xs mt-0.5 flex items-center gap-1" data-testid={`booking-operator-${booking.id}`}>
+                      <Building2 className="h-3 w-3 text-orange-400" />
+                      <span className={booking.operator_name ? 'text-orange-300' : 'text-slate-500'}>
+                        {booking.operator_name || 'Unassigned'}
+                      </span>
+                    </p>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1 text-sm">
