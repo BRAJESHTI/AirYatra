@@ -505,6 +505,10 @@ api_router.include_router(carbon_routes.router)
 from routes import report_export_routes
 api_router.include_router(report_export_routes.router)
 
+# ASRE - AI Smart Repositioning Engine
+from routes import asre_routes
+api_router.include_router(asre_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 

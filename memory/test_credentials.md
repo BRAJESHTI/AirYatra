@@ -13,6 +13,20 @@
 ## ⚠️ 2FA/OTP Status: DISABLED (Aug 8, 2026)
 All users can login directly without OTP verification.
 
+## Additional Test Users
+
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Customer | customer@airyatra.com | Customer@123 | Demo customer account |
+| HR | hr@airyatra.com | HR@123456 | Priya Sharma, HR Manager |
+| Sales | sales@airyatra.com | Sales@123456 | Rahul Kapoor, Sales Manager |
+| Loyalty Test | loyaltytest@airyatra.com | Loyalty@123 | Gold BLACK membership |
+| Emergency | emergencytest@airyatra.com | Emergency@123 | Emergency booking test |
+| Employee | employee@airyatra.com | Employee@123 | EMP-0001, HRMS portal |
+| Test Admin | testadmin@airyatra.com | TestAdmin123! | Admin without 2FA |
+| Test Finance | testfinance@airyatra.com | Test123! | Finance without 2FA |
+| VRE Admin | vreadmin@airyatra.com | VREAdmin123! | Verification Rule Engine |
+
 ## Third-Party Services
 
 ### Email (Gmail SMTP)
