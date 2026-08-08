@@ -447,6 +447,12 @@ async def login(request: Request, credentials: UserLogin):
         user_data=user
     )
     
+    # GLOBAL OTP DISABLE: set LOGIN_OTP_ENABLED="true" in .env to re-enable login OTP
+    if os.environ.get("LOGIN_OTP_ENABLED", "true").lower() != "true":
+        requires_otp = False
+        force_otp_by_risk = False
+        reason = "otp_globally_disabled"
+
     # BYPASS CHECK: If user has login_shield_bypass, skip all OTP
     if user.get("login_shield_bypass", False):
         requires_otp = False

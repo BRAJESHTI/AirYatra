@@ -1,0 +1,25 @@
+{
+  "summary": "Verified both bug fixes end-to-end. (1) Destination search on booking wizard step 3 now returns suggestions for 'mumbai' (Chhatrapati Shivaji, Juhu Aerodrome, Kokilaben, Reliance Corporate Park, Pawan Hans, NSCI Dome — matches backend total=8) and 'delhi' (Indira Gandhi, AIIMS Trauma, Fortis Escorts, Safdarjung, IGI Airport T3 — backend total=6); dropdown appears and items are selectable. (2) Login OTP is globally disabled — all 4 roles (customer, admin, operator, ceo) log in with a single POST /api/auth/login (no otp_required in response) and land directly on their respective dashboards with no Security Verification screen. Regression: customer, admin, operator, ceo dashboards render normally, confirming DB_NAME=airyatra_db switch did not break core flows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Booking wizard - Step 3 Route", "issues": ["Departure Date and Pickup Time use browser-native <input type=date>/<time> pickers (mm/dd/yyyy) instead of the shadcn Calendar/Time components used elsewhere in the app — inconsistent UX. Non-blocking."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_43.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LandingPointSelector.handleSearch swallows errors silently (console.error only) — consider surfacing a toast so users know when the search API fails.",
+    "GET /api/landing/public/search returns a mixed shape (legacy landing_points collection docs and newer operator-created docs with different field names such as landing_point_name vs name, rent_per_landing vs rent). Frontend already normalizes on `name`, but consolidating this at the API layer would reduce fragility."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None — used existing seeded landing points and pre-provisioned test accounts.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in/Customer@123, admin@airyatra.co.in/Admin123!, operator@airyatra.co.in/Operator@123456, ceo@airyatra.co.in/CEO@123456",
+  "context_for_next_testing_agent": "Booking flow is a 4-step wizard. To reach the LandingPointSelector (destination search) you MUST advance through Step 1 (select aircraft type Helicopter/Chartered Plane) and Step 2 (select Booking Type card, plus Flight Type + Booking For + Booking Purpose dropdowns) — none of these can be skipped or the wizard blocks progression. The two search inputs (Pickup + Drop) appear only on Step 3 with placeholder 'Search city, airport, helipad... / शहर, एयरपोर्ट खोजें...'. Backend search endpoint returns an object {landing_points:[...], total:N}, NOT a bare array. LOGIN_OTP_ENABLED='false' in backend/.env is what disables OTP globally via auth_routes.py — do NOT flip it.",
+  "rca_of_the_issue": "Bug 1: previous DB_NAME='airyatra' had 0 landing_points, so public search returned an empty landing_points array and the frontend dropdown never opened (renders only when searchResults.length > 0). Fix was flipping DB_NAME to 'airyatra_db' which contains 73 seeded landing points. Bug 2: env var LOGIN_OTP_ENABLED='false' short-circuits the OTP branch in auth_routes.py (~line 450) forcing requires_otp=False for all users, so /api/auth/login always returns access_token directly."
+}
