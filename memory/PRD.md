@@ -5,6 +5,13 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 4)
 
+### ✅ SERVICE CATEGORIES + CUSTOMER PORTAL AUDIT (iterations 46-47, retest 100% pass)
+- **6 Service Categories with images** on Booking Step 1 (bookingConfig.js aircraftTypes): helicopter (Helicopter Charter), chartered_plane (Private Jet), air_ambulance, yacht_cruiser, cargo, joy_ride. Images at /frontend/public/services/*.jpg (AI-generated). serviceTypeMultipliers for pricing (heli 1x, jet 1.5x, ambulance 1.8x, yacht 1.2x, cargo 1.3x, joyride 0.8x). Backend validates via ALLOWED_SERVICE_TYPES (400 on invalid).
+- **Critical fixes**: (a) `dict.get('accepted_quote', {})` None-crash anti-pattern fixed in 13 places (customer/admin_payments/operator/stripe/pricing routes) — /api/customer/booking-stats & /api/payments/transactions no longer 500; (b) /api/admin/documents/types now allows customer+pilot roles; (c) RefundHistory.js calls /api/customer/refunds directly (no 403/404); (d) inquiry email subject Jinja2-fixed with service_label mapping.
+- **UI fixes**: InquiryStatus.js SERVICE_INFO map + humanize() (no more 'Plane' fallback, raw point_to_point/business values); MyTrips subtitle service-agnostic; helicopter.jpg replaced with real helicopter photo; 'Submit Inquiry' CTA (en.js).
+- **Full English cleanup**: BookingPage steps 1-4 (consents, referral/promo, wallet), LandingPointSelector, CustomerPriceBreakup, bookingSteps titles — 63 bilingual strings stripped. labelHi/descriptionHi data fields remain in config but are NOT rendered.
+- Backend pytest 28/28, frontend all flows verified (iteration_47).
+
 ### ✅ CORPORATE PORTAL COMPLETE (iteration_45, 100% pass)
 - **Approval Email Alerts** (Aug 8, later): On pending booking creation, BackgroundTask emails ALL approvers (corporate admin_email + active employees with admin/manager/approver role) via Gmail SMTP. Branded HTML email with booking details + one-click APPROVE/REJECT buttons. Links hit GET /api/corporate/approvals/email-action?token=X&action=approve|reject&by=email — token-guarded (secrets.token_urlsafe(32) stored as email_action_token on approval doc), single-use (Already Processed page on 2nd click), 404 on invalid token. Returns branded HTML confirmation pages. Shared _finalize_approval() helper used by both dashboard action + email action (syncs booking status + spend counters). alert_emails_sent tracked on approval doc. Uses FRONTEND_URL from backend/.env. Self-tested via curl: 2 emails sent, approve link confirmed booking, idempotent guard OK, dashboard action regression OK.
 - **My Account Resolution**: GET /api/corporate/my-account (auth) — resolves corporate by admin_email or corporate_employees email; returns employee_code + corp_role

@@ -26,20 +26,11 @@ export default function RefundHistory({ userId }) {
   const loadRefunds = async () => {
     setLoading(true);
     try {
-      // For customers, this would be filtered by user ID on backend
-      const res = await api.get('/refunds/admin/list?limit=100');
-      if (res.data.success) {
-        setRefunds(res.data.refunds || []);
-      }
+      const res = await api.get('/customer/refunds');
+      setRefunds(res.data.refunds || []);
     } catch (err) {
       console.error('Failed to load refunds:', err);
-      // Try customer endpoint if admin fails
-      try {
-        const res = await api.get('/customer/refunds');
-        setRefunds(res.data.refunds || []);
-      } catch {
-        toast.error('Failed to load refund history');
-      }
+      toast.error('Failed to load refund history');
     }
     setLoading(false);
   };
