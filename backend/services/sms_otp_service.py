@@ -61,21 +61,26 @@ class SMSOTPService:
         
         return phone
     
-    async def send_otp(self, phone: str) -> Dict[str, Any]:
+    async def send_otp(self, phone: str, purpose: str = "login") -> Dict[str, Any]:
         """
         Send OTP to phone number
         
         Args:
             phone: Phone number (will be formatted to E.164)
+            purpose: "login" or "password_reset"
             
         Returns:
             Dict with success status and details
         """
         formatted_phone = self._format_phone(phone)
         
+        # Create a unique key for this OTP based on purpose
+        otp_key = f"{formatted_phone}:{purpose}"
+        
         result = {
             "success": False,
             "phone": formatted_phone,
+            "purpose": purpose,
             "mock_mode": self.mock_mode,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -83,7 +88,7 @@ class SMSOTPService:
         if self.mock_mode:
             # Mock mode - generate fixed OTP
             mock_otp = "123456"
-            MOCK_OTP_STORE[formatted_phone] = mock_otp
+            MOCK_OTP_STORE[otp_key] = mock_otp
             
             result["success"] = True
             result["status"] = "pending"
@@ -91,7 +96,7 @@ class SMSOTPService:
             result["message_hi"] = f"OTP भेजा गया: {formatted_phone}"
             result["mock_otp"] = mock_otp  # Only in mock mode!
             
-            logger.info(f"[MOCK] SMS OTP sent to {formatted_phone}: {mock_otp}")
+            logger.info(f"[MOCK] SMS OTP ({purpose}) sent to {formatted_phone}: {mock_otp}")
             return result
         
         # Real Twilio Verify
@@ -181,29 +186,32 @@ class SMSOTPService:
                 "phone": phone
             }
     
-    async def verify_otp(self, phone: str, code: str) -> Dict[str, Any]:
+    async def verify_otp(self, phone: str, code: str, purpose: str = "login") -> Dict[str, Any]:
         """
         Verify OTP code
         
         Args:
             phone: Phone number
             code: OTP code entered by user
+            purpose: "login" or "password_reset"
             
         Returns:
             Dict with verification result
         """
         formatted_phone = self._format_phone(phone)
+        otp_key = f"{formatted_phone}:{purpose}"
         
         result = {
             "success": False,
             "phone": formatted_phone,
+            "purpose": purpose,
             "mock_mode": self.mock_mode,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         if self.mock_mode:
-            # Mock mode verification
-            stored_otp = MOCK_OTP_STORE.get(formatted_phone)
+            # Mock mode verification - try purpose-specific key first, then fallback
+            stored_otp = MOCK_OTP_STORE.get(otp_key) or MOCK_OTP_STORE.get(formatted_phone)
             
             if stored_otp and stored_otp == code:
                 result["success"] = True
@@ -212,6 +220,7 @@ class SMSOTPService:
                 result["message"] = "Phone verified successfully"
                 result["message_hi"] = "फोन सत्यापित हो गया"
                 # Clear OTP after use
+                MOCK_OTP_STORE.pop(otp_key, None)
                 MOCK_OTP_STORE.pop(formatted_phone, None)
             else:
                 result["valid"] = False

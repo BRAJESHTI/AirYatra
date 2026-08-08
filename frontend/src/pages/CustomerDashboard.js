@@ -31,59 +31,59 @@ import CarbonCalculator from '../components/customer/CarbonCalculator';
 import ASREBookingWidget from '../components/customer/ASREBookingWidget';
 import { Zap } from 'lucide-react';
 
-// Organized Navigation Structure - 4 Main Categories
+// Organized Navigation Structure - 4 Main Categories (English Only)
 const navGroups = [
   {
     id: 'main',
-    label: 'Main / मुख्य',
+    label: 'Main',
     icon: Home,
     items: [
       { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
-      { id: 'smart-booking', label: 'Smart Booking / स्मार्ट बुकिंग', icon: Zap, path: '/customer/smart-booking', highlight: true },
-      { id: 'trips', label: 'My Trips / मेरी यात्राएं', icon: MapPin, path: '/customer/trips', highlight: true },
-      { id: 'compare', label: 'Compare Aircraft / तुलना करें', icon: Scale, path: '/customer/compare', highlight: true },
-      { id: 'stats', label: 'My Stats / मेरे आंकड़े', icon: PieChart, path: '/customer/stats', highlight: true },
-      { id: 'price-trends', label: 'Price Trends / कीमत रुझान', icon: TrendingUp, path: '/customer/price-trends', highlight: true },
-      { id: 'route-suggestions', label: 'Route Ideas / मार्ग सुझाव', icon: Sparkles, path: '/customer/route-suggestions', highlight: true },
-      { id: 'carbon', label: 'Carbon Calculator / कार्बन', icon: Leaf, path: '/customer/carbon', highlight: true },
-      { id: 'booking', label: 'New Booking / नई बुकिंग', icon: Calendar, path: '/booking', external: true, highlight: true },
-      { id: 'auctions', label: 'Live Auctions / लाइव नीलामी', icon: Gavel, path: '/customer/auctions', highlight: true },
-      { id: 'mylistings', label: 'My Aircraft / मेरे विमान', icon: Plane, path: '/customer/listings' },
-      { id: 'watchlist', label: 'My Watchlist / वॉचलिस्ट', icon: Bell, path: '/customer/watchlist' },
+      { id: 'smart-booking', label: 'Smart Booking', icon: Zap, path: '/customer/smart-booking', highlight: true },
+      { id: 'trips', label: 'My Trips', icon: MapPin, path: '/customer/trips', highlight: true },
+      { id: 'compare', label: 'Compare Aircraft', icon: Scale, path: '/customer/compare', highlight: true },
+      { id: 'stats', label: 'My Stats', icon: PieChart, path: '/customer/stats', highlight: true },
+      { id: 'price-trends', label: 'Price Trends', icon: TrendingUp, path: '/customer/price-trends', highlight: true },
+      { id: 'route-suggestions', label: 'Route Ideas', icon: Sparkles, path: '/customer/route-suggestions', highlight: true },
+      { id: 'carbon', label: 'Carbon Calculator', icon: Leaf, path: '/customer/carbon', highlight: true },
+      { id: 'booking', label: 'New Booking', icon: Calendar, path: '/booking', external: true, highlight: true },
+      { id: 'auctions', label: 'Live Auctions', icon: Gavel, path: '/customer/auctions', highlight: true },
+      { id: 'mylistings', label: 'My Aircraft', icon: Plane, path: '/customer/listings' },
+      { id: 'watchlist', label: 'My Watchlist', icon: Bell, path: '/customer/watchlist' },
     ]
   },
   {
     id: 'rewards',
-    label: 'Rewards & Offers / पुरस्कार',
+    label: 'Rewards & Offers',
     icon: Gift,
     items: [
-      { id: 'payments', label: 'Payment History / भुगतान', icon: CreditCard, path: '/customer/payments', highlight: true },
-      { id: 'refunds', label: 'Refund History / रिफंड', icon: Wallet, path: '/customer/refunds', highlight: true },
-      { id: 'refer', label: 'Refer & Earn / रेफर करें', icon: Gift, path: '/customer/refer' },
-      { id: 'investments', label: 'My Investments / मेरा निवेश', icon: PieChart, path: '/customer/investments' },
-      { id: 'wallet', label: 'My Wallet / वॉलेट', icon: Wallet, path: '/customer/wallet' },
-      { id: 'loyalty', label: 'VIP Points / वीआईपी', icon: Star, path: '/customer/loyalty' },
+      { id: 'payments', label: 'Payment History', icon: CreditCard, path: '/customer/payments', highlight: true },
+      { id: 'refunds', label: 'Refund History', icon: Wallet, path: '/customer/refunds', highlight: true },
+      { id: 'refer', label: 'Refer & Earn', icon: Gift, path: '/customer/refer' },
+      { id: 'investments', label: 'My Investments', icon: PieChart, path: '/customer/investments' },
+      { id: 'wallet', label: 'My Wallet', icon: Wallet, path: '/customer/wallet' },
+      { id: 'loyalty', label: 'VIP Points', icon: Star, path: '/customer/loyalty' },
     ]
   },
   {
     id: 'support',
-    label: 'Support / सहायता',
+    label: 'Support',
     icon: HelpCircle,
     items: [
-      { id: 'complaints', label: 'My Complaints / शिकायतें', icon: Flag, path: '/customer/complaints', highlight: true },
-      { id: 'messages', label: 'Messages / संदेश', icon: MessageSquare, path: '/customer/messages' },
-      { id: 'help', label: 'Help Center / मदद', icon: HelpCircle, path: '/customer/help' },
+      { id: 'complaints', label: 'My Complaints', icon: Flag, path: '/customer/complaints', highlight: true },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/customer/messages' },
+      { id: 'help', label: 'Help Center', icon: HelpCircle, path: '/customer/help' },
     ]
   },
   {
     id: 'account',
-    label: 'Account / खाता',
+    label: 'Account',
     icon: User,
     items: [
-      { id: 'profile', label: 'Profile / प्रोफाइल', icon: User, path: '/customer/profile' },
-      { id: 'kyc', label: 'KYC Documents / केवाईसी', icon: Shield, path: '/customer/kyc', highlight: true },
-      { id: 'security', label: 'Security / सुरक्षा', icon: Shield, path: '/customer/security' },
-      { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings, path: '/customer/settings' },
+      { id: 'profile', label: 'Profile', icon: User, path: '/customer/profile' },
+      { id: 'kyc', label: 'KYC Documents', icon: Shield, path: '/customer/kyc', highlight: true },
+      { id: 'security', label: 'Security', icon: Shield, path: '/customer/security' },
+      { id: 'settings', label: 'Settings', icon: Settings, path: '/customer/settings' },
     ]
   },
 ];
@@ -218,47 +218,95 @@ function CustomerDashboard({ user, onLogout }) {
       default:
         return (
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-2" data-testid="page-title">Welcome Back! / स्वागत है!</h1>
-            <p className="text-slate-400 mb-8">{user.full_name}</p>
+            {/* Welcome Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1" data-testid="page-title">
+                  Welcome Back, {user.full_name?.split(' ')[0] || 'User'}!
+                </h1>
+                <p className="text-slate-400">Manage your flights and bookings</p>
+              </div>
+              {/* Mobile: Book Now + Login visible at top */}
+              <div className="flex gap-3 mt-4 sm:mt-0">
+                <Link to="/booking">
+                  <Button className="bg-orange-500 hover:bg-orange-600" data-testid="header-book-btn">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Book Now
+                  </Button>
+                </Link>
+              </div>
+            </div>
 
             {/* Quick Stats */}
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-                <div className="text-slate-400 text-sm uppercase mb-2">Total Bookings / कुल बुकिंग</div>
-                <div className="text-3xl font-bold text-white" data-testid="total-bookings">{bookings.length}</div>
+            <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-8">
+              <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 p-4 sm:p-6 rounded-xl border border-blue-500/30">
+                <div className="text-slate-400 text-xs sm:text-sm uppercase mb-2">Total Bookings</div>
+                <div className="text-2xl sm:text-3xl font-bold text-white" data-testid="total-bookings">{bookings.length}</div>
               </div>
-              <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-                <div className="text-slate-400 text-sm uppercase mb-2">Pending / लंबित</div>
-                <div className="text-3xl font-bold text-orange-500" data-testid="pending-bookings">
+              <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 p-4 sm:p-6 rounded-xl border border-orange-500/30">
+                <div className="text-slate-400 text-xs sm:text-sm uppercase mb-2">Pending</div>
+                <div className="text-2xl sm:text-3xl font-bold text-orange-400" data-testid="pending-bookings">
                   {bookings.filter(b => b.status === 'pending_quotes' || b.status === 'quotes_received').length}
                 </div>
               </div>
-              <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-                <div className="text-slate-400 text-sm uppercase mb-2">Completed / पूर्ण</div>
-                <div className="text-3xl font-bold text-green-500" data-testid="completed-bookings">
+              <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 p-4 sm:p-6 rounded-xl border border-green-500/30">
+                <div className="text-slate-400 text-xs sm:text-sm uppercase mb-2">Completed</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-400" data-testid="completed-bookings">
                   {bookings.filter(b => b.status === 'completed').length}
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <Link to="/booking" className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all">
-                <Calendar className="h-8 w-8 text-white mb-3" />
-                <h3 className="text-xl font-bold text-white mb-1">Book a Flight / फ्लाइट बुक करें</h3>
-                <p className="text-orange-100">Charter your private jet or helicopter</p>
+            {/* Quick Actions - Larger CTAs */}
+            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
+              <Link to="/booking" className="group bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all transform hover:scale-[1.02]">
+                <Calendar className="h-8 w-8 text-white mb-3 group-hover:scale-110 transition-transform" />
+                <h3 className="text-xl font-bold text-white mb-1">Book a Flight</h3>
+                <p className="text-orange-100 text-sm">Charter your private jet or helicopter</p>
               </Link>
-              <button onClick={() => { setActiveTab('trips'); navigate('/customer/trips'); }} className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 hover:bg-slate-700/50 transition-all text-left">
-                <MapPin className="h-8 w-8 text-blue-400 mb-3" />
-                <h3 className="text-xl font-bold text-white mb-1">View My Trips / यात्राएं देखें</h3>
-                <p className="text-slate-400">Track and manage your bookings</p>
+              <button onClick={() => { setActiveTab('trips'); navigate('/customer/trips'); }} className="group bg-slate-800/50 p-6 rounded-xl border border-slate-700 hover:bg-slate-700/50 hover:border-blue-500/50 transition-all text-left transform hover:scale-[1.02]">
+                <MapPin className="h-8 w-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h3 className="text-xl font-bold text-white mb-1">View My Trips</h3>
+                <p className="text-slate-400 text-sm">Track and manage your bookings</p>
+              </button>
+            </div>
+
+            {/* Quick Access Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              <button 
+                onClick={() => { setActiveTab('payments'); navigate('/customer/payments'); }}
+                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-orange-500/50 transition-all text-center"
+              >
+                <CreditCard className="h-6 w-6 text-orange-400 mx-auto mb-2" />
+                <span className="text-sm text-white">Payments</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('smart-booking'); navigate('/customer/smart-booking'); }}
+                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-yellow-500/50 transition-all text-center"
+              >
+                <Zap className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
+                <span className="text-sm text-white">Smart Booking</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('auctions'); navigate('/customer/auctions'); }}
+                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-purple-500/50 transition-all text-center"
+              >
+                <Gavel className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+                <span className="text-sm text-white">Auctions</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('loyalty'); navigate('/customer/loyalty'); }}
+                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-amber-500/50 transition-all text-center"
+              >
+                <Star className="h-6 w-6 text-amber-400 mx-auto mb-2" />
+                <span className="text-sm text-white">VIP Points</span>
               </button>
             </div>
 
             {/* Recent Bookings */}
             <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white">Recent Bookings / हाल की बुकिंग</h2>
+                <h2 className="text-xl font-bold text-white">Recent Bookings</h2>
                 <Button 
                   variant="outline" 
                   className="border-orange-500 text-orange-400 hover:bg-orange-500/10"
@@ -272,7 +320,7 @@ function CustomerDashboard({ user, onLogout }) {
               ) : bookings.length === 0 ? (
                 <div className="text-center py-12">
                   <Plane className="h-16 w-16 mx-auto text-slate-600 mb-4" />
-                  <p className="text-slate-400 mb-4">No bookings yet / अभी कोई बुकिंग नहीं</p>
+                  <p className="text-slate-400 mb-4">No bookings yet</p>
                   <Link to="/booking">
                     <Button className="bg-orange-500 hover:bg-orange-600" data-testid="create-first-booking-btn">
                       Create Your First Booking
@@ -300,7 +348,7 @@ function CustomerDashboard({ user, onLogout }) {
                         }] : [])
                       ]}
                     >
-                      <div className="bg-slate-900/50 p-4 border border-slate-700" data-testid={`booking-${booking.id}`}>
+                      <div className="bg-slate-900/50 p-4 border border-slate-700 hover:border-slate-600 transition-colors" data-testid={`booking-${booking.id}`}>
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="font-semibold text-white">{booking.booking_number}</div>
@@ -308,7 +356,7 @@ function CustomerDashboard({ user, onLogout }) {
                               {booking.from_location} → {booking.to_location}
                             </div>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs ${
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             booking.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                             booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
                             'bg-orange-500/20 text-orange-400'
@@ -317,7 +365,7 @@ function CustomerDashboard({ user, onLogout }) {
                           </span>
                         </div>
                         {/* Mobile swipe hint */}
-                        <p className="text-xs text-slate-500 mt-2 sm:hidden">← Swipe for actions</p>
+                        <p className="text-xs text-slate-500 mt-2 sm:hidden">Swipe left for actions</p>
                       </div>
                     </SwipeableCard>
                   ))}

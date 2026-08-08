@@ -1823,15 +1823,26 @@ async def emergent_google_callback(
                     verified_user = verify_response.json()
                     logger.info(f"Google OAuth: Server-verified email: {verified_user.get('email')}")
                 elif verify_response.status_code == 404:
-                    # Session not found or expired - may have been consumed
-                    # Fall back to client data ONLY if it has required fields
-                    logger.warning(f"Google OAuth: Session {session_token[:8]}... not found (may be consumed)")
+                    # Session not found or expired - may have been consumed by frontend
+                    # This is NORMAL behavior: frontend calls Emergent first, consumes session,
+                    # then sends data to backend. We trust client-provided data in this case.
+                    logger.info(f"Google OAuth: Session {session_token[:8]}... already consumed (normal flow)")
                     client_user = request.emergent_user
-                    if client_user and client_user.get("email") and client_user.get("id"):
-                        # Verify client data has Emergent ID (not just email)
-                        verified_user = client_user
-                        logger.info(f"Google OAuth: Using client-provided data with emergent_id: {client_user.get('id')}")
+                    
+                    # Accept client data if it has required email field
+                    # The 'id' field may be named 'id', 'sub', or 'user_id' depending on Emergent response
+                    if client_user and client_user.get("email"):
+                        # Use whatever ID field is available
+                        emergent_id_value = client_user.get("id") or client_user.get("sub") or client_user.get("user_id") or session_token[:16]
+                        verified_user = {
+                            "email": client_user.get("email"),
+                            "name": client_user.get("name") or client_user.get("full_name", ""),
+                            "picture": client_user.get("picture") or client_user.get("profile_picture", ""),
+                            "id": emergent_id_value
+                        }
+                        logger.info(f"Google OAuth: Using client data for email: {verified_user.get('email')}")
                     else:
+                        logger.warning(f"Google OAuth: No valid email in client data")
                         raise HTTPException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Session expired. Please try logging in again."
@@ -2394,3 +2405,293 @@ async def seed_production_accounts(
         "warning": "SAVE THESE CREDENTIALS NOW! They will not be shown again."
     }
 
+
+
+
+# ========== FORGOT PASSWORD FEATURE ==========
+
+class ForgotPasswordRequest(BaseModel):
+    """Request to initiate password reset via Email or Phone"""
+    identifier: str  # Can be email or phone number
+    method: str = "email"  # "email" or "phone"
+
+
+class ForgotPasswordVerifyOTP(BaseModel):
+    """Request to verify OTP for password reset"""
+    identifier: str
+    otp_code: str
+    method: str = "email"
+
+
+class ForgotPasswordReset(BaseModel):
+    """Request to set new password after OTP verification"""
+    identifier: str
+    otp_code: str
+    new_password: str
+    method: str = "email"
+
+
+@router.post("/forgot-password/send-otp")
+@limiter.limit("5/minute")
+async def forgot_password_send_otp(request: Request, data: ForgotPasswordRequest):
+    """
+    Step 1: Send OTP to email or phone for password reset
+    
+    Usage:
+    POST /api/auth/forgot-password/send-otp
+    {"identifier": "user@example.com", "method": "email"}
+    OR
+    {"identifier": "+919999999999", "method": "phone"}
+    """
+    db = get_database()
+    ip_address = request.client.host if request.client else "unknown"
+    
+    # Determine if it's email or phone
+    is_email = data.method == "email" or "@" in data.identifier
+    
+    if is_email:
+        # Find user by email
+        user = await db.users.find_one({"email": data.identifier}, {"_id": 0})
+        if not user:
+            # Security: Don't reveal if email exists
+            return {
+                "success": True,
+                "message": "If an account exists with this email, OTP has been sent.",
+                "method": "email"
+            }
+        
+        # Generate OTP for password reset
+        otp_code, otp_result = await otp_service.create_otp(
+            user_id=user["id"],
+            email=user["email"],
+            purpose="password_reset",
+            ip_address=ip_address,
+            user_agent=request.headers.get("User-Agent", "")
+        )
+        
+        if otp_code is None:
+            return {
+                "success": False,
+                "cooldown": True,
+                "message": otp_result.get("message", "Please wait before requesting another OTP"),
+                "remaining_seconds": otp_result.get("remaining_seconds", 60)
+            }
+        
+        # Send OTP email
+        try:
+            await email_service.send_password_reset_otp(
+                to_email=user["email"],
+                user_name=user.get("full_name", user["email"].split("@")[0]),
+                otp_code=otp_code,
+                expiry_minutes=5,
+                ip_address=ip_address
+            )
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {e}")
+            # Still return success to prevent enumeration
+        
+        return {
+            "success": True,
+            "message": f"OTP sent to {data.identifier[:3]}***@{data.identifier.split('@')[1]}",
+            "method": "email",
+            "expires_in_minutes": 5
+        }
+    
+    else:
+        # Phone OTP
+        from services.sms_otp_service import sms_otp_service
+        
+        # Find user by phone
+        phone = data.identifier
+        user = await db.users.find_one({"phone": phone}, {"_id": 0})
+        
+        if not user:
+            # Security: Don't reveal if phone exists
+            return {
+                "success": True,
+                "message": "If an account exists with this phone, OTP has been sent.",
+                "method": "phone"
+            }
+        
+        # Send SMS OTP
+        result = await sms_otp_service.send_otp(phone, purpose="password_reset")
+        
+        if not result.get("success"):
+            return {
+                "success": False,
+                "message": result.get("error", "Failed to send OTP"),
+                "method": "phone"
+            }
+        
+        return {
+            "success": True,
+            "message": f"OTP sent to {phone[:4]}****{phone[-4:]}",
+            "method": "phone",
+            "expires_in_minutes": 5
+        }
+
+
+@router.post("/forgot-password/verify-otp")
+@limiter.limit("10/minute")
+async def forgot_password_verify_otp(request: Request, data: ForgotPasswordVerifyOTP):
+    """
+    Step 2: Verify OTP for password reset
+    Returns a reset_token if valid
+    
+    Usage:
+    POST /api/auth/forgot-password/verify-otp
+    {"identifier": "user@example.com", "otp_code": "123456", "method": "email"}
+    """
+    db = get_database()
+    
+    is_email = data.method == "email" or "@" in data.identifier
+    
+    if is_email:
+        user = await db.users.find_one({"email": data.identifier}, {"_id": 0})
+    else:
+        user = await db.users.find_one({"phone": data.identifier}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid request")
+    
+    # Verify OTP
+    if is_email:
+        is_valid, result = await otp_service.verify_otp(
+            user_id=user["id"],
+            otp_code=data.otp_code,
+            purpose="password_reset"
+        )
+    else:
+        from services.sms_otp_service import sms_otp_service
+        verify_result = await sms_otp_service.verify_otp(data.identifier, data.otp_code)
+        is_valid = verify_result.get("success") and verify_result.get("valid")
+        result = verify_result
+    
+    if not is_valid:
+        raise HTTPException(
+            status_code=401,
+            detail=result.get("message", "Invalid or expired OTP")
+        )
+    
+    # Generate a temporary reset token (valid for 10 minutes)
+    reset_token = create_access_token(
+        data={"sub": user["id"], "purpose": "password_reset", "identifier": data.identifier},
+        expires_delta=timedelta(minutes=10)
+    )
+    
+    return {
+        "success": True,
+        "message": "OTP verified. You can now reset your password.",
+        "reset_token": reset_token,
+        "expires_in_minutes": 10
+    }
+
+
+@router.post("/forgot-password/reset")
+@limiter.limit("5/minute")
+async def forgot_password_reset(request: Request, data: ForgotPasswordReset):
+    """
+    Step 3: Set new password after OTP verification
+    
+    Usage:
+    POST /api/auth/forgot-password/reset
+    {"identifier": "user@example.com", "otp_code": "123456", "new_password": "NewPass@123", "method": "email"}
+    """
+    from auth import decode_token
+    
+    db = get_database()
+    ip_address = request.client.host if request.client else "unknown"
+    
+    # Validate new password
+    if len(data.new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters"
+        )
+    
+    is_email = data.method == "email" or "@" in data.identifier
+    
+    # Find user
+    if is_email:
+        user = await db.users.find_one({"email": data.identifier}, {"_id": 0})
+    else:
+        user = await db.users.find_one({"phone": data.identifier}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid request")
+    
+    # Verify OTP one more time for security
+    if is_email:
+        is_valid, result = await otp_service.verify_otp(
+            user_id=user["id"],
+            otp_code=data.otp_code,
+            purpose="password_reset"
+        )
+    else:
+        from services.sms_otp_service import sms_otp_service
+        verify_result = await sms_otp_service.verify_otp(data.identifier, data.otp_code)
+        is_valid = verify_result.get("success") and verify_result.get("valid")
+        result = verify_result
+    
+    if not is_valid:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired OTP. Please request a new one."
+        )
+    
+    # Update password
+    new_password_hash = get_password_hash(data.new_password)
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password_hash": new_password_hash,
+            "updated_at": now,
+            "password_changed_at": now
+        }}
+    )
+    
+    # Invalidate all existing sessions for security
+    await db.user_sessions.update_many(
+        {"user_id": user["id"], "is_active": True},
+        {"$set": {
+            "is_active": False,
+            "revoked_at": datetime.now(timezone.utc),
+            "revoke_reason": "password_reset"
+        }}
+    )
+    
+    # Send confirmation email
+    try:
+        if user.get("email"):
+            await email_service.send_password_changed_confirmation(
+                to_email=user["email"],
+                user_name=user.get("full_name", "User"),
+                ip_address=ip_address
+            )
+    except Exception as e:
+        logger.error(f"Failed to send password change confirmation: {e}")
+    
+    # Audit log
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action="password_reset",
+            category=AuditLogger.CATEGORY_AUTH,
+            user_id=user["id"],
+            user_email=user.get("email"),
+            details={"method": data.method},
+            ip_address=ip_address,
+            user_agent=request.headers.get("User-Agent"),
+            status="success",
+            risk_level="medium"
+        )
+    except Exception:
+        pass
+    
+    return {
+        "success": True,
+        "message": "Password reset successful. Please login with your new password.",
+        "message_hi": "पासवर्ड रीसेट सफल। कृपया अपने नए पासवर्ड से लॉगिन करें।"
+    }

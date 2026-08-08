@@ -773,6 +773,15 @@ function LoginPage({ setUser }) {
             {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Create Account')}
           </Button>
 
+          {/* Forgot Password Link - Only for Login */}
+          {isLogin && (
+            <div className="text-center">
+              <Link to="/forgot-password" className="text-slate-400 hover:text-orange-400 text-sm">
+                Forgot Password?
+              </Link>
+            </div>
+          )}
+
           {/* Divider */}
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">

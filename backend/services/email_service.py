@@ -2020,5 +2020,154 @@ class EmailService:
         )
 
 
+    async def send_password_reset_otp(
+        self,
+        to_email: str,
+        user_name: str,
+        otp_code: str,
+        expiry_minutes: int = 5,
+        ip_address: str = "Unknown"
+    ) -> Dict[str, Any]:
+        """Send OTP email for password reset"""
+        from datetime import datetime
+        
+        subject = "🔐 AirYatra Password Reset OTP"
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #0f172a; margin: 0; padding: 40px 20px;">
+            <div style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                <!-- Header -->
+                <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 28px;">🔐 Password Reset</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">पासवर्ड रीसेट</p>
+                </div>
+                
+                <!-- Content -->
+                <div style="padding: 40px 30px;">
+                    <p style="color: #e2e8f0; font-size: 16px; margin-bottom: 20px;">
+                        Hello <strong>{user_name}</strong>,
+                    </p>
+                    
+                    <p style="color: #94a3b8; font-size: 14px; margin-bottom: 30px;">
+                        We received a request to reset your password. Use the OTP below to proceed:
+                    </p>
+                    
+                    <!-- OTP Box -->
+                    <div style="background: #1e293b; border: 2px solid #f97316; border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 30px;">
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">Your OTP Code</p>
+                        <p style="color: #f97316; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0; font-family: monospace;">{otp_code}</p>
+                        <p style="color: #94a3b8; font-size: 12px; margin: 10px 0 0 0;">⏱️ Valid for {expiry_minutes} minutes</p>
+                    </div>
+                    
+                    <!-- Security Notice -->
+                    <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 15px; margin-bottom: 20px;">
+                        <p style="color: #f87171; font-size: 13px; margin: 0;">
+                            ⚠️ If you didn't request this, please ignore this email or contact support immediately.
+                        </p>
+                    </div>
+                    
+                    <p style="color: #64748b; font-size: 12px;">
+                        Request IP: {ip_address}<br>
+                        Time: {datetime.now().strftime("%d %b %Y, %I:%M %p IST")}
+                    </p>
+                </div>
+                
+                <!-- Footer -->
+                <div style="background: #0f172a; padding: 20px; text-align: center; border-top: 1px solid #1e293b;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">
+                        AirYatra Aviation Pvt Ltd<br>
+                        Need help? Contact support@airyatra.co.in
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body
+        )
+
+    async def send_password_changed_confirmation(
+        self,
+        to_email: str,
+        user_name: str,
+        ip_address: str = "Unknown"
+    ) -> Dict[str, Any]:
+        """Send confirmation email when password is changed"""
+        from datetime import datetime
+        
+        subject = "✅ AirYatra Password Changed Successfully"
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #0f172a; margin: 0; padding: 40px 20px;">
+            <div style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                <!-- Header -->
+                <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 28px;">✅ Password Changed</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">पासवर्ड बदल गया</p>
+                </div>
+                
+                <!-- Content -->
+                <div style="padding: 40px 30px;">
+                    <p style="color: #e2e8f0; font-size: 16px; margin-bottom: 20px;">
+                        Hello <strong>{user_name}</strong>,
+                    </p>
+                    
+                    <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">
+                        Your password has been successfully changed. You can now login with your new password.
+                    </p>
+                    
+                    <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <p style="color: #64748b; font-size: 12px; margin: 0;">
+                            📍 Changed from IP: {ip_address}<br>
+                            🕐 Time: {datetime.now().strftime("%d %b %Y, %I:%M %p IST")}
+                        </p>
+                    </div>
+                    
+                    <!-- Security Notice -->
+                    <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 15px; margin-bottom: 20px;">
+                        <p style="color: #f87171; font-size: 13px; margin: 0;">
+                            ⚠️ If you didn't make this change, please contact support immediately at support@airyatra.co.in
+                        </p>
+                    </div>
+                    
+                    <a href="https://airyatra.co.in/login" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: bold;">
+                        Login Now →
+                    </a>
+                </div>
+                
+                <!-- Footer -->
+                <div style="background: #0f172a; padding: 20px; text-align: center; border-top: 1px solid #1e293b;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">
+                        AirYatra Aviation Pvt Ltd
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body
+        )
+
+
 # Singleton instance
 email_service = EmailService()

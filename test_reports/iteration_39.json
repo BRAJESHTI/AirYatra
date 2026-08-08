@@ -1,0 +1,46 @@
+{
+  "summary": "Tested Forgot Password (email + phone), Customer Dashboard UI (desktop + mobile), Login page 'Forgot Password?' link, and Google emergent-callback resilience. 9/10 backend tests pass. Forgot Password flow works end-to-end up to Verify OTP screen for both Email and Phone. Customer Dashboard is now fully English (0 Devanagari tokens) with 'Book Now' visible in header on desktop and mobile, gradient stats cards, and Quick Actions grid. HOWEVER — the 'Google Auth fix' introduces a CRITICAL authentication bypass: POST /api/auth/google/emergent-callback with ANY fake session_token + client-supplied email returns 200 with a valid JWT for that arbitrary email (verified: token issued for x@example.com using session_token='invalid-token-xyz'). This is a full regression of the SEC-001 fix from iteration 38.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/google/emergent-callback",
+        "issue": "AUTH BYPASS: When Emergent /oauth/session-data returns 404 (which happens for ANY invalid/fake session_token, not only 'already consumed' ones), the code falls back to trusting request.emergent_user.email and issues a JWT for that email. Reproducible: POST {\"session_token\":\"invalid-token-xyz\",\"emergent_user\":{\"email\":\"x@example.com\",\"name\":\"X\"}} -> 200 OK with access_token bound to x@example.com. If the email happens to match an existing user (e.g. ceo@airyatra.co.in), an attacker gains that account. This regresses SEC-001.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/login (LoginPage + GoogleLogin component)",
+        "issues": [
+          "Still contains Hindi/Devanagari: divider text 'या / or' and Google button label 'Google से Login करें'. The user asked for English-only unless language is changed. Customer Dashboard is fixed, but the Login page (which is the entry point) was missed."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_forgot_password.py",
+    "/app/test_reports/pytest/forgot_password.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix /api/auth/google/emergent-callback. On Emergent 404, do NOT fall back to trusting client-provided email. Either (a) treat 404 as authentication failure (401) always, or (b) require the session_token to have been minted by our own backend within the last N seconds (server-side single-use nonce map) before accepting the client-provided emergent_user. Currently any attacker can obtain a JWT for any email.",
+    "Remove Hindi text from LoginPage.js (the 'या / or' divider) and GoogleLogin.js ('Google से Login करें' -> 'Sign in with Google') to match the English-only UX goal. Keep Hindi behind the language toggle."
+  ],
+  "critical_code_review_comments": [
+    "auth_routes.py lines 1825-1849: The 404 branch trusts client data unconditionally. The comment 'session already consumed by frontend' is not a safe assumption — an attacker can craft any session_token that won't exist on Emergent, hitting exactly this branch. This defeats the SEC-001 server-side verification requirement."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_forgot_password.py"
+  ],
+  "success_rate": {"backend": "90% (9/10)", "frontend": "95%"},
+  "seed_data_creation": "Test created transient user x@example.com via the bug; deleted from DB after test.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123",
+  "context_for_next_testing_agent": "Forgot Password Email/Phone flows verified up to Verify-OTP screen (real OTP delivery not exercised since OTPs are hashed in Mongo). Backend test file /app/backend/tests/test_forgot_password.py has 10 tests covering send/verify/reset for both methods plus emergent-callback resilience. After the CRITICAL auth-bypass fix, re-run this suite: the test 'TestGoogleEmergentCallback::test_invalid_session_rejected' must return 4xx instead of 200. Also verify the login page Hindi cleanup by asserting the /login body has 0 Devanagari matches.",
+  "rca_of_the_issue": "In auth_routes.py::emergent_google_callback (line 1825), when Emergent returns 404 the code accepts request.emergent_user.email and issues a JWT. But 404 is also returned for any session_token that never existed on Emergent, so this branch is reachable by an unauthenticated attacker. The intended 'graceful handling of consumed sessions' should be gated on proof that the session was previously issued by our own OAuth initiation (e.g., store the session_token from the redirect step with a short TTL and require a match) — not on the mere fact that Emergent replied 404."
+}
