@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from database import get_database
 from routes.auth_routes import get_current_user
-from security_middleware import FileEncryption, AuditLogger
+from security_middleware import FileEncryption, AuditLogger, limiter, RATE_LIMITS
 import os
 import re
 
@@ -40,18 +40,47 @@ ALLOWED_MIME_TYPES = {
     'image/jpg': '.jpg'
 }
 
+# Magic bytes for file type validation (prevents MIME spoofing)
+FILE_MAGIC_BYTES = {
+    'application/pdf': [b'%PDF'],
+    'image/jpeg': [b'\xff\xd8\xff'],
+    'image/jpg': [b'\xff\xd8\xff'],
+    'image/png': [b'\x89PNG\r\n\x1a\n']
+}
+
+# Maximum file size (5MB)
+MAX_FILE_SIZE = 5 * 1024 * 1024
+
 def sanitize_filename(filename: str) -> str:
     """Remove potentially dangerous characters from filename"""
     sanitized = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
     sanitized = sanitized.replace('..', '_')
     return sanitized[:100]
 
+def validate_file_magic_bytes(file_content: bytes, declared_content_type: str) -> tuple:
+    """
+    Validate file type using magic bytes (first few bytes of file)
+    This prevents MIME type spoofing attacks
+    """
+    if declared_content_type not in ALLOWED_MIME_TYPES:
+        return False, f"File type '{declared_content_type}' not allowed"
+    
+    # Get expected magic bytes for this MIME type
+    expected_magic = FILE_MAGIC_BYTES.get(declared_content_type, [])
+    if not expected_magic:
+        return False, "Cannot validate file type"
+    
+    # Check if file starts with expected magic bytes
+    file_start = file_content[:10]  # First 10 bytes
+    for magic in expected_magic:
+        if file_start.startswith(magic):
+            return True, declared_content_type
+    
+    return False, f"File content does not match declared type '{declared_content_type}' (possible spoofing)"
+
 def validate_file_content(file_content: bytes, declared_content_type: str) -> tuple:
-    """Validate file type"""
-    # Simple validation - check declared type is allowed
-    if declared_content_type in ALLOWED_MIME_TYPES:
-        return True, declared_content_type
-    return False, f"File type '{declared_content_type}' not allowed"
+    """Validate file type using magic bytes"""
+    return validate_file_magic_bytes(file_content, declared_content_type)
 
 @router.get("")
 async def get_customer_kyc_documents(current_user: dict = Depends(get_current_user)):
@@ -88,6 +117,7 @@ async def get_all_kyc_documents(
     return {"documents": documents, "total": len(documents)}
 
 @router.post("/upload")
+@limiter.limit(RATE_LIMITS["file_upload"])
 async def upload_kyc_document(
     request: Request,
     file: UploadFile = File(...),

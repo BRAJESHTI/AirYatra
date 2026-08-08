@@ -12,6 +12,7 @@ from uuid import uuid4
 from database import get_database
 from routes.auth_routes import get_current_user
 from services.stripe_service import stripe_service
+from security_middleware import limiter, RATE_LIMITS
 
 router = APIRouter(prefix="/stripe", tags=["Stripe Payments"])
 
@@ -35,8 +36,10 @@ async def get_stripe_status():
 
 
 @router.post("/create-checkout")
+@limiter.limit(RATE_LIMITS["stripe_checkout"])
 async def create_stripe_checkout(
-    request: CreateCheckoutRequest,
+    request: Request,
+    checkout_request: CreateCheckoutRequest,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
@@ -48,9 +51,9 @@ async def create_stripe_checkout(
     For INR payments, use Razorpay instead.
     """
     # Get booking details
-    booking = await db.inquiries.find_one({"id": request.booking_id}, {"_id": 0})
+    booking = await db.inquiries.find_one({"id": checkout_request.booking_id}, {"_id": 0})
     if not booking:
-        booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
+        booking = await db.bookings.find_one({"id": checkout_request.booking_id}, {"_id": 0})
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -71,7 +74,7 @@ async def create_stripe_checkout(
     amount = float(booking_amount)
     
     # Convert amount to smallest currency unit (cents)
-    currency = request.currency.lower()
+    currency = checkout_request.currency.lower()
     
     # Currencies that don't use decimal (JPY, etc.)
     zero_decimal_currencies = ['jpy', 'krw', 'vnd']
@@ -89,10 +92,10 @@ async def create_stripe_checkout(
     result = await stripe_service.create_checkout_session(
         amount=amount_smallest,
         currency=currency,
-        booking_id=request.booking_id,
+        booking_id=checkout_request.booking_id,
         customer_email=current_user.get("email", ""),
         customer_name=current_user.get("full_name", current_user.get("name", "")),
-        description=request.description or f"AirYatra Flight Booking - {booking.get('from_city', '')} to {booking.get('to_city', '')}",
+        description=checkout_request.description or f"AirYatra Flight Booking - {booking.get('from_city', '')} to {booking.get('to_city', '')}",
         success_url=f"{base_url}/booking/payment-success",
         cancel_url=f"{base_url}/booking/payment-cancelled",
         metadata={
@@ -109,9 +112,9 @@ async def create_stripe_checkout(
     checkout_record = {
         "id": str(uuid4()),
         "stripe_session_id": result["session_id"],
-        "booking_id": request.booking_id,
+        "booking_id": checkout_request.booking_id,
         "user_id": current_user.get("id"),
-        "amount": request.amount,
+        "amount": amount,
         "amount_smallest": amount_smallest,
         "currency": currency,
         "status": "pending",
@@ -126,7 +129,7 @@ async def create_stripe_checkout(
         "success": True,
         "checkout_url": result["checkout_url"],
         "session_id": result["session_id"],
-        "amount": request.amount,
+        "amount": amount,
         "currency": currency.upper(),
         "expires_at": result.get("expires_at")
     }
@@ -255,7 +258,9 @@ async def create_payment_intent(
 
 
 @router.post("/refund")
+@limiter.limit(RATE_LIMITS["payment_refund"])
 async def create_stripe_refund(
+    request: Request,
     payment_intent_id: str = Body(...),
     amount: Optional[float] = Body(None),
     reason: str = Body("requested_by_customer"),

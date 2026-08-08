@@ -10,6 +10,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 from bson import ObjectId
 from database import get_database
+from security_middleware import limiter, RATE_LIMITS
 import razorpay
 import hmac
 import hashlib
@@ -67,16 +68,17 @@ async def get_next_receipt_number(db) -> str:
 
 # Create Razorpay Order
 @router.post("/create-order")
-async def create_order(request: OrderRequest):
+@limiter.limit(RATE_LIMITS["razorpay_order"])
+async def create_order(request: Request, order_request: OrderRequest):
     if not razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay not configured")
     
     db = get_database()
     
     # SECURITY FIX: Get booking and derive amount server-side
-    booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
+    booking = await db.bookings.find_one({"id": order_request.booking_id}, {"_id": 0})
     if not booking:
-        booking = await db.inquiries.find_one({"id": request.booking_id}, {"_id": 0})
+        booking = await db.inquiries.find_one({"id": order_request.booking_id}, {"_id": 0})
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -102,12 +104,12 @@ async def create_order(request: OrderRequest):
             "receipt": receipt,
             "payment_capture": 1,  # Auto-capture
             "notes": {
-                "booking_id": request.booking_id or "",
-                "customer_name": request.customer_name,
-                "customer_email": request.customer_email,
-                "customer_phone": request.customer_phone,
+                "booking_id": order_request.booking_id or "",
+                "customer_name": order_request.customer_name,
+                "customer_email": order_request.customer_email,
+                "customer_phone": order_request.customer_phone,
                 "website": WEBSITE,
-                **request.notes
+                **order_request.notes
             }
         }
         
@@ -117,14 +119,14 @@ async def create_order(request: OrderRequest):
         order_doc = {
             "razorpay_order_id": razorpay_order["id"],
             "receipt": receipt,
-            "amount": request.amount,
+            "amount": amount,
             "amount_paise": amount_paise,
             "currency": "INR",
-            "booking_id": request.booking_id,
-            "customer_name": request.customer_name,
-            "customer_email": request.customer_email,
-            "customer_phone": request.customer_phone,
-            "description": request.description,
+            "booking_id": order_request.booking_id,
+            "customer_name": order_request.customer_name,
+            "customer_email": order_request.customer_email,
+            "customer_phone": order_request.customer_phone,
+            "description": order_request.description,
             "status": "created",
             "website": WEBSITE,
             "created_at": datetime.now(timezone.utc),
@@ -163,7 +165,8 @@ async def create_order(request: OrderRequest):
 
 # Verify Payment Signature
 @router.post("/verify-payment")
-async def verify_payment(request: PaymentVerifyRequest):
+@limiter.limit(RATE_LIMITS["payment_verify"])
+async def verify_payment(request: Request, verify_request: PaymentVerifyRequest):
     if not razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay not configured")
     
@@ -172,24 +175,24 @@ async def verify_payment(request: PaymentVerifyRequest):
     try:
         # Verify signature
         params_dict = {
-            'razorpay_order_id': request.razorpay_order_id,
-            'razorpay_payment_id': request.razorpay_payment_id,
-            'razorpay_signature': request.razorpay_signature
+            'razorpay_order_id': verify_request.razorpay_order_id,
+            'razorpay_payment_id': verify_request.razorpay_payment_id,
+            'razorpay_signature': verify_request.razorpay_signature
         }
         
         razorpay_client.utility.verify_payment_signature(params_dict)
         
         # Fetch payment details
-        payment = razorpay_client.payment.fetch(request.razorpay_payment_id)
+        payment = razorpay_client.payment.fetch(verify_request.razorpay_payment_id)
         
         # Update order status
         await db.razorpay_orders.update_one(
-            {"razorpay_order_id": request.razorpay_order_id},
+            {"razorpay_order_id": verify_request.razorpay_order_id},
             {
                 "$set": {
                     "status": "paid",
-                    "razorpay_payment_id": request.razorpay_payment_id,
-                    "razorpay_signature": request.razorpay_signature,
+                    "razorpay_payment_id": verify_request.razorpay_payment_id,
+                    "razorpay_signature": verify_request.razorpay_signature,
                     "payment_details": payment,
                     "paid_at": datetime.now(timezone.utc)
                 }
@@ -197,7 +200,7 @@ async def verify_payment(request: PaymentVerifyRequest):
         )
         
         # Get order details
-        order = await db.razorpay_orders.find_one({"razorpay_order_id": request.razorpay_order_id})
+        order = await db.razorpay_orders.find_one({"razorpay_order_id": verify_request.razorpay_order_id})
         
         # Update booking if linked
         if order and order.get("booking_id"):
@@ -206,7 +209,7 @@ async def verify_payment(request: PaymentVerifyRequest):
                 {
                     "$set": {
                         "payment_status": "paid",
-                        "razorpay_payment_id": request.razorpay_payment_id,
+                        "razorpay_payment_id": verify_request.razorpay_payment_id,
                         "paid_at": datetime.now(timezone.utc)
                     }
                 }
@@ -219,8 +222,8 @@ async def verify_payment(request: PaymentVerifyRequest):
             "message": f"₹{order.get('amount', 0):,.0f} payment received from {order.get('customer_name', 'Customer')}",
             "priority": "normal",
             "metadata": {
-                "order_id": request.razorpay_order_id,
-                "payment_id": request.razorpay_payment_id,
+                "order_id": verify_request.razorpay_order_id,
+                "payment_id": verify_request.razorpay_payment_id,
                 "amount": order.get("amount") if order else 0
             },
             "is_read": False,
@@ -228,7 +231,7 @@ async def verify_payment(request: PaymentVerifyRequest):
             "created_at": datetime.now(timezone.utc)
         })
         
-        logger.info(f"Payment verified: {request.razorpay_payment_id}")
+        logger.info(f"Payment verified: {verify_request.razorpay_payment_id}")
         
         return {
             "success": True,
@@ -255,6 +258,7 @@ async def verify_payment(request: PaymentVerifyRequest):
 
 # Webhook Handler
 @router.post("/webhook")
+@limiter.limit(RATE_LIMITS["webhook"])
 async def handle_webhook(request: Request):
     db = get_database()
     

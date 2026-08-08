@@ -82,7 +82,14 @@ RATE_LIMITS = {
     "register": "3/minute",         # 3 registration attempts per minute
     "api_general": "100/minute",    # 100 general API calls per minute
     "file_upload": "10/minute",     # 10 file uploads per minute
-    "verification": "5/minute"      # 5 document verification attempts per minute
+    "verification": "5/minute",     # 5 document verification attempts per minute
+    # Payment endpoint rate limits (SECURITY HARDENING)
+    "payment_create": "10/minute",  # 10 payment creation requests per minute
+    "payment_verify": "20/minute",  # 20 payment verification requests per minute
+    "payment_refund": "5/minute",   # 5 refund requests per minute (strict)
+    "stripe_checkout": "10/minute", # 10 Stripe checkout sessions per minute
+    "razorpay_order": "10/minute",  # 10 Razorpay orders per minute
+    "webhook": "100/minute",        # 100 webhook calls per minute (higher for legit traffic)
 }
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
