@@ -309,13 +309,9 @@ async def apply_wallet_payment(body: WalletApplyRequest, current_user: dict = De
     credited_after = credited + amount
     remaining_after = max(0.0, round(total_amount - credited_after, 2))
 
-    advance_percent = 50
-    settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
-    if settings:
-        for rule in settings.get("payment_rules", []):
-            if rule.get("purpose") == booking.get("booking_purpose", "other"):
-                advance_percent = rule.get("advance_percent", 50)
-                break
+    from routes.payment_rules_routes import resolve_payment_rule
+    rule = await resolve_payment_rule(db, booking, total_amount)
+    advance_percent = rule["advance_percent"]
     advance_needed = float(int(total_amount * advance_percent / 100))
 
     update = {"updated_at": now}
@@ -371,14 +367,10 @@ async def create_stripe_checkout(
     else:
         if booking.get("payment_status") in ["paid", "fully_paid"]:
             raise HTTPException(status_code=400, detail="Already paid / भुगतान पहले हो चुका है")
-        advance_percent = 50
-        settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
-        if settings:
-            for rule in settings.get("payment_rules", []):
-                if rule.get("purpose") == booking.get("booking_purpose", "other"):
-                    advance_percent = rule.get("advance_percent", 50)
-                    break
-        amount = float(int(total_amount * advance_percent / 100))
+        from routes.payment_rules_routes import resolve_payment_rule
+        rule = await resolve_payment_rule(db, booking, total_amount)
+        advance_percent = rule["advance_percent"]
+        amount = remaining if advance_percent == 0 else float(int(total_amount * advance_percent / 100))
 
     # Loyalty voucher discount (advance payments only)
     discount = 0.0

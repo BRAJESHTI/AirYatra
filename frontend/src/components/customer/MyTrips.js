@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw, Flag, Download, Loader2 } from 'lucide-react';
+import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw, Flag, Download, Loader2, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { customerAPI, feedbackAPI } from '../../services/api';
 import { toast } from 'sonner';
 import ComplaintForm from './ComplaintForm';
 import PostFlightRating from './PostFlightRating';
+import PreFlightChecklist from './PreFlightChecklist';
 
 function MyTrips({ user }) {
   const [trips, setTrips] = useState([]);
@@ -18,6 +19,7 @@ function MyTrips({ user }) {
   const [showQuotesDialog, setShowQuotesDialog] = useState(false);
   const [showComplaintDialog, setShowComplaintDialog] = useState(false);
   const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [showPreflightDialog, setShowPreflightDialog] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [isEmergency, setIsEmergency] = useState(false);
@@ -392,6 +394,17 @@ function MyTrips({ user }) {
                     <Star className="h-4 w-4 mr-1" /> Rate Trip
                   </Button>
                 )}
+                {/* Pre-flight Checklist - upcoming confirmed/paid trips */}
+                {['confirmed', 'payment_completed', 'in_progress'].includes(trip.status) && (
+                  <Button
+                    size="sm"
+                    className="bg-sky-500/20 text-sky-400 hover:bg-sky-500/30"
+                    onClick={() => { setSelectedTrip(trip); setShowPreflightDialog(true); }}
+                    data-testid="preflight-checklist-btn"
+                  >
+                    <ClipboardCheck className="h-4 w-4 mr-1" /> Pre-flight
+                  </Button>
+                )}
                 {/* Invoice Download - show for confirmed, payment_completed, or completed */}
                 {['confirmed', 'payment_completed', 'completed'].includes(trip.status) && (
                   <Button
@@ -687,6 +700,14 @@ function MyTrips({ user }) {
         onSubmit={() => {
           loadTrips();
         }}
+      />
+
+      {/* Pre-flight Checklist Dialog */}
+      <PreFlightChecklist
+        isOpen={showPreflightDialog}
+        onClose={() => { setShowPreflightDialog(false); setSelectedTrip(null); }}
+        bookingId={selectedTrip?.id}
+        trip={selectedTrip}
       />
     </div>
   );

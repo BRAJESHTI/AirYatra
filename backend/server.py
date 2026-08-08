@@ -101,6 +101,8 @@ from routes import zoho_routes
 from routes import hr_advanced_routes
 # Payment Gateway & Auto Transfer
 from routes import payment_gateway_routes
+from routes import payment_rules_routes
+from routes import preflight_routes
 # GST Compliance
 from routes import gst_routes
 # Aviation-Grade Pricing Engine
@@ -338,6 +340,8 @@ api_router.include_router(zoho_routes.router)
 api_router.include_router(hr_advanced_routes.router)
 # Payment Gateway & Auto Transfer
 api_router.include_router(payment_gateway_routes.router)
+api_router.include_router(payment_rules_routes.router)
+api_router.include_router(preflight_routes.router)
 # GST Compliance
 api_router.include_router(gst_routes.router)
 # Aviation-Grade Pricing Engine

@@ -112,15 +112,14 @@ async def create_order(
         amount = remaining
         payment_type = "balance"
     else:
-        advance_percent = 50
-        settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
-        if settings:
-            for rule in settings.get("payment_rules", []):
-                if rule.get("purpose") == booking.get("booking_purpose", "other"):
-                    advance_percent = rule.get("advance_percent", 50)
-                    break
-        advance_needed = float(int(total_amount * advance_percent / 100))
-        amount = max(1.0, min(remaining, max(1.0, advance_needed - credited)))
+        from routes.payment_rules_routes import resolve_payment_rule
+        rule = await resolve_payment_rule(db, booking, total_amount)
+        advance_percent = rule["advance_percent"]
+        if advance_percent == 0:
+            amount = remaining
+        else:
+            advance_needed = float(int(total_amount * advance_percent / 100))
+            amount = max(1.0, min(remaining, max(1.0, advance_needed - credited)))
         payment_type = "advance"
     amount = round(float(amount), 2)
     

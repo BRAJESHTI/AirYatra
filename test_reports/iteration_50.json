@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 50 — tested Payment Rules API+UI, Pre-flight Checklist API+UI, Auction Push Alerts (code review). 16/18 backend pytest assertions pass. Payment Rules panel, dialog and all rule fields render correctly with data-testids. Pre-flight dialog renders 12 passenger items with categories, progress bar, aircraft readiness card. TWO KEY ISSUES: (1) SECURITY: GET /api/preflight/checklist/{booking_id} has NO auth guard — returns 200 for unauthenticated requests and cross-customer requests; (2) UX: Admin dashboard sidebar (aside) is display:none on desktop viewport (1920px) so users cannot navigate to the Payment Rules Panel via the sidebar (had to JS-click). Payment rules reset to default 50% empty rules (live flows safe). Auction alert code (quotesCountRef null-guard, WebAudio, toast, Notification) reviewed and correct.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/preflight/checklist/{booking_id}", "issue": "Missing auth dependency. No get_current_user Depends → endpoint accepts unauthenticated requests (returns 200) and lets ANY logged-in customer read another customer's checklist (should be 401/403). Requirement explicitly states this must require auth and 403 for cross-customer access. Add `current_user: dict = Depends(get_current_user)` and call `_check_read_access(booking, current_user)` similar to /preflight/status/{booking_id}.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminDashboard sidebar (ResponsiveSidebar / components/shared/Sidebar.js)", "issue": "On desktop (1920x1080), <aside> computed style is `display: none` (matched by `.hidden` CSS rule) even though isCollapsed=false and width/height are 288x1007. Result: entire admin sidebar is invisible on load — user cannot click on 'Finance & Billing' → 'Payment Rules' nav item. Panel itself works when navigated programmatically. Likely cause: the multi-line className with embedded /* comments */ may be introducing a `hidden` class token or Tailwind class ordering conflict. Repro: login as admin → /admin → sidebar not visible. `document.querySelector('aside')` shows display:none via `.hidden`.", "selector": "aside", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter50_payment_rules_preflight.py",
+    "/app/test_reports/pytest/iter50_results.xml"
+  ],
+  "action_items": [
+    "Add auth guard to GET /api/preflight/checklist/{booking_id}: add `current_user: dict = Depends(get_current_user)` and `_check_read_access(booking, current_user)` after fetching booking. Same as /preflight/status/{booking_id}.",
+    "Fix admin sidebar visibility on desktop — aside is being hidden by `.hidden` CSS on load. Investigate the multi-line className in /app/frontend/src/components/shared/Sidebar.js (lines 110-129); consider replacing the inline block comments and template literal with a `clsx`/`cn` helper, or verify Tailwind isn't purging w-72/lg:sticky classes. Reproduces at width 1920. Without the sidebar, users cannot reach the new Payment Rules nav item.",
+    "Consider matching customer route path: /my-trips returns 0 preflight buttons; /customer/trips works. Verify canonical URL and update any docs/redirects."
+  ],
+  "critical_code_review_comments": [
+    "preflight_routes.py get_checklist(): booking lookup happens but no user check. Anyone knowing a booking_id can read the checklist state. Add `current_user: dict = Depends(get_current_user)` + `_check_read_access(booking, current_user)`.",
+    "components/shared/Sidebar.js: inline /* Tailwind comments */ inside className string are anti-pattern — safer to use `clsx()` and remove multiline block-comments from the class list. Currently the aside is getting `display:none` at desktop.",
+    "payment_rules_routes.py resolve_payment_rule looks solid (case-insensitive substring, priority sort, amount range checks all correct). Verified via preview API: Mumbai→Pune 600k→100%, medical 100k→25%, low-value Mumbai→Pune→75% fallback rule."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter50_payment_rules_preflight.py"
+  ],
+  "success_rate": {"backend": "89% (16/18 pytest assertions, 2 failures are the auth-guard security bug on GET /preflight/checklist)", "frontend": "80% (Payment Rules Panel + Preflight dialog fully functional; sidebar visibility bug blocks nav)"},
+  "seed_data_creation": "Created test payment rules (TEST_high_value_mum_pune, TEST_medical_25, TEST_lowprio_75) during resolution test then RESET to {default_advance_percent:50, payment_rules:[]}. Confirmed live flows unaffected. Toggled passenger p1 & aircraft a1 checklist items on customer booking 47ae1b8b/etc as part of preflight test (harmless persisted state).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@airyatra.co.in / Admin123!, customer@airyatra.co.in / Customer@123, loyaltytest@airyatra.co.in / Loyalty@123 (2nd customer for 403), operator@airyatra.co.in / Operator@123456 — all from /app/memory/test_credentials.md, all worked",
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_iter50_payment_rules_preflight.py. Payment Rules tests all pass and self-cleanup. Preflight uses /api/customer/trips to fetch booking. After main agent fixes auth on GET /preflight/checklist, rerun `pytest backend/tests/test_iter50_payment_rules_preflight.py -v`. Auction Push Alerts: only code-reviewed (real live-quote simulation not exercised); code correctness verified — quotesCountRef null-guard at line 136-149 of MarketplaceResults.js prevents false alerts on first poll. To exercise end-to-end, start marketplace auction as customer, then POST /api/auctions/{auction_id}/quote as operator (see iteration_48).",
+  "rca_of_the_issue": "1) GET /preflight/checklist/{booking_id} was likely written before the auth guards were added — the sibling endpoints /preflight/status/{booking_id}, /preflight/checklist/update, /preflight/checklist/submit all use `current_user: dict = Depends(get_current_user)`, but this GET was missed. 2) Admin sidebar display:none: className string in Sidebar.js concatenates template literal with block-comments AND `overflow-x-hidden`. Some token in the merged string is matching `.hidden` (Tailwind display:none !important). Recommended fix: use clsx()/cn() helper instead of multiline template literals with comments."
+}

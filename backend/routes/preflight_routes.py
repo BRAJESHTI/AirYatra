@@ -8,8 +8,22 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from database import get_database
 from pydantic import BaseModel
+from routes.auth_routes import get_current_user
 
 router = APIRouter(prefix="/preflight", tags=["Pre-flight Checklist"])
+
+STAFF_ROLES = {"admin", "super_admin", "operator", "pilot", "ceo"}
+
+
+def _is_staff(user: dict) -> bool:
+    return bool(set(user.get("roles", [])).intersection(STAFF_ROLES))
+
+
+def _check_read_access(booking: dict, user: dict):
+    if booking.get("customer_id") == user.get("id") or _is_staff(user):
+        return
+    raise HTTPException(status_code=403, detail="Not authorized for this booking")
+
 
 
 class ChecklistItemUpdate(BaseModel):
@@ -131,10 +145,22 @@ async def update_checklist_item(
     item_id: str = Body(...),
     checked: bool = Body(...),
     notes: str = Body(None),
-    checked_by: str = Body(None)
+    checked_by: str = Body(None),
+    current_user: dict = Depends(get_current_user)
 ):
     """Update a single checklist item"""
     db = get_database()
+
+    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0}) or \
+              await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if checklist_type == "aircraft":
+        if not _is_staff(current_user):
+            raise HTTPException(status_code=403, detail="Only operator/pilot/admin can update aircraft checklist")
+    elif booking.get("customer_id") != current_user.get("id") and not _is_staff(current_user):
+        raise HTTPException(status_code=403, detail="Only the booking owner can update the passenger checklist")
+    checked_by = checked_by or current_user.get("email")
     
     now = datetime.now(timezone.utc)
     
@@ -187,9 +213,20 @@ async def update_checklist_item(
 
 
 @router.post("/checklist/submit")
-async def submit_checklist(submission: ChecklistSubmission):
+async def submit_checklist(submission: ChecklistSubmission,
+                           current_user: dict = Depends(get_current_user)):
     """Submit completed checklist"""
     db = get_database()
+
+    booking = await db.bookings.find_one({"id": submission.booking_id}, {"_id": 0}) or \
+              await db.inquiries.find_one({"id": submission.booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if submission.checklist_type == "aircraft":
+        if not _is_staff(current_user):
+            raise HTTPException(status_code=403, detail="Only operator/pilot/admin can submit aircraft checklist")
+    elif booking.get("customer_id") != current_user.get("id") and not _is_staff(current_user):
+        raise HTTPException(status_code=403, detail="Only the booking owner can submit the passenger checklist")
     
     now = datetime.now(timezone.utc)
     
@@ -244,7 +281,8 @@ async def submit_checklist(submission: ChecklistSubmission):
 
 
 @router.get("/status/{booking_id}")
-async def get_preflight_status(booking_id: str):
+async def get_preflight_status(booking_id: str,
+                               current_user: dict = Depends(get_current_user)):
     """Get overall pre-flight readiness status"""
     db = get_database()
     
@@ -255,6 +293,7 @@ async def get_preflight_status(booking_id: str):
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+    _check_read_access(booking, current_user)
     
     # Get both checklists
     passenger_checklist = await db.preflight_checklists.find_one(

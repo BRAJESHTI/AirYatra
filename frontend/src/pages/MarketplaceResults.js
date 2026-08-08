@@ -43,6 +43,7 @@ export default function MarketplaceResults({ user }) {
   const [accepting, setAccepting] = useState(null);
   const [tick, setTick] = useState(0);
   const pollRef = useRef(null);
+  const quotesCountRef = useRef(null);
 
   useEffect(() => {
     if (!auctionLive || auctionLive.status !== 'active') return;
@@ -100,16 +101,52 @@ export default function MarketplaceResults({ user }) {
       const res = await api.post('/marketplace/auction/start', searchPayload);
       setAuction(res.data);
       toast.info(res.data.resumed ? 'Resuming your active auction' : `Reverse auction started! Live for ${res.data.duration_minutes} minutes.`);
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
       startPolling(res.data.auction_id);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to start auction');
     }
   };
 
+  const playQuoteSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.18].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = i === 0 ? 880 : 1174;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.15);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.16);
+      });
+    } catch { /* audio not supported */ }
+  };
+
   const startPolling = useCallback((auctionId) => {
     const poll = async () => {
       try {
         const res = await api.get(`/marketplace/auction/${auctionId}/live`);
+        const quotes = res.data.quotes || [];
+        const prevCount = quotesCountRef.current;
+        if (prevCount !== null && quotes.length > prevCount) {
+          const lowest = quotes[0];
+          const amountText = lowest?.total_amount ? `₹${Number(lowest.total_amount).toLocaleString()}` : 'New quote';
+          playQuoteSound();
+          toast.success(`🔔 New live quote received! Lowest: ${amountText} from ${lowest?.operator_name || 'an operator'}`, { duration: 6000 });
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification('AirYatra — New Auction Quote!', {
+                body: `Lowest quote: ${amountText} from ${lowest?.operator_name || 'an operator'} — accept before the auction ends`,
+              });
+            } catch { /* notification blocked */ }
+          }
+        }
+        quotesCountRef.current = quotes.length;
         setAuctionLive(res.data);
         if (res.data.status !== 'active') clearInterval(pollRef.current);
       } catch { /* keep polling */ }
