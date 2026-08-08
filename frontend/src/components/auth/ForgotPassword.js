@@ -18,6 +18,7 @@ function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetToken, setResetToken] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const otpRefs = useRef([]);
 
@@ -100,6 +101,7 @@ function ForgotPassword() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        setResetToken(data.reset_token || '');
         toast.success('OTP verified successfully');
         setStep(3);
       } else {
@@ -136,7 +138,7 @@ function ForgotPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identifier: identifier.trim(),
-          otp_code: otpCode.join(''),
+          reset_token: resetToken,
           new_password: newPassword,
           method: method
         })

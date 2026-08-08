@@ -5,6 +5,11 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 6)
 
+### ✅ FORGOT PASSWORD FIX + BOARDING REMINDER + OPERATOR FILTER (all self-tested e2e)
+- **BUG FIX — Forgot Password "Invalid or expired OTP"**: Root cause — Step 2 (/forgot-password/verify-otp) consumes the single-use OTP and issues a reset_token JWT, but Step 3 (/reset) re-verified the consumed OTP → always failed. Fix: reset endpoint now validates reset_token (purpose=password_reset, sub, identifier), OTP fallback kept for API clients; frontend ForgotPassword.js stores reset_token from verify response and sends it. VERIFIED full UI e2e: OTP → new password → success toast → /login redirect + login 200
+- **Boarding Reminder** (scheduler.py send_boarding_reminders, every 2h, sends 5-10 PM IST): evening-before-departure email with pre-flight checklist progress (X/12), pending REQUIRED items list, boarding tips, CTA to portal; once per booking (boarding_reminder_sent flag). Tested with mocked IST evening + real email send. NOTE: scheduler.py function placement bug during dev (def inserted mid start_scheduler) was caught & fixed — all jobs register. `import os` added to scheduler.py
+- **Admin Operator Filter** (BookingManagement.js): "All Aviation Companies" dropdown (data-testid operator-filter-select) filters booking list by company incl. Unassigned; also fixed search filter dropping rows with null fields. Screenshot verified (39 → 4 → 1 rows)
+
 ### ✅ ADMIN BOOKING LIST — AVIATION COMPANY NAME + MERGED DATA (self-tested: curl + screenshot)
 - GET /api/admin/bookings now merges db.bookings + db.inquiries (39 records vs 10 stale before) — all MKT marketplace/auction bookings ab admin list me dikhte hain
 - Operator (aviation company) name enrichment: operator_id OR accepted_quote.operator_id → db.operators.company_name (id/user_id match) → users fallback; batch queries (no N+1)

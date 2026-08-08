@@ -12,6 +12,7 @@ function BookingManagement() {
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [operatorFilter, setOperatorFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showReassignDialog, setShowReassignDialog] = useState(false);
@@ -66,11 +67,13 @@ function BookingManagement() {
     }
   };
 
-  const filteredBookings = bookings.filter(b => 
-    b.booking_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.from_location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.to_location?.toLowerCase().includes(searchQuery.toLowerCase())
+  const operatorOptions = [...new Set(bookings.map(b => b.operator_name || 'Unassigned'))].sort();
+
+  const q = searchQuery.toLowerCase();
+  const filteredBookings = bookings.filter(b =>
+    (operatorFilter === 'all' || (b.operator_name || 'Unassigned') === operatorFilter) &&
+    (!q || [b.booking_number, b.customer_name, b.from_location, b.to_location, b.operator_name]
+      .some(v => v?.toLowerCase().includes(q)))
   );
 
   const getStatusBadge = (status) => {
@@ -120,6 +123,20 @@ function BookingManagement() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-slate-800 border-slate-700 text-white"
           />
+        </div>
+        <div className="relative">
+          <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-orange-400 pointer-events-none" />
+          <select
+            value={operatorFilter}
+            onChange={(e) => setOperatorFilter(e.target.value)}
+            className="pl-10 pr-8 py-2 h-10 bg-slate-800 border border-slate-700 rounded-md text-sm text-white appearance-none cursor-pointer min-w-[220px]"
+            data-testid="operator-filter-select"
+          >
+            <option value="all">All Aviation Companies</option>
+            {operatorOptions.map(op => (
+              <option key={op} value={op}>{op}</option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-2 flex-wrap">
           {['all', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'].map(status => (

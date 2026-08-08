@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import logging
 import asyncio
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -817,6 +818,116 @@ async def send_auto_balance_reminders():
         return 0
 
 
+async def send_boarding_reminders():
+    """Boarding reminder the evening before departure with pre-flight checklist progress.
+    Runs every 2 hours; sends only between 5 PM - 10 PM IST, once per booking."""
+    from database import get_database_sync
+    from services.email_service import email_service
+    try:
+        db = get_database_sync()
+        if db is None:
+            logger.warning("Database not available for boarding reminders")
+            return 0
+
+        now = datetime.now(timezone.utc)
+        ist = now + timedelta(hours=5, minutes=30)
+        if not (17 <= ist.hour <= 22):
+            return 0
+
+        tomorrow = (ist + timedelta(days=1)).strftime("%Y-%m-%d")
+        bookings = await db.inquiries.find({
+            "departure_date": tomorrow,
+            "$or": [
+                {"status": {"$in": ["confirmed", "payment_completed", "in_progress"]}},
+                {"payment_status": {"$in": ["paid", "fully_paid"]}},
+            ],
+            "boarding_reminder_sent": {"$ne": True},
+        }, {"_id": 0}).to_list(100)
+
+        if not bookings:
+            return 0
+
+        from routes.preflight_routes import PASSENGER_CHECKLIST
+        sent = 0
+        for booking in bookings:
+            try:
+                customer = await db.users.find_one(
+                    {"id": booking.get("customer_id")}, {"_id": 0, "email": 1, "full_name": 1})
+                if not customer or not customer.get("email"):
+                    continue
+
+                cl = await db.preflight_checklists.find_one(
+                    {"booking_id": booking["id"], "checklist_type": "passenger"}, {"_id": 0})
+                saved = (cl or {}).get("items", {})
+                total = len(PASSENGER_CHECKLIST)
+                checked = sum(1 for it in PASSENGER_CHECKLIST if (saved.get(it["id"]) or {}).get("checked"))
+                pending_required = [it["item"] for it in PASSENGER_CHECKLIST
+                                    if it.get("required") and not (saved.get(it["id"]) or {}).get("checked")]
+
+                route = f"{booking.get('pickup_location') or booking.get('from_location', '')} → {booking.get('drop_location') or booking.get('to_location', '')}"
+                pickup_time = booking.get("pickup_time") or ""
+                number = booking.get("inquiry_number") or booking.get("booking_number") or booking["id"][:8]
+                customer_name = customer.get("full_name", "Traveller")
+                frontend_url = os.environ.get("FRONTEND_URL", "")
+
+                if pending_required:
+                    pending_html = "".join(
+                        f"<li style='margin:6px 0;color:#b45309;'>⬜ {p}</li>" for p in pending_required)
+                    checklist_block = f"""
+                        <p style="color:#b45309;font-weight:bold;">⚠️ {len(pending_required)} required check(s) still pending:</p>
+                        <ul style="padding-left:18px;">{pending_html}</ul>"""
+                else:
+                    checklist_block = "<p style='color:#15803d;font-weight:bold;'>✅ All required pre-flight checks complete — you're ready to fly!</p>"
+
+                html = f"""
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+                  <div style="background:linear-gradient(135deg,#f97316,#f59e0b);padding:24px;text-align:center;">
+                    <h1 style="margin:0;color:#fff;font-size:22px;">✈️ Your Flight is Tomorrow!</h1>
+                    <p style="margin:6px 0 0;color:#fff7ed;">Boarding reminder from AirYatra</p>
+                  </div>
+                  <div style="padding:24px;">
+                    <p>Dear {customer_name},</p>
+                    <p>Your flight <b style="color:#fb923c;">{number}</b> departs <b>tomorrow ({tomorrow})</b>{f" at <b>{pickup_time}</b>" if pickup_time else ""}.</p>
+                    <div style="background:#1e293b;border-radius:10px;padding:14px 18px;margin:14px 0;">
+                      <p style="margin:0;font-size:16px;"><b>Route:</b> {route}</p>
+                    </div>
+                    <h3 style="color:#fb923c;margin-bottom:6px;">Pre-flight Checklist: {checked}/{total} complete</h3>
+                    {checklist_block}
+                    <div style="background:#1e293b;border-radius:10px;padding:14px 18px;margin:16px 0;">
+                      <p style="margin:0 0 6px;"><b>📍 Boarding tips:</b></p>
+                      <ul style="margin:0;padding-left:18px;color:#94a3b8;">
+                        <li>Arrive at the helipad/airport <b>45 minutes early</b></li>
+                        <li>Carry government photo ID for all passengers</li>
+                        <li>Keep baggage within the allowed weight limit</li>
+                      </ul>
+                    </div>
+                    {f'<div style="text-align:center;margin:20px 0;"><a href="{frontend_url}/customer" style="background:#f97316;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;">Complete Your Checklist</a></div>' if frontend_url else ''}
+                    <p style="color:#64748b;font-size:12px;">Safe travels!<br/>Team AirYatra</p>
+                  </div>
+                </div>"""
+
+                result = await email_service.send_email(
+                    to_email=customer["email"],
+                    subject=f"✈️ Boarding Tomorrow — {route} | Checklist {checked}/{total} done",
+                    html_body=html,
+                )
+                await db.inquiries.update_one(
+                    {"id": booking["id"]},
+                    {"$set": {"boarding_reminder_sent": True,
+                              "boarding_reminder_sent_at": now.isoformat()}})
+                sent += 1
+                logger.info(f"Boarding reminder sent for {number} to {customer['email']} (email ok={result.get('success', result)})")
+            except Exception as e:
+                logger.error(f"Boarding reminder failed for booking {booking.get('id')}: {e}")
+
+        logger.info(f"Boarding reminders sent: {sent}")
+        return sent
+    except Exception as e:
+        logger.error(f"send_boarding_reminders failed: {e}")
+        return 0
+
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -916,6 +1027,15 @@ def start_scheduler():
         trigger=IntervalTrigger(hours=12),
         id="auto_balance_reminders",
         name="Auto Balance Reminders (3 days before departure)",
+        replace_existing=True
+    )
+    
+    # Boarding reminders - evening before departure with pre-flight checklist progress
+    scheduler.add_job(
+        send_boarding_reminders,
+        trigger=IntervalTrigger(hours=2),
+        id="boarding_reminders",
+        name="Boarding Reminders (evening before departure)",
         replace_existing=True
     )
     

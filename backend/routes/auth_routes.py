@@ -2427,7 +2427,8 @@ class ForgotPasswordVerifyOTP(BaseModel):
 class ForgotPasswordReset(BaseModel):
     """Request to set new password after OTP verification"""
     identifier: str
-    otp_code: str
+    otp_code: Optional[str] = None
+    reset_token: Optional[str] = None
     new_password: str
     method: str = "email"
 
@@ -2621,18 +2622,34 @@ async def forgot_password_reset(request: Request, data: ForgotPasswordReset):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid request")
     
-    # Verify OTP one more time for security
-    if is_email:
-        is_valid, result = await otp_service.verify_otp(
-            user_id=user["id"],
-            otp_code=data.otp_code,
-            purpose="password_reset"
+    # Preferred path: validate the reset_token issued at OTP-verify step
+    # (the OTP is single-use and already consumed by /verify-otp)
+    is_valid = False
+    if data.reset_token:
+        payload = decode_token(data.reset_token)
+        is_valid = bool(
+            payload
+            and payload.get("purpose") == "password_reset"
+            and payload.get("sub") == user["id"]
+            and payload.get("identifier") == data.identifier
         )
-    else:
-        from services.sms_otp_service import sms_otp_service
-        verify_result = await sms_otp_service.verify_otp(data.identifier, data.otp_code)
-        is_valid = verify_result.get("success") and verify_result.get("valid")
-        result = verify_result
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Reset session expired. Please request a new OTP."
+            )
+    elif data.otp_code:
+        # Fallback: direct OTP verification (for API clients skipping verify step)
+        if is_email:
+            is_valid, result = await otp_service.verify_otp(
+                user_id=user["id"],
+                otp_code=data.otp_code,
+                purpose="password_reset"
+            )
+        else:
+            from services.sms_otp_service import sms_otp_service
+            verify_result = await sms_otp_service.verify_otp(data.identifier, data.otp_code)
+            is_valid = verify_result.get("success") and verify_result.get("valid")
     
     if not is_valid:
         raise HTTPException(
