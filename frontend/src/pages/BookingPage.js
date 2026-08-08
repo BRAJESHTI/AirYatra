@@ -1389,7 +1389,7 @@ function BookingPage({ user }) {
         
         <div className="grid grid-cols-2 gap-4 text-sm">
           {/* Booking Type (NEW) */}
-          <div className="text-slate-400">Booking Type / बुकिंग प्रकार</div>
+          <div className="text-slate-400">Booking Type</div>
           <div className="text-white">
             {bookingTypes.find(t => t.value === formData.booking_type)?.icon || '→'}{' '}
             {bookingTypes.find(t => t.value === formData.booking_type)?.label || formData.booking_type}

@@ -288,7 +288,7 @@ export const BookingTypeSelector = ({ selected, onSelect }) => {
   return (
     <div className="space-y-3">
       <label className="text-white font-medium">
-        Booking Type / बुकिंग प्रकार
+        Booking Type
       </label>
       <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
         {bookingTypes.map(type => (
@@ -304,7 +304,6 @@ export const BookingTypeSelector = ({ selected, onSelect }) => {
           >
             <span className="text-2xl block mb-1">{type.icon}</span>
             <span className="text-xs font-medium block">{type.label}</span>
-            <span className="text-xs text-slate-500 block">{type.labelHi}</span>
             {type.discount && (
               <Badge className="mt-1 bg-green-500/20 text-green-400 text-xs">
                 {type.discount} off
