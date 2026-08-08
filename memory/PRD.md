@@ -5,6 +5,14 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 6)
 
+### ✅ CODE REVIEW + 3 FIXES (iteration_51: 47/47 pytest, testing_agent verified)
+- Code review verdict: READY WITH FIXES (no HIGH/CRITICAL) — all 3 findings fixed & verified:
+  1. **MEDIUM — Boarding reminder checklist mismatch**: scheduler queried `checklist_type`/dict but preflight stores `type:'passenger'` + items LIST → email always said 0/12. Fixed (dict built from item_id list); email now shows true progress (verified 3/12)
+  2. **LOW — Wallet debit race**: apply_wallet_payment now atomic — conditional update_one({balance: $gte: amount}, $inc) + 409 on concurrent modification
+  3. **LOW — Preflight owner fallback**: `_booking_owner_id()` = customer_id OR user_id across all 3 guards
+- Regression: payment_gateways 8/8, iter50 18/18, marketplace 11/11 + new tests/test_iter51_fixes.py (10)
+- Deployment readiness: PASS (fixed .gitignore blocking .env files). App is deploy-ready.
+
 ### ✅ FORGOT PASSWORD FIX + BOARDING REMINDER + OPERATOR FILTER (all self-tested e2e)
 - **BUG FIX — Forgot Password "Invalid or expired OTP"**: Root cause — Step 2 (/forgot-password/verify-otp) consumes the single-use OTP and issues a reset_token JWT, but Step 3 (/reset) re-verified the consumed OTP → always failed. Fix: reset endpoint now validates reset_token (purpose=password_reset, sub, identifier), OTP fallback kept for API clients; frontend ForgotPassword.js stores reset_token from verify response and sends it. VERIFIED full UI e2e: OTP → new password → success toast → /login redirect + login 200
 - **Boarding Reminder** (scheduler.py send_boarding_reminders, every 2h, sends 5-10 PM IST): evening-before-departure email with pre-flight checklist progress (X/12), pending REQUIRED items list, boarding tips, CTA to portal; once per booking (boarding_reminder_sent flag). Tested with mocked IST evening + real email send. NOTE: scheduler.py function placement bug during dev (def inserted mid start_scheduler) was caught & fixed — all jobs register. `import os` added to scheduler.py
