@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   Plane, Shield, Users, TrendingUp, CheckCircle, Crown, Building2, Lock, Sparkles,
   ChevronLeft, ChevronRight, MapPin, Mail, Phone, Clock, Star, Award, 
-  Briefcase, HeartHandshake, Globe, Headphones, FileCheck, Zap
+  Briefcase, HeartHandshake, Globe, Headphones, FileCheck, Zap, Menu, X, LogIn
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/shared/LanguageSwitcher';
@@ -62,6 +62,7 @@ function LandingPage({ user }) {
   const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Auto-slide effect
   useEffect(() => {
@@ -118,20 +119,64 @@ function LandingPage({ user }) {
               </Link>
             ) : (
               <>
-                <Link to="/login">
-                  <Button variant="ghost" className="text-white hidden sm:inline-flex" data-testid="login-btn">
+                <Link to="/login" className="hidden lg:block">
+                  <Button variant="ghost" className="text-white" data-testid="login-btn">
+                    <LogIn className="h-4 w-4 mr-1.5" />
                     {t('nav.login')}
                   </Button>
                 </Link>
-                <Link to="/booking">
+                <Link to="/booking" className="hidden sm:block">
                   <Button className="bg-orange-500 hover:bg-orange-600" data-testid="book-now-btn">
                     {t('nav.bookNow')}
                   </Button>
                 </Link>
               </>
             )}
+            {/* Hamburger - mobile & tablet */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="lg:hidden p-2 rounded-lg text-white hover:bg-slate-800 transition-colors"
+              aria-label="Toggle menu"
+              data-testid="hamburger-menu-btn"
+            >
+              {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Panel */}
+        {menuOpen && (
+          <div className="lg:hidden bg-slate-950/98 backdrop-blur-lg border-t border-slate-800 px-6 py-4" data-testid="mobile-menu">
+            <div className="flex flex-col space-y-1">
+              <a href="#services" onClick={() => setMenuOpen(false)} className="text-slate-300 hover:text-orange-500 py-2.5 border-b border-slate-800/60 transition-colors">Services</a>
+              <Link to="/fleet" onClick={() => setMenuOpen(false)} className="text-slate-300 hover:text-orange-500 py-2.5 border-b border-slate-800/60 transition-colors">Fleet</Link>
+              <Link to="/blog" onClick={() => setMenuOpen(false)} className="text-slate-300 hover:text-orange-500 py-2.5 border-b border-slate-800/60 transition-colors">Blog</Link>
+              <a href="#about" onClick={() => setMenuOpen(false)} className="text-slate-300 hover:text-orange-500 py-2.5 border-b border-slate-800/60 transition-colors">About</a>
+              <a href="#contact" onClick={() => setMenuOpen(false)} className="text-slate-300 hover:text-orange-500 py-2.5 border-b border-slate-800/60 transition-colors">Contact</a>
+              {user ? (
+                <Link to={`/${user.roles[0]}`} onClick={() => setMenuOpen(false)} className="pt-3">
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600" data-testid="mobile-dashboard-btn">
+                    {t('nav.dashboard')}
+                  </Button>
+                </Link>
+              ) : (
+                <div className="pt-3 space-y-2">
+                  <Link to="/login" onClick={() => setMenuOpen(false)} className="block">
+                    <Button variant="outline" className="w-full border-slate-600 text-white hover:bg-slate-800" data-testid="mobile-login-btn">
+                      <LogIn className="h-4 w-4 mr-2" />
+                      {t('nav.login')}
+                    </Button>
+                  </Link>
+                  <Link to="/booking" onClick={() => setMenuOpen(false)} className="block">
+                    <Button className="w-full bg-orange-500 hover:bg-orange-600" data-testid="mobile-book-now-btn">
+                      {t('nav.bookNow')}
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section with 5-Slide Carousel */}

@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  CreditCard, Smartphone, Building2, Wallet, Calendar, Check, 
-  Loader2, AlertCircle, ChevronLeft, Shield, MapPin, Users, Plane, Ticket, X
+  CreditCard, Smartphone, Building2, Wallet, Check, Globe,
+  Loader2, AlertCircle, ChevronLeft, Shield, Plane, Ticket, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import api, { customerAPI, paymentsAPI, bookingAPI } from '../services/api';
+import api, { customerAPI, bookingAPI } from '../services/api';
 import { toast } from 'sonner';
+
+const GATEWAY_ICONS = {
+  razorpay: Smartphone,
+  stripe: CreditCard,
+  cashfree: Building2,
+  paypal: Globe,
+  wallet: Wallet,
+};
+
+const METHOD_LABELS = {
+  upi: 'UPI',
+  card: 'Cards',
+  netbanking: 'NetBanking',
+  wallet: 'Wallets',
+  emi: 'EMI',
+  paypal: 'PayPal',
+};
 
 function PaymentPage({ user }) {
   const { inquiryId } = useParams();
@@ -18,14 +35,12 @@ function PaymentPage({ user }) {
   const [paymentInfo, setPaymentInfo] = useState(location.state?.paymentInfo || null);
   const [loading, setLoading] = useState(!inquiry);
   const [processing, setProcessing] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState('upi');
-  const [paymentMethods, setPaymentMethods] = useState([]);
   const [voucherCode, setVoucherCode] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applying, setApplying] = useState(false);
   const [myVouchers, setMyVouchers] = useState([]);
   const [gateways, setGateways] = useState([]);
-  const [selectedGateway, setSelectedGateway] = useState('razorpay');
+  const [selectedGateway, setSelectedGateway] = useState('stripe');
   const isBalance = new URLSearchParams(location.search).get('type') === 'balance';
   const [ledger, setLedger] = useState(null);
 
@@ -55,7 +70,6 @@ function PaymentPage({ user }) {
     } else if (!paymentInfo) {
       loadPaymentInfo();
     }
-    loadPaymentMethods();
     loadMyVouchers();
   }, [inquiryId]);
 
@@ -64,7 +78,6 @@ function PaymentPage({ user }) {
       const res = await api.get('/loyalty/my-redemptions');
       setMyVouchers((res.data.redemptions || []).filter(v => v.status === 'active' && v.value > 0));
     } catch (e) {
-      // Vouchers are optional feature - silently continue
       console.debug('Vouchers load skipped:', e.message);
     }
   };
@@ -113,24 +126,6 @@ function PaymentPage({ user }) {
       setPaymentInfo(response.data);
     } catch (error) {
       console.error('Failed to load payment info:', error);
-    }
-  };
-
-  const loadPaymentMethods = async () => {
-    try {
-      const response = await paymentsAPI.getMethods();
-      setPaymentMethods(response.data.methods || [
-        { id: 'upi', name: 'UPI', description: 'Pay via GPay, PhonePe, Paytm', icon: 'upi' },
-        { id: 'card', name: 'Credit/Debit Card', description: 'Visa, Mastercard, Rupay', icon: 'card' },
-        { id: 'netbanking', name: 'Net Banking', description: 'All major banks', icon: 'netbanking' },
-      ]);
-    } catch (error) {
-      // Use default methods
-      setPaymentMethods([
-        { id: 'upi', name: 'UPI', description: 'Pay via GPay, PhonePe, Paytm' },
-        { id: 'card', name: 'Credit/Debit Card', description: 'Visa, Mastercard, Rupay' },
-        { id: 'netbanking', name: 'Net Banking', description: 'All major banks' },
-      ]);
     }
   };
 
@@ -235,14 +230,6 @@ function PaymentPage({ user }) {
     }
   };
 
-  const methodIcons = {
-    upi: Smartphone,
-    card: CreditCard,
-    netbanking: Building2,
-    wallet: Wallet,
-    emi: Calendar
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -270,6 +257,7 @@ function PaymentPage({ user }) {
   const remainingAmount = isBalance ? 0 : (paymentInfo?.remaining_amount || 0);
   const voucherDiscount = !isBalance && appliedVoucher ? Math.min(appliedVoucher.value, advanceAmount || 0) : 0;
   const payableAmount = Math.max(voucherDiscount > 0 ? 1 : 0, (advanceAmount || 0) - voucherDiscount) || advanceAmount;
+  const walletGateway = gateways.find(g => g.id === 'wallet');
 
   return (
     <div className="min-h-screen bg-slate-950 py-8 px-4">
@@ -414,35 +402,73 @@ function PaymentPage({ user }) {
         </div>
         )}
 
-        {/* Payment Methods */}
-        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-6">
+        {/* Payment Gateway Selection */}
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-6" data-testid="gateway-section">
           <h3 className="text-lg font-semibold text-white mb-4">
-            Select Payment Method
+            Choose Payment Gateway
           </h3>
           
           <div className="space-y-3">
-            {paymentMethods.map((method) => {
-              const Icon = methodIcons[method.id] || CreditCard;
+            {gateways.map((gw) => {
+              const Icon = GATEWAY_ICONS[gw.id] || CreditCard;
+              const isWallet = gw.id === 'wallet';
+              const walletEmpty = isWallet && !(gw.balance > 0);
+              const disabled = !gw.enabled || walletEmpty;
+              const selected = selectedGateway === gw.id;
               
               return (
                 <button
-                  key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
+                  key={gw.id}
+                  onClick={() => !disabled && setSelectedGateway(gw.id)}
+                  disabled={disabled}
+                  data-testid={`gateway-${gw.id}`}
                   className={`w-full p-4 rounded-xl border flex items-center justify-between transition-all ${
-                    selectedMethod === method.id
+                    selected
                       ? 'bg-orange-500/20 border-orange-500/50'
-                      : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                      : disabled
+                        ? 'bg-slate-800/30 border-slate-800 opacity-60 cursor-not-allowed'
+                        : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon className={`h-6 w-6 ${selectedMethod === method.id ? 'text-orange-400' : 'text-slate-400'}`} />
+                    <Icon className={`h-6 w-6 flex-shrink-0 ${selected ? 'text-orange-400' : 'text-slate-400'}`} />
                     <div className="text-left">
-                      <p className="text-white font-medium">{method.name}</p>
-                      <p className="text-sm text-slate-400">{method.description}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white font-medium">{gw.name}</p>
+                        {gw.badge && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            gw.badge === 'Recommended' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' : 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                          }`}>
+                            {gw.badge}
+                          </span>
+                        )}
+                        {!gw.enabled && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
+                            Coming Soon
+                          </span>
+                        )}
+                        {isWallet && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            gw.balance > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/40' : 'bg-slate-700 text-slate-400'
+                          }`} data-testid="wallet-balance-chip">
+                            ₹{(gw.balance || 0).toLocaleString()} available
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-400">{gw.description}</p>
+                      {gw.methods?.length > 0 && !isWallet && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {gw.methods.map(m => (
+                            <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-300">
+                              {METHOD_LABELS[m] || m}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {selectedMethod === method.id && (
-                    <Check className="h-5 w-5 text-orange-400" />
+                  {selected && (
+                    <Check className="h-5 w-5 text-orange-400 flex-shrink-0" />
                   )}
                 </button>
               );
@@ -477,75 +503,6 @@ function PaymentPage({ user }) {
           <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
             <Shield className="h-4 w-4" />
             {selectedGateway === 'razorpay' ? 'Secured by Razorpay' : selectedGateway === 'stripe' ? 'Secured by Stripe (Test Mode)' : 'Secure payment'} • 256-bit SSL encryption
-          </p>
-        </div>
-
-        {/* Back Button */}
-        <div className="mt-6 text-center">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(`/customer/inquiry/${inquiryId}`)}
-            className="border-slate-600 text-slate-300"
-          >
-            ← Back to Inquiry Status
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default PaymentPage;
-ard;
-              
-              return (
-                <button
-                  key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`w-full p-4 rounded-xl border flex items-center justify-between transition-all ${
-                    selectedMethod === method.id
-                      ? 'bg-orange-500/20 border-orange-500/50'
-                      : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Icon className={`h-6 w-6 ${selectedMethod === method.id ? 'text-orange-400' : 'text-slate-400'}`} />
-                    <div className="text-left">
-                      <p className="text-white font-medium">{method.name}</p>
-                      <p className="text-sm text-slate-400">{method.description}</p>
-                    </div>
-                  </div>
-                  {selectedMethod === method.id && (
-                    <Check className="h-5 w-5 text-orange-400" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Pay Button */}
-        <Button
-          onClick={handlePayment}
-          disabled={processing}
-          className="w-full py-6 text-lg bg-green-600 hover:bg-green-700"
-          data-testid="pay-now-btn"
-        >
-          {processing ? (
-            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Processing...</>
-          ) : (
-            <>
-              <CreditCard className="h-5 w-5 mr-2" />
-              Pay ₹{payableAmount?.toLocaleString()}
-            </>
-          )}
-        </Button>
-
-        {/* Security Note */}
-        <div className="mt-6 text-center">
-          <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
-            <Shield className="h-4 w-4" />
-            Secured by Stripe (Test Mode) • 256-bit SSL encryption
           </p>
         </div>
 

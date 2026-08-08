@@ -210,6 +210,7 @@ export default function PaymentSuccessPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Download Receipt (PDF)
               </Button>
+              )}
               
               <Button 
                 variant="ghost" 
