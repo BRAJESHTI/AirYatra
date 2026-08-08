@@ -32,6 +32,9 @@ function LoginPage({ setUser }) {
   const [totpRequired, setTotpRequired] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const [tempToken, setTempToken] = useState('');
+  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone'
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneOtpCode, setPhoneOtpCode] = useState('');
   const otpRefs = useRef([]);
   const navigate = useNavigate();
 
@@ -62,6 +65,79 @@ function LoginPage({ setUser }) {
 
   const getHomePath = (role) => {
     return ROLE_HOME_PATH[role] || '/customer';
+  };
+
+  // Phone OTP Login Functions
+  const sendPhoneOTP = async () => {
+    if (!formData.phone || formData.phone.length < 10) {
+      toast.error('Please enter a valid phone number / कृपया सही फोन नंबर दर्ज करें');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/phone/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formData.phone })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setPhoneOtpSent(true);
+        toast.success(data.message_hi || 'OTP भेजा गया!');
+        
+        // Show mock OTP in dev mode
+        if (data.mock_otp) {
+          toast.info(`Test OTP: ${data.mock_otp}`, { duration: 10000 });
+        }
+      } else {
+        toast.error(data.detail || 'Failed to send OTP');
+      }
+    } catch (error) {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyPhoneOTP = async () => {
+    if (!phoneOtpCode || phoneOtpCode.length !== 6) {
+      toast.error('Please enter 6-digit OTP / कृपया 6 अंकों का OTP दर्ज करें');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/phone/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone: formData.phone,
+          otp_code: phoneOtpCode
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        
+        toast.success(data.message_hi || 'Login successful!');
+        
+        const role = data.user.roles?.[0] || 'customer';
+        navigate(getHomePath(role));
+      } else {
+        toast.error(data.detail || 'Invalid OTP');
+      }
+    } catch (error) {
+      toast.error('Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSuccess = (data) => {
@@ -441,7 +517,124 @@ function LoginPage({ setUser }) {
           </form>
         ) : (
           /* Regular Login/Register Form */
-          <form onSubmit={handleSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="auth-form">
+          <form onSubmit={loginMethod === 'phone' ? (e) => { e.preventDefault(); phoneOtpSent ? verifyPhoneOTP() : sendPhoneOTP(); } : handleSubmit} className="glass p-8 rounded-lg space-y-6" data-testid="auth-form">
+            
+            {/* Login Method Tabs - Only for Login */}
+            {isLogin && (
+              <div className="flex rounded-lg bg-slate-800/50 p-1 mb-4">
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('email'); setPhoneOtpSent(false); }}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                    loginMethod === 'email' 
+                      ? 'bg-orange-500 text-white' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('phone'); setPhoneOtpSent(false); }}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                    loginMethod === 'phone' 
+                      ? 'bg-orange-500 text-white' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Phone className="h-4 w-4" />
+                  Phone OTP
+                </button>
+              </div>
+            )}
+
+            {/* Phone OTP Login - only shown when login method is phone */}
+            {isLogin && loginMethod === 'phone' ? (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <Phone className="h-12 w-12 mx-auto text-orange-500 mb-2" />
+                  <p className="text-slate-400 text-sm">
+                    {phoneOtpSent 
+                      ? 'OTP भेजा गया! अपना 6 अंकों का कोड दर्ज करें' 
+                      : 'फ़ोन नंबर से लॉग इन करें'}
+                  </p>
+                </div>
+                
+                {!phoneOtpSent ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-white">Phone Number / फ़ोन नंबर</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        placeholder="+91 9876543210"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="pl-10 bg-slate-900 border-slate-700 text-white"
+                        data-testid="phone-login-input"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneOtp" className="text-white">Enter OTP / OTP दर्ज करें</Label>
+                    <Input
+                      id="phoneOtp"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="123456"
+                      value={phoneOtpCode}
+                      onChange={(e) => setPhoneOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="text-center text-2xl tracking-widest bg-slate-900 border-slate-700 text-white"
+                      data-testid="phone-otp-input"
+                      autoFocus
+                    />
+                    <p className="text-xs text-slate-500 text-center">
+                      OTP sent to {formData.phone}
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loading || (!phoneOtpSent && !formData.phone) || (phoneOtpSent && phoneOtpCode.length !== 6)}
+                  className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white h-12"
+                  data-testid="phone-otp-btn"
+                >
+                  {loading ? (
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                  ) : phoneOtpSent ? (
+                    <>
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Verify & Login
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="h-5 w-5 mr-2" />
+                      Send OTP / OTP भेजें
+                    </>
+                  )}
+                </Button>
+
+                {phoneOtpSent && (
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => { setPhoneOtpSent(false); setPhoneOtpCode(''); }}
+                      className="text-orange-400 hover:text-orange-300 text-sm"
+                    >
+                      ← Change Phone Number
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Email/Password Login Form */}
             {!isLogin && (
               <>
                 <div className="space-y-2">
@@ -585,6 +778,8 @@ function LoginPage({ setUser }) {
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
             </button>
           </div>
+              </>
+            )}
         </form>
         )}
       </div>

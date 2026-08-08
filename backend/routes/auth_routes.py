@@ -157,6 +157,151 @@ async def register(request: Request, user_data: UserCreate):
     
     return Token(access_token=access_token, user=user_response)
 
+
+# ========== SMS OTP LOGIN ROUTES ==========
+
+class PhoneOTPRequest(BaseModel):
+    """Request to send OTP to phone"""
+    phone: str
+    
+class PhoneOTPVerify(BaseModel):
+    """Request to verify phone OTP and login"""
+    phone: str
+    otp_code: str
+
+@router.post("/phone/send-otp")
+@limiter.limit("5/minute")
+async def send_phone_otp(request: Request, data: PhoneOTPRequest):
+    """
+    Send OTP to phone number for passwordless login
+    
+    Usage:
+    POST /api/auth/phone/send-otp
+    {"phone": "+919999999999"}
+    """
+    from services.sms_otp_service import sms_otp_service
+    
+    result = await sms_otp_service.send_otp(data.phone)
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("error", "Failed to send OTP")
+        )
+    
+    return {
+        "success": True,
+        "message": result.get("message", "OTP sent"),
+        "message_hi": result.get("message_hi", "OTP भेजा गया"),
+        "phone": result.get("phone"),
+        "mock_mode": result.get("mock_mode", False),
+        "mock_otp": result.get("mock_otp")  # Only present in mock mode
+    }
+
+@router.post("/phone/verify-otp")
+@limiter.limit("10/minute")
+async def verify_phone_otp(request: Request, data: PhoneOTPVerify):
+    """
+    Verify phone OTP and login/create user
+    
+    Usage:
+    POST /api/auth/phone/verify-otp
+    {"phone": "+919999999999", "otp_code": "123456"}
+    """
+    from services.sms_otp_service import sms_otp_service
+    
+    db = get_database()
+    
+    # Verify OTP first
+    verify_result = await sms_otp_service.verify_otp(data.phone, data.otp_code)
+    
+    if not verify_result.get("success") or not verify_result.get("valid"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=verify_result.get("message", "Invalid OTP")
+        )
+    
+    # Format phone number
+    phone = verify_result.get("phone", data.phone)
+    
+    # Find or create user by phone
+    existing_user = await db.users.find_one(
+        {"phone": phone},
+        {"_id": 0}
+    )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    is_new_user = False
+    
+    if existing_user:
+        # Update last login
+        await db.users.update_one(
+            {"phone": phone},
+            {"$set": {
+                "last_login": now,
+                "phone_verified": True,
+                "updated_at": now
+            }}
+        )
+        user_id = existing_user.get("id")
+        roles = existing_user.get("roles", ["customer"])
+        email = existing_user.get("email")
+        full_name = existing_user.get("full_name", "")
+    else:
+        # Create new user with phone
+        is_new_user = True
+        user_id = str(uuid.uuid4())
+        roles = ["customer"]
+        email = None
+        full_name = ""
+        
+        new_user = {
+            "id": user_id,
+            "phone": phone,
+            "email": None,
+            "full_name": full_name,
+            "roles": roles,
+            "is_active": True,
+            "is_verified": True,
+            "phone_verified": True,
+            "auth_provider": "phone_otp",
+            "created_at": now,
+            "updated_at": now,
+            "last_login": now,
+            "login_shield_enabled": False,
+            "two_factor_enabled": False
+        }
+        
+        await db.users.insert_one(new_user)
+    
+    # Generate token
+    token_data = {
+        "sub": user_id,
+        "email": email or phone,
+        "roles": roles,
+        "login_method": "phone_otp"
+    }
+    
+    access_token = create_access_token(data=token_data)
+    
+    return {
+        "success": True,
+        "access_token": access_token,
+        "token_type": "bearer",
+        "is_new_user": is_new_user,
+        "user": {
+            "id": user_id,
+            "email": email,
+            "phone": phone,
+            "full_name": full_name,
+            "roles": roles,
+            "phone_verified": True
+        },
+        "message": "Phone verified & logged in" if not is_new_user else "Account created & logged in",
+        "message_hi": "फोन सत्यापित और लॉग इन" if not is_new_user else "खाता बनाया गया और लॉग इन"
+    }
+
+
 @router.post("/login")
 @limiter.limit(RATE_LIMITS["login"])
 async def login(request: Request, credentials: UserLogin):
