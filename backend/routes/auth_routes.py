@@ -12,6 +12,9 @@ from services.account_lockout_service import account_lockout_service
 import uuid
 import os
 import hmac
+import logging
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
@@ -1784,17 +1787,54 @@ async def emergent_google_callback(
     1. Frontend redirects to Emergent auth (auth.emergentagent.com)
     2. User logs in with Google
     3. Emergent redirects back with session_id in URL hash
-    4. Frontend exchanges session_id for user data
-    5. Frontend calls this endpoint with user data
-    6. We create/update user and return our JWT
+    4. Frontend exchanges session_id for user data via Emergent API
+    5. Frontend calls this endpoint with session_token for SERVER-SIDE verification
+    6. We verify with Emergent server, then create/update user and return our JWT
     """
+    import httpx
+    
     db = get_database()
     
     try:
         emergent_user = request.emergent_user
+        session_token = request.session_token
         device_info = request.device_info or {}
         
-        # Extract user info from Emergent response
+        # SECURITY FIX: Server-side verification with Emergent
+        # We must verify the session_token with Emergent's server, not trust client data
+        if session_token:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    verify_response = await client.get(
+                        'https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data',
+                        headers={'X-Session-ID': session_token}
+                    )
+                    
+                    if verify_response.status_code == 200:
+                        verified_user = verify_response.json()
+                        # Use server-verified data, not client-supplied
+                        emergent_user = verified_user
+                        logger.info(f"Google OAuth: Verified user email: {verified_user.get('email')}")
+                    else:
+                        logger.warning(f"Google OAuth: Session verification failed: {verify_response.status_code}")
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid or expired session. Please try logging in again."
+                        )
+            except httpx.RequestError as e:
+                logger.error(f"Google OAuth: Emergent verification request failed: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Authentication service temporarily unavailable"
+                )
+        else:
+            # No session token - reject
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Session token required for authentication"
+            )
+        
+        # Extract user info from VERIFIED Emergent response
         google_email = emergent_user.get("email")
         google_name = emergent_user.get("name", "")
         google_picture = emergent_user.get("picture", "")
@@ -1803,7 +1843,7 @@ async def emergent_google_callback(
         if not google_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No email in Emergent user data"
+                detail="No email in verified user data"
             )
         
         now = datetime.now(timezone.utc).isoformat()
@@ -2203,12 +2243,17 @@ async def get_quick_admin_token_info():
 
 
 # ========== PRODUCTION SEED ENDPOINT ==========
-# One-time endpoint to seed test accounts in production
+# SECURITY: This endpoint is DISABLED in production
+# Only enabled when ENABLE_SEED_ENDPOINT=true in .env
+
+SEED_ENDPOINT_ENABLED = os.environ.get("ENABLE_SEED_ENDPOINT", "false").lower() == "true"
 
 class SeedRequest(BaseModel):
+    """Request to seed production accounts"""
     secret_key: str
     
-SEED_SECRET = os.environ.get("SEED_SECRET_KEY", "airyatra-seed-prod-2026-secure")
+# Secret key MUST be set in environment - no default
+SEED_SECRET = os.environ.get("SEED_SECRET_KEY", "")
 
 @router.post("/seed-production-accounts")
 async def seed_production_accounts(
@@ -2217,13 +2262,28 @@ async def seed_production_accounts(
 ):
     """
     One-time endpoint to seed test accounts in production.
-    Call this ONCE after deployment to create admin/test accounts.
+    SECURITY: Disabled by default. Enable via ENABLE_SEED_ENDPOINT=true
     
-    Usage:
-    curl -X POST "https://airyatra.co.in/api/auth/seed-production-accounts" \
-      -H "Content-Type: application/json" \
-      -d '{"secret_key": "airyatra-seed-prod-2026-secure"}'
+    NOTE: Passwords are randomly generated - check response or logs for credentials
     """
+    import secrets
+    import string
+    
+    # SECURITY CHECK 1: Endpoint must be explicitly enabled
+    if not SEED_ENDPOINT_ENABLED:
+        raise HTTPException(
+            status_code=403, 
+            detail="Seed endpoint is disabled in production. Set ENABLE_SEED_ENDPOINT=true to enable."
+        )
+    
+    # SECURITY CHECK 2: Secret key must be configured (no default)
+    if not SEED_SECRET:
+        raise HTTPException(
+            status_code=500, 
+            detail="SEED_SECRET_KEY environment variable not configured"
+        )
+    
+    # SECURITY CHECK 3: Validate secret key
     if request.secret_key != SEED_SECRET:
         raise HTTPException(status_code=403, detail="Invalid seed secret key")
     
@@ -2236,62 +2296,70 @@ async def seed_production_accounts(
             "message_hi": "प्रोडक्शन पहले से सीड है! एडमिन अकाउंट मौजूद है।"
         }
     
-    # Test accounts to create
-    test_accounts = [
-        {"email": "ceo@airyatra.co.in", "password": "CEO@123456", "full_name": "Vikram Sharma", "roles": ["ceo", "admin", "super_admin"]},
-        {"email": "admin@airyatra.co.in", "password": "Admin123!", "full_name": "System Admin", "roles": ["admin", "super_admin"]},
-        {"email": "hr@airyatra.co.in", "password": "HR@123456", "full_name": "Priya Sharma", "roles": ["hr", "admin"]},
-        {"email": "sales@airyatra.co.in", "password": "Sales@123456", "full_name": "Rahul Kapoor", "roles": ["sales", "admin"]},
-        {"email": "finance@airyatra.co.in", "password": "Finance@123", "full_name": "Finance Manager", "roles": ["finance", "admin"]},
-        {"email": "operator@airyatra.co.in", "password": "Operator@123456", "full_name": "HeliTaxi Operator", "roles": ["operator"]},
-        {"email": "pilot@airyatra.co.in", "password": "Pilot@123", "full_name": "Captain Rajesh Kumar", "roles": ["pilot"]},
-        {"email": "customer@airyatra.co.in", "password": "Customer@123", "full_name": "Demo Customer", "roles": ["customer"]},
-        {"email": "employee@airyatra.co.in", "password": "Employee@123", "full_name": "Test Employee", "roles": ["employee"]},
+    def generate_secure_password(length=16):
+        """Generate a cryptographically secure random password"""
+        alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+        return ''.join(secrets.choice(alphabet) for _ in range(length))
+    
+    # Generate random passwords for each account (NOT hardcoded)
+    account_configs = [
+        {"email": "ceo@airyatra.co.in", "full_name": "CEO User", "roles": ["ceo", "admin", "super_admin"]},
+        {"email": "admin@airyatra.co.in", "full_name": "System Admin", "roles": ["admin", "super_admin"]},
+        {"email": "hr@airyatra.co.in", "full_name": "HR Manager", "roles": ["hr", "admin"]},
+        {"email": "sales@airyatra.co.in", "full_name": "Sales Manager", "roles": ["sales", "admin"]},
+        {"email": "finance@airyatra.co.in", "full_name": "Finance Manager", "roles": ["finance", "admin"]},
+        {"email": "operator@airyatra.co.in", "full_name": "Operator", "roles": ["operator"]},
+        {"email": "pilot@airyatra.co.in", "full_name": "Pilot", "roles": ["pilot"]},
+        {"email": "customer@airyatra.co.in", "full_name": "Demo Customer", "roles": ["customer"]},
+        {"email": "employee@airyatra.co.in", "full_name": "Employee", "roles": ["employee"]},
     ]
     
     created_users = []
-    for account in test_accounts:
+    credentials_log = []
+    
+    for config in account_configs:
         try:
             user_id = str(uuid.uuid4())
-            password_hash = get_password_hash(account["password"])
+            # Generate unique random password for each user
+            random_password = generate_secure_password()
+            password_hash = get_password_hash(random_password)
             
             user_doc = {
                 "id": user_id,
-                "email": account["email"],
+                "email": config["email"],
                 "password_hash": password_hash,
-                "full_name": account["full_name"],
-                "roles": account["roles"],
+                "full_name": config["full_name"],
+                "roles": config["roles"],
                 "is_active": True,
                 "is_verified": True,
                 "phone": "+919999999999",
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
-                "login_shield_enabled": False,  # Disabled for easy testing
+                "login_shield_enabled": False,
                 "two_factor_enabled": False,
                 "failed_login_attempts": 0
             }
             
-            # Add pilot-specific fields
-            if "pilot" in account["roles"]:
+            if "pilot" in config["roles"]:
                 user_doc["pilot_license"] = "CPL-2024-0001"
                 user_doc["pilot_status"] = "active"
             
             await db.users.insert_one(user_doc)
-            created_users.append({"email": account["email"], "roles": account["roles"]})
+            created_users.append({"email": config["email"], "roles": config["roles"]})
+            credentials_log.append({"email": config["email"], "password": random_password, "roles": config["roles"]})
+            
+            # Log for admin reference (should be captured securely)
+            logger.info(f"[SEED] Created user: {config['email']}")
             
         except Exception as e:
-            print(f"Error creating {account['email']}: {e}")
+            logger.error(f"Error creating {config['email']}: {e}")
     
     return {
         "success": True,
-        "message": f"Production seeded! Created {len(created_users)} accounts.",
-        "message_hi": f"प्रोडक्शन सीड हो गया! {len(created_users)} अकाउंट बनाए गए।",
+        "message": f"Production seeded! Created {len(created_users)} accounts with random passwords.",
+        "message_hi": f"प्रोडक्शन सीड हो गया! {len(created_users)} अकाउंट रैंडम पासवर्ड के साथ बनाए गए।",
         "accounts_created": created_users,
-        "note": "You can now login with these credentials. 2FA is disabled for all accounts.",
-        "credentials": [
-            {"role": "CEO", "email": "ceo@airyatra.co.in", "password": "CEO@123456"},
-            {"role": "Admin", "email": "admin@airyatra.co.in", "password": "Admin123!"},
-            {"role": "Operator", "email": "operator@airyatra.co.in", "password": "Operator@123456"},
-            {"role": "Customer", "email": "customer@airyatra.co.in", "password": "Customer@123"},
-        ]
+        "credentials": credentials_log,  # One-time display - save these!
+        "warning": "SAVE THESE CREDENTIALS NOW! They will not be shown again."
     }
+

@@ -4,13 +4,14 @@ Order creation, payment verification, webhook handling
 Receipt Prefix: AY000125 format
 Website: airyatra.co.in
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
 from bson import ObjectId
 from database import get_database
 from security_middleware import limiter, RATE_LIMITS
+from routes.auth_routes import get_current_user
 import razorpay
 import hmac
 import hashlib
@@ -462,9 +463,22 @@ async def handle_webhook(request: Request):
         logger.error(f"Webhook processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Webhook error: {str(e)}")
 
-# Create Refund
+# Create Refund - REQUIRES ADMIN/FINANCE ROLE
 @router.post("/refund")
-async def create_refund(request: RefundRequest):
+async def create_refund(
+    request: RefundRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create refund - requires admin or finance role"""
+    # SECURITY: Check user has permission to initiate refunds
+    allowed_roles = {"admin", "super_admin", "finance", "ceo"}
+    user_roles = set(current_user.get("roles", []))
+    if not user_roles.intersection(allowed_roles):
+        raise HTTPException(
+            status_code=403, 
+            detail="Only admin or finance users can initiate refunds"
+        )
+    
     if not razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay not configured")
     
@@ -514,9 +528,13 @@ async def create_refund(request: RefundRequest):
         logger.error(f"Refund failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Refund failed: {str(e)}")
 
-# Get Order Status
+# Get Order Status - REQUIRES AUTHENTICATION
 @router.get("/order/{order_id}")
-async def get_order_status(order_id: str):
+async def get_order_status(
+    order_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get order status - requires authentication"""
     db = get_database()
     
     order = await db.razorpay_orders.find_one(
@@ -529,9 +547,13 @@ async def get_order_status(order_id: str):
     
     return order
 
-# Get Payment Status
+# Get Payment Status - REQUIRES AUTHENTICATION
 @router.get("/payment/{payment_id}")
-async def get_payment_status(payment_id: str):
+async def get_payment_status(
+    payment_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get payment status - requires authentication"""
     if not razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay not configured")
     
@@ -541,13 +563,24 @@ async def get_payment_status(payment_id: str):
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Payment not found: {str(e)}")
 
-# Get All Orders (Admin)
+# Get All Orders (Admin) - REQUIRES ADMIN ROLE
 @router.get("/orders")
 async def get_all_orders(
     status: Optional[str] = None,
     limit: int = 50,
-    skip: int = 0
+    skip: int = 0,
+    current_user: dict = Depends(get_current_user)
 ):
+    """Get all orders - requires admin role"""
+    # SECURITY: Only admins can view all orders
+    allowed_roles = {"admin", "super_admin", "finance", "ceo"}
+    user_roles = set(current_user.get("roles", []))
+    if not user_roles.intersection(allowed_roles):
+        raise HTTPException(
+            status_code=403, 
+            detail="Only admin users can view all orders"
+        )
+    
     db = get_database()
     
     query = {}
@@ -568,9 +601,21 @@ async def get_all_orders(
         "skip": skip
     }
 
-# Get Payment Statistics
+# Get Payment Statistics - REQUIRES ADMIN ROLE
 @router.get("/stats")
-async def get_payment_stats():
+async def get_payment_stats(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get payment statistics - requires admin role"""
+    # SECURITY: Only admins can view stats
+    allowed_roles = {"admin", "super_admin", "finance", "ceo"}
+    user_roles = set(current_user.get("roles", []))
+    if not user_roles.intersection(allowed_roles):
+        raise HTTPException(
+            status_code=403, 
+            detail="Only admin users can view payment stats"
+        )
+    
     db = get_database()
     
     total_orders = await db.razorpay_orders.count_documents({})
