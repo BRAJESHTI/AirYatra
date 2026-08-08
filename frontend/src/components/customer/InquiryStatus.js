@@ -14,12 +14,12 @@ import PassengerDetailsForm from './PassengerDetailsForm';
 import VillageLandingDocuments from './VillageLandingDocuments';
 
 const STATUS_STEPS = [
-  { id: 'pending_acceptance', label: 'Inquiry Sent', labelHi: 'इंक्वायरी भेजी गई', icon: Clock },
-  { id: 'quote_received', label: 'Quotes Received', labelHi: 'कोट प्राप्त', icon: Bell },
-  { id: 'quote_accepted', label: 'Quote Accepted', labelHi: 'कोट स्वीकृत', icon: Check },
-  { id: 'passenger_details_filled', label: 'Details Filled', labelHi: 'विवरण भरा', icon: Users },
-  { id: 'payment_pending', label: 'Payment', labelHi: 'भुगतान', icon: CreditCard },
-  { id: 'confirmed', label: 'Confirmed', labelHi: 'पुष्टि', icon: Check },
+  { id: 'pending_acceptance', label: 'Inquiry Sent', icon: Clock },
+  { id: 'quote_received', label: 'Quotes Received', icon: Bell },
+  { id: 'quote_accepted', label: 'Quote Accepted', icon: Check },
+  { id: 'passenger_details_filled', label: 'Details Filled', icon: Users },
+  { id: 'payment_pending', label: 'Payment', icon: CreditCard },
+  { id: 'confirmed', label: 'Confirmed', icon: Check },
 ];
 
 function InquiryStatus({ user }) {
@@ -44,7 +44,7 @@ function InquiryStatus({ user }) {
       a.download = `AirYatra_Receipt_${t.id.slice(0, 8)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Receipt downloaded / रसीद डाउनलोड हो गई');
+      toast.success('Receipt downloaded');
     } catch (e) { toast.error('Failed to download receipt'); }
   };
   const [loading, setLoading] = useState(true);
@@ -98,7 +98,7 @@ function InquiryStatus({ user }) {
     setProcessing(true);
     try {
       await customerAPI.respondToQuote(inquiryId, quote.id, { action: 'accept' });
-      toast.success('🎉 Quote accepted! Now fill passenger details. / कोट स्वीकार! अब यात्री विवरण भरें।');
+      toast.success('🎉 Quote accepted! Now fill passenger details.');
       setShowQuotesDialog(false);
       loadInquiryStatus();
     } catch (error) {
@@ -110,7 +110,7 @@ function InquiryStatus({ user }) {
 
   const handlePassengerDetailsComplete = (data) => {
     setShowPassengerForm(false);
-    toast.success('✅ Passenger details saved! Proceed to payment. / यात्री विवरण सहेजा गया!');
+    toast.success('✅ Passenger details saved! Proceed to payment.');
     loadInquiryStatus();
   };
 
@@ -178,7 +178,7 @@ function InquiryStatus({ user }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Inquiry Status / इंक्वायरी स्थिति
+            Inquiry Status
           </h1>
           <p className="text-orange-400 font-mono text-lg">
             {inquiry.inquiry_number || inquiry.id?.slice(0, 8)}
@@ -188,29 +188,29 @@ function InquiryStatus({ user }) {
         {/* ========== BOOKING SUMMARY CARD ========== */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 border border-orange-500/30 mb-8 shadow-lg">
           <h2 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5" /> Booking Details / बुकिंग विवरण
+            <FileText className="h-5 w-5" /> Booking Details
           </h2>
           
           {/* Main Info Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="bg-slate-800/50 rounded-lg p-3">
-              <p className="text-slate-400 text-xs mb-1">Ref No. / रेफ नं.</p>
+              <p className="text-slate-400 text-xs mb-1">Ref No.</p>
               <p className="text-white font-bold text-sm">{inquiry.inquiry_number || inquiry.id?.slice(0, 8).toUpperCase()}</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-3">
-              <p className="text-slate-400 text-xs mb-1">Passengers / यात्री</p>
+              <p className="text-slate-400 text-xs mb-1">Passengers</p>
               <p className="text-white font-bold text-sm flex items-center gap-1">
                 <Users className="h-4 w-4 text-blue-400" /> {inquiry.total_passengers || inquiry.adults_male + inquiry.adults_female || 1}
               </p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-3">
-              <p className="text-slate-400 text-xs mb-1">Aircraft / विमान</p>
+              <p className="text-slate-400 text-xs mb-1">Aircraft</p>
               <p className="text-white font-bold text-sm flex items-center gap-1">
                 <Plane className="h-4 w-4 text-orange-400" /> {inquiry.aircraft_type === 'helicopter' ? 'Helicopter' : 'Plane'}
               </p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-3">
-              <p className="text-slate-400 text-xs mb-1">Distance / दूरी</p>
+              <p className="text-slate-400 text-xs mb-1">Distance</p>
               <p className="text-white font-bold text-sm">{inquiry.distance_km || '-'} km</p>
             </div>
           </div>
@@ -219,7 +219,7 @@ function InquiryStatus({ user }) {
           <div className="bg-slate-800/30 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex-1 min-w-[150px]">
-                <p className="text-slate-400 text-xs mb-1">From / से</p>
+                <p className="text-slate-400 text-xs mb-1">From</p>
                 <p className="text-white font-semibold flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-green-400" />
                   {inquiry.pickup_landing_point_name || inquiry.pickup_location || inquiry.pickup_city || '-'}
@@ -234,7 +234,7 @@ function InquiryStatus({ user }) {
               </div>
               
               <div className="flex-1 min-w-[150px] text-right">
-                <p className="text-slate-400 text-xs mb-1">To / तक</p>
+                <p className="text-slate-400 text-xs mb-1">To</p>
                 <p className="text-white font-semibold flex items-center justify-end gap-2">
                   {inquiry.drop_landing_point_name || inquiry.drop_location || inquiry.drop_city || '-'}
                   <MapPin className="h-4 w-4 text-red-400" />
@@ -247,25 +247,25 @@ function InquiryStatus({ user }) {
           {/* Date, Time & Price Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-orange-500/10 rounded-lg p-3 border border-orange-500/20">
-              <p className="text-slate-400 text-xs mb-1">Travel Date / यात्रा तारीख</p>
+              <p className="text-slate-400 text-xs mb-1">Travel Date</p>
               <p className="text-orange-400 font-bold text-sm flex items-center gap-1">
                 <Calendar className="h-4 w-4" /> {formatDate(inquiry.departure_date)}
               </p>
             </div>
             <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
-              <p className="text-slate-400 text-xs mb-1">Pickup Time / समय</p>
+              <p className="text-slate-400 text-xs mb-1">Pickup Time</p>
               <p className="text-blue-400 font-bold text-sm flex items-center gap-1">
                 <Clock className="h-4 w-4" /> {formatTime(inquiry.pickup_time)}
               </p>
             </div>
             <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
-              <p className="text-slate-400 text-xs mb-1">Est. Amount / अनुमानित राशि</p>
+              <p className="text-slate-400 text-xs mb-1">Est. Amount</p>
               <p className="text-green-400 font-bold text-sm flex items-center gap-1">
                 <DollarSign className="h-4 w-4" /> ₹{(inquiry.estimated_price || 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
-              <p className="text-slate-400 text-xs mb-1">Inquiry Date / इंक्वायरी तारीख</p>
+              <p className="text-slate-400 text-xs mb-1">Inquiry Date</p>
               <p className="text-purple-400 font-bold text-sm flex items-center gap-1">
                 <Calendar className="h-4 w-4" /> {formatDate(inquiry.created_at)}
               </p>
@@ -348,13 +348,10 @@ function InquiryStatus({ user }) {
             <div className="text-center">
               <Clock className="h-12 w-12 text-yellow-400 mx-auto mb-3 animate-pulse" />
               <h3 className="text-xl font-bold text-yellow-400">
-                Please Wait / कृपया प्रतीक्षा करें
+                Please Wait
               </h3>
               <p className="text-slate-300 mt-2">
                 Your booking acceptance is pending to operators.
-              </p>
-              <p className="text-slate-400 text-sm">
-                आपकी बुकिंग ऑपरेटर्स की स्वीकृति के लिए लंबित है।
               </p>
             </div>
           )}
@@ -363,7 +360,7 @@ function InquiryStatus({ user }) {
             <div className="text-center">
               <Bell className="h-12 w-12 text-blue-400 mx-auto mb-3" />
               <h3 className="text-xl font-bold text-blue-400">
-                Quotes Received! / कोट प्राप्त!
+                Quotes Received!
               </h3>
               <p className="text-slate-300 mt-2">
                 {quotes.length} operator(s) have sent you quotes. Please review and accept one.
@@ -381,7 +378,7 @@ function InquiryStatus({ user }) {
             <div className="text-center">
               <Check className="h-12 w-12 text-green-400 mx-auto mb-3" />
               <h3 className="text-xl font-bold text-green-400">
-                Booking Accepted! / बुकिंग स्वीकृत!
+                Booking Accepted!
               </h3>
               <p className="text-slate-300 mt-2">
                 Please fill passenger details to proceed with payment.
@@ -399,7 +396,7 @@ function InquiryStatus({ user }) {
             <div className="text-center">
               <CreditCard className="h-12 w-12 text-orange-400 mx-auto mb-3" />
               <h3 className="text-xl font-bold text-orange-400">
-                Proceed to Payment / भुगतान करें
+                Proceed to Payment
               </h3>
               <p className="text-slate-300 mt-2">
                 Passenger details saved. Complete {paymentInfo?.advance_percent || 50}% advance payment to confirm booking.
@@ -430,7 +427,7 @@ function InquiryStatus({ user }) {
                 <Check className="h-10 w-10 text-white" />
               </div>
               <h3 className="text-xl font-bold text-green-400">
-                Booking Confirmed! / बुकिंग पुष्टि!
+                Booking Confirmed!
               </h3>
               <p className="text-slate-300 mt-2">
                 {inquiry.permission_required 
@@ -460,16 +457,16 @@ function InquiryStatus({ user }) {
               <TreePine className="h-6 w-6 text-yellow-400 shrink-0" />
               <div>
                 <h4 className="text-yellow-400 font-semibold">
-                  Village Landing - Documents Required / गांव लैंडिंग - दस्तावेज़ आवश्यक
+                  Village Landing - Documents Required
                 </h4>
                 <p className="text-yellow-400/70 text-sm mt-1">
                   After booking is confirmed, you will need to upload documents from authorities:
                 </p>
                 <ul className="text-yellow-400/70 text-sm mt-2 list-disc list-inside">
-                  <li>Collector NOC / कलेक्टर NOC</li>
-                  <li>Fire Department Acknowledgment / फायर विभाग की पावती</li>
-                  <li>Local Police Station Acknowledgment / स्थानीय थाना की पावती</li>
-                  <li>SP/DCP Acknowledgment / SP/DCP की पावती</li>
+                  <li>Collector NOC</li>
+                  <li>Fire Department Acknowledgment</li>
+                  <li>Local Police Station Acknowledgment</li>
+                  <li>SP/DCP Acknowledgment</li>
                 </ul>
               </div>
             </div>
@@ -481,7 +478,7 @@ function InquiryStatus({ user }) {
           <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-8" data-testid="payments-receipts-section">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-green-400" />
-              Payments & Receipts / भुगतान और रसीदें
+              Payments & Receipts
             </h3>
             <div className="space-y-2 mb-4">
               {ledger.transactions.map((t) => (
@@ -511,7 +508,7 @@ function InquiryStatus({ user }) {
                 </Button>
               )}
               {ledger.payment_status === 'fully_paid' && (
-                <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-sm font-semibold" data-testid="fully-paid-badge">✓ Fully Paid / पूर्ण भुगतान</span>
+                <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-sm font-semibold" data-testid="fully-paid-badge">✓ Fully Paid</span>
               )}
             </div>
           </div>
@@ -521,7 +518,7 @@ function InquiryStatus({ user }) {
         <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <FileText className="h-5 w-5 text-orange-400" />
-            Booking Summary / बुकिंग सारांश
+            Booking Summary
           </h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -595,7 +592,7 @@ function InquiryStatus({ user }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-orange-400" />
-              Operator Quotes / ऑपरेटर कोट्स
+              Operator Quotes
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
@@ -643,7 +640,7 @@ function InquiryStatus({ user }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Users className="h-5 w-5 text-orange-400" />
-              Passenger Details / यात्री विवरण
+              Passenger Details
             </DialogTitle>
           </DialogHeader>
           <PassengerDetailsForm 

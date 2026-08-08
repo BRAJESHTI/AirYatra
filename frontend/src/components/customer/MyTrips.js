@@ -108,8 +108,8 @@ function MyTrips({ user }) {
     try {
       await customerAPI.respondToQuote(selectedTrip.id, quoteId, { action });
       toast.success(action === 'accept' 
-        ? '🎉 Quote accepted! Proceed to payment. / कोट स्वीकार!'
-        : 'Quote rejected / कोट अस्वीकार');
+        ? '🎉 Quote accepted! Proceed to payment.'
+        : 'Quote rejected');
       setShowQuotesDialog(false);
       loadTrips();
       loadPendingQuotes();
@@ -178,15 +178,15 @@ function MyTrips({ user }) {
   const getStatusLabel = (status) => {
     const labels = {
       pending: 'Pending',
-      pending_acceptance: 'Awaiting Quotes / कोट का इंतजार',
+      pending_acceptance: 'Awaiting Quotes',
       pending_quotes: 'Awaiting Quotes',
-      quote_received: 'Quotes Received / कोट मिला',
+      quote_received: 'Quotes Received',
       quotes_received: 'Quotes Received',
-      quote_accepted: 'Quote Accepted / कोट स्वीकार',
-      passenger_details_filled: 'Details Filled / विवरण भरा',
-      confirmed: 'Confirmed / पुष्टि',
-      completed: 'Completed / पूर्ण',
-      cancelled: 'Cancelled / रद्द',
+      quote_accepted: 'Quote Accepted',
+      passenger_details_filled: 'Details Filled',
+      confirmed: 'Confirmed',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
     };
     return labels[status] || status;
   };
@@ -216,7 +216,7 @@ function MyTrips({ user }) {
               </div>
               <div>
                 <h3 className="text-orange-400 font-semibold">
-                  {pendingQuotes.length} New Quote{pendingQuotes.length > 1 ? 's' : ''} Received! / नया कोट मिला!
+                  {pendingQuotes.length} New Quote{pendingQuotes.length > 1 ? 's' : ''} Received!
                 </h3>
                 <p className="text-slate-400 text-sm">
                   Operators have sent revised quotes for your bookings. Please review and respond.
@@ -256,7 +256,7 @@ function MyTrips({ user }) {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {[
-          { id: 'pending', label: 'Pending Inquiries / इंक्वायरी' },
+          { id: 'pending', label: 'Pending Inquiries' },
           { id: 'upcoming', label: 'Upcoming' },
           { id: 'completed', label: 'Completed' },
           { id: 'cancelled', label: 'Cancelled' },
@@ -370,7 +370,7 @@ function MyTrips({ user }) {
                     className="bg-blue-500 hover:bg-blue-600"
                     onClick={() => window.location.href = `/customer/inquiry/${trip.id}`}
                   >
-                    <FileText className="h-4 w-4 mr-1" /> View Status / स्थिति देखें
+                    <FileText className="h-4 w-4 mr-1" /> View Status
                   </Button>
                 )}
                 {/* View Quotes Button for pending bookings */}
@@ -552,7 +552,7 @@ function MyTrips({ user }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-orange-400" />
-              Received Quotes / प्राप्त कोट्स
+              Received Quotes
             </DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">

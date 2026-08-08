@@ -5,7 +5,35 @@
 
 ## Latest Updates (Aug 8, 2026)
 
-### ✅ COMPLETED TODAY:
+### ✅ COMPLETED TODAY (Session 2):
+1. **Customer Portal Phase 1 Features**
+   - **Dynamic Pricing Breakdown Component** - `/components/customer/PricingBreakdown.js`
+     - Base fare, repositioning charges, landing, handling, crew charges
+     - GST breakdown, service fee, discount display
+     - Smart repositioning alert with alternative aircraft suggestion
+   
+   - **Booking Status Timeline** - `/components/customer/BookingStatusTimeline.js`
+     - 9-step visual progress tracker (Inquiry → Completed)
+     - Real-time status badges, timestamps
+     - Pilot/Operator info display at each step
+   
+   - **Invoice PDF Download** - `GET /api/customer/bookings/{id}/invoice`
+     - Professional PDF generation with ReportLab
+     - Full fare breakdown, GST details, payment status
+     - Download button in MyTrips page
+   
+   - **Post-Flight Rating System** - `/components/customer/PostFlightRating.js`
+     - 5 category ratings (Pilot, Aircraft, Operator, Booking, Value)
+     - Quick feedback tags (positive/negative)
+     - Photo upload, written review
+     - Backend: `POST /api/customer/bookings/{id}/rating`
+
+2. **English-Only UI Cleanup (Complete)**
+   - MyTrips.js - All Hindi text removed
+   - InquiryStatus.js - All Hindi text removed (89 instances cleaned)
+   - All customer-facing pages now 100% English
+
+### ✅ COMPLETED TODAY (Session 1):
 1. **Forgot Password Feature** - Full 3-step flow with Email + Phone OTP options
    - Backend: `/api/auth/forgot-password/send-otp`, `/verify-otp`, `/reset`
    - Frontend: `/forgot-password` page with modern UI
@@ -19,10 +47,6 @@
 3. **CRITICAL Security Fix (SEC-001 Regression Fixed)**
    - Google Auth was trusting client data on Emergent 404 response
    - Now properly rejects ALL invalid sessions (no auth bypass)
-   
-4. **English-Only UI Cleanup**
-   - LoginPage.js: All Hindi removed ("या / or" → "or", Google button fixed)
-   - GoogleLogin.js: All Hindi removed from callback/error pages
 
 ### 🔒 Security Hardening (Completed Earlier):
 - JWT Hardening (issuer/audience validation)
