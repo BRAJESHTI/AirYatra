@@ -6,6 +6,13 @@
 ## Latest Updates (Aug 8, 2026 - Session 4)
 
 ### ✅ BUG FIXES (Session 4):
+0. **Booking Type Redesign + Payment Gateway Verified** (iteration_44, 100% pass)
+   - Booking Type step: ALL Hindi words removed (header, cards, detail panel, helper text, summary label in BookingPage.js + CustomerPriceBreakup.js)
+   - New attractive grid: 2 cols mobile / 3 cols desktop, lucide icons in chips, full labels (no truncation), orange gradient selected state, data-testid="booking-type-{value}"
+   - Group Booking disabled state shows "Needs 5+ passengers" pill
+   - Payment gateway VERIFIED e2e: Stripe test checkout → card 4242 → /payment/success confetti → payment_status='paid' (₹45,000 = 50% advance). Test inquiry paytest-inquiry-001 is now PAID (re-seed if needed)
+   - Known non-blocking notes: PaymentPage/PaymentSuccessPage still have bilingual "English / हिंदी" strings (user only asked Booking Type); GET /api/inquiries/{id} returns nulls for seeded inquiry (payment flow unaffected)
+
 1. **Destination Search Suggestions Fixed** (CRITICAL)
    - Root cause: backend/.env DB_NAME was flipped to "airyatra" (stale DB, 0 landing_points)
    - Fixed: DB_NAME="airyatra_db" (real DB: 167 collections, 73 landing points, 57 users)
