@@ -625,3 +625,387 @@ async def list_corporate_accounts(
         "total": total,
         "corporates": corporates
     }
+
+
+
+# ============ GST INVOICE GENERATION ============
+
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+
+def _generate_gst_invoice_pdf(corporate: dict, booking: dict, invoice_data: dict) -> bytes:
+    """Generate GST-compliant invoice PDF for corporate booking"""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+    from reportlab.platypus import Table, TableStyle
+    from datetime import datetime, timezone
+    
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    # Colors
+    orange = colors.HexColor('#f97316')
+    dark = colors.HexColor('#0f172a')
+    gray = colors.HexColor('#64748b')
+    
+    # Header
+    c.setFillColor(dark)
+    c.rect(0, height - 120, width, 120, fill=1, stroke=0)
+    
+    # Company Logo & Name
+    c.setFillColor(orange)
+    c.setFont("Helvetica-Bold", 32)
+    c.drawString(30, height - 55, "AirYatra")
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica", 10)
+    c.drawString(30, height - 75, "India's Aviation Super Ecosystem")
+    c.drawString(30, height - 90, "GSTIN: 27AABCT1234L1ZH")
+    c.drawString(30, height - 105, "CIN: U62099MH2024PTC123456")
+    
+    # TAX INVOICE Label
+    c.setFont("Helvetica-Bold", 24)
+    c.drawRightString(width - 30, height - 50, "TAX INVOICE")
+    
+    # Invoice Details
+    c.setFont("Helvetica", 10)
+    invoice_num = invoice_data.get("invoice_number", f"INV-GST-{booking.get('booking_number', 'N/A')}")
+    c.drawRightString(width - 30, height - 70, f"Invoice #: {invoice_num}")
+    c.drawRightString(width - 30, height - 85, f"Date: {datetime.now(timezone.utc).strftime('%d %b %Y')}")
+    c.drawRightString(width - 30, height - 100, f"Place of Supply: {invoice_data.get('place_of_supply', 'Maharashtra')}")
+    
+    # Reset colors
+    c.setFillColor(colors.black)
+    
+    # Bill To / Ship To Section
+    y = height - 160
+    
+    # Bill To (Corporate)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(30, y, "Bill To:")
+    c.setFont("Helvetica", 10)
+    c.drawString(30, y - 15, corporate.get("company_name", ""))
+    c.drawString(30, y - 30, f"GSTIN: {corporate.get('gst_number', 'N/A')}")
+    c.drawString(30, y - 45, corporate.get("address", ""))
+    c.drawString(30, y - 60, f"{corporate.get('city', '')}, {corporate.get('state', '')} - {corporate.get('pincode', '')}")
+    
+    # Ship To (Passenger)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(width/2 + 20, y, "Service Recipient:")
+    c.setFont("Helvetica", 10)
+    c.drawString(width/2 + 20, y - 15, booking.get("passenger_name", booking.get("customer_name", "")))
+    c.drawString(width/2 + 20, y - 30, f"Booking #: {booking.get('booking_number', 'N/A')}")
+    c.drawString(width/2 + 20, y - 45, f"Route: {booking.get('from_location', '')} → {booking.get('to_location', '')}")
+    c.drawString(width/2 + 20, y - 60, f"Date: {booking.get('travel_date', booking.get('departure_date', 'N/A'))}")
+    
+    # HSN/SAC Code Box
+    y = height - 260
+    c.setFillColor(dark)
+    c.rect(30, y - 5, width - 60, 30, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(40, y + 5, "SAC Code")
+    c.drawString(150, y + 5, "Description")
+    c.drawString(350, y + 5, "Qty")
+    c.drawString(400, y + 5, "Rate (₹)")
+    c.drawRightString(width - 40, y + 5, "Amount (₹)")
+    
+    # Line Items
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 10)
+    y = y - 35
+    
+    pricing = booking.get("pricing", {})
+    base_fare = pricing.get("base_fare", booking.get("final_price", 0))
+    
+    items = [
+        ("996411", "Air Charter Services", 1, base_fare),
+    ]
+    
+    repositioning = pricing.get("repositioning_charge", 0)
+    if repositioning > 0:
+        items.append(("996411", "Aircraft Repositioning", 1, repositioning))
+    
+    landing = pricing.get("landing_charges", 0)
+    if landing > 0:
+        items.append(("996421", "Landing & Parking Charges", 1, landing))
+    
+    handling = pricing.get("handling_charges", 0)
+    if handling > 0:
+        items.append(("996411", "Ground Handling Services", 1, handling))
+    
+    for sac, desc, qty, amount in items:
+        c.drawString(40, y, sac)
+        c.drawString(150, y, desc)
+        c.drawString(350, y, str(qty))
+        c.drawString(400, y, f"{amount:,.0f}")
+        c.drawRightString(width - 40, y, f"{amount:,.0f}")
+        y -= 20
+    
+    # Subtotal
+    subtotal = sum(amt for _, _, _, amt in items)
+    y -= 10
+    c.setStrokeColor(gray)
+    c.line(30, y + 5, width - 30, y + 5)
+    y -= 15
+    
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(350, y, "Taxable Value:")
+    c.drawRightString(width - 40, y, f"₹{subtotal:,.0f}")
+    y -= 20
+    
+    # GST Breakdown (CGST + SGST for intra-state, IGST for inter-state)
+    gst_rate = pricing.get("gst_rate", 18)
+    gst_amount = pricing.get("gst_amount", subtotal * gst_rate / 100)
+    
+    is_interstate = invoice_data.get("is_interstate", False)
+    
+    if is_interstate:
+        c.setFont("Helvetica", 10)
+        c.drawString(350, y, f"IGST @ {gst_rate}%:")
+        c.drawRightString(width - 40, y, f"₹{gst_amount:,.0f}")
+        y -= 20
+    else:
+        half_gst = gst_amount / 2
+        c.setFont("Helvetica", 10)
+        c.drawString(350, y, f"CGST @ {gst_rate/2}%:")
+        c.drawRightString(width - 40, y, f"₹{half_gst:,.0f}")
+        y -= 20
+        c.drawString(350, y, f"SGST @ {gst_rate/2}%:")
+        c.drawRightString(width - 40, y, f"₹{half_gst:,.0f}")
+        y -= 20
+    
+    # Total
+    total = subtotal + gst_amount
+    y -= 10
+    c.setFillColor(dark)
+    c.rect(300, y - 5, width - 330, 35, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(310, y + 10, "TOTAL AMOUNT:")
+    c.drawRightString(width - 40, y + 10, f"₹{total:,.0f}")
+    
+    # Amount in Words
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    y -= 40
+    amount_words = invoice_data.get("amount_in_words", f"Rupees {int(total):,} Only")
+    c.drawString(30, y, f"Amount in Words: {amount_words}")
+    
+    # Bank Details
+    y -= 40
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(30, y, "Bank Details for Payment:")
+    c.setFont("Helvetica", 9)
+    c.drawString(30, y - 15, "Account Name: AirYatra Aviation Pvt Ltd")
+    c.drawString(30, y - 30, "Account No: 1234567890123")
+    c.drawString(30, y - 45, "IFSC: HDFC0001234")
+    c.drawString(30, y - 60, "Bank: HDFC Bank, Mumbai")
+    
+    # Terms & Conditions
+    c.drawString(width/2 + 20, y, "Terms & Conditions:")
+    c.setFont("Helvetica", 8)
+    c.drawString(width/2 + 20, y - 15, "1. Payment due within 30 days")
+    c.drawString(width/2 + 20, y - 30, "2. Subject to Mumbai jurisdiction")
+    c.drawString(width/2 + 20, y - 45, "3. E&OE (Errors & Omissions Excepted)")
+    
+    # Footer
+    c.setFillColor(gray)
+    c.setFont("Helvetica", 8)
+    footer_y = 40
+    c.drawString(30, footer_y + 10, "This is a computer-generated invoice and does not require a physical signature.")
+    c.drawString(30, footer_y - 5, "AirYatra Aviation Pvt Ltd | Regd. Office: Mumbai, Maharashtra | support@airyatra.co.in")
+    c.drawRightString(width - 30, footer_y - 5, "Page 1 of 1")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+@router.get("/invoice/{booking_id}/gst")
+async def generate_gst_invoice(
+    booking_id: str,
+    corporate_id: str = Query(..., description="Corporate account ID")
+):
+    """Generate GST-compliant invoice PDF for corporate booking"""
+    db = get_database()
+    
+    # Get corporate details
+    corporate = await db.corporates.find_one(
+        {"corporate_id": corporate_id},
+        {"_id": 0}
+    )
+    
+    if not corporate:
+        raise HTTPException(status_code=404, detail="Corporate account not found")
+    
+    if not corporate.get("gst_number"):
+        raise HTTPException(status_code=400, detail="Corporate account does not have GST number")
+    
+    # Get booking
+    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Determine if interstate (different state than corporate)
+    booking_state = booking.get("to_location", "").split("(")[0].strip() if "(" in booking.get("to_location", "") else ""
+    is_interstate = booking_state.lower() != corporate.get("state", "").lower() if booking_state else False
+    
+    invoice_data = {
+        "invoice_number": f"INV-GST-{booking.get('booking_number', booking_id[:8])}",
+        "place_of_supply": corporate.get("state", "Maharashtra"),
+        "is_interstate": is_interstate,
+        "amount_in_words": f"Rupees {int(booking.get('pricing', {}).get('total_amount', booking.get('final_price', 0))):,} Only"
+    }
+    
+    # Generate PDF
+    try:
+        pdf_bytes = _generate_gst_invoice_pdf(corporate, booking, invoice_data)
+        
+        filename = f"AirYatra_GST_Invoice_{booking.get('booking_number', booking_id[:8])}.pdf"
+        
+        return StreamingResponse(
+            BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
+
+
+# ============ APPROVAL WORKFLOW ============
+
+@router.get("/approvals/pending/{corporate_id}")
+async def get_pending_approvals(corporate_id: str):
+    """Get all pending booking approvals for a corporate"""
+    db = get_database()
+    
+    approvals = await db.corporate_approvals.find(
+        {"corporate_id": corporate_id, "status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with booking details
+    for approval in approvals:
+        booking = await db.bookings.find_one(
+            {"id": approval.get("booking_id")},
+            {"_id": 0, "from_location": 1, "to_location": 1, "travel_date": 1, "final_price": 1}
+        )
+        if not booking:
+            booking = await db.inquiries.find_one(
+                {"id": approval.get("booking_id")},
+                {"_id": 0, "from_location": 1, "to_location": 1, "travel_date": 1, "estimated_price": 1}
+            )
+        approval["booking"] = booking
+    
+    return {"success": True, "approvals": approvals}
+
+
+@router.post("/approvals/action")
+async def process_approval(action: ApprovalAction):
+    """Approve or reject a booking request"""
+    db = get_database()
+    
+    approval = await db.corporate_approvals.find_one(
+        {"id": action.approval_id},
+        {"_id": 0}
+    )
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if approval.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Approval already processed")
+    
+    now = datetime.utcnow()
+    
+    # Update approval status
+    await db.corporate_approvals.update_one(
+        {"id": action.approval_id},
+        {"$set": {
+            "status": action.action,  # "approved" or "rejected"
+            "actioned_by": action.approver_id,
+            "actioned_at": now,
+            "comments": action.comments
+        }}
+    )
+    
+    # If approved, update booking status
+    if action.action == "approved":
+        await db.bookings.update_one(
+            {"id": approval.get("booking_id")},
+            {"$set": {
+                "corporate_approved": True,
+                "approval_status": "approved",
+                "approved_at": now
+            }}
+        )
+        await db.inquiries.update_one(
+            {"id": approval.get("booking_id")},
+            {"$set": {
+                "corporate_approved": True,
+                "approval_status": "approved",
+                "approved_at": now
+            }}
+        )
+    
+    return {
+        "success": True,
+        "message": f"Booking {action.action}",
+        "approval_id": action.approval_id
+    }
+
+
+@router.post("/approvals/request")
+async def request_booking_approval(
+    booking_id: str = Body(...),
+    corporate_id: str = Body(...),
+    employee_id: str = Body(...),
+    amount: float = Body(...),
+    reason: str = Body(None)
+):
+    """Request approval for a booking that exceeds employee limit"""
+    db = get_database()
+    
+    # Get employee and their manager
+    employee = await db.corporate_employees.find_one(
+        {"employee_code": employee_id},
+        {"_id": 0}
+    )
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Create approval request
+    approval_id = f"APPR-{secrets.token_hex(4).upper()}"
+    now = datetime.utcnow()
+    
+    approval_doc = {
+        "id": approval_id,
+        "corporate_id": corporate_id,
+        "booking_id": booking_id,
+        "employee_id": employee_id,
+        "employee_name": employee.get("name"),
+        "department": employee.get("department"),
+        "amount": amount,
+        "reason": reason,
+        "status": "pending",
+        "created_at": now,
+        "expires_at": now + timedelta(days=3)  # 3 days to approve
+    }
+    
+    await db.corporate_approvals.insert_one(approval_doc)
+    
+    return {
+        "success": True,
+        "message": "Approval request submitted",
+        "approval_id": approval_id
+    }
