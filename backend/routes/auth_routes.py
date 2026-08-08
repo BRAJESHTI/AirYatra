@@ -11,6 +11,7 @@ from services.totp_service import totp_service
 from services.account_lockout_service import account_lockout_service
 import uuid
 import os
+import hmac
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
@@ -703,9 +704,26 @@ async def unlock_account(request: Request, data: UnlockAccountRequest):
 
 @router.get("/lockout-status")
 async def get_lockout_status(email: str):
-    """Check if an account is currently locked (public endpoint for login form)"""
+    """
+    Check if an account is currently locked (public endpoint for login form)
+    SECURITY: Returns generic response to prevent email enumeration
+    """
     status = await account_lockout_service.check_lockout_status(email)
-    return status
+    
+    # SECURITY FIX: Return generic response - don't reveal if email exists
+    # Only reveal lockout info, not account existence
+    if status.get("is_locked"):
+        return {
+            "is_locked": True,
+            "message": "Account temporarily locked due to multiple failed attempts",
+            "remaining_seconds": status.get("remaining_seconds", 300)
+        }
+    else:
+        # Generic response - don't reveal account existence
+        return {
+            "is_locked": False,
+            "message": "Account is not locked"
+        }
 
 
 @router.get("/admin/locked-accounts")
@@ -1905,38 +1923,42 @@ class QuickAdminRequest(BaseModel):
     secret_key: str  # Must match QUICK_LOGIN_SECRET from env
     user_email: Optional[str] = None  # Optional: specify which admin
 
-# Quick login secret - must be set in env for this to work
-QUICK_LOGIN_SECRET = os.environ.get("QUICK_LOGIN_SECRET", "airyatra-dev-quick-login-2026")
-QUICK_LOGIN_ENABLED = os.environ.get("QUICK_LOGIN_ENABLED", "true").lower() == "true"
+# Quick login secret - MUST be explicitly set in env, no default fallback
+# Set QUICK_LOGIN_ENABLED=true AND QUICK_LOGIN_SECRET in .env to enable
+QUICK_LOGIN_SECRET = os.environ.get("QUICK_LOGIN_SECRET")  # No default - must be set
+QUICK_LOGIN_ENABLED = os.environ.get("QUICK_LOGIN_ENABLED", "false").lower() == "true"  # Default: DISABLED
 
 
 @router.post("/dev/quick-admin-token")
 async def get_quick_admin_token(request: QuickAdminRequest):
     """
-    🔓 DEV ONLY: Generate admin token without OTP/TOTP verification
-    
-    This endpoint is for development/testing purposes only.
-    It allows bypassing 2FA to test admin UI features.
+    🔒 DEV ONLY: Generate admin token without OTP/TOTP verification
     
     SECURITY: 
-    - Requires QUICK_LOGIN_SECRET to match
-    - Can be disabled via QUICK_LOGIN_ENABLED=false
-    - Should be disabled in production
+    - DISABLED BY DEFAULT (QUICK_LOGIN_ENABLED must be explicitly set to "true")
+    - Requires QUICK_LOGIN_SECRET to be explicitly set in environment (no hardcoded default)
+    - MUST be disabled in production
     
-    Usage:
-    curl -X POST "/api/auth/dev/quick-admin-token" \
-      -H "Content-Type: application/json" \
-      -d '{"secret_key": "airyatra-dev-quick-login-2026"}'
+    To enable (DEV ONLY):
+    1. Set QUICK_LOGIN_ENABLED=true in backend/.env
+    2. Set QUICK_LOGIN_SECRET=<your-secure-random-secret> in backend/.env
     """
-    # Check if quick login is enabled
+    # SECURITY: Check if quick login is enabled (default: DISABLED)
     if not QUICK_LOGIN_ENABLED:
         raise HTTPException(
             status_code=403, 
-            detail="Quick admin login is disabled. Set QUICK_LOGIN_ENABLED=true in env."
+            detail="Quick admin login is DISABLED. This endpoint is for development only."
+        )
+    
+    # SECURITY: Secret must be explicitly configured (no hardcoded default)
+    if not QUICK_LOGIN_SECRET:
+        raise HTTPException(
+            status_code=403,
+            detail="QUICK_LOGIN_SECRET not configured. Set it in environment variables."
         )
     
     # Verify secret key
-    if request.secret_key != QUICK_LOGIN_SECRET:
+    if not hmac.compare_digest(request.secret_key, QUICK_LOGIN_SECRET):
         raise HTTPException(
             status_code=401,
             detail="Invalid secret key"

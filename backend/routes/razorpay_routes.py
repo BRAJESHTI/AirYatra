@@ -15,6 +15,7 @@ import hmac
 import hashlib
 import os
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +35,13 @@ if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
 
 # Models
 class OrderRequest(BaseModel):
-    amount: float  # Amount in INR (not paise)
-    booking_id: Optional[str] = None
+    booking_id: str  # SECURITY: booking_id is now required
     customer_name: str
     customer_email: str
     customer_phone: str
     description: Optional[str] = "AirYatra Booking Payment"
     notes: Optional[dict] = {}
+    # SECURITY: Amount removed - derived from booking server-side
 
 class PaymentVerifyRequest(BaseModel):
     razorpay_order_id: str
@@ -72,11 +73,26 @@ async def create_order(request: OrderRequest):
     
     db = get_database()
     
+    # SECURITY FIX: Get booking and derive amount server-side
+    booking = await db.bookings.find_one({"id": request.booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.inquiries.find_one({"id": request.booking_id}, {"_id": 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get amount from booking (not from client request)
+    booking_amount = booking.get("total_amount") or booking.get("amount") or booking.get("quoted_price")
+    if not booking_amount:
+        raise HTTPException(status_code=400, detail="Booking amount not set. Contact support.")
+    
+    amount = float(booking_amount)
+    
     # Generate receipt number
     receipt = await get_next_receipt_number(db)
     
     # Amount in paise (Razorpay requires paise)
-    amount_paise = int(request.amount * 100)
+    amount_paise = int(amount * 100)
     
     try:
         # Create Razorpay order
@@ -247,20 +263,33 @@ async def handle_webhook(request: Request):
         payload = await request.body()
         signature = request.headers.get("X-Razorpay-Signature", "")
         
-        # Verify webhook signature if secret is configured
-        if RAZORPAY_WEBHOOK_SECRET and signature:
-            expected_signature = hmac.new(
-                RAZORPAY_WEBHOOK_SECRET.encode(),
-                payload,
-                hashlib.sha256
-            ).hexdigest()
-            
-            if not hmac.compare_digest(signature, expected_signature):
-                logger.warning("Webhook signature verification failed")
-                raise HTTPException(status_code=400, detail="Invalid webhook signature")
+        # SECURITY FIX: Webhook signature verification is MANDATORY
+        if not RAZORPAY_WEBHOOK_SECRET:
+            logger.error("RAZORPAY_WEBHOOK_SECRET not configured - rejecting webhook")
+            raise HTTPException(
+                status_code=500, 
+                detail="Webhook secret not configured. Contact administrator."
+            )
+        
+        if not signature:
+            logger.warning("Webhook received without signature - rejecting")
+            raise HTTPException(
+                status_code=400, 
+                detail="Missing X-Razorpay-Signature header"
+            )
+        
+        # Verify webhook signature using constant-time comparison
+        expected_signature = hmac.new(
+            RAZORPAY_WEBHOOK_SECRET.encode(),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(signature, expected_signature):
+            logger.warning("Webhook signature verification failed - potential forgery attempt")
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
         
         # Parse payload
-        import json
         event_data = json.loads(payload.decode())
         
         event = event_data.get("event", "")

@@ -18,9 +18,9 @@ router = APIRouter(prefix="/stripe", tags=["Stripe Payments"])
 
 class CreateCheckoutRequest(BaseModel):
     booking_id: str
-    amount: float  # Amount in currency units (e.g., 100.50 USD)
     currency: str = "usd"  # usd, eur, gbp, etc.
     description: Optional[str] = None
+    # SECURITY: Amount is now derived from booking, not client-provided
 
 
 class VerifySessionRequest(BaseModel):
@@ -43,6 +43,7 @@ async def create_stripe_checkout(
     """
     Create a Stripe Checkout Session for international payment.
     
+    SECURITY: Amount is derived from booking, not client-provided.
     Use this for non-INR currencies (USD, EUR, GBP, etc.)
     For INR payments, use Razorpay instead.
     """
@@ -54,6 +55,21 @@ async def create_stripe_checkout(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     
+    # SECURITY FIX: Verify user owns this booking or is admin
+    user_roles = current_user.get("roles", [])
+    is_admin = any(r in user_roles for r in ["admin", "super_admin", "finance"])
+    booking_user_id = booking.get("user_id") or booking.get("customer_id")
+    
+    if not is_admin and booking_user_id != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="You can only pay for your own bookings")
+    
+    # SECURITY FIX: Derive amount from booking, not from client request
+    booking_amount = booking.get("total_amount") or booking.get("amount") or booking.get("quoted_price")
+    if not booking_amount:
+        raise HTTPException(status_code=400, detail="Booking amount not set. Contact support.")
+    
+    amount = float(booking_amount)
+    
     # Convert amount to smallest currency unit (cents)
     currency = request.currency.lower()
     
@@ -61,9 +77,9 @@ async def create_stripe_checkout(
     zero_decimal_currencies = ['jpy', 'krw', 'vnd']
     
     if currency in zero_decimal_currencies:
-        amount_smallest = int(request.amount)
+        amount_smallest = int(amount)
     else:
-        amount_smallest = int(request.amount * 100)
+        amount_smallest = int(amount * 100)
     
     # Get base URL for redirects
     import os
@@ -246,7 +262,25 @@ async def create_stripe_refund(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Create a refund for a Stripe payment"""
+    """Create a refund for a Stripe payment (Admin/Finance only)"""
+    
+    # SECURITY FIX: Role-based access control - only admin/finance can process refunds
+    user_roles = current_user.get("roles", [])
+    allowed_roles = ["admin", "super_admin", "finance", "cfo"]
+    
+    if not any(role in user_roles for role in allowed_roles):
+        raise HTTPException(
+            status_code=403, 
+            detail="Insufficient permissions. Only Admin/Finance can process refunds."
+        )
+    
+    # SECURITY FIX: Verify the payment belongs to a valid booking
+    checkout = await db.stripe_checkouts.find_one({"payment_intent_id": payment_intent_id})
+    if not checkout:
+        raise HTTPException(
+            status_code=404, 
+            detail="Payment not found in system"
+        )
     
     # Convert amount to cents if provided
     amount_smallest = int(amount * 100) if amount else None
@@ -260,16 +294,19 @@ async def create_stripe_refund(
     if not result.get("success"):
         raise HTTPException(status_code=400, detail=result.get("error"))
     
-    # Log refund
+    # Log refund with audit trail
     refund_record = {
         "id": str(uuid4()),
         "refund_id": result["refund_id"],
         "payment_intent_id": payment_intent_id,
+        "booking_id": checkout.get("booking_id"),
         "amount": result["amount"] / 100,
         "currency": result["currency"].upper(),
         "status": result["status"],
         "reason": reason,
         "created_by": current_user.get("id"),
+        "created_by_email": current_user.get("email"),
+        "created_by_role": user_roles,
         "created_at": datetime.now(timezone.utc)
     }
     
@@ -290,7 +327,22 @@ async def get_checkout_history(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Get Stripe checkout history for a booking"""
+    """Get Stripe checkout history for a booking (Owner/Admin only)"""
+    
+    # SECURITY FIX: Verify user owns this booking or is admin
+    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    user_roles = current_user.get("roles", [])
+    is_admin = any(r in user_roles for r in ["admin", "super_admin", "finance"])
+    booking_user_id = booking.get("user_id") or booking.get("customer_id")
+    
+    if not is_admin and booking_user_id != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="Access denied")
     
     checkouts = await db.stripe_checkouts.find(
         {"booking_id": booking_id},
