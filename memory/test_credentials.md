@@ -9,13 +9,14 @@
 | Operator | operator@airyatra.co.in | Operator@123456 | Fleet & booking management (2FA DISABLED) |
 | Pilot | pilot@airyatra.co.in | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
 | Finance/CFO | finance@airyatra.co.in | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
-| Customer | customer@airyatra.com | Customer@123 | Demo customer account, login_shield_bypass enabled |
+| Customer | customer@airyatra.co.in | Customer@123 | Demo customer account (.co.in, NOT .com) |
 | HR | hr@airyatra.co.in | HR@123456 | Priya Sharma, HR Manager |
 | Sales | sales@airyatra.co.in | Sales@123456 | Rahul Kapoor, Sales Manager |
 | Employee | employee@airyatra.co.in | Employee@123 | EMP-0001, HRMS portal |
 
-## 2FA/OTP Status: DISABLED (Aug 8, 2026)
-All users can login directly without OTP verification.
+## 2FA/OTP Status: GLOBALLY DISABLED (Aug 8, 2026)
+All users login directly without OTP. Controlled by `LOGIN_OTP_ENABLED="false"` in backend/.env (set to "true" to re-enable).
+**IMPORTANT**: backend/.env DB_NAME must stay `"airyatra_db"` (the `airyatra` DB is stale/empty — wrong DB caused destination search to return no suggestions).
 
 ## Additional Test Users
 

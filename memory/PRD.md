@@ -3,6 +3,28 @@
 
 ---
 
+## Latest Updates (Aug 8, 2026 - Session 4)
+
+### ✅ BUG FIXES (Session 4):
+1. **Destination Search Suggestions Fixed** (CRITICAL)
+   - Root cause: backend/.env DB_NAME was flipped to "airyatra" (stale DB, 0 landing_points)
+   - Fixed: DB_NAME="airyatra_db" (real DB: 167 collections, 73 landing points, 57 users)
+   - Booking wizard Step 3 city search now shows suggestions (verified: iteration_43, 100% pass)
+
+2. **Login OTP Globally Disabled**
+   - New env flag `LOGIN_OTP_ENABLED="false"` in backend/.env
+   - auth_routes.py (~line 450): forces requires_otp=False for ALL users (reason: otp_globally_disabled)
+   - All roles (admin/customer/operator/ceo) login directly, no Security Verification screen
+   - Re-enable anytime by setting LOGIN_OTP_ENABLED="true" + restart backend
+   - Verified: iteration_43, 100% pass
+
+### 📌 PENDING P0 (untouched):
+- Corporate Portal: GST invoice generation, employee booking management, approval workflows
+- Pre-flight Checklist: passenger + aircraft readiness interactive checklist
+- Production deployed at https://heli-notifications.emergent.host — user must REDEPLOY to push these fixes live
+
+---
+
 ## Latest Updates (Aug 8, 2026)
 
 ### ✅ COMPLETED TODAY (Session 3):
