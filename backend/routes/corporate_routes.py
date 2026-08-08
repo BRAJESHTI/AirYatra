@@ -2,15 +2,19 @@
 AirYatra Corporate Travel Console Routes
 Centralized booking for corporate travel managers
 """
-from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from typing import List, Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
 from pydantic import BaseModel
+from urllib.parse import quote
+import os
 import uuid
 import secrets
 from database import get_database
 from middleware import get_current_user
+from services.email_service import email_service
 from models import (
     CorporateCreate, CorporateUpdate, EmployeeCreate, EmployeeUpdate,
     DepartmentBudget, BookingApprovalCreate, ApprovalAction, TravelPolicy,
@@ -511,34 +515,12 @@ async def process_approval(action: ApprovalAction, approver_id: str = Query(...)
     if approval.get("status") != "pending":
         raise HTTPException(status_code=400, detail="Approval already processed")
     
-    now = datetime.utcnow()
-    new_status = "approved" if action.action == "approve" else "rejected"
-    
-    await db.booking_approvals.update_one(
-        {"approval_id": action.approval_id, "status": "pending"},
-        {"$set": {
-            "status": new_status,
-            "approver_id": approver_id,
-            "approver_name": approver_name,
-            "approved_at": now if new_status == "approved" else None,
-            "rejection_reason": action.comments if new_status == "rejected" else None,
-            "updated_at": now
-        }}
+    new_status = await _finalize_approval(
+        db, approval, "approve" if action.action == "approve" else "reject",
+        approver_id=approver_id,
+        approver_name=approver_name,
+        comments=action.comments,
     )
-    
-    # Sync linked corporate booking + spend counters
-    booking = await db.corporate_bookings.find_one({"id": approval.get("booking_id")}, {"_id": 0})
-    if booking:
-        await db.corporate_bookings.update_one(
-            {"id": booking["id"]},
-            {"$set": {
-                "status": "confirmed" if new_status == "approved" else "rejected",
-                "approval_status": new_status,
-                "updated_at": now
-            }}
-        )
-        if new_status == "approved":
-            await _apply_corporate_booking_spend(db, booking)
     
     return {
         "success": True,
@@ -579,7 +561,7 @@ async def _apply_corporate_booking_spend(db, booking: dict):
 
 
 @router.post("/booking/create")
-async def create_corporate_booking(req: CorporateBookingCreate):
+async def create_corporate_booking(req: CorporateBookingCreate, background_tasks: BackgroundTasks):
     """Create employee booking with policy checks + approval workflow"""
     db = get_database()
 
@@ -651,6 +633,7 @@ async def create_corporate_booking(req: CorporateBookingCreate):
     else:
         approval_doc = {
             "approval_id": f"APR-{uuid.uuid4().hex[:8].upper()}",
+            "email_action_token": secrets.token_urlsafe(32),
             "corporate_id": req.corporate_id,
             "booking_id": booking_id,
             "booking_number": booking_number,
@@ -672,6 +655,7 @@ async def create_corporate_booking(req: CorporateBookingCreate):
         }
         await db.booking_approvals.insert_one(approval_doc)
         approval_doc.pop("_id", None)
+        background_tasks.add_task(_send_approval_request_emails, corporate, dict(approval_doc), booking_doc)
 
     return {
         "success": True,
@@ -680,6 +664,181 @@ async def create_corporate_booking(req: CorporateBookingCreate):
         "booking": booking_doc,
         "approval": approval_doc,
     }
+
+
+async def _finalize_approval(db, approval: dict, action: str, approver_id: str, approver_name: str, comments: Optional[str] = None) -> str:
+    """Shared approve/reject logic: updates approval doc, linked booking and spend counters"""
+    now = datetime.utcnow()
+    new_status = "approved" if action == "approve" else "rejected"
+
+    await db.booking_approvals.update_one(
+        {"approval_id": approval["approval_id"], "status": "pending"},
+        {"$set": {
+            "status": new_status,
+            "approver_id": approver_id,
+            "approver_name": approver_name,
+            "approved_at": now if new_status == "approved" else None,
+            "rejection_reason": comments if new_status == "rejected" else None,
+            "updated_at": now
+        }}
+    )
+
+    booking = await db.corporate_bookings.find_one({"id": approval.get("booking_id")}, {"_id": 0})
+    if booking:
+        await db.corporate_bookings.update_one(
+            {"id": booking["id"]},
+            {"$set": {
+                "status": "confirmed" if new_status == "approved" else "rejected",
+                "approval_status": new_status,
+                "updated_at": now
+            }}
+        )
+        if new_status == "approved":
+            await _apply_corporate_booking_spend(db, booking)
+
+    return new_status
+
+
+APPROVAL_EMAIL_TEMPLATE = """
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;border-radius:16px;overflow:hidden">
+  <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:28px 32px">
+    <h1 style="color:#fff;margin:0;font-size:22px">AirYatra Corporate</h1>
+    <p style="color:#ffedd5;margin:6px 0 0;font-size:14px">Booking Approval Required</p>
+  </div>
+  <div style="padding:28px 32px;color:#e2e8f0">
+    <p style="font-size:15px;margin:0 0 18px">A new booking request needs your decision:</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <tr><td style="padding:8px 0;color:#94a3b8">Employee</td><td style="padding:8px 0;text-align:right;font-weight:bold">{employee_name} ({department})</td></tr>
+      <tr><td style="padding:8px 0;color:#94a3b8">Route</td><td style="padding:8px 0;text-align:right;font-weight:bold">{route}</td></tr>
+      <tr><td style="padding:8px 0;color:#94a3b8">Travel Date</td><td style="padding:8px 0;text-align:right">{travel_date}</td></tr>
+      <tr><td style="padding:8px 0;color:#94a3b8">Purpose</td><td style="padding:8px 0;text-align:right">{purpose}</td></tr>
+      <tr><td style="padding:8px 0;color:#94a3b8">Urgency</td><td style="padding:8px 0;text-align:right;text-transform:capitalize">{urgency}</td></tr>
+      <tr><td style="padding:12px 0;color:#94a3b8;border-top:1px solid #334155;font-size:16px">Amount</td><td style="padding:12px 0;text-align:right;border-top:1px solid #334155;font-size:20px;font-weight:bold;color:#fb923c">Rs. {amount:,.0f}</td></tr>
+    </table>
+    <div style="margin:28px 0;text-align:center">
+      <a href="{approve_url}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:bold;font-size:15px;margin:0 6px 10px">APPROVE</a>
+      <a href="{reject_url}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:bold;font-size:15px;margin:0 6px 10px">REJECT</a>
+    </div>
+    <p style="font-size:12px;color:#64748b;margin:0">Or review in the Corporate Dashboard: <a href="{dashboard_url}" style="color:#fb923c">{dashboard_url}</a></p>
+    <p style="font-size:12px;color:#64748b;margin:8px 0 0">Booking Ref: {booking_number} &bull; Approval ID: {approval_id}</p>
+  </div>
+  <div style="background:#1e293b;padding:16px 32px;text-align:center">
+    <p style="color:#64748b;font-size:11px;margin:0">AirYatra Aviation Pvt Ltd &bull; This is an automated approval alert for {company_name}</p>
+  </div>
+</div>
+"""
+
+
+async def _send_approval_request_emails(corporate: dict, approval: dict, booking: dict):
+    """Email all approvers with one-click approve/reject links"""
+    db = get_database()
+    base_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    token = approval.get("email_action_token")
+    if not token or not base_url:
+        return
+
+    recipients = set()
+    if corporate.get("admin_email"):
+        recipients.add(corporate["admin_email"])
+    approvers = await db.corporate_employees.find(
+        {"corporate_id": corporate["corporate_id"], "is_active": True, "role": {"$in": ["admin", "manager", "approver"]}},
+        {"_id": 0, "email": 1}
+    ).to_list(50)
+    for a in approvers:
+        if a.get("email"):
+            recipients.add(a["email"])
+
+    sent = []
+    for email in recipients:
+        approve_url = f"{base_url}/api/corporate/approvals/email-action?token={token}&action=approve&by={quote(email)}"
+        reject_url = f"{base_url}/api/corporate/approvals/email-action?token={token}&action=reject&by={quote(email)}"
+        html = APPROVAL_EMAIL_TEMPLATE.format(
+            employee_name=approval.get("employee_name", ""),
+            department=approval.get("department", ""),
+            route=approval.get("route", ""),
+            travel_date=approval.get("travel_date", ""),
+            purpose=approval.get("purpose", ""),
+            urgency=approval.get("urgency", "normal"),
+            amount=approval.get("amount", 0),
+            approve_url=approve_url,
+            reject_url=reject_url,
+            dashboard_url=f"{base_url}/corporate",
+            booking_number=approval.get("booking_number", ""),
+            approval_id=approval.get("approval_id", ""),
+            company_name=corporate.get("company_name", ""),
+        )
+        try:
+            await email_service.send_email(
+                to_email=email,
+                subject=f"[Action Required] Booking approval: {approval.get('employee_name')} - Rs.{approval.get('amount', 0):,.0f} ({approval.get('route')})",
+                html_body=html,
+            )
+            sent.append(email)
+        except Exception:
+            pass
+
+    await db.booking_approvals.update_one(
+        {"approval_id": approval["approval_id"]},
+        {"$set": {"alert_emails_sent": sent, "alert_emails_sent_at": datetime.utcnow()}}
+    )
+
+
+def _email_action_page(title: str, message: str, success: bool) -> str:
+    color = "#16a34a" if success else "#f59e0b"
+    icon = "&#10004;" if success else "&#9888;"
+    return f"""
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} - AirYatra</title></head>
+<body style="margin:0;background:#0f172a;font-family:Arial,Helvetica,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh">
+  <div style="max-width:440px;margin:40px 16px;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:40px 32px;text-align:center">
+    <div style="width:64px;height:64px;border-radius:50%;background:{color}22;color:{color};font-size:30px;line-height:64px;margin:0 auto 20px">{icon}</div>
+    <h1 style="color:#fff;font-size:22px;margin:0 0 12px">{title}</h1>
+    <p style="color:#94a3b8;font-size:14px;margin:0 0 24px">{message}</p>
+    <a href="/corporate" style="display:inline-block;background:#f97316;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:bold;font-size:14px">Open Corporate Dashboard</a>
+    <p style="color:#475569;font-size:11px;margin:24px 0 0">AirYatra Aviation Pvt Ltd</p>
+  </div>
+</body></html>
+"""
+
+
+@router.get("/approvals/email-action")
+async def approval_email_action(token: str, action: str, by: str = "Email Approver"):
+    """One-click approve/reject from email link (token-guarded, single-use)"""
+    db = get_database()
+
+    if action not in ["approve", "reject"]:
+        return HTMLResponse(_email_action_page("Invalid Link", "This approval link is not valid.", False), status_code=400)
+
+    approval = await db.booking_approvals.find_one({"email_action_token": token}, {"_id": 0})
+    if not approval:
+        return HTMLResponse(_email_action_page("Link Invalid or Expired", "This approval link is invalid or has expired.", False), status_code=404)
+
+    if approval.get("status") != "pending":
+        actioned_by = approval.get("approver_name") or "another approver"
+        return HTMLResponse(_email_action_page(
+            "Already Processed",
+            f"This booking request was already <b>{approval.get('status')}</b> by {actioned_by}.",
+            False
+        ))
+
+    new_status = await _finalize_approval(
+        db, approval, action,
+        approver_id="EMAIL-LINK",
+        approver_name=by,
+        comments="Rejected via email link" if action == "reject" else None,
+    )
+
+    if new_status == "approved":
+        return HTMLResponse(_email_action_page(
+            "Booking Approved",
+            f"Booking <b>{approval.get('booking_number', '')}</b> for {approval.get('employee_name')} (Rs. {approval.get('amount', 0):,.0f}) has been approved and confirmed.",
+            True
+        ))
+    return HTMLResponse(_email_action_page(
+        "Booking Rejected",
+        f"Booking <b>{approval.get('booking_number', '')}</b> for {approval.get('employee_name')} has been rejected.",
+        True
+    ))
+
 
 
 @router.get("/bookings/{corporate_id}")
