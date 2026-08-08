@@ -886,3 +886,363 @@ async def get_route_suggestions(
         },
         "booking_tip": "Book 7+ days in advance for best prices / बेहतर कीमत के लिए 7+ दिन पहले बुक करें"
     }
+
+
+
+# ========== INVOICE PDF DOWNLOAD ==========
+
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+import logging
+
+logger = logging.getLogger(__name__)
+
+def _generate_invoice_pdf(booking: dict, user: dict, payment: dict = None) -> bytes:
+    """Generate professional invoice PDF for booking"""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.styles import getSampleStyleSheet
+    
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    # Colors
+    orange = colors.HexColor('#f97316')
+    dark = colors.HexColor('#0f172a')
+    gray = colors.HexColor('#64748b')
+    
+    # Header Background
+    c.setFillColor(dark)
+    c.rect(0, height - 100, width, 100, fill=1, stroke=0)
+    
+    # Logo & Company Name
+    c.setFillColor(orange)
+    c.setFont("Helvetica-Bold", 28)
+    c.drawString(30, height - 50, "AirYatra")
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica", 10)
+    c.drawString(30, height - 70, "India's Aviation Super Ecosystem")
+    
+    # Invoice Title
+    c.setFont("Helvetica-Bold", 20)
+    c.drawRightString(width - 30, height - 50, "TAX INVOICE")
+    
+    # Invoice Number & Date
+    c.setFont("Helvetica", 10)
+    invoice_num = f"INV-{booking.get('booking_number', 'N/A')}"
+    invoice_date = datetime.now(timezone.utc).strftime("%d %b %Y")
+    c.drawRightString(width - 30, height - 70, f"Invoice #: {invoice_num}")
+    c.drawRightString(width - 30, height - 85, f"Date: {invoice_date}")
+    
+    # Reset to black for body
+    c.setFillColor(colors.black)
+    
+    # Customer Details Box
+    y = height - 140
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(30, y, "Bill To:")
+    c.setFont("Helvetica", 10)
+    c.drawString(30, y - 15, user.get("full_name", "Customer"))
+    c.drawString(30, y - 30, user.get("email", ""))
+    c.drawString(30, y - 45, user.get("phone", ""))
+    
+    # GST Details if corporate
+    if booking.get("gst_billing") and booking.get("gstin"):
+        c.drawString(30, y - 60, f"GSTIN: {booking.get('gstin', 'N/A')}")
+        c.drawString(30, y - 75, booking.get("company_name", ""))
+    
+    # Booking Details Box
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(width/2 + 20, y, "Flight Details:")
+    c.setFont("Helvetica", 10)
+    c.drawString(width/2 + 20, y - 15, f"Booking #: {booking.get('booking_number', 'N/A')}")
+    c.drawString(width/2 + 20, y - 30, f"Route: {booking.get('from_location', 'N/A')} → {booking.get('to_location', 'N/A')}")
+    c.drawString(width/2 + 20, y - 45, f"Date: {booking.get('departure_date', booking.get('travel_date', 'N/A'))}")
+    c.drawString(width/2 + 20, y - 60, f"Passengers: {booking.get('passengers', 1)}")
+    c.drawString(width/2 + 20, y - 75, f"Trip Type: {booking.get('trip_type', 'One Way').replace('_', ' ').title()}")
+    
+    # Table Header
+    y = height - 280
+    c.setFillColor(dark)
+    c.rect(30, y - 5, width - 60, 25, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(40, y + 5, "Description")
+    c.drawString(350, y + 5, "Amount (INR)")
+    c.drawRightString(width - 40, y + 5, "Total")
+    
+    # Reset color
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 10)
+    
+    # Line Items
+    y = y - 30
+    
+    # Get pricing info
+    pricing = booking.get("pricing", {})
+    base_fare = pricing.get("base_fare", booking.get("final_price", booking.get("estimated_price", 0)))
+    repositioning = pricing.get("repositioning_charge", 0)
+    landing_charges = pricing.get("landing_charges", 0)
+    handling_charges = pricing.get("handling_charges", 0)
+    commission = pricing.get("commission", 0)
+    gst = pricing.get("gst_amount", 0)
+    total = pricing.get("total_amount", base_fare)
+    
+    items = [
+        ("Charter Flight Service", base_fare),
+    ]
+    
+    if repositioning > 0:
+        items.append(("Aircraft Repositioning Charges", repositioning))
+    if landing_charges > 0:
+        items.append(("Landing Charges", landing_charges))
+    if handling_charges > 0:
+        items.append(("Ground Handling Charges", handling_charges))
+    
+    for desc, amount in items:
+        c.drawString(40, y, desc)
+        c.drawRightString(width - 40, y, f"₹{amount:,.2f}")
+        y -= 20
+    
+    # Subtotal line
+    y -= 10
+    c.setStrokeColor(gray)
+    c.line(30, y + 5, width - 30, y + 5)
+    y -= 15
+    
+    subtotal = sum(amt for _, amt in items)
+    c.drawString(40, y, "Subtotal")
+    c.drawRightString(width - 40, y, f"₹{subtotal:,.2f}")
+    y -= 20
+    
+    # Commission & Taxes
+    if commission > 0:
+        c.drawString(40, y, f"AirYatra Service Fee ({pricing.get('commission_rate', 10)}%)")
+        c.drawRightString(width - 40, y, f"₹{commission:,.2f}")
+        y -= 20
+    
+    if gst > 0:
+        c.drawString(40, y, f"GST @ {pricing.get('gst_rate', 18)}%")
+        c.drawRightString(width - 40, y, f"₹{gst:,.2f}")
+        y -= 20
+    
+    # Total
+    y -= 10
+    c.setFillColor(dark)
+    c.rect(30, y - 5, width - 60, 30, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y + 5, "TOTAL AMOUNT")
+    c.drawRightString(width - 40, y + 5, f"₹{total:,.2f}")
+    
+    # Payment Status
+    c.setFillColor(colors.black)
+    y -= 50
+    c.setFont("Helvetica-Bold", 11)
+    
+    payment_status = "PAID" if payment and payment.get("status") == "completed" else "PENDING"
+    if payment_status == "PAID":
+        c.setFillColor(colors.HexColor('#22c55e'))
+        c.drawString(40, y, f"✓ Payment Status: PAID")
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 10)
+        c.drawString(40, y - 15, f"Payment Method: {payment.get('payment_method', 'N/A').upper()}")
+        c.drawString(40, y - 30, f"Transaction ID: {payment.get('transaction_id', payment.get('session_id', 'N/A')[:16])}")
+        c.drawString(40, y - 45, f"Paid On: {payment.get('created_at', '')[:10]}")
+    else:
+        c.setFillColor(colors.HexColor('#f97316'))
+        c.drawString(40, y, f"⏳ Payment Status: PENDING")
+    
+    # Footer
+    c.setFillColor(gray)
+    c.setFont("Helvetica", 8)
+    footer_y = 60
+    c.drawString(30, footer_y + 20, "This is a computer-generated invoice and does not require a signature.")
+    c.drawString(30, footer_y + 5, "AirYatra Aviation Pvt Ltd | CIN: U62099MH2024PTC123456 | GSTIN: 27AABCT1234L1ZH")
+    c.drawString(30, footer_y - 10, "support@airyatra.co.in | +91 1800-XXX-XXXX | www.airyatra.co.in")
+    
+    # Page number
+    c.drawRightString(width - 30, footer_y - 10, "Page 1 of 1")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+@router.get("/bookings/{booking_id}/invoice")
+async def download_invoice(
+    booking_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Download invoice PDF for a booking"""
+    db = get_database()
+    
+    # Try both collections
+    booking = await db.bookings.find_one(
+        {"id": booking_id, "customer_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    if not booking:
+        booking = await db.inquiries.find_one(
+            {"id": booking_id, "customer_id": current_user["id"]},
+            {"_id": 0}
+        )
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get payment info if exists
+    payment = await db.payments.find_one(
+        {"booking_id": booking_id},
+        {"_id": 0}
+    )
+    
+    # Generate PDF
+    try:
+        pdf_bytes = _generate_invoice_pdf(booking, current_user, payment)
+        
+        filename = f"AirYatra_Invoice_{booking.get('booking_number', booking_id[:8])}.pdf"
+        
+        return StreamingResponse(
+            BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error generating invoice PDF: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate invoice")
+
+
+@router.post("/bookings/{booking_id}/rating")
+async def submit_booking_rating(
+    booking_id: str,
+    overall_rating: int,
+    ratings: str = None,  # JSON string of category ratings
+    review: str = None,
+    positive_tags: str = None,  # JSON string
+    negative_tags: str = None,  # JSON string
+    would_recommend: bool = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Submit rating and review for a completed booking"""
+    import json
+    
+    db = get_database()
+    
+    # Verify booking exists and belongs to user
+    booking = await db.bookings.find_one(
+        {"id": booking_id, "customer_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    if not booking:
+        booking = await db.inquiries.find_one(
+            {"id": booking_id, "customer_id": current_user["id"]},
+            {"_id": 0}
+        )
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Check if already rated
+    existing_rating = await db.ratings.find_one(
+        {"booking_id": booking_id, "user_id": current_user["id"]}
+    )
+    
+    if existing_rating:
+        raise HTTPException(status_code=400, detail="You have already rated this booking")
+    
+    # Parse JSON strings
+    try:
+        category_ratings = json.loads(ratings) if ratings else {}
+        pos_tags = json.loads(positive_tags) if positive_tags else []
+        neg_tags = json.loads(negative_tags) if negative_tags else []
+    except json.JSONDecodeError:
+        category_ratings = {}
+        pos_tags = []
+        neg_tags = []
+    
+    # Create rating record
+    rating_record = {
+        "id": str(uuid4()),
+        "booking_id": booking_id,
+        "user_id": current_user["id"],
+        "user_name": current_user.get("full_name", "Anonymous"),
+        "operator_id": booking.get("operator_id"),
+        "aircraft_id": booking.get("aircraft_id"),
+        "overall_rating": overall_rating,
+        "category_ratings": category_ratings,
+        "review": review,
+        "positive_tags": pos_tags,
+        "negative_tags": neg_tags,
+        "would_recommend": would_recommend,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "published",
+        "helpful_count": 0,
+        "photos": []  # Photos handled separately via form data
+    }
+    
+    await db.ratings.insert_one(rating_record)
+    
+    # Update operator's average rating
+    if booking.get("operator_id"):
+        operator_ratings = await db.ratings.find(
+            {"operator_id": booking["operator_id"]},
+            {"overall_rating": 1}
+        ).to_list(1000)
+        
+        if operator_ratings:
+            avg_rating = sum(r["overall_rating"] for r in operator_ratings) / len(operator_ratings)
+            await db.operators.update_one(
+                {"id": booking["operator_id"]},
+                {"$set": {
+                    "average_rating": round(avg_rating, 1),
+                    "review_count": len(operator_ratings)
+                }}
+            )
+    
+    # Award loyalty points for rating
+    try:
+        points_to_add = 50 if overall_rating >= 4 else 25
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$inc": {"loyalty_points": points_to_add}}
+        )
+    except Exception:
+        pass
+    
+    return {
+        "success": True,
+        "message": "Thank you for your feedback!",
+        "rating_id": rating_record["id"],
+        "points_earned": 50 if overall_rating >= 4 else 25
+    }
+
+
+@router.get("/bookings/{booking_id}/rating")
+async def get_booking_rating(
+    booking_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get rating for a specific booking"""
+    db = get_database()
+    
+    rating = await db.ratings.find_one(
+        {"booking_id": booking_id, "user_id": current_user["id"]},
+        {"_id": 0}
+    )
+    
+    if not rating:
+        return {"has_rating": False}
+    
+    return {
+        "has_rating": True,
+        "rating": rating
+    }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw, Flag } from 'lucide-react';
+import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw, Flag, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { customerAPI, feedbackAPI } from '../../services/api';
 import { toast } from 'sonner';
 import ComplaintForm from './ComplaintForm';
+import PostFlightRating from './PostFlightRating';
 
 function MyTrips({ user }) {
   const [trips, setTrips] = useState([]);
@@ -16,6 +17,8 @@ function MyTrips({ user }) {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showQuotesDialog, setShowQuotesDialog] = useState(false);
   const [showComplaintDialog, setShowComplaintDialog] = useState(false);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [isEmergency, setIsEmergency] = useState(false);
   const [reviewData, setReviewData] = useState({ overall_rating: 5, comment: '', recommend: true });
@@ -47,6 +50,40 @@ function MyTrips({ user }) {
       setPendingQuotes(response.data.quotes || []);
     } catch (error) {
       console.error('Failed to load pending quotes');
+    }
+  };
+
+  const handleDownloadInvoice = async (trip) => {
+    setDownloadingInvoice(trip.id);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/customer/bookings/${trip.id}/invoice`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to download invoice');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AirYatra_Invoice_${trip.booking_number || trip.inquiry_number || trip.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Invoice downloaded successfully');
+    } catch (error) {
+      console.error('Invoice download error:', error);
+      toast.error('Failed to download invoice');
+    } finally {
+      setDownloadingInvoice(null);
     }
   };
 
@@ -350,9 +387,27 @@ function MyTrips({ user }) {
                   <Button
                     size="sm"
                     className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-                    onClick={() => { setSelectedTrip(trip); setShowReviewDialog(true); }}
+                    onClick={() => { setSelectedTrip(trip); setShowRatingDialog(true); }}
                   >
                     <Star className="h-4 w-4 mr-1" /> Rate Trip
+                  </Button>
+                )}
+                {/* Invoice Download - show for confirmed, payment_completed, or completed */}
+                {['confirmed', 'payment_completed', 'completed'].includes(trip.status) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                    onClick={() => handleDownloadInvoice(trip)}
+                    disabled={downloadingInvoice === trip.id}
+                    data-testid="download-invoice-btn"
+                  >
+                    {downloadingInvoice === trip.id ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-1" />
+                    )}
+                    Invoice
                   </Button>
                 )}
                 {['pending', 'confirmed'].includes(trip.status) && (
@@ -556,7 +611,7 @@ function MyTrips({ user }) {
                       )}
                       {quote.notes && (
                         <p className="text-slate-400 text-sm mt-2">
-                          "{quote.notes}"
+                          &quot;{quote.notes}&quot;
                         </p>
                       )}
                     </div>
@@ -619,6 +674,17 @@ function MyTrips({ user }) {
         booking={selectedTrip}
         onSuccess={() => {
           toast.success('Complaint filed! You will be notified of the decision.');
+          loadTrips();
+        }}
+      />
+
+      {/* Post-Flight Rating Dialog */}
+      <PostFlightRating
+        isOpen={showRatingDialog}
+        onClose={() => { setShowRatingDialog(false); setSelectedTrip(null); }}
+        bookingId={selectedTrip?.id}
+        booking={selectedTrip}
+        onSubmit={() => {
           loadTrips();
         }}
       />

@@ -1,0 +1,32 @@
+{
+  "summary": "Tested Customer Portal Enhancement (Invoice PDF + Rating APIs + Dashboard/MyTrips UI). Backend: all 7 tests PASS — invoice endpoint returns 401 for unauth/invalid token, 404 for non-existent booking; rating GET returns has_rating:false, rating POST returns 404 for non-existent booking and requires auth. Frontend: /customer dashboard loads with 0 Devanagari tokens, 'Book Now' button visible, 3 gradient stat cards (Total Bookings / Pending / Completed), 0 page errors. /customer/trips loads empty-state ('No trips found') correctly with 0 JS errors — Invoice download button not visible as expected (0 bookings for this account). Components PricingBreakdown.js, BookingStatusTimeline.js, PostFlightRating.js exist and import cleanly (no compilation errors surfaced in console). One minor UI defect: MyTrips filter tab label 'Pending Inquiries / इंक्वायरी' still contains Devanagari (Hindi) — inconsistent with the English-only requirement.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "MyTrips filter tabs", "issue": "Filter tab label reads 'Pending Inquiries / इंक्वायरी' — Hindi word violates the English-only requirement for the customer portal", "selector": "button containing 'Pending Inquiries'", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_customer_portal_enhancement.py",
+    "/app/test_reports/pytest/customer_portal_enhancement.xml"
+  ],
+  "action_items": [
+    "Remove Devanagari 'इंक्वायरी' from the 'Pending Inquiries' filter tab in /app/frontend/src/components/customer/MyTrips.js to stay consistent with the English-only mandate.",
+    "Rating POST endpoint currently accepts overall_rating/review/tags as QUERY parameters (not JSON body). Frontend PostFlightRating.js must send data via query string / form-encoded, not application/json body. Consider migrating the endpoint to a Pydantic body model for cleaner semantics."
+  ],
+  "critical_code_review_comments": [
+    "customer_routes.py::submit_booking_rating uses primitive query params for a semantically complex payload (rating, category ratings, tags, review). This is fragile — a Pydantic RatingRequest model would validate types, enforce 1<=overall_rating<=5, and simplify frontend integration.",
+    "customer_routes.py::get_booking_rating (GET) does NOT verify the booking belongs to current_user. Any authenticated user can query rating existence for arbitrary booking_ids (info leak). Recommend adding ownership check via db.bookings.find_one({'id': booking_id, 'customer_id': current_user['id']}).",
+    "download_invoice returns 500 with generic 'Failed to generate invoice' if reportlab raises; consider preserving traceback in logs (already logged) but returning a more specific 502/500 with an incident id for user debugging."
+  ],
+  "updated_files": ["/app/backend/tests/test_customer_portal_enhancement.py"],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "95% (dashboard + MyTrips load cleanly; one Hindi string in MyTrips filter tab)"},
+  "seed_data_creation": "None. customer@airyatra.co.in has 0 bookings so Invoice/Rating UI buttons cannot be exercised end-to-end. Main agent should seed at least one confirmed and one completed booking for this customer to enable full UI verification.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "customer@airyatra.co.in / Customer@123",
+  "context_for_next_testing_agent": "Backend endpoints verified via API tests. To exercise Invoice download and PostFlightRating UI flows end-to-end, seed a booking (status=confirmed and status=completed) for customer@airyatra.co.in in db.bookings collection with an operator_id, then re-run MyTrips UI test asserting the Invoice button (data-testid or visible 'Invoice'/'Download' text) and Rating modal. Also verify GET rating endpoint scopes to current_user (currently does not).",
+  "rca_of_the_issue": "N/A — no failing tests. The Hindi 'इंक्वायरी' remnant is a leftover from a previous bilingual UI iteration in MyTrips filter buttons."
+}
