@@ -13,13 +13,15 @@ from twilio.base.exceptions import TwilioRestException
 
 logger = logging.getLogger(__name__)
 
-# Configuration
+# SMS OTP Configuration
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
 TWILIO_VERIFY_SERVICE_SID = os.environ.get("TWILIO_VERIFY_SERVICE_SID", "")
-SMS_MOCK_MODE = os.environ.get("SMS_MOCK_MODE", "true").lower() == "true"
 
-# In-memory OTP store for mock mode
+# SECURITY: Mock mode MUST be explicitly enabled - defaults to FALSE for production safety
+SMS_MOCK_MODE = os.environ.get("SMS_MOCK_MODE", "false").lower() == "true"
+
+# In-memory OTP store for mock mode (ONLY for development/testing)
 MOCK_OTP_STORE: Dict[str, str] = {}
 
 

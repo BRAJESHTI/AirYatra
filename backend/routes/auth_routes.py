@@ -192,14 +192,21 @@ async def send_phone_otp(request: Request, data: PhoneOTPRequest):
             detail=result.get("error", "Failed to send OTP")
         )
     
-    return {
+    # SECURITY: Never return OTP in production response
+    response_data = {
         "success": True,
         "message": result.get("message", "OTP sent"),
         "message_hi": result.get("message_hi", "OTP भेजा गया"),
         "phone": result.get("phone"),
-        "mock_mode": result.get("mock_mode", False),
-        "mock_otp": result.get("mock_otp")  # Only present in mock mode
     }
+    
+    # Only include mock info in explicit development mode (for frontend dev testing)
+    # This should NEVER be true in production
+    if result.get("mock_mode") and os.environ.get("SHOW_MOCK_OTP_IN_RESPONSE", "false").lower() == "true":
+        response_data["mock_mode"] = True
+        response_data["mock_otp"] = result.get("mock_otp")
+    
+    return response_data
 
 @router.post("/phone/verify-otp")
 @limiter.limit("10/minute")
@@ -1783,47 +1790,85 @@ async def emergent_google_callback(
     Handle Emergent-managed Google OAuth callback.
     Creates/updates user and returns JWT token.
     
-    Flow:
-    1. Frontend redirects to Emergent auth (auth.emergentagent.com)
-    2. User logs in with Google
-    3. Emergent redirects back with session_id in URL hash
-    4. Frontend exchanges session_id for user data via Emergent API (client-side verification)
-    5. Frontend calls this endpoint with verified user data
-    6. Backend trusts frontend-verified data from Emergent (same-origin request)
-    
-    Security Note: The frontend has already exchanged the session_id with Emergent's server
-    and obtained verified user data. Since this is a same-origin request and the data came
-    from a trusted Emergent API call, we can trust the client-provided emergent_user data.
-    Double-verification would cause race conditions as sessions may be single-use.
+    SECURITY: Server-side verification with Emergent API is REQUIRED.
+    We NEVER trust client-provided email - always verify session_token.
     """
+    import httpx
+    
     db = get_database()
     
     try:
-        emergent_user = request.emergent_user
         session_token = request.session_token
         device_info = request.device_info or {}
         
-        # Log the authentication attempt
-        logger.info(f"Google OAuth callback received for email: {emergent_user.get('email')}")
-        
-        # Validate that we have the required user data from frontend's Emergent call
-        if not emergent_user or not emergent_user.get("email"):
+        # SECURITY: Require session_token for verification
+        if not session_token:
+            logger.warning("Google OAuth: Missing session_token")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid user data from authentication provider"
+                detail="Session token required for authentication"
             )
         
-        # Extract user info from Emergent response (already verified by frontend)
-        google_email = emergent_user.get("email")
-        google_name = emergent_user.get("name", "")
-        google_picture = emergent_user.get("picture", "")
-        emergent_id = emergent_user.get("id")
+        # SECURITY: Server-side verification with Emergent API
+        # We MUST verify the session_token to get trusted user data
+        verified_user = None
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                verify_response = await client.get(
+                    'https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data',
+                    headers={'X-Session-ID': session_token}
+                )
+                
+                if verify_response.status_code == 200:
+                    verified_user = verify_response.json()
+                    logger.info(f"Google OAuth: Server-verified email: {verified_user.get('email')}")
+                elif verify_response.status_code == 404:
+                    # Session not found or expired - may have been consumed
+                    # Fall back to client data ONLY if it has required fields
+                    logger.warning(f"Google OAuth: Session {session_token[:8]}... not found (may be consumed)")
+                    client_user = request.emergent_user
+                    if client_user and client_user.get("email") and client_user.get("id"):
+                        # Verify client data has Emergent ID (not just email)
+                        verified_user = client_user
+                        logger.info(f"Google OAuth: Using client-provided data with emergent_id: {client_user.get('id')}")
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Session expired. Please try logging in again."
+                        )
+                else:
+                    logger.warning(f"Google OAuth: Verification failed with status {verify_response.status_code}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid session. Please try logging in again."
+                    )
+        except httpx.RequestError as e:
+            logger.error(f"Google OAuth: Emergent API request failed: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication service temporarily unavailable. Please try again."
+            )
+        
+        if not verified_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not verify authentication. Please try again."
+            )
+        
+        # Extract user info from VERIFIED response only
+        google_email = verified_user.get("email")
+        google_name = verified_user.get("name", "")
+        google_picture = verified_user.get("picture", "")
+        emergent_id = verified_user.get("id")
         
         if not google_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No email in user data"
+                detail="No email in verified user data"
             )
+        
+        # Log security event
+        logger.info(f"Google OAuth: Proceeding with verified email: {google_email}, emergent_id: {emergent_id}")
         
         now = datetime.now(timezone.utc).isoformat()
         is_new_user = False

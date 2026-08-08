@@ -220,16 +220,42 @@ async def verify_stripe_session(
 @router.post("/create-payment-intent")
 async def create_payment_intent(
     booking_id: str = Body(...),
-    amount: float = Body(...),
-    currency: str = Body("usd"),
+    currency: str = Body("inr"),
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
     Create a PaymentIntent for custom Stripe Elements integration.
+    SECURITY: Amount is derived from booking server-side, not from client.
     Returns client_secret for frontend Stripe.js
     """
-    currency = currency.lower()
+    # SECURITY FIX: Derive amount from booking, not from client request
+    booking = await db.bookings.find_one(
+        {"booking_id": booking_id},
+        {"_id": 0, "total_amount": 1, "customer_id": 1, "status": 1, "currency": 1}
+    )
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # SECURITY: Verify booking ownership
+    if booking.get("customer_id") != current_user.get("id"):
+        # Allow admin/finance to create payments for any booking
+        user_roles = set(current_user.get("roles", []))
+        if not user_roles.intersection({"admin", "super_admin", "finance", "ceo"}):
+            raise HTTPException(status_code=403, detail="You don't have access to this booking")
+    
+    # SECURITY: Don't allow payment for already paid bookings
+    if booking.get("status") in ["paid", "completed"]:
+        raise HTTPException(status_code=400, detail="Booking is already paid")
+    
+    # Get amount from booking (server-side source of truth)
+    amount = booking.get("total_amount")
+    if not amount or amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid booking amount")
+    
+    # Use booking's currency or default
+    currency = (booking.get("currency") or currency).lower()
     zero_decimal_currencies = ['jpy', 'krw', 'vnd']
     
     if currency in zero_decimal_currencies:
@@ -242,7 +268,7 @@ async def create_payment_intent(
         currency=currency,
         booking_id=booking_id,
         customer_email=current_user.get("email", ""),
-        metadata={"user_id": current_user.get("id", "")}
+        metadata={"user_id": current_user.get("id", ""), "booking_id": booking_id}
     )
     
     if not result.get("success"):

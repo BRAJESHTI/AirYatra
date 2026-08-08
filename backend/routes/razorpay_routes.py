@@ -67,10 +67,15 @@ async def get_next_receipt_number(db) -> str:
     seq = counter.get("seq", 1)
     return f"{RECEIPT_PREFIX}{seq:06d}"  # AY000001, AY000002, etc.
 
-# Create Razorpay Order
+# Create Razorpay Order - REQUIRES AUTHENTICATION
 @router.post("/create-order")
 @limiter.limit(RATE_LIMITS["razorpay_order"])
-async def create_order(request: Request, order_request: OrderRequest):
+async def create_order(
+    request: Request, 
+    order_request: OrderRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create Razorpay order - requires authentication and booking ownership"""
     if not razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay not configured")
     
@@ -83,6 +88,14 @@ async def create_order(request: Request, order_request: OrderRequest):
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # SECURITY: Verify booking ownership
+    booking_customer_id = booking.get("customer_id") or booking.get("user_id")
+    if booking_customer_id != current_user.get("id"):
+        # Allow admin/finance to create orders for any booking
+        user_roles = set(current_user.get("roles", []))
+        if not user_roles.intersection({"admin", "super_admin", "finance", "ceo", "operator"}):
+            raise HTTPException(status_code=403, detail="You don't have access to this booking")
     
     # Get amount from booking (not from client request)
     booking_amount = booking.get("total_amount") or booking.get("amount") or booking.get("quoted_price")
