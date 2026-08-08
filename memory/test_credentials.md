@@ -1,31 +1,31 @@
 # AirYatra - Test Credentials
 
-## Application Users
+## Application Users (Updated Aug 8, 2026)
 
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
-| **CEO** | ceo@airyatra.com | CEO@123456 | Full executive access, CEO Dashboard, Board Reports |
-| Admin | admin@airyatra.com | Admin123! | Full platform access (2FA DISABLED) |
-| Operator | operator@airyatra.com | Operator@123456 | Fleet & booking management (2FA DISABLED) |
-| Pilot | pilot@airyatra.com | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
-| Finance/CFO | finance@airyatra.com | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
+| **CEO** | ceo@airyatra.co.in | CEO@123456 | Full executive access, CEO Dashboard, Board Reports |
+| Admin | admin@airyatra.co.in | Admin123! | Full platform access (2FA DISABLED) |
+| Operator | operator@airyatra.co.in | Operator@123456 | Fleet & booking management (2FA DISABLED) |
+| Pilot | pilot@airyatra.co.in | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
+| Finance/CFO | finance@airyatra.co.in | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
+| Customer | customer@airyatra.co.in | Customer@123 | Demo customer account |
+| HR | hr@airyatra.co.in | HR@123456 | Priya Sharma, HR Manager |
+| Sales | sales@airyatra.co.in | Sales@123456 | Rahul Kapoor, Sales Manager |
+| Employee | employee@airyatra.co.in | Employee@123 | EMP-0001, HRMS portal |
 
-## ⚠️ 2FA/OTP Status: DISABLED (Aug 8, 2026)
+## 2FA/OTP Status: DISABLED (Aug 8, 2026)
 All users can login directly without OTP verification.
 
 ## Additional Test Users
 
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
-| Customer | customer@airyatra.com | Customer@123 | Demo customer account |
-| HR | hr@airyatra.com | HR@123456 | Priya Sharma, HR Manager |
-| Sales | sales@airyatra.com | Sales@123456 | Rahul Kapoor, Sales Manager |
-| Loyalty Test | loyaltytest@airyatra.com | Loyalty@123 | Gold BLACK membership |
-| Emergency | emergencytest@airyatra.com | Emergency@123 | Emergency booking test |
-| Employee | employee@airyatra.com | Employee@123 | EMP-0001, HRMS portal |
-| Test Admin | testadmin@airyatra.com | TestAdmin123! | Admin without 2FA |
-| Test Finance | testfinance@airyatra.com | Test123! | Finance without 2FA |
-| VRE Admin | vreadmin@airyatra.com | VREAdmin123! | Verification Rule Engine |
+| Loyalty Test | loyaltytest@airyatra.co.in | Loyalty@123 | Gold BLACK membership |
+| Emergency | emergencytest@airyatra.co.in | Emergency@123 | Emergency booking test |
+| Test Admin | testadmin@airyatra.co.in | TestAdmin123! | Admin without 2FA |
+| Test Finance | testfinance@airyatra.co.in | Test123! | Finance without 2FA |
+| VRE Admin | vreadmin@airyatra.co.in | VREAdmin123! | Verification Rule Engine |
 
 ## Third-Party Services
 
@@ -40,7 +40,7 @@ All users can login directly without OTP verification.
 ### Google OAuth (Emergent-Managed)
 - Provider: Emergent Auth (auth.emergentagent.com)
 - Integration Type: Managed OAuth (No API keys required)
-- Status: ✅ ACTIVE
+- Status: ACTIVE
 - Flow: 
   1. User clicks "Google से Login करें"
   2. Redirect to https://auth.emergentagent.com/?redirect={callback}
@@ -50,83 +50,13 @@ All users can login directly without OTP verification.
   6. Backend creates/updates user via POST /api/auth/google/emergent-callback
 - Backend Endpoint: POST /api/auth/google/emergent-callback
 - Settings Endpoint: GET /api/auth/google/settings
-- Notes: 
-  - Google users skip OTP/TOTP verification
-  - New users get "customer" role by default
-  - Profile picture synced from Google account
 
-## Pending Integrations (Phase 9)
-
-### WhatsApp API
-- Provider: TBD
-- API Key: TBD
-- Status: DEFERRED to final phase
-
-### Payment Gateway
-- RazorpayX: TBD
-- Cashfree: TBD
-- Status: DEFERRED to final phase
-
----
-
-*Last Updated: August 2, 2026*
-
-## Test Finance User (No 2FA - API Testing)
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| CFO | testfinance@airyatra.com | Test123! | Created for backend API testing. Login Shield may trigger OTP, use direct JWT token generation for testing. |
-
-## Test Admin (No 2FA - API Testing, Aug 2, 2026)
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| Admin | testadmin@airyatra.com | TestAdmin123! | Created for testing admin APIs without TOTP. otp_enabled=false, totp_enabled=false. Use for Document Vault, Compliance Dashboard testing. |
-
-## Loyalty Test Customer (created Aug 1, 2026)
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| Customer | loyaltytest@airyatra.com | Loyalty@123 | Has gold BLACK membership (1.5x multiplier), loyalty points, redeemed vouchers. Use for /customer/loyalty testing |
-
-## HRMS Employee (created Aug 1, 2026)
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| Employee | employee@airyatra.com | Employee@123 | EMP-0001 Rahul Verma, Operations dept, salary structure set (₹66,000 gross). Logs into /employee self-service portal (check-in, leave, payslips, expenses) |
-
-## Stripe Test Payments (Aug 1, 2026)
-- Customer with unpaid test inquiry: loyaltytest@airyatra.com / Loyalty@123 → inquiry `test-stripe-inquiry-1` (NOW PAID after iteration_16 E2E; seed a fresh unpaid inquiry for re-testing)
-- Stripe TEST card: 4242 4242 4242 4242, exp 12/34, CVC 123
-- Key: STRIPE_API_KEY=sk_test_emergent (backend/.env)
-
-## Emergency Booking Test (Aug 2, 2026)
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| Customer | emergencytest@airyatra.com | Emergency@123 | Created for Emergency Booking P0 testing. Use direct JWT token for API testing (OTP still triggers). |
-
-
-## VRE Admin (Verification Rule Engine - Aug 6, 2026)
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| Super Admin | vreadmin@airyatra.com | VREAdmin123! | Created for VRE API testing. Has roles: ['admin', 'super_admin']. Use for VRE dashboard, services config, booking rules, auto rules testing. |
-| User ID | 601a4741-f347-4ce8-845e-6cbd91bf9a78 | - | Direct user ID for JWT token generation (airyatra_db database) |
-
-## API Control Center Test Token (Aug 6, 2026)
-For testing Budget Alerts, Slack/Email Alerts, Failover Test Mode:
-- Valid JWT Token (24h): `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MDFhNDc0MS1mMzQ3LTRjZTgtODQ1ZS02Y2JkOTFiZjlhNzgiLCJyb2xlcyI6WyJhZG1pbiIsInN1cGVyX2FkbWluIl0sImV4cCI6MTc4NjEwMzY1Mn0.3YAMWE6SEuqeOtfgKnzCKmSxxZJwwwR1GPc-tak-QNA`
-- Endpoints Tested:
-  - GET /api/api-control/admin/budget/status (Working)
-  - POST /api/api-control/admin/budget/configure (Working)
-  - POST /api/api-control/admin/alerts/configure (Working)
-  - POST /api/api-control/admin/alerts/test (Working)
-  - GET /api/api-control/admin/failover/test-mode/sessions (Working)
-  - POST /api/api-control/admin/failover/test-mode/start (Working)
-  - POST /api/api-control/admin/failover/test-mode/simulate-failure (Working)
-  - POST /api/api-control/admin/failover/test-mode/run-full-test (Working)
-
-## Quick Admin Login (DEV ONLY - Aug 7, 2026)
+## Quick Admin Login (DEV ONLY)
 | Setting | Value |
 |---------|-------|
 | Endpoint | POST /api/auth/dev/quick-admin-token |
 | Secret Key | airyatra-dev-quick-login-2026 |
-| Status | ✅ ENABLED |
+| Status | ENABLED |
 
 **Usage:**
 ```bash
@@ -135,27 +65,18 @@ curl -X POST "https://aviation-erp-2.preview.emergentagent.com/api/auth/dev/quic
   -d '{"secret_key": "airyatra-dev-quick-login-2026"}'
 ```
 
-**Current Token (24h valid - Updated Aug 7, 2026):**
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZmQ1ZjlkNS03ZTkyLTRlMjQtOWM0Yy00MGQzNjFhNzU4YzgiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJlbWFpbCI6InN1cGVyYWRtaW4yQGFpcnlhdHJhLmNvbSIsInF1aWNrX2xvZ2luIjp0cnVlLCJleHAiOjE3ODY2ODgwNTJ9.iOe3TeUMr4aKGvmg2KMoKhOfLaEsw7rYPqWws4ZApao
-```
+## Stripe Test Payments
+- Stripe TEST card: 4242 4242 4242 4242, exp 12/34, CVC 123
+- Key: STRIPE_API_KEY=sk_test_emergent (backend/.env)
 
-**For Screenshots (localStorage):**
-```javascript
-localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZmQ1ZjlkNS03ZTkyLTRlMjQtOWM0Yy00MGQzNjFhNzU4YzgiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJlbWFpbCI6InN1cGVyYWRtaW4yQGFpcnlhdHJhLmNvbSIsInF1aWNrX2xvZ2luIjp0cnVlLCJleHAiOjE3ODY2ODgwNTJ9.iOe3TeUMr4aKGvmg2KMoKhOfLaEsw7rYPqWws4ZApao');
-localStorage.setItem('user', JSON.stringify({
-  id: 'bfd5f9d5-7e92-4e24-9c4c-40d361a758c8',
-  email: 'superadmin2@airyatra.com',
-  name: 'Super Admin',
-  roles: ['super_admin']
-}));
-```
-
-## Sandbox.co.in KYC API (Aug 6, 2026)
+## Sandbox.co.in KYC API
 | Setting | Value |
 |---------|-------|
 | API Key | key_live_07f61ca61046480a8702eb0c234b59db |
 | API Secret | key_live_07f61ca61046480a8702eb0c234b59db |
 | Base URL | https://api.sandbox.co.in |
-| Status | ✅ ACTIVE (Sandbox test mode) |
-| Supported | PAN, GST, Bank Account, Aadhaar (OTP), IFSC, CIN, DL |
+| Status | ACTIVE (Sandbox test mode) |
+
+---
+
+*Last Updated: August 8, 2026*

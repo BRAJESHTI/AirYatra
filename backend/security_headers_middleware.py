@@ -100,9 +100,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # HTTPS Enforcement (redirect HTTP to HTTPS)
-        if ENFORCE_HTTPS and request.url.scheme == "http":
+        # Check X-Forwarded-Proto to handle reverse proxy (Cloudflare/nginx)
+        forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+        is_https = forwarded_proto == "https" or request.url.scheme == "https"
+        
+        if ENFORCE_HTTPS and not is_https:
             # Skip for health checks and local development
-            if request.url.path not in ["/health", "/api/health"] and not request.url.hostname in ["localhost", "127.0.0.1"]:
+            if request.url.path not in ["/health", "/api/health"] and request.url.hostname not in ["localhost", "127.0.0.1"]:
                 https_url = request.url.replace(scheme="https")
                 return RedirectResponse(url=str(https_url), status_code=301)
         

@@ -36,6 +36,8 @@ import OperatorComplaintInbox from '../components/operator/OperatorComplaintInbo
 import PenaltyDashboard from '../components/operator/PenaltyDashboard';
 import { OperatorAuctions } from '../components/auction/AuctionDashboard';
 import { OperatorFleetDashboard } from '../components/aircraft/AircraftCatalog';
+import ASREDashboard from '../components/operator/ASREDashboard';
+import { Zap } from 'lucide-react';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -45,6 +47,7 @@ const navGroups = [
     icon: Home,
     items: [
       { id: 'home', label: 'Overview', icon: Home, path: '/operator' },
+      { id: 'asre', label: 'ASRE / स्मार्ट प्राइसिंग', icon: Zap, path: '/operator/asre', highlight: true },
       { id: 'erp', label: 'ERP Command Center / ईआरपी', icon: BarChart3, path: '/operator/erp', highlight: true },
       { id: 'revenue', label: 'Revenue Dashboard / राजस्व', icon: DollarSign, path: '/operator/revenue', highlight: true },
       { id: 'fleet-analytics', label: 'Fleet Analytics / फ्लीट', icon: Plane, path: '/operator/fleet-analytics', highlight: true },
@@ -269,6 +272,7 @@ function OperatorDashboard({ user, onLogout }) {
           <div className="max-w-7xl mx-auto">
             <Routes>
               <Route index element={<OperatorHome operator={operator} />} />
+              <Route path="asre" element={<ASREDashboard />} />
               <Route path="new-inquiries" element={<InquiryNotifications operator={operator} />} />
               <Route path="erp" element={<OperatorERP />} />
               <Route path="revenue" element={<OperatorRevenueDashboard user={user} />} />

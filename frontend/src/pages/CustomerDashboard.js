@@ -28,6 +28,8 @@ import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleN
 import { AircraftComparison } from '../components/aircraft/AircraftComparison';
 import RefundHistory from '../components/customer/RefundHistory';
 import CarbonCalculator from '../components/customer/CarbonCalculator';
+import ASREBookingWidget from '../components/customer/ASREBookingWidget';
+import { Zap } from 'lucide-react';
 
 // Organized Navigation Structure - 4 Main Categories
 const navGroups = [
@@ -37,6 +39,7 @@ const navGroups = [
     icon: Home,
     items: [
       { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
+      { id: 'smart-booking', label: 'Smart Booking / स्मार्ट बुकिंग', icon: Zap, path: '/customer/smart-booking', highlight: true },
       { id: 'trips', label: 'My Trips / मेरी यात्राएं', icon: MapPin, path: '/customer/trips', highlight: true },
       { id: 'compare', label: 'Compare Aircraft / तुलना करें', icon: Scale, path: '/customer/compare', highlight: true },
       { id: 'stats', label: 'My Stats / मेरे आंकड़े', icon: PieChart, path: '/customer/stats', highlight: true },
@@ -118,6 +121,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/price-trends')) setActiveTab('price-trends');
     else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
     else if (path.includes('/kyc')) setActiveTab('kyc');
+    else if (path.includes('/smart-booking')) setActiveTab('smart-booking');
     else setActiveTab('overview');
   }, [location.pathname]);
 
@@ -202,6 +206,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <RouteSuggestions user={user} />;
       case 'carbon':
         return <CarbonCalculator />;
+      case 'smart-booking':
+        return <ASREBookingWidget />;
       case 'complaints':
         return <MyComplaints user={user} />;
       case 'auctions':
