@@ -58,6 +58,9 @@ export default function PaymentSuccessPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = params.get('session_id');
+  const gateway = params.get('gateway');
+  const gatewayBookingId = params.get('booking_id');
+  const gatewayAmount = params.get('amount');
   const paymentLinkToken = params.get('token'); // For payment link flow
   const [state, setState] = useState('checking');
   const [txn, setTxn] = useState(null);
@@ -65,6 +68,16 @@ export default function PaymentSuccessPage() {
   const confettiTriggered = useRef(false);
 
   useEffect(() => {
+    // Razorpay / Wallet payments are verified server-side before redirect
+    if (gateway === 'razorpay' || gateway === 'wallet') {
+      setTxn({ payment_status: 'paid', booking_id: gatewayBookingId, amount: parseFloat(gatewayAmount) || null, gateway });
+      setState('paid');
+      if (!confettiTriggered.current) {
+        confettiTriggered.current = true;
+        setTimeout(triggerConfetti, 300);
+      }
+      return;
+    }
     if (!sessionId) { setState('error'); return; }
     let timer;
     const poll = async () => {
@@ -169,6 +182,7 @@ export default function PaymentSuccessPage() {
                 View Booking
               </Button>
               
+              {!gateway && (
               <Button 
                 variant="outline" 
                 data-testid="download-receipt-btn"

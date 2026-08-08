@@ -97,12 +97,32 @@ async def create_order(
         if not user_roles.intersection({"admin", "super_admin", "finance", "ceo", "operator"}):
             raise HTTPException(status_code=403, detail="You don't have access to this booking")
     
-    # Get amount from booking (not from client request)
-    booking_amount = booking.get("total_amount") or booking.get("amount") or booking.get("quoted_price")
-    if not booking_amount:
+    # Amount derived server-side via payment ledger (advance/balance aware)
+    from routes.stripe_payment_routes import _payment_ledger
+    total_amount, credited, remaining, _ = await _payment_ledger(db, booking)
+    if total_amount <= 0:
+        total_amount = float(booking.get("total_amount") or booking.get("amount") or booking.get("quoted_price") or 0)
+        remaining = max(0.0, total_amount - credited)
+    if total_amount <= 0:
         raise HTTPException(status_code=400, detail="Booking amount not set. Contact support.")
-    
-    amount = float(booking_amount)
+    if remaining <= 0:
+        raise HTTPException(status_code=400, detail="Booking already fully paid")
+
+    if booking.get("payment_status") in ["paid", "fully_paid"]:
+        amount = remaining
+        payment_type = "balance"
+    else:
+        advance_percent = 50
+        settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
+        if settings:
+            for rule in settings.get("payment_rules", []):
+                if rule.get("purpose") == booking.get("booking_purpose", "other"):
+                    advance_percent = rule.get("advance_percent", 50)
+                    break
+        advance_needed = float(int(total_amount * advance_percent / 100))
+        amount = max(1.0, min(remaining, max(1.0, advance_needed - credited)))
+        payment_type = "advance"
+    amount = round(float(amount), 2)
     
     # Generate receipt number
     receipt = await get_next_receipt_number(db)
@@ -137,6 +157,9 @@ async def create_order(
             "amount_paise": amount_paise,
             "currency": "INR",
             "booking_id": order_request.booking_id,
+            "customer_id": current_user.get("id"),
+            "payment_type": payment_type,
+            "total_amount": total_amount,
             "customer_name": order_request.customer_name,
             "customer_email": order_request.customer_email,
             "customer_phone": order_request.customer_phone,
@@ -155,14 +178,15 @@ async def create_order(
             "success": True,
             "order_id": razorpay_order["id"],
             "receipt": receipt,
-            "amount": request.amount,
+            "amount": amount,
             "amount_paise": amount_paise,
+            "payment_type": payment_type,
             "currency": "INR",
             "key_id": RAZORPAY_KEY_ID,
             "prefill": {
-                "name": request.customer_name,
-                "email": request.customer_email,
-                "contact": request.customer_phone
+                "name": order_request.customer_name,
+                "email": order_request.customer_email,
+                "contact": order_request.customer_phone
             },
             "notes": order_data["notes"],
             "theme": {
@@ -216,18 +240,45 @@ async def verify_payment(request: Request, verify_request: PaymentVerifyRequest)
         # Get order details
         order = await db.razorpay_orders.find_one({"razorpay_order_id": verify_request.razorpay_order_id})
         
-        # Update booking if linked
+        # Update booking/inquiry + payment ledger if linked
         if order and order.get("booking_id"):
-            await db.bookings.update_one(
-                {"_id": ObjectId(order["booking_id"])},
-                {
-                    "$set": {
-                        "payment_status": "paid",
-                        "razorpay_payment_id": verify_request.razorpay_payment_id,
-                        "paid_at": datetime.now(timezone.utc)
-                    }
+            from routes.stripe_payment_routes import _payment_ledger
+            import uuid as _uuid
+            amount_inr = float(order.get("amount", 0))
+            now_iso = datetime.now(timezone.utc).isoformat()
+            existing_txn = await db.payment_transactions.find_one(
+                {"session_id": verify_request.razorpay_order_id, "payment_status": "paid"})
+            if not existing_txn:
+                await db.payment_transactions.insert_one({
+                    "id": str(_uuid.uuid4()),
+                    "session_id": verify_request.razorpay_order_id,
+                    "booking_id": order["booking_id"],
+                    "customer_id": order.get("customer_id"),
+                    "payment_type": order.get("payment_type", "advance"),
+                    "amount": amount_inr,
+                    "total_amount": order.get("total_amount"),
+                    "currency": "inr",
+                    "gateway": "razorpay",
+                    "razorpay_payment_id": verify_request.razorpay_payment_id,
+                    "status": "completed",
+                    "payment_status": "paid",
+                    "created_at": now_iso,
+                    "updated_at": now_iso,
+                })
+            booking = await db.inquiries.find_one({"id": order["booking_id"]}, {"_id": 0}) or \
+                      await db.bookings.find_one({"id": order["booking_id"]}, {"_id": 0})
+            if booking:
+                _, _, remaining_after, _ = await _payment_ledger(db, booking)
+                update = {
+                    "payment_status": "fully_paid" if remaining_after <= 0 else "paid",
+                    "razorpay_payment_id": verify_request.razorpay_payment_id,
+                    "paid_at": now_iso,
+                    "updated_at": now_iso,
                 }
-            )
+                if booking.get("status") in ["payment_pending", "quote_accepted", "pending_acceptance"]:
+                    update["status"] = "confirmed"
+                await db.inquiries.update_one({"id": order["booking_id"]}, {"$set": update})
+                await db.bookings.update_one({"id": order["booking_id"]}, {"$set": update})
         
         # Create notification
         await db.notifications.insert_one({
@@ -250,18 +301,18 @@ async def verify_payment(request: Request, verify_request: PaymentVerifyRequest)
         return {
             "success": True,
             "message": "Payment verified successfully",
-            "order_id": request.razorpay_order_id,
-            "payment_id": request.razorpay_payment_id,
+            "order_id": verify_request.razorpay_order_id,
+            "payment_id": verify_request.razorpay_payment_id,
             "receipt": order.get("receipt") if order else None,
             "amount": order.get("amount") if order else None
         }
         
     except razorpay.errors.SignatureVerificationError:
-        logger.warning(f"Invalid signature for order: {request.razorpay_order_id}")
+        logger.warning(f"Invalid signature for order: {verify_request.razorpay_order_id}")
         
         # Update order status as failed
         await db.razorpay_orders.update_one(
-            {"razorpay_order_id": request.razorpay_order_id},
+            {"razorpay_order_id": verify_request.razorpay_order_id},
             {"$set": {"status": "signature_failed", "failed_at": datetime.now(timezone.utc)}}
         )
         

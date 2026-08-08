@@ -226,6 +226,120 @@ async def _payment_ledger(db, booking: dict):
     return total_amount, credited, remaining, txns
 
 
+class WalletApplyRequest(BaseModel):
+    booking_id: str
+
+
+@router.get("/payments/gateways")
+async def list_payment_gateways(current_user: dict = Depends(get_current_user), db=Depends(get_database)):
+    """Available payment gateways + user's wallet/reward balance"""
+    wallet = await db.wallets.find_one({"user_id": current_user["id"]}, {"_id": 0}) or {}
+    return {"gateways": [
+        {"id": "razorpay", "name": "Razorpay", "description": "UPI, Cards, NetBanking, Wallets, EMI",
+         "enabled": bool(os.environ.get("RAZORPAY_KEY_ID")), "badge": "Recommended",
+         "methods": ["upi", "card", "netbanking", "wallet", "emi"]},
+        {"id": "stripe", "name": "Stripe", "description": "International & Indian Cards",
+         "enabled": True, "badge": "Test Mode", "methods": ["card"]},
+        {"id": "cashfree", "name": "Cashfree", "description": "UPI, Cards, NetBanking",
+         "enabled": bool(os.environ.get("CASHFREE_CLIENT_ID")), "badge": None,
+         "methods": ["upi", "card", "netbanking"]},
+        {"id": "paypal", "name": "PayPal", "description": "International payments",
+         "enabled": bool(os.environ.get("PAYPAL_CLIENT_ID")), "badge": None, "methods": ["paypal"]},
+        {"id": "wallet", "name": "Credit / Reward Points", "description": "Use your AirYatra wallet & reward balance",
+         "enabled": True, "badge": None, "balance": wallet.get("balance", 0), "methods": ["wallet"]},
+    ]}
+
+
+@router.post("/payments/wallet/apply")
+async def apply_wallet_payment(body: WalletApplyRequest, current_user: dict = Depends(get_current_user),
+                               db=Depends(get_database)):
+    """Pay with wallet/reward balance - credits the booking payment ledger"""
+    booking = await db.inquiries.find_one({"id": body.booking_id}, {"_id": 0}) or \
+              await db.bookings.find_one({"id": body.booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.get("customer_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    total_amount, credited, remaining, _ = await _payment_ledger(db, booking)
+    if total_amount <= 0:
+        raise HTTPException(status_code=400, detail="No payable amount on this booking")
+    if remaining <= 0:
+        raise HTTPException(status_code=400, detail="Booking already fully paid")
+
+    wallet = await db.wallets.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    balance = float((wallet or {}).get("balance", 0))
+    if balance <= 0:
+        raise HTTPException(status_code=400, detail="No wallet/reward balance available")
+
+    amount = round(min(balance, remaining), 2)
+    now = datetime.now(timezone.utc).isoformat()
+
+    new_balance = round(balance - amount, 2)
+    await db.wallets.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": {"balance": new_balance}, "$inc": {"total_used": amount}}
+    )
+    await db.wallet_transactions.insert_one({
+        "id": str(uuid4()),
+        "user_id": current_user["id"],
+        "type": "debit",
+        "amount": amount,
+        "balance_after": new_balance,
+        "reason": f"Payment for booking {body.booking_id}",
+        "booking_id": body.booking_id,
+        "created_at": now,
+    })
+    await db.payment_transactions.insert_one({
+        "id": str(uuid4()),
+        "session_id": f"wallet_{uuid4().hex[:12]}",
+        "booking_id": body.booking_id,
+        "customer_id": current_user["id"],
+        "payment_type": "wallet",
+        "amount": amount,
+        "total_amount": total_amount,
+        "currency": "inr",
+        "gateway": "wallet",
+        "status": "completed",
+        "payment_status": "paid",
+        "created_at": now,
+        "updated_at": now,
+    })
+
+    credited_after = credited + amount
+    remaining_after = max(0.0, round(total_amount - credited_after, 2))
+
+    advance_percent = 50
+    settings = await db.payment_rules_settings.find_one({"type": "payment_rules"}, {"_id": 0})
+    if settings:
+        for rule in settings.get("payment_rules", []):
+            if rule.get("purpose") == booking.get("booking_purpose", "other"):
+                advance_percent = rule.get("advance_percent", 50)
+                break
+    advance_needed = float(int(total_amount * advance_percent / 100))
+
+    update = {"updated_at": now}
+    if remaining_after <= 0:
+        update["payment_status"] = "fully_paid"
+        update["status"] = "confirmed"
+    elif credited_after >= advance_needed:
+        update["payment_status"] = "paid"
+        if booking.get("status") in ["payment_pending", "quote_accepted", "pending_acceptance"]:
+            update["status"] = "confirmed"
+    await db.inquiries.update_one({"id": body.booking_id}, {"$set": update})
+    await db.bookings.update_one({"id": body.booking_id}, {"$set": update})
+
+    return {
+        "success": True,
+        "applied": amount,
+        "new_wallet_balance": new_balance,
+        "remaining_due": remaining_after,
+        "fully_paid": remaining_after <= 0,
+        "advance_covered": credited_after >= advance_needed,
+        "message": f"Rs.{amount:,.0f} paid from wallet/reward balance",
+    }
+
+
 @router.post("/payments/stripe/checkout")
 async def create_stripe_checkout(
     body: StripeCheckoutRequest,

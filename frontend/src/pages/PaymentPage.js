@@ -24,8 +24,24 @@ function PaymentPage({ user }) {
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [applying, setApplying] = useState(false);
   const [myVouchers, setMyVouchers] = useState([]);
+  const [gateways, setGateways] = useState([]);
+  const [selectedGateway, setSelectedGateway] = useState('razorpay');
   const isBalance = new URLSearchParams(location.search).get('type') === 'balance';
   const [ledger, setLedger] = useState(null);
+
+  useEffect(() => {
+    api.get('/payments/gateways')
+      .then((res) => {
+        const gws = res.data.gateways || [];
+        setGateways(gws);
+        const firstEnabled = gws.find(g => g.enabled && g.id !== 'wallet');
+        if (firstEnabled) setSelectedGateway(firstEnabled.id);
+      })
+      .catch(() => {
+        setGateways([{ id: 'stripe', name: 'Stripe', description: 'Cards', enabled: true, badge: 'Test Mode', methods: ['card'] }]);
+        setSelectedGateway('stripe');
+      });
+  }, []);
 
   useEffect(() => {
     if (isBalance) {
@@ -118,7 +134,87 @@ function PaymentPage({ user }) {
     }
   };
 
+  const loadRazorpayScript = () => new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+  const handleRazorpayPayment = async () => {
+    setProcessing(true);
+    try {
+      const ok = await loadRazorpayScript();
+      if (!ok) throw new Error('Failed to load Razorpay. Check your connection.');
+      const res = await api.post('/razorpay/create-order', {
+        booking_id: inquiryId,
+        customer_name: user?.full_name || user?.email || 'Customer',
+        customer_email: user?.email || '',
+        customer_phone: user?.phone || '9999999999',
+        description: `AirYatra Booking ${inquiry?.inquiry_number || inquiryId}`,
+      });
+      const order = res.data;
+      const rzp = new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount_paise,
+        currency: 'INR',
+        name: 'AirYatra',
+        description: 'Aviation Booking Payment',
+        order_id: order.order_id,
+        prefill: order.prefill,
+        theme: order.theme || { color: '#f97316' },
+        handler: async (response) => {
+          try {
+            await api.post('/razorpay/verify-payment', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast.success('Payment successful!');
+            navigate(`/payment/success?gateway=razorpay&booking_id=${inquiryId}&amount=${order.amount}`);
+          } catch (e) {
+            toast.error(e.response?.data?.detail || 'Payment verification failed');
+          }
+        },
+        modal: { ondismiss: () => setProcessing(false) },
+      });
+      rzp.on('payment.failed', (resp) => {
+        toast.error(resp.error?.description || 'Payment failed');
+        setProcessing(false);
+      });
+      rzp.open();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.message || 'Payment failed');
+      setProcessing(false);
+    }
+  };
+
+  const handleWalletPayment = async () => {
+    setProcessing(true);
+    try {
+      const res = await api.post('/payments/wallet/apply', { booking_id: inquiryId });
+      toast.success(res.data.message);
+      if (res.data.fully_paid || res.data.advance_covered) {
+        navigate(`/payment/success?gateway=wallet&booking_id=${inquiryId}&amount=${res.data.applied}`);
+      } else {
+        toast.info(`₹${res.data.remaining_due.toLocaleString()} remaining — pay via a gateway below`);
+        const fallback = gateways.find(g => g.enabled && g.id !== 'wallet');
+        if (fallback) setSelectedGateway(fallback.id);
+        loadPaymentInfo();
+        api.get('/payments/gateways').then(r => setGateways(r.data.gateways || []));
+        setProcessing(false);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Wallet payment failed');
+      setProcessing(false);
+    }
+  };
+
   const handlePayment = async () => {
+    if (selectedGateway === 'razorpay') return handleRazorpayPayment();
+    if (selectedGateway === 'wallet') return handleWalletPayment();
     setProcessing(true);
     try {
       const res = await api.post('/payments/stripe/checkout', {
@@ -327,6 +423,80 @@ function PaymentPage({ user }) {
           <div className="space-y-3">
             {paymentMethods.map((method) => {
               const Icon = methodIcons[method.id] || CreditCard;
+              
+              return (
+                <button
+                  key={method.id}
+                  onClick={() => setSelectedMethod(method.id)}
+                  className={`w-full p-4 rounded-xl border flex items-center justify-between transition-all ${
+                    selectedMethod === method.id
+                      ? 'bg-orange-500/20 border-orange-500/50'
+                      : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Icon className={`h-6 w-6 ${selectedMethod === method.id ? 'text-orange-400' : 'text-slate-400'}`} />
+                    <div className="text-left">
+                      <p className="text-white font-medium">{method.name}</p>
+                      <p className="text-sm text-slate-400">{method.description}</p>
+                    </div>
+                  </div>
+                  {selectedMethod === method.id && (
+                    <Check className="h-5 w-5 text-orange-400" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pay Button */}
+        <Button
+          onClick={handlePayment}
+          disabled={processing}
+          className="w-full py-6 text-lg bg-green-600 hover:bg-green-700"
+          data-testid="pay-now-btn"
+        >
+          {processing ? (
+            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Processing...</>
+          ) : selectedGateway === 'wallet' ? (
+            <>
+              <Wallet className="h-5 w-5 mr-2" />
+              Pay from Wallet / Reward Points
+            </>
+          ) : (
+            <>
+              <CreditCard className="h-5 w-5 mr-2" />
+              Pay ₹{payableAmount?.toLocaleString()} via {gateways.find(g => g.id === selectedGateway)?.name || 'Gateway'}
+            </>
+          )}
+        </Button>
+
+        {/* Security Note */}
+        <div className="mt-6 text-center">
+          <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
+            <Shield className="h-4 w-4" />
+            {selectedGateway === 'razorpay' ? 'Secured by Razorpay' : selectedGateway === 'stripe' ? 'Secured by Stripe (Test Mode)' : 'Secure payment'} • 256-bit SSL encryption
+          </p>
+        </div>
+
+        {/* Back Button */}
+        <div className="mt-6 text-center">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(`/customer/inquiry/${inquiryId}`)}
+            className="border-slate-600 text-slate-300"
+          >
+            ← Back to Inquiry Status
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default PaymentPage;
+ard;
               
               return (
                 <button
