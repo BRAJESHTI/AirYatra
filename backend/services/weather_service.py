@@ -296,6 +296,108 @@ class WeatherService:
             "route_safe": overall_status == "GO",
             "generated_at": datetime.now(timezone.utc).isoformat()
         }
+    
+    def get_flight_advisory(self, weather_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate flight safety advisory from weather data
+        
+        Returns:
+            Advisory with safety level, messages, and recommendations
+        """
+        if not weather_data or not weather_data.get("success"):
+            return {
+                "level": "unknown",
+                "can_fly": True,
+                "icon": "❓",
+                "message": "Weather data unavailable",
+                "advisory": ["ℹ️ Check with operator for current conditions"]
+            }
+        
+        current = weather_data.get("current", {})
+        condition = current.get("description", "clear").lower()
+        wind_speed = current.get("wind_speed", 0) * 3.6  # m/s to km/h
+        visibility = current.get("visibility", 10000) / 1000  # m to km
+        
+        # Determine safety level
+        level = "safe"
+        icon = "☀️"
+        messages = []
+        
+        # Check weather condition
+        danger_conditions = ["thunderstorm", "tornado", "hurricane", "hail", "heavy rain", "blizzard"]
+        warning_conditions = ["rain", "snow", "fog", "mist", "storm"]
+        caution_conditions = ["overcast", "cloudy", "drizzle"]
+        
+        for cond in danger_conditions:
+            if cond in condition:
+                level = "danger"
+                icon = "⛈️"
+                messages.append(f"🔴 Severe weather: {condition.title()}")
+                break
+        
+        if level == "safe":
+            for cond in warning_conditions:
+                if cond in condition:
+                    level = "warning"
+                    icon = "🌧️"
+                    messages.append(f"🟠 Weather alert: {condition.title()}")
+                    break
+        
+        if level == "safe":
+            for cond in caution_conditions:
+                if cond in condition:
+                    level = "caution"
+                    icon = "☁️"
+                    messages.append(f"⚠️ {condition.title()} conditions")
+                    break
+        
+        # Check wind
+        if wind_speed > 70:
+            level = "danger"
+            messages.append(f"🔴 Dangerous winds: {wind_speed:.0f} km/h")
+        elif wind_speed > 50:
+            if level in ["safe", "caution"]:
+                level = "warning"
+            messages.append(f"🟠 Strong winds: {wind_speed:.0f} km/h")
+        elif wind_speed > 30:
+            messages.append(f"💨 Moderate winds: {wind_speed:.0f} km/h")
+        
+        # Check visibility
+        if visibility < 1:
+            level = "danger"
+            messages.append("🔴 Very poor visibility (<1km)")
+        elif visibility < 3:
+            if level in ["safe", "caution"]:
+                level = "warning"
+            messages.append("🟠 Reduced visibility (<3km)")
+        
+        # Build advisory
+        advisory = []
+        if level == "safe":
+            advisory.append("✅ Weather conditions are favorable for your flight")
+            icon = "☀️"
+        elif level == "caution":
+            advisory.append("⚠️ Minor weather conditions - slight delays possible")
+            advisory.append("🛫 Flight expected to operate normally")
+            icon = "⛅"
+        elif level == "warning":
+            advisory.append("🟠 Weather may significantly impact your flight")
+            advisory.append("📞 Confirm with operator before departure")
+            icon = "🌧️"
+        else:  # danger
+            advisory.append("🔴 Severe weather conditions detected")
+            advisory.append("⛔ Flight may be rescheduled for safety")
+            advisory.append("📞 Contact AirYatra support: +91-22-12345678")
+            icon = "⛈️"
+        
+        return {
+            "level": level,
+            "can_fly": level in ["safe", "caution"],
+            "icon": icon,
+            "message": messages[0] if messages else "Weather conditions acceptable",
+            "details": messages,
+            "advisory": advisory
+        }
 
 
 # Singleton instance

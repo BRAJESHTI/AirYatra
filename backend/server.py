@@ -497,6 +497,14 @@ api_router.include_router(stripe_routes.router)
 from routes import email_ab_test_routes
 api_router.include_router(email_ab_test_routes.router)
 
+# Carbon Calculator
+from routes import carbon_routes
+api_router.include_router(carbon_routes.router)
+
+# Report Export
+from routes import report_export_routes
+api_router.include_router(report_export_routes.router)
+
 # Include API router in main app
 app.include_router(api_router)
 

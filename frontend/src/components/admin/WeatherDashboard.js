@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Cloud, Sun, CloudRain, Wind, AlertTriangle, CheckCircle,
   Loader2, RefreshCw, Thermometer, Eye, Droplets, Navigation,
-  CloudSnow, CloudLightning, CloudFog
+  CloudSnow, CloudLightning, CloudFog, MapPin, Plane
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,14 +10,39 @@ import { Label } from '@/components/ui/label';
 import api from '../../services/api';
 import { toast } from 'sonner';
 
+// Indian Cities for Quick Select
+const INDIAN_CITIES = [
+  { name: 'Mumbai', state: 'Maharashtra' },
+  { name: 'Delhi', state: 'Delhi NCR' },
+  { name: 'Bangalore', state: 'Karnataka' },
+  { name: 'Chennai', state: 'Tamil Nadu' },
+  { name: 'Kolkata', state: 'West Bengal' },
+  { name: 'Hyderabad', state: 'Telangana' },
+  { name: 'Pune', state: 'Maharashtra' },
+  { name: 'Ahmedabad', state: 'Gujarat' },
+  { name: 'Jaipur', state: 'Rajasthan' },
+  { name: 'Goa', state: 'Goa' },
+  { name: 'Srinagar', state: 'J&K' },
+  { name: 'Leh', state: 'Ladakh' },
+  { name: 'Shimla', state: 'Himachal' },
+  { name: 'Kedarnath', state: 'Uttarakhand' },
+  { name: 'Vaishno Devi', state: 'J&K' },
+  { name: 'Shirdi', state: 'Maharashtra' },
+];
+
 function WeatherDashboard() {
   const [loading, setLoading] = useState(false);
   const [weather, setWeather] = useState(null);
   const [routeWeather, setRouteWeather] = useState(null);
   const [activeAlerts, setActiveAlerts] = useState([]);
-  const [activeTab, setActiveTab] = useState('current');
+  const [activeTab, setActiveTab] = useState('city');
   
-  // Form states
+  // City-based selection (NEW - Primary method)
+  const [selectedCity, setSelectedCity] = useState('Mumbai');
+  const [originCity, setOriginCity] = useState('Delhi');
+  const [destCity, setDestCity] = useState('Mumbai');
+  
+  // Form states (Legacy - lat/lon)
   const [currentLat, setCurrentLat] = useState('28.6139');
   const [currentLon, setCurrentLon] = useState('77.2090');
   
@@ -28,7 +53,105 @@ function WeatherDashboard() {
 
   useEffect(() => {
     loadActiveAlerts();
+    // Auto-load weather for default city
+    loadCityWeather();
   }, []);
+
+  // NEW: City-based weather loading (Primary method)
+  const loadCityWeather = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get(`/weather/city/${selectedCity}`);
+      if (response.data.success) {
+        // Transform to match the expected format
+        setWeather({
+          location: {
+            lat: response.data.coordinates.lat,
+            lon: response.data.coordinates.lon,
+            name: response.data.city
+          },
+          current: {
+            condition: response.data.current.condition,
+            description: response.data.current.description,
+            temperature: response.data.current.temperature,
+            feels_like: response.data.current.feels_like,
+            humidity: response.data.current.humidity,
+            visibility_km: response.data.current.visibility_km,
+            wind_speed_kmh: response.data.current.wind_speed_kmh,
+            clouds_percent: 0
+          },
+          flight_safety: {
+            status: response.data.flight_safety.status,
+            safety_score: response.data.flight_safety.score,
+            status_message: response.data.flight_safety.status === 'safe' ? 'Good flying conditions' : 'Review conditions',
+            alerts: response.data.flight_safety.alerts || []
+          },
+          is_mock: response.data.is_mock
+        });
+        toast.success(`Weather loaded for ${response.data.city}`);
+      } else {
+        toast.error(response.data.error || 'City not found');
+      }
+    } catch (error) {
+      toast.error('Failed to load weather data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Route weather by city names
+  const loadRouteWeatherByCity = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/weather/route-cities', {
+        params: { origin: originCity, destination: destCity }
+      });
+      if (response.data.success) {
+        setRouteWeather({
+          origin: {
+            name: response.data.origin.city,
+            weather: {
+              condition: response.data.origin.condition,
+              temperature: response.data.origin.temperature,
+              wind_speed_kmh: 0,
+              visibility_km: 10
+            },
+            safety: {
+              status: response.data.origin.safety.toLowerCase(),
+              safety_score: response.data.origin.score
+            }
+          },
+          destination: {
+            name: response.data.destination.city,
+            weather: {
+              condition: response.data.destination.condition,
+              temperature: response.data.destination.temperature,
+              wind_speed_kmh: 0,
+              visibility_km: 10
+            },
+            safety: {
+              status: response.data.destination.safety.toLowerCase(),
+              safety_score: response.data.destination.score
+            }
+          },
+          route_assessment: {
+            overall_status: response.data.route_safety.status.toLowerCase(),
+            combined_safety_score: Math.min(response.data.origin.score, response.data.destination.score),
+            recommendation: response.data.route_safety.advisory,
+            alerts: [],
+            alerts_count: 0
+          }
+        });
+        toast.success(`Route weather: ${originCity} → ${destCity}`);
+      } else {
+        toast.error(response.data.error || 'Route not found');
+      }
+    } catch (error) {
+      toast.error('Failed to load route weather');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadCurrentWeather = async () => {
     setLoading(true);
@@ -131,10 +254,12 @@ function WeatherDashboard() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700 pb-2">
+      <div className="flex gap-2 border-b border-slate-700 pb-2 flex-wrap">
         {[
-          { id: 'current', label: 'Current Weather', icon: Cloud },
-          { id: 'route', label: 'Route Check', icon: Navigation },
+          { id: 'city', label: 'City Weather / शहर', icon: MapPin },
+          { id: 'route_city', label: 'Route by City / रूट', icon: Plane },
+          { id: 'current', label: 'By Coordinates', icon: Cloud },
+          { id: 'route', label: 'Route (Lat/Lon)', icon: Navigation },
           { id: 'alerts', label: 'Booking Alerts', icon: AlertTriangle, badge: activeAlerts.length },
         ].map(tab => (
           <button
@@ -152,6 +277,258 @@ function WeatherDashboard() {
           </button>
         ))}
       </div>
+
+      {/* City Weather Tab (NEW - Primary) */}
+      {activeTab === 'city' && (
+        <div className="space-y-6">
+          {/* City Selector */}
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-slate-300">Select City / शहर चुनें</Label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-md bg-slate-900 border border-slate-600 text-white"
+                >
+                  {INDIAN_CITIES.map(city => (
+                    <option key={city.name} value={city.name}>
+                      {city.name} ({city.state})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={loadCityWeather} disabled={loading} className="bg-blue-500 hover:bg-blue-600 w-full">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Check Weather / मौसम देखें
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick City Buttons */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {['Mumbai', 'Delhi', 'Shirdi', 'Kedarnath', 'Vaishno Devi', 'Srinagar'].map(city => (
+                <button
+                  key={city}
+                  onClick={() => { setSelectedCity(city); }}
+                  className={`px-3 py-1 rounded-full text-sm transition ${
+                    selectedCity === city 
+                      ? 'bg-orange-500 text-white' 
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Weather Display (same as before) */}
+          {weather && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Current Conditions */}
+              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">{weather.location?.name || 'Location'}</h3>
+                    <p className="text-slate-400 text-sm">Current Conditions</p>
+                  </div>
+                  {getWeatherIcon(weather.current?.condition)}
+                </div>
+                
+                <div className="mt-6">
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-bold text-white">{Math.round(weather.current?.temperature || 0)}°</span>
+                    <span className="text-slate-400 mb-2">C</span>
+                  </div>
+                  <p className="text-slate-300 capitalize mt-1">{weather.current?.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  <div className="flex items-center gap-2">
+                    <Wind className="h-4 w-4 text-blue-400" />
+                    <span className="text-slate-300 text-sm">{weather.current?.wind_speed_kmh} km/h</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-green-400" />
+                    <span className="text-slate-300 text-sm">{weather.current?.visibility_km?.toFixed(1)} km</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Droplets className="h-4 w-4 text-cyan-400" />
+                    <span className="text-slate-300 text-sm">{weather.current?.humidity}%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Thermometer className="h-4 w-4 text-red-400" />
+                    <span className="text-slate-300 text-sm">Feels {weather.current?.feels_like}°C</span>
+                  </div>
+                </div>
+                
+                {weather.is_mock && (
+                  <p className="text-yellow-400 text-xs mt-4">⚠️ Sample data - configure API key for live weather</p>
+                )}
+              </div>
+
+              {/* Flight Safety */}
+              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                <h3 className="text-white font-semibold text-lg mb-4">Flight Safety / उड़ान सुरक्षा</h3>
+                
+                <div className="flex items-center gap-4 mb-6">
+                  <div className={`w-16 h-16 rounded-full ${getSafetyColor(weather.flight_safety?.status)} flex items-center justify-center`}>
+                    <span className="text-2xl font-bold text-white">{weather.flight_safety?.safety_score}</span>
+                  </div>
+                  <div>
+                    <p className={`text-xl font-semibold capitalize ${getSafetyTextColor(weather.flight_safety?.status)}`}>
+                      {weather.flight_safety?.status === 'safe' ? '✅ GO' : 
+                       weather.flight_safety?.status === 'caution' ? '⚠️ CAUTION' : '🔴 NO-GO'}
+                    </p>
+                    <p className="text-slate-400 text-sm">{weather.flight_safety?.status_message}</p>
+                  </div>
+                </div>
+                
+                {/* Alerts */}
+                {weather.flight_safety?.alerts?.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-slate-400 text-sm font-medium">Alerts:</p>
+                    {weather.flight_safety.alerts.map((alert, idx) => (
+                      <div key={idx} className={`p-3 rounded-lg ${
+                        alert.severity === 'critical' ? 'bg-red-500/20 border border-red-500/30' :
+                        alert.severity === 'high' ? 'bg-orange-500/20 border border-orange-500/30' :
+                        alert.severity === 'medium' ? 'bg-yellow-500/20 border border-yellow-500/30' :
+                        'bg-slate-700/50'
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className={`h-4 w-4 mt-0.5 ${
+                            alert.severity === 'critical' ? 'text-red-400' :
+                            alert.severity === 'high' ? 'text-orange-400' :
+                            'text-yellow-400'
+                          }`} />
+                          <p className="text-slate-200 text-sm">{alert.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-green-400">
+                    <CheckCircle className="h-5 w-5" />
+                    <span>No weather alerts - Safe to fly!</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Route by City Tab (NEW) */}
+      {activeTab === 'route_city' && (
+        <div className="space-y-6">
+          {/* Route Selector */}
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-slate-300">Origin City / उड़ान का स्थान</Label>
+                <select
+                  value={originCity}
+                  onChange={(e) => setOriginCity(e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-md bg-slate-900 border border-slate-600 text-white"
+                >
+                  {INDIAN_CITIES.map(city => (
+                    <option key={city.name} value={city.name}>
+                      {city.name} ({city.state})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-slate-300">Destination / गंतव्य</Label>
+                <select
+                  value={destCity}
+                  onChange={(e) => setDestCity(e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-md bg-slate-900 border border-slate-600 text-white"
+                >
+                  {INDIAN_CITIES.map(city => (
+                    <option key={city.name} value={city.name}>
+                      {city.name} ({city.state})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={loadRouteWeatherByCity} disabled={loading} className="bg-blue-500 hover:bg-blue-600 w-full">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plane className="h-4 w-4 mr-2" />}
+                  Check Route / रूट देखें
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Route Weather Display */}
+          {routeWeather && (
+            <div className="space-y-4">
+              {/* Overall Assessment */}
+              <div className={`rounded-xl p-6 border ${
+                routeWeather.route_assessment?.overall_status === 'go' ? 'bg-green-500/10 border-green-500/30' :
+                routeWeather.route_assessment?.overall_status === 'caution' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                routeWeather.route_assessment?.overall_status === 'warning' ? 'bg-orange-500/10 border-orange-500/30' :
+                'bg-red-500/10 border-red-500/30'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xl font-semibold capitalize ${getSafetyTextColor(routeWeather.route_assessment?.overall_status)}`}>
+                      Route Status: {routeWeather.route_assessment?.overall_status === 'go' ? '✅ GO' : 
+                                     routeWeather.route_assessment?.overall_status === 'caution' ? '⚠️ CAUTION' : '🔴 NO-GO'}
+                    </p>
+                    <p className="text-slate-300 mt-1">{routeWeather.route_assessment?.recommendation}</p>
+                  </div>
+                  <div className={`w-16 h-16 rounded-full ${getSafetyColor(routeWeather.route_assessment?.overall_status)} flex items-center justify-center`}>
+                    <span className="text-2xl font-bold text-white">{routeWeather.route_assessment?.combined_safety_score}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Origin & Destination */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Origin */}
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                  <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-green-400" />
+                    {routeWeather.origin?.name}
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    {getWeatherIcon(routeWeather.origin?.weather?.condition)}
+                    <div>
+                      <p className="text-3xl font-bold text-white">{Math.round(routeWeather.origin?.weather?.temperature || 0)}°C</p>
+                      <p className="text-slate-400 capitalize">{routeWeather.origin?.weather?.condition}</p>
+                    </div>
+                  </div>
+                  <div className={`mt-3 px-3 py-1 rounded inline-block ${getSafetyColor(routeWeather.origin?.safety?.status)}`}>
+                    <span className="text-white text-sm font-medium capitalize">{routeWeather.origin?.safety?.status} - Score: {routeWeather.origin?.safety?.safety_score}</span>
+                  </div>
+                </div>
+
+                {/* Destination */}
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                  <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-red-400" />
+                    {routeWeather.destination?.name}
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    {getWeatherIcon(routeWeather.destination?.weather?.condition)}
+                    <div>
+                      <p className="text-3xl font-bold text-white">{Math.round(routeWeather.destination?.weather?.temperature || 0)}°C</p>
+                      <p className="text-slate-400 capitalize">{routeWeather.destination?.weather?.condition}</p>
+                    </div>
+                  </div>
+                  <div className={`mt-3 px-3 py-1 rounded inline-block ${getSafetyColor(routeWeather.destination?.safety?.status)}`}>
+                    <span className="text-white text-sm font-medium capitalize">{routeWeather.destination?.safety?.status} - Score: {routeWeather.destination?.safety?.safety_score}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Current Weather Tab */}
       {activeTab === 'current' && (

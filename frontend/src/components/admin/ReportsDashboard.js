@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, MapPin, Building2, Users, Plane, TrendingUp, AlertTriangle, 
   Clock, IndianRupee, Calendar, Filter, Download, RefreshCw,
-  Flag, CheckCircle, XCircle, Star
+  Flag, CheckCircle, XCircle, Star, FileSpreadsheet, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { reportsAPI } from '@/services/api';
 import { toast } from 'sonner';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 function ReportsDashboard() {
   const [activeTab, setActiveTab] = useState('summary');
@@ -31,6 +33,49 @@ function ReportsDashboard() {
   const [settlementByState, setSettlementByState] = useState([]);
   const [settlementByPeriod, setSettlementByPeriod] = useState([]);
   const [periodType, setPeriodType] = useState('monthly');
+  const [exporting, setExporting] = useState(null);
+
+  // Excel Export Functions
+  const exportToExcel = async (reportType) => {
+    setExporting(reportType);
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      if (dateFilter.from_date) params.append('start_date', dateFilter.from_date);
+      if (dateFilter.to_date) params.append('end_date', dateFilter.to_date);
+      
+      const endpoint = reportType === 'bookings' 
+        ? `/api/reports/export/bookings?${params}` 
+        : reportType === 'finance' 
+        ? `/api/reports/export/finance?${params}`
+        : reportType === 'refunds'
+        ? `/api/reports/export/refunds?${params}`
+        : `/api/reports/export/customers?${params}`;
+      
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AirYatra_${reportType}_${new Date().toISOString().slice(0,10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      toast.success(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report downloaded!`);
+    } catch (error) {
+      toast.error('Failed to export report');
+      console.error(error);
+    } finally {
+      setExporting(null);
+    }
+  };
 
   useEffect(() => {
     loadReportData();
@@ -139,6 +184,54 @@ function ReportsDashboard() {
         </Button>
       </div>
 
+      {/* Excel Export Buttons */}
+      <div className="p-4 rounded-lg bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-green-400" />
+            <span className="text-white font-medium">Excel Export / एक्सेल डाउनलोड</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              onClick={() => exportToExcel('bookings')}
+              disabled={exporting === 'bookings'}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+            >
+              {exporting === 'bookings' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+              Bookings
+            </Button>
+            <Button 
+              onClick={() => exportToExcel('finance')}
+              disabled={exporting === 'finance'}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              {exporting === 'finance' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+              Finance
+            </Button>
+            <Button 
+              onClick={() => exportToExcel('refunds')}
+              disabled={exporting === 'refunds'}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              size="sm"
+            >
+              {exporting === 'refunds' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+              Refunds
+            </Button>
+            <Button 
+              onClick={() => exportToExcel('customers')}
+              disabled={exporting === 'customers'}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              size="sm"
+            >
+              {exporting === 'customers' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+              Customers
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Date Filters */}
       <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
         <div className="flex items-center gap-4 flex-wrap">
@@ -230,7 +323,7 @@ function ReportsDashboard() {
                   <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 rounded-full bg-red-500" />
-                      <span className="text-red-400 font-semibold">Red Flag (>12 hrs)</span>
+                      <span className="text-red-400 font-semibold">Red Flag (&gt;12 hrs)</span>
                     </div>
                     <div className="text-3xl font-bold text-red-400 mt-2">{summary.pilots.red_flag}</div>
                     <div className="text-red-400/60 text-sm">Rest Required</div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale, Flag } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale, Flag, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ import { CustomerAuctions } from '../components/auction/AuctionDashboard';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
 import { AircraftComparison } from '../components/aircraft/AircraftComparison';
 import RefundHistory from '../components/customer/RefundHistory';
+import CarbonCalculator from '../components/customer/CarbonCalculator';
 
 // Organized Navigation Structure - 4 Main Categories
 const navGroups = [
@@ -41,6 +42,7 @@ const navGroups = [
       { id: 'stats', label: 'My Stats / मेरे आंकड़े', icon: PieChart, path: '/customer/stats', highlight: true },
       { id: 'price-trends', label: 'Price Trends / कीमत रुझान', icon: TrendingUp, path: '/customer/price-trends', highlight: true },
       { id: 'route-suggestions', label: 'Route Ideas / मार्ग सुझाव', icon: Sparkles, path: '/customer/route-suggestions', highlight: true },
+      { id: 'carbon', label: 'Carbon Calculator / कार्बन', icon: Leaf, path: '/customer/carbon', highlight: true },
       { id: 'booking', label: 'New Booking / नई बुकिंग', icon: Calendar, path: '/booking', external: true, highlight: true },
       { id: 'auctions', label: 'Live Auctions / लाइव नीलामी', icon: Gavel, path: '/customer/auctions', highlight: true },
       { id: 'mylistings', label: 'My Aircraft / मेरे विमान', icon: Plane, path: '/customer/listings' },
@@ -198,6 +200,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <FlightPriceHistory user={user} />;
       case 'route-suggestions':
         return <RouteSuggestions user={user} />;
+      case 'carbon':
+        return <CarbonCalculator />;
       case 'complaints':
         return <MyComplaints user={user} />;
       case 'auctions':

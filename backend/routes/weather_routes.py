@@ -454,3 +454,143 @@ async def test_weather_api(
         "sample_data": weather,
         "test_location": "Delhi, India"
     }
+
+
+
+# City coordinates for common Indian cities
+CITY_COORDS = {
+    "mumbai": (19.0760, 72.8777),
+    "delhi": (28.6139, 77.2090),
+    "bangalore": (12.9716, 77.5946),
+    "chennai": (13.0827, 80.2707),
+    "kolkata": (22.5726, 88.3639),
+    "hyderabad": (17.3850, 78.4867),
+    "pune": (18.5204, 73.8567),
+    "ahmedabad": (23.0225, 72.5714),
+    "jaipur": (26.9124, 75.7873),
+    "goa": (15.2993, 74.1240),
+    "srinagar": (34.0837, 74.7973),
+    "leh": (34.1526, 77.5771),
+    "shimla": (31.1048, 77.1734),
+    "kedarnath": (30.7352, 79.0669),
+    "vaishno devi": (33.0308, 74.9490),
+    "shirdi": (19.7645, 74.4769),
+}
+
+
+@router.get("/city/{city_name}")
+async def get_weather_by_city(city_name: str):
+    """
+    Get weather for a city by name.
+    
+    Supported cities: Mumbai, Delhi, Bangalore, Chennai, Kolkata, 
+    Hyderabad, Pune, Ahmedabad, Jaipur, Goa, Srinagar, Leh, Shimla, etc.
+    """
+    city_key = city_name.lower().strip()
+    
+    if city_key not in CITY_COORDS:
+        # Try partial match
+        for key in CITY_COORDS:
+            if city_key in key or key in city_key:
+                city_key = key
+                break
+        else:
+            return {
+                "success": False,
+                "error": f"City '{city_name}' not found. Supported: {', '.join(CITY_COORDS.keys())}"
+            }
+    
+    lat, lon = CITY_COORDS[city_key]
+    weather = await fetch_weather(lat, lon)
+    safety = assess_flight_safety(weather)
+    
+    return {
+        "success": True,
+        "city": city_name.title(),
+        "coordinates": {"lat": lat, "lon": lon},
+        "current": {
+            "condition": weather.get("weather", [{}])[0].get("main", "Unknown"),
+            "description": weather.get("weather", [{}])[0].get("description", ""),
+            "temperature": weather.get("main", {}).get("temp"),
+            "feels_like": weather.get("main", {}).get("feels_like"),
+            "humidity": weather.get("main", {}).get("humidity"),
+            "visibility_km": weather.get("visibility", 10000) / 1000,
+            "wind_speed_kmh": round(weather.get("wind", {}).get("speed", 0) * 3.6, 1),
+        },
+        "flight_safety": {
+            "status": safety["status"],
+            "can_fly": safety["status"] == "GO",
+            "score": safety["safety_score"],
+            "alerts": safety.get("alerts", [])
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "is_mock": weather.get("_mock", False)
+    }
+
+
+@router.get("/route-cities")
+async def get_route_weather_by_cities(
+    origin: str = Query(..., description="Origin city name"),
+    destination: str = Query(..., description="Destination city name")
+):
+    """Get weather for a route between two cities"""
+    
+    origin_key = origin.lower().strip()
+    dest_key = destination.lower().strip()
+    
+    # Find city coords
+    origin_coords = CITY_COORDS.get(origin_key)
+    dest_coords = CITY_COORDS.get(dest_key)
+    
+    if not origin_coords:
+        for key in CITY_COORDS:
+            if origin_key in key or key in origin_key:
+                origin_coords = CITY_COORDS[key]
+                break
+    
+    if not dest_coords:
+        for key in CITY_COORDS:
+            if dest_key in key or key in dest_key:
+                dest_coords = CITY_COORDS[key]
+                break
+    
+    if not origin_coords or not dest_coords:
+        return {
+            "success": False,
+            "error": "One or both cities not found"
+        }
+    
+    # Fetch weather for both
+    origin_weather = await fetch_weather(*origin_coords)
+    dest_weather = await fetch_weather(*dest_coords)
+    
+    origin_safety = assess_flight_safety(origin_weather)
+    dest_safety = assess_flight_safety(dest_weather)
+    
+    # Overall route safety
+    overall_status = "GO" if origin_safety["status"] == "GO" and dest_safety["status"] == "GO" else \
+                     "CAUTION" if "CAUTION" in [origin_safety["status"], dest_safety["status"]] else "NO-GO"
+    
+    return {
+        "success": True,
+        "route": f"{origin.title()} → {destination.title()}",
+        "origin": {
+            "city": origin.title(),
+            "condition": origin_weather.get("weather", [{}])[0].get("main"),
+            "temperature": origin_weather.get("main", {}).get("temp"),
+            "safety": origin_safety["status"],
+            "score": origin_safety["safety_score"]
+        },
+        "destination": {
+            "city": destination.title(),
+            "condition": dest_weather.get("weather", [{}])[0].get("main"),
+            "temperature": dest_weather.get("main", {}).get("temp"),
+            "safety": dest_safety["status"],
+            "score": dest_safety["safety_score"]
+        },
+        "route_safety": {
+            "status": overall_status,
+            "can_fly": overall_status in ["GO", "CAUTION"],
+            "advisory": f"{'✅ Clear for flight' if overall_status == 'GO' else '⚠️ Proceed with caution' if overall_status == 'CAUTION' else '🔴 Flight not recommended'}"
+        }
+    }
