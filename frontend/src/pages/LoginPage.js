@@ -70,7 +70,7 @@ function LoginPage({ setUser }) {
   // Phone OTP Login Functions
   const sendPhoneOTP = async () => {
     if (!formData.phone || formData.phone.length < 10) {
-      toast.error('Please enter a valid phone number / कृपया सही फोन नंबर दर्ज करें');
+      toast.error('Please enter a valid phone number');
       return;
     }
     
@@ -86,7 +86,7 @@ function LoginPage({ setUser }) {
       
       if (response.ok && data.success) {
         setPhoneOtpSent(true);
-        toast.success(data.message_hi || 'OTP भेजा गया!');
+        toast.success(data.message || 'OTP sent successfully!');
         
         // Show mock OTP in dev mode
         if (data.mock_otp) {
@@ -104,7 +104,7 @@ function LoginPage({ setUser }) {
 
   const verifyPhoneOTP = async () => {
     if (!phoneOtpCode || phoneOtpCode.length !== 6) {
-      toast.error('Please enter 6-digit OTP / कृपया 6 अंकों का OTP दर्ज करें');
+      toast.error('Please enter 6-digit OTP');
       return;
     }
     
@@ -206,14 +206,14 @@ function LoginPage({ setUser }) {
       };
       
       if (status === 429) {
-        toast.error('⚠️ Too many login attempts. Please wait a minute and try again. / बहुत सारे लॉगिन प्रयास। कृपया एक मिनट प्रतीक्षा करें।');
+        toast.error('⚠️ Too many login attempts. Please wait a minute and try again.');
       } else if (status === 401) {
-        toast.error('❌ Incorrect email or password. / गलत ईमेल या पासवर्ड।');
+        toast.error('❌ Incorrect email or password.');
       } else if (status === 423) {
         // Account locked
         const lockMessage = detail?.lockout_until 
-          ? `🔒 Account locked until ${new Date(detail.lockout_until).toLocaleTimeString()}. / खाता लॉक है।`
-          : '🔒 Account temporarily locked. Please try again later. / खाता अस्थायी रूप से लॉक है।';
+          ? `🔒 Account locked until ${new Date(detail.lockout_until).toLocaleTimeString()}.`
+          : '🔒 Account temporarily locked. Please try again later.';
         toast.error(lockMessage);
       } else {
         toast.error(getMessage(detail));
@@ -578,14 +578,14 @@ function LoginPage({ setUser }) {
                   <Phone className="h-12 w-12 mx-auto text-orange-500 mb-2" />
                   <p className="text-slate-400 text-sm">
                     {phoneOtpSent 
-                      ? 'OTP भेजा गया! अपना 6 अंकों का कोड दर्ज करें' 
-                      : 'फ़ोन नंबर से लॉग इन करें'}
+                      ? 'OTP sent! Enter your 6-digit code' 
+                      : 'Login with your phone number'}
                   </p>
                 </div>
                 
                 {!phoneOtpSent ? (
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-white">Phone Number / फ़ोन नंबर</Label>
+                    <Label htmlFor="phone" className="text-white">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
                       <Input
@@ -602,7 +602,7 @@ function LoginPage({ setUser }) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor="phoneOtp" className="text-white">Enter OTP / OTP दर्ज करें</Label>
+                    <Label htmlFor="phoneOtp" className="text-white">Enter OTP</Label>
                     <Input
                       id="phoneOtp"
                       type="text"
@@ -637,7 +637,7 @@ function LoginPage({ setUser }) {
                   ) : (
                     <>
                       <Phone className="h-5 w-5 mr-2" />
-                      Send OTP / OTP भेजें
+                      Send OTP
                     </>
                   )}
                 </Button>
@@ -788,7 +788,7 @@ function LoginPage({ setUser }) {
               <div className="w-full border-t border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-slate-900 text-slate-400">या / or</span>
+              <span className="px-2 bg-slate-900 text-slate-400">or</span>
             </div>
           </div>
 
@@ -796,7 +796,7 @@ function LoginPage({ setUser }) {
           <GoogleLoginButton 
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
-            buttonText={isLogin ? "Google से Login करें" : "Google से Sign up करें"}
+            buttonText={isLogin ? "Sign in with Google" : "Sign up with Google"}
           />
 
           <div className="text-center">

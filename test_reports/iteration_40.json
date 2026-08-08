@@ -1,0 +1,29 @@
+{
+  "summary": "Re-verified the CRITICAL auth bypass fix from iteration_39 and the English-only Login page cleanup. All 4 requested items PASS. (1) POST /api/auth/google/emergent-callback with fake session_token now returns 401 (was 200 with attacker JWT) — auth bypass FIXED. (2) /login page is fully English: 0 Devanagari tokens, divider says 'or', Google button says 'Sign in with Google'. (3) 'Forgot Password?' link visible and navigates to /forgot-password. (4) Forgot Password Email flow works end-to-end: OTP sent successfully to customer@airyatra.co.in, Verify OTP screen renders with 6-digit input, resend timer, and Change Email option. Backend pytest suite: 9/10 pass (the 1 failure is a cooldown side-effect from the browser test, not a defect). The critical test 'TestGoogleEmergentCallback::test_invalid_session_rejected' now PASSES.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_forgot_password.py",
+    "/app/test_reports/pytest/forgot_password.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth_routes.py lines 1826-1838: The 404 branch now correctly raises 401 with the SEC-001 comment explaining that we cannot trust client-provided data. Good defense-in-depth. Consider adding a rate limit on /api/auth/google/emergent-callback (invalid session_tokens) to slow brute-force enumeration.",
+    "GoogleLogin.js still contains ~20 Devanagari strings on the callback/redirect intermediate pages (lines 130-551). These pages appear briefly during OAuth redirect and after successful sign-in. Not blocking (login page itself is clean), but for full English-only UX these should be moved behind the language toggle as well."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% for requested scope (auth-bypass fix + 9/10 forgot-password suite; the 1 failure is a test-side cooldown, not a product bug)", "frontend": "100%"},
+  "seed_data_creation": "None. No user records created.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123",
+  "context_for_next_testing_agent": "Auth bypass is fully closed. If GoogleLogin.js Hindi strings on the OAuth callback page are cleaned up next, verify by navigating to /auth/google/callback with a stub session and asserting 0 Devanagari on that route. The test_forgot_password.py cooldown test should be updated to either use a fresh email per run or clear the cooldown collection in a fixture.",
+  "rca_of_the_issue": "Previous iteration_39 SEC bug: on Emergent /oauth/session-data returning 404, backend accepted request.emergent_user.email and minted JWT for arbitrary email. Fix: 404 (and any non-200) now raises HTTP 401 unconditionally; JWT is only issued using verified_user from Emergent's 200 response. Confirmed via live curl: {\"session_token\":\"invalid-xyz\",\"emergent_user\":{\"email\":\"attacker@test.com\"}} -> HTTP 401 {\"detail\":\"Session expired or invalid. Please try logging in again.\"}"
+}

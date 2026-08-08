@@ -1811,6 +1811,7 @@ async def emergent_google_callback(
         
         # SECURITY: Server-side verification with Emergent API
         # We MUST verify the session_token to get trusted user data
+        # NEVER trust client-provided data - always require server verification
         verified_user = None
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
@@ -1823,30 +1824,18 @@ async def emergent_google_callback(
                     verified_user = verify_response.json()
                     logger.info(f"Google OAuth: Server-verified email: {verified_user.get('email')}")
                 elif verify_response.status_code == 404:
-                    # Session not found or expired - may have been consumed by frontend
-                    # This is NORMAL behavior: frontend calls Emergent first, consumes session,
-                    # then sends data to backend. We trust client-provided data in this case.
-                    logger.info(f"Google OAuth: Session {session_token[:8]}... already consumed (normal flow)")
-                    client_user = request.emergent_user
-                    
-                    # Accept client data if it has required email field
-                    # The 'id' field may be named 'id', 'sub', or 'user_id' depending on Emergent response
-                    if client_user and client_user.get("email"):
-                        # Use whatever ID field is available
-                        emergent_id_value = client_user.get("id") or client_user.get("sub") or client_user.get("user_id") or session_token[:16]
-                        verified_user = {
-                            "email": client_user.get("email"),
-                            "name": client_user.get("name") or client_user.get("full_name", ""),
-                            "picture": client_user.get("picture") or client_user.get("profile_picture", ""),
-                            "id": emergent_id_value
-                        }
-                        logger.info(f"Google OAuth: Using client data for email: {verified_user.get('email')}")
-                    else:
-                        logger.warning(f"Google OAuth: No valid email in client data")
-                        raise HTTPException(
-                            status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Session expired. Please try logging in again."
-                        )
+                    # SECURITY FIX (SEC-001): 404 means session not found/expired/invalid
+                    # This can happen when:
+                    # 1. Session was already consumed (legitimate, but we can't verify)
+                    # 2. Session never existed (attacker with fake token)
+                    # 3. Session expired
+                    # In ALL cases, we MUST reject - we cannot trust client-provided data
+                    # because an attacker could craft any session_token and provide any email
+                    logger.warning(f"Google OAuth: Session {session_token[:8]}... not found (404). Cannot verify - rejecting.")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Session expired or invalid. Please try logging in again."
+                    )
                 else:
                     logger.warning(f"Google OAuth: Verification failed with status {verify_response.status_code}")
                     raise HTTPException(
