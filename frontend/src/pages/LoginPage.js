@@ -195,7 +195,16 @@ function LoginPage({ setUser }) {
         toast.success('Registration successful!');
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Authentication failed');
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+      
+      if (status === 429) {
+        toast.error('⚠️ Too many login attempts. Please wait a minute and try again. / बहुत सारे लॉगिन प्रयास। कृपया एक मिनट प्रतीक्षा करें।');
+      } else if (status === 401) {
+        toast.error('❌ Incorrect email or password. / गलत ईमेल या पासवर्ड।');
+      } else {
+        toast.error(detail || 'Authentication failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

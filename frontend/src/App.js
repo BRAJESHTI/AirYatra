@@ -127,6 +127,7 @@ function App() {
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/contact" element={<LandingPage />} />
           
           {/* Dynamic Legal Pages - Fetches from Backend API */}
           <Route path="/legal/terms" element={<LegalPage />} />
@@ -215,6 +216,10 @@ function App() {
           />
           <Route
             path="/customer/smart-booking"
+            element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/customer/carbon"
             element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
         <Route
