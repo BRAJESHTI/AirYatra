@@ -5,6 +5,19 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 4)
 
+### ✅ CORPORATE PORTAL COMPLETE (iteration_45, 100% pass)
+- **My Account Resolution**: GET /api/corporate/my-account (auth) — resolves corporate by admin_email or corporate_employees email; returns employee_code + corp_role
+- **Employee Booking Management**: POST /api/corporate/booking/create (policy limit + budget checks, auto-approve if amount ≤ policy.auto_approve_below OR ≤ employee approval_limit OR !requires_approval), GET /api/corporate/bookings/{corporate_id}
+- **Approval Workflow**: pending bookings → booking_approvals; POST /approvals/action?approver_id=CORP-ADMIN|{employee_code} approves/rejects, syncs corporate_bookings status + spend counters ($inc employee budget_used, corporate credit_used/total_spend, dept budget)
+- **GST Invoice**: GET /api/corporate/invoice/{booking_id}/gst?corporate_id=X — reportlab TAX INVOICE PDF (SAC 996411, CGST/SGST or IGST split, GSTIN, amount in words); now supports corporate_bookings; blocked for pending/rejected
+- **Frontend**: CorporateDashboard.js rebuilt — 6 tabs (Overview, Bookings, Employees, Approvals, Budgets, Analytics), New Booking form, GST PDF download buttons, employee activate/deactivate, sonner toasts, approval badge counts
+- **Demo Data**: seed script scripts/seed_corporate_demo.py → CORP-DEMO26 "TechVista Solutions Pvt Ltd", corporate@airyatra.co.in / Corporate@123, 4 employees, 3 dept budgets, demo bookings
+- **Cleanup**: removed dead duplicate approval endpoints (used wrong corporate_approvals collection)
+- ⚠️ KNOWN (minor, flagged by testing agent): corporate endpoints except /my-account are UNAUTHENTICATED (pre-existing design) — recommend auth+ownership guards before heavy production use
+
+### ✅ PAYMENT PAGES ENGLISH-ONLY (iteration_45)
+- PaymentPage.js + PaymentSuccessPage.js: ALL Hindi/Hinglish strings removed (0 Devanagari chars verified)
+
 ### ✅ BUG FIXES (Session 4):
 0. **Booking Type Redesign + Payment Gateway Verified** (iteration_44, 100% pass)
    - Booking Type step: ALL Hindi words removed (header, cards, detail panel, helper text, summary label in BookingPage.js + CustomerPriceBreakup.js)

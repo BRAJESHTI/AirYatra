@@ -10,6 +10,7 @@
 | Pilot | pilot@airyatra.co.in | Pilot@123 | Captain Rajesh Kumar (CPL-2024-0001), /pilot-portal access |
 | Finance/CFO | finance@airyatra.co.in | Finance@123 | Finance Manager role, /finance access, Treasury ERP |
 | Customer | customer@airyatra.co.in | Customer@123 | Demo customer account (.co.in, NOT .com) |
+| **Corporate Admin** | corporate@airyatra.co.in | Corporate@123 | Rajesh Verma, CORP-DEMO26 "TechVista Solutions Pvt Ltd", /corporate dashboard |
 | HR | hr@airyatra.co.in | HR@123456 | Priya Sharma, HR Manager |
 | Sales | sales@airyatra.co.in | Sales@123456 | Rahul Kapoor, Sales Manager |
 | Employee | employee@airyatra.co.in | Employee@123 | EMP-0001, HRMS portal |
