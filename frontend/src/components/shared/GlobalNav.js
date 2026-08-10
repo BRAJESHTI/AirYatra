@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Home, ArrowLeft } from 'lucide-react';
+import { Home, ArrowLeft, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -82,6 +82,18 @@ function GlobalNav({ user, showBack = true }) {
         <Home className="h-4 w-4 mr-1" />
         {t('nav.home')}
       </Button>
+      {user && (
+        <Button
+          onClick={() => navigate('/profile')}
+          size="sm"
+          variant="outline"
+          className="bg-slate-800/80 backdrop-blur-sm border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white shadow-lg"
+          data-testid="global-profile-btn"
+        >
+          <UserCircle className="h-4 w-4 mr-1" />
+          Profile
+        </Button>
+      )}
       <LanguageSwitcher />
     </div>
   );

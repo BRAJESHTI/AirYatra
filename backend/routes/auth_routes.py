@@ -1127,6 +1127,87 @@ async def change_password(
     }
 
 
+class DeleteAccountRequest(BaseModel):
+    password: Optional[str] = None
+    confirm_text: Optional[str] = None
+
+
+@router.post("/delete-account")
+async def delete_account(
+    body: DeleteAccountRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    """Permanently deactivate the user's own account (soft delete) and revoke all sessions."""
+    db = get_database()
+    user = await db.users.find_one({"id": current_user["id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Require password whenever one exists (covers hybrid Google+password accounts)
+    if user.get("password_hash"):
+        if not body.password or not verify_password(body.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Password is incorrect")
+    else:
+        if (body.confirm_text or "").strip().upper() != "DELETE":
+            raise HTTPException(status_code=400, detail="Type DELETE to confirm account deletion")
+
+    now = datetime.now(timezone.utc)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "is_active": False,
+            "account_deleted": True,
+            "deleted_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }}
+    )
+
+    # Revoke ALL sessions including the current one
+    sessions = await db.user_sessions.find({
+        "user_id": user["id"],
+        "is_active": True
+    }).to_list(200)
+    revoked_count = 0
+    for session in sessions:
+        await db.user_sessions.update_one(
+            {"_id": session["_id"]},
+            {"$set": {"is_active": False, "revoked_at": now, "revoke_reason": "account_deleted"}}
+        )
+        if session.get("token_hash"):
+            await db.revoked_tokens.insert_one({
+                "token_hash": session["token_hash"],
+                "revoked_at": now,
+                "reason": "account_deleted",
+                "user_id": user["id"],
+                "expires_at": now + timedelta(days=30)
+            })
+        revoked_count += 1
+
+    try:
+        audit = AuditLogger(db)
+        await audit.log(
+            action="account_deleted",
+            category=AuditLogger.CATEGORY_AUTH,
+            user_id=user["id"],
+            user_email=user.get("email"),
+            user_roles=user.get("roles", []),
+            details={"sessions_revoked": revoked_count},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("User-Agent"),
+            status="success",
+            risk_level="high"
+        )
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "message": "Your account has been deleted. We're sorry to see you go.",
+        "sessions_revoked": revoked_count
+    }
+
+
 @router.post("/logout-all-devices")
 async def logout_all_devices(
     request: Request,
@@ -1787,7 +1868,7 @@ async def regenerate_recovery_codes(current_user: dict = Depends(get_current_use
 
 class EmergentAuthRequest(BaseModel):
     """Request from frontend after Emergent OAuth callback"""
-    emergent_user: dict  # User data from Emergent auth service
+    emergent_user: Optional[dict] = None  # Deprecated: backend verifies session_token itself
     device_info: Optional[dict] = None
     session_token: str  # Emergent session token
 

@@ -68,31 +68,15 @@ function EmergentAuthCallback({ onLogin }) {
       
       const sessionId = sessionIdMatch[1];
       console.log('Extracted session_id:', sessionId);
-      
-      // Exchange session_id for user data via Emergent API
-      console.log('Calling Emergent API for session data...');
-      const response = await fetch('https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data', {
-        method: 'GET',
-        headers: {
-          'X-Session-ID': sessionId
-        }
-      });
-      
-      console.log('Emergent API response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Emergent API error:', errorText);
-        throw new Error(`Failed to exchange session for user data: ${response.status}`);
-      }
-      
-      const emergentUserData = await response.json();
-      console.log('Emergent user data received:', emergentUserData?.email);
-      
-      // Now call our backend to create/login user
+
+      // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+      // SECURITY: session_id is single-use. The BACKEND exchanges it with the Emergent
+      // auth service (server-side verification). Frontend must NOT call the Emergent
+      // session-data API directly — doing so consumes the session and the backend's
+      // own verification then fails with 404.
       const deviceInfo = getDeviceInfo();
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      
+
       console.log('Calling backend:', `${backendUrl}/api/auth/google/emergent-callback`);
       const loginResponse = await fetch(`${backendUrl}/api/auth/google/emergent-callback`, {
         method: 'POST',
@@ -100,9 +84,8 @@ function EmergentAuthCallback({ onLogin }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          emergent_user: emergentUserData,
           device_info: deviceInfo,
-          session_token: sessionId  // Use the original sessionId for backend verification
+          session_token: sessionId
         })
       });
       

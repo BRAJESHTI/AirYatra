@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 53: Verified Google Auth fix + Profile Settings (edit/change-password/delete-account) across all roles. Backend: 11/11 tests in new test_iter53_profile_auth.py + 8/8 payment_gateways regression. Frontend: /profile guard, customer/operator/admin profile page, edit+persist, delete-account UI (dialog gating, localStorage cleared, redirect to /). Loyaltytest password change flow verified and restored to Loyalty@123. Fake Emergent session_token correctly rejected with 401 (not 500), and EmergentAuthRequest accepts payload without emergent_user field.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Delete Account dialog", "issues": ["Radix warning: DialogContent missing Description/aria-describedby — accessibility warning, not blocking"]}
+    ]
+  },
+  "verifications_performed": {
+    "google_auth_code_review": "GoogleLogin.js EmergentAuthCallback lines 55-110 — NO direct fetch to demobackend.emergentagent.com; only backend POST /api/auth/google/emergent-callback with {device_info, session_token}. handleGoogleLogin line 266-267 redirects to https://auth.emergentagent.com/?redirect=<origin>/auth/google/callback (verified via UI click — leads through Emergent to Google OAuth).",
+    "backend_emergent_callback": "Fake session_token -> 401 (server-side verification via httpx call to demobackend fails with 404 -> mapped to 401 UNAUTHORIZED). Missing emergent_user field in payload accepted (Optional). Missing session_token -> 422. /api/auth/google/settings -> 200.",
+    "profile_page": "customer/operator/admin all: profile-settings-page renders, email disabled and populated, role badge correct. Edit full_name+phone+city -> save-profile-btn -> 'Profile updated successfully' toast, reload persists value (verified via db round-trip). global-profile-btn present on dashboard.",
+    "change_password": "loyaltytest@airyatra.co.in: wrong current pw -> 401; Loyalty@123 -> Loyalty@1234 succeeds; new pw login succeeds; restored back to Loyalty@123 via API; final login with original pw confirmed.",
+    "delete_account": "Backend: unauthenticated -> 401/403, wrong password -> 401, correct pw+DELETE confirm -> 200, old JWT revoked on /auth/me (401/403), deleted user login rejected. UI: dialog opens on delete-account-btn, confirm-delete-btn correctly disabled unless BOTH password entered AND 'DELETE' typed, on submit localStorage token+user cleared, redirect to landing / with 'Account deleted. Goodbye!' toast.",
+    "profile_route_guard": "Anonymous GET /profile renders login form (guard works).",
+    "regression": "test_payment_gateways.py 8/8 pass. Seed logins customer/admin/operator all return 200 with valid JWT."
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter53_profile_auth.py",
+    "/app/test_reports/pytest/iter53_profile_auth.xml",
+    "/app/test_reports/pytest/iter53_payment_gateways.xml"
+  ],
+  "action_items": [
+    "(Low-priority a11y) Add DialogDescription (or aria-describedby) to the delete-account-dialog to silence Radix warning — cosmetic only."
+  ],
+  "critical_code_review_comments": [
+    "auth_routes.py L1889: httpx import inside function is fine but consider module-level import for consistency.",
+    "delete_account (L1147-1153): For Google users with a password_hash also set, the current branch skips password check (only requires DELETE text). Consider always requiring password when password_hash exists regardless of auth_provider to prevent an account with hybrid auth being deleted via just typing DELETE.",
+    "change-password endpoint (L1075-1104) correctly revokes other sessions via token_hash allowlist — verified working."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter53_profile_auth.py (new)"
+  ],
+  "success_rate": {"backend": "100% (19/19 across 2 suites)", "frontend": "100% (all critical flows verified)"},
+  "seed_data_creation": "Throwaway registered+deleted users deltest_<ts>@airyatra.co.in and deltestui_<ts>@airyatra.co.in (both soft-deleted via /auth/delete-account, remain in DB with is_active=false and account_deleted=true). Customer profile city temporarily updated to 'TEST_CITY_<hex>' and later 'CityQA_<ts>' via UI test.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "customer@airyatra.co.in / Customer@123 ; loyaltytest@airyatra.co.in / Loyalty@123 (restored) ; operator@airyatra.co.in / Operator@123456 ; admin@airyatra.co.in / Admin123!",
+  "context_for_next_testing_agent": "Google auth flow can only be tested up to redirect + backend rejection of unverifiable sessions — full end-to-end requires real Google account. Loyalty pw is restored to Loyalty@123. Two soft-deleted test accounts remain in db.users with is_active=false — safe to keep or purge. Login rate limit 10/min — space out logins; register endpoint rate-limited 3/min.",
+  "rca_of_the_issue": "N/A — no defects found. The prior 'Google login broken' bug was root-caused correctly: frontend consumed the single-use Emergent session_id before backend could verify. Current implementation sends session_id straight to backend which is the sole caller of Emergent session-data API. Verified via code review + fake-token 401 assertion."
+}

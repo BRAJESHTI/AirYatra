@@ -5,6 +5,7 @@ import './App.css';
 // Critical pages - loaded immediately
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import ProfileSettings from './pages/ProfileSettings';
 import ForgotPassword from './components/auth/ForgotPassword';
 
 // Global Navigation Component
@@ -113,6 +114,7 @@ function App() {
           <Route path="/" element={<LandingPage user={user} />} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/profile" element={user ? <ProfileSettings user={user} setUser={setUser} /> : <LoginPage setUser={setUser} />} />
           
           {/* Google Auth Callback Routes */}
           <Route path="/auth/google/success" element={<GoogleAuthSuccess onLogin={setUser} />} />

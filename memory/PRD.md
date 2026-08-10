@@ -7,6 +7,13 @@
 
 ## Latest Updates (Aug 10, 2026 - Session 6 contd.)
 
+### ✅ GOOGLE AUTH FIX + UNIVERSAL PROFILE SETTINGS + DELETE ACCOUNT (iteration_53: 19/19 backend + 100% frontend, testing_agent verified)
+- **Google login was BROKEN — root cause fixed**: frontend consumed the single-use Emergent session_id by calling session-data API directly, then backend's own server-side verification got 404 → login rejected. Fix: GoogleLogin.js now sends session_id straight to backend; backend (/api/auth/google/emergent-callback) is the SOLE caller of the Emergent API. EmergentAuthRequest.emergent_user made Optional. Fake session tokens → 401
+- **Profile Settings page for ALL roles** (/profile route + GlobalNav 'Profile' button on all internal pages): edit full_name/phone/address/city (PUT /auth/profile), avatar/role badges/Google-account badge, change password card (hidden for Google-only users with forgot-password hint), Danger Zone
+- **Delete Account** (POST /api/auth/delete-account): password required whenever password_hash exists (hybrid-account hardening), Google-only users type DELETE; soft delete (is_active=false, account_deleted=true), ALL sessions revoked incl. current, login blocked afterward, audit-logged. UI dialog with double confirmation (password + typing DELETE)
+- Verified: change-password flow (loyaltytest restored to Loyalty@123), profile edit persists for customer/operator/admin, route guard, regression 8/8 payments. New suite: tests/test_iter53_profile_auth.py (11)
+- NOTE: 2 soft-deleted throwaway users (deltest_*) remain in db.users with is_active=false — harmless
+
 ### ✅ DATABASE CLEANUP + EXTERNAL PDF REVIEW FIXES (iteration_52: 62/62 pytest, testing_agent verified)
 - User's PDF (external code review) claimed 3 DBs — CONFIRMED TRUE: airyatra (25 colls, stale), airyatra_db (172 colls, ACTIVE), aviation_erp (1 coll)
 - **Root cause**: db_optimization.py hardcoded `client.airyatra` — recreated stale DB with indexes on every startup. Fixed → os.environ['DB_NAME']
