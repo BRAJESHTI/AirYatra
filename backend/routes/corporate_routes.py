@@ -5,7 +5,7 @@ Centralized booking for corporate travel managers
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from pydantic import BaseModel
 from urllib.parse import quote
@@ -992,7 +992,7 @@ async def list_corporate_accounts(
 
 # ============ GST INVOICE GENERATION ============
 
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from io import BytesIO
 
 def _generate_gst_invoice_pdf(corporate: dict, booking: dict, invoice_data: dict) -> bytes:
@@ -1234,15 +1234,20 @@ async def generate_gst_invoice(
     # Generate PDF
     try:
         pdf_bytes = _generate_gst_invoice_pdf(corporate, booking, invoice_data)
-        
+        if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
+            raise HTTPException(status_code=500, detail="Generated GST invoice is not a valid PDF")
         filename = f"AirYatra_GST_Invoice_{booking.get('booking_number', booking_id[:8])}.pdf"
-        
-        return StreamingResponse(
-            BytesIO(pdf_bytes),
+        return Response(
+            content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes)),
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+            },
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")

@@ -7,6 +7,19 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ INVOICE PDF HARDENING (iter55: 8/8 pytest pass)
+- **Root cause**: Historical "file: command not found" warning came from testing shell scripts running `file <downloaded.pdf>` — the `file` binary was missing in the container (confirmed via `which file` → not found). Not a code bug, but downloads felt "flaky".
+- **Fixes applied**:
+  - Installed `file` (v5.44) + `libmagic1` system packages so `file <invoice.pdf>` now returns `PDF document, version 1.4, 1 pages` correctly in any downstream tooling.
+  - Hardened `/api/customer/bookings/{id}/invoice` and `/api/corporate/invoice/{id}/gst` PDF responses:
+    - Switched from `StreamingResponse(BytesIO)` → `Response(content=bytes)` for guaranteed `Content-Length` computation by Starlette
+    - Pre-flight validation: response now rejects payloads that don't start with `%PDF` magic bytes (returns 500 with clear message instead of silent flaky download)
+    - Added defensive headers: `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`
+    - Extracted helper `_pdf_response()` in `customer_routes.py` for DRY
+    - Added `logger.info` on successful PDF generation with byte count
+  - Fixed unrelated pre-existing bug: `corporate_routes.py` was using `datetime.now(timezone.utc)` in 14 places without importing `timezone` (F821). Added to import line.
+- Regression test: `backend/tests/test_iter55_invoice_pdf.py` (8 tests) validates HTTP 200, Content-Type/Disposition/Cache-Control/nosniff headers, PDF magic bytes + `%%EOF` trailer, min size, and `file` command identification.
+
 ### ✅ BOOKING WIZARD SPLIT + PHOTO ON BOOKINGS (self-tested: lint clean + screenshot verified)
 - **BookingPage.js reduced from 2220 → 1055 lines** by extracting 4 monolithic renderX functions into modular step components under `/app/frontend/src/components/booking/steps/`:
   - `Step1Passengers.js` — Service card grid (helicopter/jet/ambulance/yacht/cargo/joyride) + adult male/female counters + children counter (max 2, free)

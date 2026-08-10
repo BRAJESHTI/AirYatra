@@ -912,11 +912,30 @@ async def get_route_suggestions(
 
 # ========== INVOICE PDF DOWNLOAD ==========
 
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from io import BytesIO
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _pdf_response(pdf_bytes: bytes, filename: str) -> Response:
+    """Return a bulletproof PDF response with Content-Length + magic-byte validation.
+    Prevents flaky downloads and ensures downstream tooling (browsers, curl, `file` MIME
+    detection) always sees a well-formed PDF payload.
+    """
+    if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=500, detail="Generated invoice is not a valid PDF")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(pdf_bytes)),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 def _generate_invoice_pdf(booking: dict, user: dict, payment: dict = None) -> bytes:
     """Generate professional invoice PDF for booking"""
@@ -1126,16 +1145,11 @@ async def download_invoice(
     # Generate PDF
     try:
         pdf_bytes = _generate_invoice_pdf(booking, current_user, payment)
-        
         filename = f"AirYatra_Invoice_{booking.get('booking_number', booking_id[:8])}.pdf"
-        
-        return StreamingResponse(
-            BytesIO(pdf_bytes),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
-        )
+        logger.info(f"Invoice PDF generated: {filename} ({len(pdf_bytes)} bytes) for booking {booking_id}")
+        return _pdf_response(pdf_bytes, filename)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating invoice PDF: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate invoice")
