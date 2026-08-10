@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Request, Response
+from fastapi import APIRouter, HTTPException, Depends, status, Request, Response, UploadFile, File
 from database import get_database
 from models import UserCreate, UserLogin, Token, User
 from auth import verify_password, get_password_hash, create_access_token
@@ -1206,6 +1206,69 @@ async def delete_account(
         "message": "Your account has been deleted. We're sorry to see you go.",
         "sessions_revoked": revoked_count
     }
+
+
+ALLOWED_AVATAR_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2 MB
+
+
+@router.post("/profile-picture")
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload a custom profile picture to Emergent object storage."""
+    from services.object_storage import put_object, APP_NAME
+    db = get_database()
+
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_AVATAR_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPG, PNG, WEBP or GIF images are allowed")
+    data = await file.read()
+    if len(data) > MAX_AVATAR_SIZE:
+        raise HTTPException(status_code=400, detail="Image must be under 2 MB")
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    ext = ALLOWED_AVATAR_TYPES[content_type]
+    path = f"{APP_NAME}/avatars/{current_user['id']}/{uuid.uuid4().hex}.{ext}"
+    try:
+        result = put_object(path, data, content_type)
+    except Exception as e:
+        logger.error(f"Avatar upload failed for {current_user['id']}: {e}")
+        raise HTTPException(status_code=502, detail="Upload failed, please try again")
+
+    avatar_url = f"/api/auth/avatar/{current_user['id']}"
+    now = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {
+            "avatar_storage_path": result["path"],
+            "avatar_content_type": content_type,
+            "profile_picture": avatar_url,
+            "updated_at": now,
+        }}
+    )
+    return {"success": True, "profile_picture": avatar_url}
+
+
+@router.get("/avatar/{user_id}")
+async def get_avatar(user_id: str):
+    """Serve a user's uploaded avatar (public — avatars are non-sensitive)."""
+    from services.object_storage import get_object
+    db = get_database()
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "avatar_storage_path": 1, "avatar_content_type": 1})
+    if not user or not user.get("avatar_storage_path"):
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    try:
+        data, ct = get_object(user["avatar_storage_path"])
+    except Exception:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    return Response(
+        content=data,
+        media_type=user.get("avatar_content_type") or ct,
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 @router.post("/logout-all-devices")

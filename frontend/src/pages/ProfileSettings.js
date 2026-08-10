@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Shield, Trash2, Loader2, Save, Mail, Phone, MapPin,
-  KeyRound, AlertTriangle, BadgeCheck, LogOut
+  KeyRound, AlertTriangle, BadgeCheck, LogOut, Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,40 @@ export default function ProfileSettings({ user, setUser }) {
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarBust, setAvatarBust] = useState(0);
+  const fileInputRef = React.useRef(null);
+
+  const avatarSrc = me?.profile_picture
+    ? (me.profile_picture.startsWith('/')
+        ? `${process.env.REACT_APP_BACKEND_URL}${me.profile_picture}?v=${avatarBust}`
+        : me.profile_picture)
+    : null;
+
+  const uploadAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2 MB');
+    if (!file.type.startsWith('image/')) return toast.error('Please choose an image file');
+    setUploadingAvatar(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.post('/auth/profile-picture', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setMe(m => ({ ...m, profile_picture: res.data.profile_picture }));
+      setAvatarBust(Date.now());
+      const stored = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({ ...stored, profile_picture: res.data.profile_picture }));
+      toast.success('Profile photo updated!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to upload photo');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     api.get('/auth/me')
@@ -105,13 +139,26 @@ export default function ProfileSettings({ user, setUser }) {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          {me?.profile_picture ? (
-            <img src={me.profile_picture} alt="avatar" className="h-16 w-16 rounded-full border-2 border-orange-500/50 object-cover" />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-orange-500/20 border-2 border-orange-500/50 flex items-center justify-center text-2xl font-bold text-orange-400">
-              {(me?.full_name || me?.email || 'U')[0].toUpperCase()}
-            </div>
-          )}
+          <div className="relative group">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="avatar" className="h-16 w-16 rounded-full border-2 border-orange-500/50 object-cover" data-testid="profile-avatar-img" />
+            ) : (
+              <div className="h-16 w-16 rounded-full bg-orange-500/20 border-2 border-orange-500/50 flex items-center justify-center text-2xl font-bold text-orange-400" data-testid="profile-avatar-initial">
+                {(me?.full_name || me?.email || 'U')[0].toUpperCase()}
+              </div>
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-orange-500 hover:bg-orange-600 flex items-center justify-center border-2 border-slate-950 transition-colors"
+              title="Upload profile photo"
+              data-testid="upload-avatar-btn"
+            >
+              {uploadingAvatar ? <Loader2 className="h-3.5 w-3.5 text-white animate-spin" /> : <Camera className="h-3.5 w-3.5 text-white" />}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={uploadAvatar} className="hidden" data-testid="avatar-file-input" />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
             <div className="flex items-center gap-2 flex-wrap mt-1">

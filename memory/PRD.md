@@ -7,6 +7,10 @@
 
 ## Latest Updates (Aug 10, 2026 - Session 6 contd.)
 
+### ✅ PROFILE PHOTO UPLOAD + DEPLOY READINESS (self-tested: curl e2e + screenshot; deployment_agent PASS)
+- **Profile Photo Upload**: Emergent Object Storage integration (services/object_storage.py — init/put/get with storage-key refresh on 404). POST /api/auth/profile-picture (JWT, JPG/PNG/WEBP/GIF, ≤2MB, path airyatra/avatars/{user_id}/{uuid}) + public GET /api/auth/avatar/{user_id} (5-min cache). users.avatar_storage_path + profile_picture="/api/auth/avatar/{id}". UI: camera button on ProfileSettings avatar (upload-avatar-btn, avatar-file-input), cache-bust after upload, Google photo URL still honored (absolute URLs pass through). e2e curl verified upload (200) + serve (200 image/png)
+- **Deploy blockers fixed**: CORS_ORIGINS="*" in backend/.env; SECOND .env block in .gitignore (lines 129-131) removed — deployment_agent final status PASS. User must click Deploy to push Google auth fix + profile settings + photo upload live
+
 ### ✅ GOOGLE AUTH FIX + UNIVERSAL PROFILE SETTINGS + DELETE ACCOUNT (iteration_53: 19/19 backend + 100% frontend, testing_agent verified)
 - **Google login was BROKEN — root cause fixed**: frontend consumed the single-use Emergent session_id by calling session-data API directly, then backend's own server-side verification got 404 → login rejected. Fix: GoogleLogin.js now sends session_id straight to backend; backend (/api/auth/google/emergent-callback) is the SOLE caller of the Emergent API. EmergentAuthRequest.emergent_user made Optional. Fake session tokens → 401
 - **Profile Settings page for ALL roles** (/profile route + GlobalNav 'Profile' button on all internal pages): edit full_name/phone/address/city (PUT /auth/profile), avatar/role badges/Google-account badge, change password card (hidden for Google-only users with forgot-password hint), Danger Zone
