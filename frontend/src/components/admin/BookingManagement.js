@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Eye, ArrowRightLeft, MapPin, User, Phone, Mail, Copy, Download, Trash2, FileText, Building2 } from 'lucide-react';
+import { Search, RefreshCw, Eye, ArrowRightLeft, MapPin, User, Phone, Mail, Copy, Download, Trash2, FileText, Building2, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -192,9 +192,26 @@ function BookingManagement() {
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <div>
-                      <p className="text-white text-sm">{booking.customer_name || 'N/A'}</p>
-                      <p className="text-xs text-slate-400">{booking.customer_email}</p>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-9 w-9 rounded-full overflow-hidden bg-slate-700 border border-slate-600 flex items-center justify-center shrink-0"
+                        data-testid={`customer-avatar-${booking.id}`}
+                      >
+                        {booking.customer_profile_picture ? (
+                          <img
+                            src={booking.customer_profile_picture.startsWith('http') || booking.customer_profile_picture.startsWith('/api') ? booking.customer_profile_picture : `/api/auth/avatar/${booking.customer_id}`}
+                            alt={booking.customer_name || 'Customer'}
+                            className="h-full w-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <UserCircle className="h-6 w-6 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm truncate">{booking.customer_name || 'N/A'}</p>
+                        <p className="text-xs text-slate-400 truncate">{booking.customer_email}</p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-4">
@@ -302,16 +319,30 @@ function BookingManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-slate-800/50">
                   <p className="text-sm text-slate-400 mb-2">Customer</p>
-                  <div className="space-y-1">
-                    <p className="text-white flex items-center gap-2">
-                      <User className="h-4 w-4" /> {selectedBooking.customer_name || 'N/A'}
-                    </p>
-                    <p className="text-slate-300 text-sm flex items-center gap-2">
-                      <Mail className="h-4 w-4" /> {selectedBooking.customer_email || 'N/A'}
-                    </p>
-                    <p className="text-slate-300 text-sm flex items-center gap-2">
-                      <Phone className="h-4 w-4" /> {selectedBooking.customer_phone || 'N/A'}
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-full overflow-hidden bg-slate-700 border border-slate-600 flex items-center justify-center shrink-0">
+                      {selectedBooking.customer_profile_picture ? (
+                        <img
+                          src={selectedBooking.customer_profile_picture.startsWith('http') || selectedBooking.customer_profile_picture.startsWith('/api') ? selectedBooking.customer_profile_picture : `/api/auth/avatar/${selectedBooking.customer_id}`}
+                          alt={selectedBooking.customer_name || 'Customer'}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <UserCircle className="h-7 w-7 text-slate-400" />
+                      )}
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-white flex items-center gap-2">
+                        <User className="h-4 w-4" /> {selectedBooking.customer_name || 'N/A'}
+                      </p>
+                      <p className="text-slate-300 text-sm flex items-center gap-2 truncate">
+                        <Mail className="h-4 w-4" /> {selectedBooking.customer_email || 'N/A'}
+                      </p>
+                      <p className="text-slate-300 text-sm flex items-center gap-2">
+                        <Phone className="h-4 w-4" /> {selectedBooking.customer_phone || 'N/A'}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="p-4 rounded-lg bg-slate-800/50">

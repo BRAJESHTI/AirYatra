@@ -420,7 +420,7 @@ async def get_all_bookings(user: dict = Depends(require_roles([UserRole.ADMIN, U
     customer_ids = {b.get("customer_id") for b in bookings if b.get("customer_id")}
     customers = {}
     if customer_ids:
-        async for c in db.users.find({"id": {"$in": list(customer_ids)}}, {"_id": 0, "id": 1, "full_name": 1, "email": 1, "phone": 1}):
+        async for c in db.users.find({"id": {"$in": list(customer_ids)}}, {"_id": 0, "id": 1, "full_name": 1, "email": 1, "phone": 1, "profile_picture": 1}):
             customers[c["id"]] = c
 
     # Batch enrich operators (aviation company names): operator_id may be operators.id OR users.id
@@ -451,6 +451,7 @@ async def get_all_bookings(user: dict = Depends(require_roles([UserRole.ADMIN, U
             booking["customer_name"] = booking.get("customer_name") or customer.get("full_name")
             booking["customer_email"] = booking.get("customer_email") or customer.get("email")
             booking["customer_phone"] = booking.get("customer_phone") or customer.get("phone")
+            booking["customer_profile_picture"] = customer.get("profile_picture")
         op_id = booking.pop("_resolved_operator_id", None)
         if op_id and operators.get(op_id):
             booking["operator_name"] = operators[op_id]

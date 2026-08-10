@@ -7,6 +7,22 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ BOOKING WIZARD SPLIT + PHOTO ON BOOKINGS (self-tested: lint clean + screenshot verified)
+- **BookingPage.js reduced from 2220 → 1055 lines** by extracting 4 monolithic renderX functions into modular step components under `/app/frontend/src/components/booking/steps/`:
+  - `Step1Passengers.js` — Service card grid (helicopter/jet/ambulance/yacht/cargo/joyride) + adult male/female counters + children counter (max 2, free)
+  - `Step2BookingType.js` — Emergency/Compare buttons, BookingTypeSelector (9 types), Flight Type / Booking For / Booking Purpose dropdowns (with `data-testid` on each)
+  - `Step3Route.js` — LandingPointSelector (pickup/drop) OR MultiCityRouteBuilder + Date/Time + Waiting/Night halt inputs
+  - `Step4Price.js` — PriceLockTimer + Summary Card + full Price Breakdown (base/additional/platform/landing/GST/grand total) + Referral/Discount/Wallet + 5 Mandatory Consents + Marketplace Search / Traditional Inquiry buttons
+- All step components receive a single `stepProps` bag from BookingPage.js — preserving exact JSX/behavior with zero regressions
+- Deleted 4 dead legacy step files (AircraftPassengerStep.js, BookingPurposeStep.js, RouteSelectionStep.js, PriceSummaryStep.js) that were exported from index but never imported anywhere. Updated `/app/frontend/src/components/booking/index.js` to export the new step components.
+- Added extensive `data-testid` attributes on new step components: `service-{aircraft_type}`, `increment-male-btn`, `flight-type-select`, `booking-for-select`, `booking-purpose-select`, `emergency-booking-btn`, `compare-aircraft-btn`, `departure-date-input`, `pickup-time-input`, `use-wallet-checkbox`, `consent-*-checkbox`, `marketplace-search-btn`, `submit-inquiry-btn`, `grand-total-amount`, `final-payable-amount`
+- **Photo on Bookings (Admin)**: 
+  - Backend `/api/admin/bookings` now enriches each booking with `customer_profile_picture` (users.profile_picture URL — supports both Emergent Object Storage `/api/auth/avatar/{id}` and Google absolute URLs)
+  - Frontend `BookingManagement.js`: Customer column shows a 36px circular avatar next to name/email; Detail dialog shows 48px avatar. Fallback `UserCircle` icon when no photo. Verified: 44 avatar cells rendered, 18 with actual `<img>` for customers with uploaded photos.
+- Lint clean, smoke test passed (screenshot verified wizard step 1 → step 2 navigation + admin bookings list with avatars)
+
+## Latest Updates (Feb 2026 - Session 7 - Earlier)
+
 ### ✅ CUSTOMER BOOKING LOGIN WORKFLOW - 100% VALIDATED (iteration_54: 11/11 pytest, testing_agent verified)
 - User query: "Customer Booking Login Workflow Check karo 100% working or not as per workflow" → Answer: **YES, 100% working**
 - End-to-end verified: Login (no OTP) → /auth/me → /marketplace/search → /marketplace/book (Compare&Book) → inquiry/status → payment-info → /payments/gateways → wallet/apply → /razorpay/create-order (order_id+key_id+amount_paise) → /payments/stripe/checkout (checkout_url) → /customer/trips (My Bookings visibility) → /marketplace/auction/start (Reverse Auction)

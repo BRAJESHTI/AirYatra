@@ -1,9 +1,11 @@
 // Booking Components Index
 export { default as BookingStepIndicator } from './BookingStepIndicator';
-export { default as AircraftPassengerStep } from './AircraftPassengerStep';
-export { default as BookingPurposeStep } from './BookingPurposeStep';
-export { default as RouteSelectionStep } from './RouteSelectionStep';
-export { default as PriceSummaryStep } from './PriceSummaryStep';
+
+// Wizard step components (split from monolithic BookingPage.js)
+export { default as Step1Passengers } from './steps/Step1Passengers';
+export { default as Step2BookingType } from './steps/Step2BookingType';
+export { default as Step3Route } from './steps/Step3Route';
+export { default as Step4Price } from './steps/Step4Price';
 
 // New Components
 export { PriceLockTimer, PriceLockBadge } from './PriceLockTimer';
