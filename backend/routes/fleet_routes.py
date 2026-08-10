@@ -3,7 +3,7 @@ from database import get_database
 from models import Aircraft
 from middleware import get_current_user
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/fleet", tags=["Fleet Management"])
 
@@ -37,8 +37,8 @@ async def create_aircraft(aircraft_data: dict, user: dict = Depends(get_current_
         "enrollment_odometer_km": aircraft_data.get("enrollment_odometer_km", 0),
         "current_total_km": aircraft_data.get("enrollment_odometer_km", 0),
         "total_flight_hours": 0,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.aircraft.insert_one(aircraft.copy())
@@ -77,7 +77,7 @@ async def update_aircraft(aircraft_id: str, aircraft_data: dict, user: dict = De
         raise HTTPException(status_code=404, detail="Aircraft not found")
     
     update_data = aircraft_data.copy()
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.aircraft.update_one(
         {"id": aircraft_id},

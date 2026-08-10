@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import get_database
 from middleware import get_current_user
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ async def create_flight_record(record_data: dict, user: dict = Depends(get_curre
         "weather_conditions": record_data.get("weather_conditions"),
         "remarks": record_data.get("remarks"),
         "created_by": user["id"],
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.flight_records.insert_one(flight_record.copy())
@@ -50,7 +50,7 @@ async def create_flight_record(record_data: dict, user: dict = Depends(get_curre
             {"$set": {
                 "current_total_km": new_total_km,
                 "total_flight_hours": new_flight_hours,
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
     

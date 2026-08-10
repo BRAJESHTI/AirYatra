@@ -3,7 +3,7 @@ from database import get_database
 from middleware import get_current_user, require_roles
 from models import UserRole
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ async def create_settlement(data: dict, user: dict = Depends(require_roles([User
     payout_amount = total_booking_amount - total_commission
     
     settlement_id = str(uuid.uuid4())
-    settlement_number = f"SET{datetime.utcnow().strftime('%Y%m%d')}{settlement_id[:6].upper()}"
+    settlement_number = f"SET{datetime.now(timezone.utc).strftime('%Y%m%d')}{settlement_id[:6].upper()}"
     
     settlement = {
         "id": settlement_id,
@@ -46,7 +46,7 @@ async def create_settlement(data: dict, user: dict = Depends(require_roles([User
         "payout_amount": payout_amount,
         "status": "pending",
         "created_by": user["id"],
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.settlements.insert_one(settlement.copy())
@@ -89,7 +89,7 @@ async def approve_settlement(settlement_id: str, data: dict, user: dict = Depend
         {"$set": {
             "status": "approved",
             "approved_by": user["id"],
-            "approved_at": datetime.utcnow().isoformat(),
+            "approved_at": datetime.now(timezone.utc).isoformat(),
             "approval_notes": notes
         }}
     )
@@ -103,7 +103,7 @@ async def approve_settlement(settlement_id: str, data: dict, user: dict = Depend
         "entity_type": "settlement",
         "entity_id": settlement_id,
         "changes": {"status": "approved", "amount": settlement["payout_amount"]},
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     
@@ -129,7 +129,7 @@ async def mark_settlement_paid(settlement_id: str, data: dict, user: dict = Depe
         {"$set": {
             "status": "paid",
             "paid_by": user["id"],
-            "paid_at": datetime.utcnow().isoformat(),
+            "paid_at": datetime.now(timezone.utc).isoformat(),
             "payment_reference": payment_reference,
             "payment_method": payment_method
         }}
@@ -148,7 +148,7 @@ async def mark_settlement_paid(settlement_id: str, data: dict, user: dict = Depe
             "payment_reference": payment_reference,
             "amount": settlement["payout_amount"]
         },
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log.copy())
     

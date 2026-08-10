@@ -4,7 +4,7 @@ VIP Tier System: Silver, Gold, Platinum, BLACK
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import uuid
 import secrets
@@ -70,7 +70,7 @@ async def create_membership(membership: MembershipCreate):
     if not tier_details:
         raise HTTPException(status_code=400, detail="Invalid membership tier")
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     membership_doc = {
         "user_id": membership.user_id,
@@ -140,7 +140,7 @@ async def get_user_membership(user_id: str):
         }
     
     # Check if membership needs expiry update
-    if membership["expiry_date"] < datetime.utcnow():
+    if membership["expiry_date"] < datetime.now(timezone.utc):
         await db.memberships.update_one(
             {"user_id": user_id},
             {"$set": {"status": "expired"}}
@@ -180,13 +180,13 @@ async def upgrade_membership(upgrade: MembershipUpgrade, user_id: str = Query(..
     current_tier_details = TIER_BENEFITS[current["tier"]]
     
     # Calculate prorated upgrade cost
-    days_remaining = (current["expiry_date"] - datetime.utcnow()).days
+    days_remaining = (current["expiry_date"] - datetime.now(timezone.utc)).days
     days_total = 365
     current_value = (current_tier_details["annual_fee"] * days_remaining) / days_total
     new_cost = new_tier_details["annual_fee"]
     upgrade_cost = new_cost - current_value
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # Update membership
     await db.memberships.update_one(
@@ -238,8 +238,8 @@ async def cancel_membership(user_id: str, reason: str = ""):
             "$set": {
                 "auto_renew": False,
                 "cancellation_reason": reason,
-                "cancelled_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "cancelled_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -389,7 +389,7 @@ async def get_expiring_memberships(days: int = 30):
     """Get memberships expiring within specified days"""
     db = get_database()
     
-    expiry_threshold = datetime.utcnow() + timedelta(days=days)
+    expiry_threshold = datetime.now(timezone.utc) + timedelta(days=days)
     
     expiring = await db.memberships.find(
         {

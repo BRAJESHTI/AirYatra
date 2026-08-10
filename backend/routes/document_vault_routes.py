@@ -6,7 +6,7 @@ SECURITY: All endpoints require authentication
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Form
 from fastapi.responses import Response
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import uuid
 import secrets
@@ -40,7 +40,7 @@ def calculate_document_status(expiry_date: Optional[datetime]) -> str:
     if not expiry_date:
         return DocumentVaultStatus.ACTIVE.value
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if expiry_date < now:
         return DocumentVaultStatus.EXPIRED.value
     elif expiry_date < now + timedelta(days=30):
@@ -136,14 +136,14 @@ async def upload_document(
             "content": base64.b64encode(file_content).decode(),
             "file_name": file.filename,
             "content_type": file_type,
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc)
         })
         file_url = f"/api/vault/file/{file_id}"
         storage_type = "mongodb_base64"
         thumbnail_url = None
         thumb_storage_path = None
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     parsed_expiry = None
     if expiry_date:
         try:
@@ -314,7 +314,7 @@ async def get_document_details(
     # Update last accessed
     await db.documents_vault.update_one(
         {"document_id": document_id},
-        {"$set": {"last_accessed": datetime.utcnow()}}
+        {"$set": {"last_accessed": datetime.now(timezone.utc)}}
     )
     
     document["status"] = calculate_document_status(document.get("expiry_date"))
@@ -348,7 +348,7 @@ async def update_document(
         )
     
     update_data = {k: v for k, v in update.dict().items() if v is not None}
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = datetime.now(timezone.utc)
     
     if "expiry_date" in update_data and update_data["expiry_date"]:
         update_data["status"] = calculate_document_status(update_data["expiry_date"])
@@ -398,7 +398,7 @@ async def delete_document(
     else:
         result = await db.documents_vault.update_one(
             {"document_id": document_id},
-            {"$set": {"status": "archived", "archived_at": datetime.utcnow()}}
+            {"$set": {"status": "archived", "archived_at": datetime.now(timezone.utc)}}
         )
     
     if result.modified_count == 0 and result.deleted_count == 0:
@@ -442,7 +442,7 @@ async def download_file(
     # Increment download count
     await db.documents_vault.update_one(
         {"file_id": file_id},
-        {"$inc": {"download_count": 1}, "$set": {"last_accessed": datetime.utcnow()}}
+        {"$inc": {"download_count": 1}, "$set": {"last_accessed": datetime.now(timezone.utc)}}
     )
     
     # Try object storage first (new documents)
@@ -668,11 +668,11 @@ async def upload_new_version(
         "content_type": file.content_type,
         "size": file_size,
         "is_deleted": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     })
     
     new_version = document["version"] + 1
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     version_entry = {
         "version": new_version,
@@ -718,7 +718,7 @@ async def share_document(share: DocumentShareCreate):
         raise HTTPException(status_code=404, detail="Document not found")
     
     share_link = generate_share_link()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     share_doc = {
         "share_id": f"SHR-{uuid.uuid4().hex[:8].upper()}",
@@ -773,7 +773,7 @@ async def access_shared_document(share_link: str):
         raise HTTPException(status_code=404, detail="Share link not found or expired")
     
     # Check expiry
-    if share.get("expiry_date") and share["expiry_date"] < datetime.utcnow():
+    if share.get("expiry_date") and share["expiry_date"] < datetime.now(timezone.utc):
         await db.document_shares.update_one(
             {"share_link": share_link},
             {"$set": {"is_active": False}}
@@ -794,7 +794,7 @@ async def access_shared_document(share_link: str):
         {"share_link": share_link},
         {
             "$inc": {"access_count": 1},
-            "$set": {"last_accessed": datetime.utcnow()}
+            "$set": {"last_accessed": datetime.now(timezone.utc)}
         }
     )
     
@@ -811,7 +811,7 @@ async def revoke_share(share_link: str):
     
     result = await db.document_shares.update_one(
         {"share_link": share_link},
-        {"$set": {"is_active": False, "revoked_at": datetime.utcnow()}}
+        {"$set": {"is_active": False, "revoked_at": datetime.now(timezone.utc)}}
     )
     
     if result.modified_count == 0:
@@ -829,7 +829,7 @@ async def create_folder(folder: FolderCreate, owner_id: str = Query(...)):
     """Create document folder"""
     db = get_database()
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     folder_doc = {
         "folder_id": f"FLD-{uuid.uuid4().hex[:8].upper()}",
@@ -888,13 +888,13 @@ async def get_expiring_documents(owner_id: str, days: int = 30):
     """Get documents expiring within specified days"""
     db = get_database()
     
-    expiry_threshold = datetime.utcnow() + timedelta(days=days)
+    expiry_threshold = datetime.now(timezone.utc) + timedelta(days=days)
     
     expiring = await db.documents_vault.find(
         {
             "owner_id": owner_id,
             "expiry_date": {
-                "$gte": datetime.utcnow(),
+                "$gte": datetime.now(timezone.utc),
                 "$lte": expiry_threshold
             },
             "status": {"$ne": "archived"}
@@ -903,7 +903,7 @@ async def get_expiring_documents(owner_id: str, days: int = 30):
     ).sort("expiry_date", 1).to_list(length=100)
     
     for doc in expiring:
-        doc["days_remaining"] = (doc["expiry_date"] - datetime.utcnow()).days
+        doc["days_remaining"] = (doc["expiry_date"] - datetime.now(timezone.utc)).days
     
     return {
         "success": True,
@@ -919,7 +919,7 @@ async def get_expired_documents(owner_id: str):
     expired = await db.documents_vault.find(
         {
             "owner_id": owner_id,
-            "expiry_date": {"$lt": datetime.utcnow()},
+            "expiry_date": {"$lt": datetime.now(timezone.utc)},
             "status": {"$ne": "archived"}
         },
         {"_id": 0, "file_hash": 0}
@@ -945,8 +945,8 @@ async def verify_document(document_id: str, verification: DocumentVerification):
                 "verification_status": verification.verification_status,
                 "verified_by": verification.verified_by,
                 "verification_notes": verification.verification_notes,
-                "verified_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "verified_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -987,16 +987,16 @@ async def get_vault_statistics(owner_id: str):
     by_status = await db.documents_vault.aggregate(status_pipeline).to_list(length=10)
     
     # Expiring soon
-    expiry_threshold = datetime.utcnow() + timedelta(days=30)
+    expiry_threshold = datetime.now(timezone.utc) + timedelta(days=30)
     expiring_soon = await db.documents_vault.count_documents({
         "owner_id": owner_id,
-        "expiry_date": {"$gte": datetime.utcnow(), "$lte": expiry_threshold}
+        "expiry_date": {"$gte": datetime.now(timezone.utc), "$lte": expiry_threshold}
     })
     
     # Expired
     expired = await db.documents_vault.count_documents({
         "owner_id": owner_id,
-        "expiry_date": {"$lt": datetime.utcnow()}
+        "expiry_date": {"$lt": datetime.now(timezone.utc)}
     })
     
     # Total size
@@ -1037,7 +1037,7 @@ async def bulk_document_action(action: BulkDocumentAction, owner_id: str = Query
     if action.action == "archive":
         result = await db.documents_vault.update_many(
             {"document_id": {"$in": action.document_ids}, "owner_id": owner_id},
-            {"$set": {"status": "archived", "archived_at": datetime.utcnow()}}
+            {"$set": {"status": "archived", "archived_at": datetime.now(timezone.utc)}}
         )
     elif action.action == "delete":
         result = await db.documents_vault.delete_many(

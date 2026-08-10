@@ -19,7 +19,8 @@ INDEXES = {
         {"keys": [("created_at", -1)], "name": "created_at_idx"},
     ],
     "bookings": [
-        {"keys": [("booking_number", 1)], "unique": True, "name": "booking_number_unique"},
+        {"keys": [("booking_number", 1)], "unique": True, "name": "booking_number_unique",
+         "partialFilterExpression": {"booking_number": {"$type": "string"}}},
         {"keys": [("customer_id", 1)], "name": "customer_idx"},
         {"keys": [("operator_id", 1)], "name": "operator_idx"},
         {"keys": [("status", 1)], "name": "status_idx"},
@@ -28,7 +29,8 @@ INDEXES = {
         {"keys": [("status", 1), ("created_at", -1)], "name": "status_created_compound"},
     ],
     "inquiries": [
-        {"keys": [("inquiry_number", 1)], "unique": True, "name": "inquiry_number_unique"},
+        {"keys": [("inquiry_number", 1)], "unique": True, "name": "inquiry_number_unique",
+         "partialFilterExpression": {"inquiry_number": {"$type": "string"}}},
         {"keys": [("customer_id", 1)], "name": "customer_idx"},
         {"keys": [("status", 1)], "name": "status_idx"},
         {"keys": [("created_at", -1)], "name": "created_at_idx"},
@@ -60,12 +62,14 @@ INDEXES = {
         {"keys": [("priority", 1), ("created_at", -1)], "name": "priority_created_compound"},
     ],
     "call_logs": [
-        {"keys": [("call_sid", 1)], "unique": True, "name": "call_sid_unique"},
+        {"keys": [("call_sid", 1)], "unique": True, "name": "call_sid_unique",
+         "partialFilterExpression": {"call_sid": {"$type": "string"}}},
         {"keys": [("customer_id", 1)], "name": "customer_idx"},
         {"keys": [("created_at", -1)], "name": "created_at_idx"},
     ],
     "support_tickets": [
-        {"keys": [("ticket_number", 1)], "unique": True, "name": "ticket_number_unique"},
+        {"keys": [("ticket_number", 1)], "unique": True, "name": "ticket_number_unique",
+         "partialFilterExpression": {"ticket_number": {"$type": "string"}}},
         {"keys": [("customer_id", 1)], "name": "customer_idx"},
         {"keys": [("status", 1)], "name": "status_idx"},
         {"keys": [("priority", 1)], "name": "priority_idx"},
@@ -116,17 +120,21 @@ async def create_indexes(db):
                 created_count += 1
                 logger.info(f"Created index {index_def.get('name', 'unnamed')} on {collection_name}")
             except Exception as e:
-                # Index might already exist or collection doesn't exist yet
-                logger.debug(f"Index creation note for {collection_name}: {e}")
+                msg = str(e)
+                if "already exists" in msg or "IndexOptionsConflict" in msg or "IndexKeySpecsConflict" in msg:
+                    logger.debug(f"Index exists for {collection_name}: {msg}")
+                else:
+                    logger.warning(f"Index creation failed on {collection_name}: {msg}")
     
     return created_count
 
 
 async def optimize_database():
     """Run all database optimizations"""
-    mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+    mongo_url = os.environ['MONGO_URL']
+    db_name = os.environ['DB_NAME']
     client = AsyncIOMotorClient(mongo_url)
-    db = client.airyatra
+    db = client[db_name]
     
     logger.info("Starting database optimization...")
     

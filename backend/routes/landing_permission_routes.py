@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import get_database
 from s3_service import s3_service
 from middleware import get_current_user
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import logging
 
@@ -29,8 +29,8 @@ async def create_landing_permission(permission_data: dict, user: dict = Depends(
         "state": permission_data.get("state"),
         "documents": [],
         "approval_status": "pending",
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.landing_permissions.insert_one(landing_permission.copy())
@@ -68,7 +68,7 @@ async def upload_landing_document(permission_id: str, doc_data: dict, user: dict
         "type": doc_data['document_type'],
         "file_name": doc_data['file_name'],
         "s3_key": s3_key,
-        "uploaded_at": datetime.utcnow().isoformat()
+        "uploaded_at": datetime.now(timezone.utc).isoformat()
     }
     
     upload_url = s3_service.generate_presigned_upload_url(s3_key, doc_data['content_type'])

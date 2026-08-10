@@ -11,7 +11,7 @@ Based on Document [5] requirements:
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 
 from database import get_database
@@ -222,7 +222,7 @@ async def calculate_monthly_css(
             trend = "declining"
     
     css_id = generate_css_id()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     css_record = {
         "css_id": css_id,
@@ -401,7 +401,7 @@ async def get_css_leaderboard(
     db = get_database()
     
     # Default to current month
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     target_month = month or now.month
     target_year = year or now.year
     
@@ -493,12 +493,12 @@ async def bulk_calculate_css(
                 "operator_id": op["id"],
                 "calculation_month": month,
                 "calculation_year": year,
-                "calculation_date": datetime.utcnow(),
+                "calculation_date": datetime.now(timezone.utc),
                 "css_score": score_data["css_score"],
                 "action_taken": action.value,
                 "appeal_allowed": False,
                 "calculated_by": current_user["id"],
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc)
             }
             
             await db.customer_satisfaction_scores.insert_one(css_record)

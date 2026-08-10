@@ -5,7 +5,7 @@ Pricing modes: Fixed Route, AI Reverse Auction, Hybrid, Dynamic
 
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import uuid
 
@@ -125,7 +125,7 @@ class AviationDistance(BaseModel):
     waypoints: List[Dict] = []
     altitude_profile: str = "standard"
     
-    calculated_at: datetime = Field(default_factory=datetime.utcnow)
+    calculated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class OperatorBid(BaseModel):
@@ -144,7 +144,7 @@ class OperatorBid(BaseModel):
     
     # Bid Status
     bid_status: OperatorBidStatus = OperatorBidStatus.PENDING
-    bid_placed_at: datetime = Field(default_factory=datetime.utcnow)
+    bid_placed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     response_time_seconds: int = 0
     
     # Operator Info
@@ -179,7 +179,7 @@ class FleetLocation(BaseModel):
     booking_count_today: int = 0
     utilization_rate: float = 0  # % of day booked
     
-    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class DemandForecast(BaseModel):
@@ -197,7 +197,7 @@ class DemandForecast(BaseModel):
     # AI Prediction
     forecasted_demand: DemandLevel = DemandLevel.MEDIUM
     forecast_confidence: float = 0  # 0-100%
-    forecast_date: datetime = Field(default_factory=datetime.utcnow)
+    forecast_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Suggested Actions
     suggested_aircraft_count: int = 0
@@ -288,8 +288,8 @@ class FixedRoutePricing(FixedRoutePricingCreate):
     approved_at: Optional[datetime] = None
     approved_by: Optional[str] = None
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class AIReverseAuctionCreate(BaseModel):
@@ -329,7 +329,7 @@ class AIReverseAuction(AIReverseAuctionCreate):
     
     # Auction Status
     auction_status: AuctionStatus = AuctionStatus.ACTIVE
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     closes_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
     
@@ -357,7 +357,7 @@ class AIReverseAuction(AIReverseAuctionCreate):
         "price_within_percent": 20
     }
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class HybridPricingEngine(BaseModel):
@@ -399,8 +399,8 @@ class HybridPricingEngine(BaseModel):
     test_mode_enabled: bool = True
     
     created_by: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class AIFleetPositioning(BaseModel):
@@ -434,7 +434,7 @@ class AIFleetPositioning(BaseModel):
     recommendations_rejected: int = 0
     actual_revenue_impact: float = 0
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class PricingTransaction(BaseModel):
@@ -482,7 +482,7 @@ class PricingTransaction(BaseModel):
     # Status
     status: str = "quote_generated"  # quote_generated, accepted, cancelled, completed
     
-    quote_generated_at: datetime = Field(default_factory=datetime.utcnow)
+    quote_generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     accepted_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
 

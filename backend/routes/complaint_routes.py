@@ -11,7 +11,7 @@ Based on Document [5] requirements:
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 
 from database import get_database
@@ -41,7 +41,7 @@ def generate_complaint_id():
     return f"COMP-{uuid.uuid4().hex[:8].upper()}"
 
 def generate_complaint_number():
-    return f"AY-COMP-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+    return f"AY-COMP-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
 
 def generate_penalty_id():
     return f"PEN-{uuid.uuid4().hex[:8].upper()}"
@@ -56,7 +56,7 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
     """
     
     # Count complaints in last 30 days
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     complaints_30_days = await db.complaints.count_documents({
         "operator_id": operator_id,
         "airyatra_decision": "upheld",
@@ -64,7 +64,7 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
     })
     
     # Count complaints in last 60 days
-    sixty_days_ago = datetime.utcnow() - timedelta(days=60)
+    sixty_days_ago = datetime.now(timezone.utc) - timedelta(days=60)
     complaints_60_days = await db.complaints.count_documents({
         "operator_id": operator_id,
         "airyatra_decision": "upheld",
@@ -85,12 +85,12 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
             "triggered_by": f"3+ upheld complaints in 60 days ({complaints_60_days} complaints)",
             "suspension_triggered": False,
             "delisting_triggered": True,
-            "delisting_date": datetime.utcnow(),
+            "delisting_date": datetime.now(timezone.utc),
             "delisting_permanent": False,
             "status": PenaltyStatus.ISSUED.value,
             "appeal_allowed": False,
-            "issued_at": datetime.utcnow(),
-            "created_at": datetime.utcnow()
+            "issued_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc)
         }
         
         # Update operator status to delisted
@@ -98,14 +98,14 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
             {"id": operator_id},
             {"$set": {
                 "status": "delisted",
-                "delisted_at": datetime.utcnow(),
+                "delisted_at": datetime.now(timezone.utc),
                 "delisting_reason": "Multiple customer complaints (3+ in 60 days)"
             }}
         )
         
     elif complaints_30_days >= 2:
         # 2 complaints in 30 days = INR 20,000 + 7-day suspension
-        suspension_end = datetime.utcnow() + timedelta(days=7)
+        suspension_end = datetime.now(timezone.utc) + timedelta(days=7)
         penalty = {
             "penalty_id": generate_penalty_id(),
             "operator_id": operator_id,
@@ -116,14 +116,14 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
             "triggered_by": f"2 upheld complaints in 30 days",
             "suspension_triggered": True,
             "suspension_duration_days": 7,
-            "suspension_start_date": datetime.utcnow(),
+            "suspension_start_date": datetime.now(timezone.utc),
             "suspension_end_date": suspension_end,
             "delisting_triggered": False,
             "status": PenaltyStatus.ISSUED.value,
-            "payment_due_date": datetime.utcnow() + timedelta(days=7),
+            "payment_due_date": datetime.now(timezone.utc) + timedelta(days=7),
             "appeal_allowed": False,
-            "issued_at": datetime.utcnow(),
-            "created_at": datetime.utcnow()
+            "issued_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc)
         }
         
         # Update operator status to suspended
@@ -131,7 +131,7 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
             {"id": operator_id},
             {"$set": {
                 "status": "suspended",
-                "suspended_at": datetime.utcnow(),
+                "suspended_at": datetime.now(timezone.utc),
                 "suspension_end_date": suspension_end,
                 "suspension_reason": "Multiple customer complaints (2 in 30 days)"
             }}
@@ -150,10 +150,10 @@ async def check_and_apply_penalty(db, operator_id: str, complaint_id: str):
             "suspension_triggered": False,
             "delisting_triggered": False,
             "status": PenaltyStatus.ISSUED.value,
-            "payment_due_date": datetime.utcnow() + timedelta(days=7),
+            "payment_due_date": datetime.now(timezone.utc) + timedelta(days=7),
             "appeal_allowed": False,
-            "issued_at": datetime.utcnow(),
-            "created_at": datetime.utcnow()
+            "issued_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc)
         }
     
     if penalty:
@@ -194,7 +194,7 @@ async def file_complaint(
     complaint_number = generate_complaint_number()
     
     # Operator must respond within 24 hours
-    response_deadline = datetime.utcnow() + timedelta(hours=24)
+    response_deadline = datetime.now(timezone.utc) + timedelta(hours=24)
     
     complaint = {
         "complaint_id": complaint_id,
@@ -230,8 +230,8 @@ async def file_complaint(
         "evidence_submitted_by_customer": len(complaint_data.evidence_files) > 0,
         
         # Timestamps
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     }
     
     await db.complaints.insert_one(complaint)
@@ -313,7 +313,7 @@ async def operator_respond_to_complaint(
     if complaint.get("operator_response_received"):
         raise HTTPException(400, "Already responded to this complaint")
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     response_deadline = complaint.get("operator_response_required_at")
     
     # Check if response is late
@@ -444,7 +444,7 @@ async def submit_investigation(
     if not complaint:
         raise HTTPException(404, "Complaint not found")
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     update_data = {
         "investigated_by": current_user["id"],
@@ -536,7 +536,7 @@ async def get_complaints_dashboard(
     category_counts = await db.complaints.aggregate(category_pipeline).to_list(20)
     
     # Upheld rate (last 30 days)
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     resolved_last_30 = await db.complaints.count_documents({
         "status": ComplaintStatus.RESOLVED.value,
         "resolved_at": {"$gte": thirty_days_ago}
@@ -691,9 +691,9 @@ async def mark_penalty_paid(
         {"$set": {
             "status": PenaltyStatus.PAID.value,
             "payment_amount": payment_amount,
-            "payment_received_date": datetime.utcnow(),
+            "payment_received_date": datetime.now(timezone.utc),
             "payment_receipt_url": payment_receipt_url,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         }}
     )
     

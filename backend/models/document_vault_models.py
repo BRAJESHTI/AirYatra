@@ -10,7 +10,7 @@ Based on Document [4] requirements:
 
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 # ============= ENUMS =============
@@ -232,7 +232,7 @@ class DocumentVerificationModel(BaseModel):
     verification_status: DocumentVaultStatus
     verified_by: str
     verification_notes: Optional[str] = None
-    verification_date: datetime = Field(default_factory=datetime.utcnow)
+    verification_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class FolderCreate(BaseModel):

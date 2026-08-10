@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 class UserRole(str, Enum):
@@ -62,8 +62,8 @@ class User(BaseModel):
     roles: List[UserRole]
     region: Optional[str] = None
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -96,8 +96,8 @@ class Operator(BaseModel):
     verification_status: ApprovalStatus = ApprovalStatus.PENDING
     documents: List[dict] = []
     commission_rate: float = 10.0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Aircraft(BaseModel):
     id: Optional[str] = None
@@ -110,8 +110,8 @@ class Aircraft(BaseModel):
     is_available: bool = True
     maintenance_status: str = "operational"
     documents: List[dict] = []
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Pilot(BaseModel):
     id: Optional[str] = None
@@ -123,8 +123,8 @@ class Pilot(BaseModel):
     experience_years: int
     is_available: bool = True
     documents: List[dict] = []
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Booking(BaseModel):
     id: Optional[str] = None
@@ -147,8 +147,8 @@ class Booking(BaseModel):
     payment_id: Optional[str] = None
     landing_permissions: List[dict] = []
     special_requirements: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Quote(BaseModel):
     id: Optional[str] = None
@@ -159,7 +159,7 @@ class Quote(BaseModel):
     validity_hours: int = 24
     special_notes: Optional[str] = None
     is_accepted: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime
 
 class LandingPermission(BaseModel):
@@ -173,7 +173,7 @@ class LandingPermission(BaseModel):
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Settlement(BaseModel):
     id: Optional[str] = None
@@ -186,7 +186,7 @@ class Settlement(BaseModel):
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None
     paid_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class AuditLog(BaseModel):
     id: Optional[str] = None
@@ -196,7 +196,7 @@ class AuditLog(BaseModel):
     entity_id: str
     changes: dict
     ip_address: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ============== LANDING INFRASTRUCTURE MODELS ==============
@@ -274,7 +274,7 @@ class LandingPoint(BaseModel):
     runway_length: Optional[int] = None  # in meters
     icao_code: Optional[str] = None  # For airports
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
     created_by: Optional[str] = None
 
@@ -314,7 +314,7 @@ class LandingRent(BaseModel):
     # Remarks
     remarks: Optional[str] = None
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
     created_by: Optional[str] = None
 
@@ -349,7 +349,7 @@ class LandingDocument(BaseModel):
     # Status
     status: str = "pending"  # pending, verified, rejected, expired
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
     uploaded_by: Optional[str] = None
 
@@ -393,7 +393,7 @@ class VillageLandingPermission(BaseModel):
     admin_notes: Optional[str] = None
     customer_notes: Optional[str] = None
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
 
 
@@ -533,7 +533,7 @@ class MemberBenefitUsage(BaseModel):
     membership_id: str
     benefit_type: str
     booking_id: Optional[str] = None
-    used_at: datetime = Field(default_factory=datetime.utcnow)
+    used_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     value: float = 0
 
 # ============ CORPORATE MODELS ============
@@ -742,7 +742,7 @@ class DocumentVerification(BaseModel):
     verification_status: str
     verified_by: str
     verification_notes: Optional[str] = None
-    verification_date: datetime = Field(default_factory=datetime.utcnow)
+    verification_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class BulkDocumentAction(BaseModel):
     document_ids: List[str]

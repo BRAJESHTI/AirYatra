@@ -5,6 +5,19 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 6)
 
+## Latest Updates (Aug 10, 2026 - Session 6 contd.)
+
+### ✅ DATABASE CLEANUP + EXTERNAL PDF REVIEW FIXES (iteration_52: 62/62 pytest, testing_agent verified)
+- User's PDF (external code review) claimed 3 DBs — CONFIRMED TRUE: airyatra (25 colls, stale), airyatra_db (172 colls, ACTIVE), aviation_erp (1 coll)
+- **Root cause**: db_optimization.py hardcoded `client.airyatra` — recreated stale DB with indexes on every startup. Fixed → os.environ['DB_NAME']
+- **Dropped stale DBs**: `airyatra` + `aviation_erp` deleted from Mongo server; only `airyatra_db` remains (verified after backend restart — not recreated)
+- **Deleted dead files**: connection_pool.py (module-level asyncio.Lock bug, wrong 'airyatra' fallback) + optimized_mongo.py (duplicate client, journal:False) — neither was imported anywhere
+- **journal: True** in database.py MONGO_OPTIONS (production write safety)
+- **datetime.utcnow() → datetime.now(timezone.utc)** across 22 files (models.py default_factory → lambda; timezone imports added; ast + import verified)
+- **CRITICAL follow-up fix**: pointing db_optimization at the real DB created STRICT unique indexes (inquiry_number etc.) which broke inserts with null values → converted 4 unique indexes to PARTIAL (unique only when field is string): inquiries.inquiry_number, bookings.booking_number, call_logs.call_sid, support_tickets.ticket_number (dropped + recreated, 54 indexes)
+- PDF claims NOT applicable here: .github/workflows/deploy.yml doesn't exist in this codebase (only in user's GitHub export); config._require_env works as valid fail-fast
+- NOTE for next agent: login rate limit now 10/min — sleep ~65s between pytest suites. New regression file tests/test_iter52_review_verification.py (15 tests)
+
 ### ✅ CODE REVIEW + 3 FIXES (iteration_51: 47/47 pytest, testing_agent verified)
 - Code review verdict: READY WITH FIXES (no HIGH/CRITICAL) — all 3 findings fixed & verified:
   1. **MEDIUM — Boarding reminder checklist mismatch**: scheduler queried `checklist_type`/dict but preflight stores `type:'passenger'` + items LIST → email always said 0/12. Fixed (dict built from item_id list); email now shows true progress (verified 3/12)

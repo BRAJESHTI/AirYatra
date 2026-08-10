@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import get_database
 from middleware import get_current_user
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ async def create_fuel_record(fuel_data: dict, user: dict = Depends(get_current_u
         "total_cost": fuel_data.get("cost_per_liter", 0) * fuel_data["fuel_amount_liters"],
         "odometer_reading_km": fuel_data.get("odometer_reading_km"),
         "remarks": fuel_data.get("remarks"),
-        "refill_date": fuel_data.get("refill_date", datetime.utcnow().isoformat()),
-        "created_at": datetime.utcnow().isoformat()
+        "refill_date": fuel_data.get("refill_date", datetime.now(timezone.utc).isoformat()),
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.fuel_records.insert_one(fuel_record.copy())

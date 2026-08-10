@@ -58,8 +58,8 @@ async def create_operator_profile(profile_data: dict, user: dict = Depends(get_c
         "verification_status": ApprovalStatus.PENDING.value,
         "documents": [],
         "commission_rate": 10.0,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.operators.insert_one(operator.copy())
@@ -94,7 +94,7 @@ async def update_operator_profile(profile_data: dict, user: dict = Depends(get_c
         raise HTTPException(status_code=404, detail="Operator profile not found")
     
     update_data = profile_data.copy()
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.operators.update_one(
         {"user_id": user["id"]},
@@ -162,8 +162,8 @@ async def create_pilot(pilot_data: dict, user: dict = Depends(get_current_user))
         "experience_years": pilot_data["experience_years"],
         "is_available": True,
         "documents": [],
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.pilots.insert_one(pilot.copy())
@@ -202,7 +202,7 @@ async def update_pilot(pilot_id: str, pilot_data: dict, user: dict = Depends(get
         raise HTTPException(status_code=404, detail="Pilot not found")
     
     update_data = pilot_data.copy()
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.pilots.update_one(
         {"id": pilot_id},
@@ -303,12 +303,12 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
         "amount": quote_data["amount"],
         "breakdown": quote_data.get("breakdown", {}),
         "validity_hours": quote_data.get("validity_hours", 24),
-        "valid_until": datetime.utcnow().isoformat(),  # Will be calculated
+        "valid_until": datetime.now(timezone.utc).isoformat(),  # Will be calculated
         "notes": quote_data.get("notes", ""),
         "status": "sent",
         "revision_count": (existing_quote.get("revision_count", 0) + 1) if existing_quote else 1,
-        "created_at": existing_quote.get("created_at") if existing_quote else datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": existing_quote.get("created_at") if existing_quote else datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     if existing_quote:
@@ -325,7 +325,7 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
                 "operator_id": operator["id"],
                 "operator_name": operator["company_name"],
                 "amount": quote_data["amount"],
-                "sent_at": datetime.utcnow().isoformat()
+                "sent_at": datetime.now(timezone.utc).isoformat()
             }
         }}
     )
@@ -385,7 +385,7 @@ async def get_operator_revenue_dashboard(user: dict = Depends(get_current_user))
         }
     
     operator_id = operator["id"]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # Get all completed bookings/inquiries for this operator
     completed_inquiries = await db.inquiries.find(
@@ -491,7 +491,7 @@ async def get_fleet_analytics(user: dict = Depends(get_current_user)):
         }
     
     operator_id = operator["id"]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     current_month = now.strftime("%Y-%m")
     
     # Get all aircraft for this operator

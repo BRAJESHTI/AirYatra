@@ -3,7 +3,7 @@ from database import get_database
 from models import Quote
 from middleware import get_current_user
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email_service import email_service
 import logging
 
@@ -36,8 +36,8 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
         "validity_hours": quote_data.get("validity_hours", 24),
         "special_notes": quote_data.get("special_notes"),
         "is_accepted": False,
-        "created_at": datetime.utcnow().isoformat(),
-        "expires_at": (datetime.utcnow() + timedelta(hours=quote_data.get("validity_hours", 24))).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=quote_data.get("validity_hours", 24))).isoformat()
     }
     
     await db.quotes.insert_one(quote)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import get_database
 from s3_service import s3_service
 from middleware import get_current_user
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 import logging
 
@@ -41,8 +41,8 @@ async def generate_upload_url(data: dict, user: dict = Depends(get_current_user)
         "content_type": data['content_type'],
         "s3_key": s3_key,
         "status": "uploading",
-        "created_at": datetime.utcnow().isoformat(),
-        "expires_at": (datetime.utcnow() + timedelta(days=90)).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=90)).isoformat()
     }
     
     await db.documents.insert_one(document)
@@ -75,7 +75,7 @@ async def confirm_upload(document_id: str, user: dict = Depends(get_current_user
     # Update status
     await db.documents.update_one(
         {"id": document_id},
-        {"$set": {"status": "completed", "updated_at": datetime.utcnow().isoformat()}}
+        {"$set": {"status": "completed", "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
     return {"message": "Document uploaded successfully", "document_id": document_id}

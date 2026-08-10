@@ -19,7 +19,7 @@ ADMIN_EMAIL = "corporate@airyatra.co.in"
 async def main():
     client = AsyncIOMotorClient(os.environ["MONGO_URL"])
     db = client[os.environ["DB_NAME"]]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     now_iso = datetime.now(timezone.utc).isoformat()
 
     # 1. Corporate admin user

@@ -22,7 +22,7 @@ async def create_booking(
     db = get_database()
     
     booking_id = str(uuid.uuid4())
-    booking_number = f"AIR{datetime.utcnow().strftime('%Y%m%d')}{booking_id[:6].upper()}"
+    booking_number = f"AIR{datetime.now(timezone.utc).strftime('%Y%m%d')}{booking_id[:6].upper()}"
     
     booking = {
         "id": booking_id,
@@ -62,8 +62,8 @@ async def create_booking(
         "quote_ids": [],
         "landing_permissions": [],
         "special_requirements": booking_data.get("special_requirements"),
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     # Get AI price suggestion
@@ -118,7 +118,7 @@ async def create_booking(
                 "booking_id": booking_id,
                 "operator_id": operator["id"],
                 "status": "pending",
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             await db.inquiries.insert_one(inquiry.copy())
         
@@ -402,7 +402,7 @@ async def accept_quote(booking_id: str, data: dict, user: dict = Depends(get_cur
             "aircraft_id": quote["aircraft_id"],
             "total_amount": quote["quoted_price"],
             "status": BookingStatus.QUOTE_ACCEPTED.value,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
@@ -430,7 +430,7 @@ async def cancel_booking(booking_id: str, user: dict = Depends(get_current_user)
         {"id": booking_id},
         {"$set": {
             "status": BookingStatus.CANCELLED.value,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     

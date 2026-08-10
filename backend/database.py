@@ -20,7 +20,7 @@ MONGO_OPTIONS = {
     "retryWrites": True,
     "retryReads": True,
     "w": 1,                       # Fast writes
-    "journal": False,             # Skip journal for speed
+    "journal": True,              # Wait for journal commit (production data safety)
 }
 
 async def connect_to_mongo():

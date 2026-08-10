@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import get_database
 from middleware import get_current_user
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ async def update_flight_location(tracking_data: dict, user: dict = Depends(get_c
         "speed_kmh": tracking_data.get("speed_kmh"),
         "heading_degrees": tracking_data.get("heading_degrees"),
         "flight_status": tracking_data.get("flight_status", "in_flight"),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     
     # Store in live_tracking collection (with TTL index for auto-cleanup)
@@ -43,7 +43,7 @@ async def update_flight_location(tracking_data: dict, user: dict = Depends(get_c
             "last_known_location": {
                 "latitude": tracking_data["latitude"],
                 "longitude": tracking_data["longitude"],
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         }}
     )
@@ -56,7 +56,7 @@ async def get_aircraft_live_location(aircraft_id: str, user: dict = Depends(get_
     db = get_database()
     
     # Get latest tracking data (within last 10 minutes)
-    ten_minutes_ago = (datetime.utcnow().timestamp() - 600)
+    ten_minutes_ago = (datetime.now(timezone.utc).timestamp() - 600)
     
     tracking = await db.live_tracking.find_one(
         {"aircraft_id": aircraft_id},
@@ -69,7 +69,7 @@ async def get_aircraft_live_location(aircraft_id: str, user: dict = Depends(get_
     
     # Check if tracking is recent (within 10 minutes)
     tracking_time = datetime.fromisoformat(tracking["timestamp"])
-    is_active = (datetime.utcnow() - tracking_time).total_seconds() < 600
+    is_active = (datetime.now(timezone.utc) - tracking_time).total_seconds() < 600
     
     return {
         "tracking": tracking,

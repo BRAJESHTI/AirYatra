@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import get_database
 from s3_service import s3_service
 from middleware import get_current_user
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 import logging
 
@@ -48,7 +48,7 @@ async def generate_aircraft_document_upload_url(data: dict, user: dict = Depends
         "status": "uploading",
         "expiry_date": data.get('expiry_date'),
         "renewal_date": data.get('renewal_date'),
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.aircraft_documents.insert_one(document.copy())
@@ -89,14 +89,14 @@ async def confirm_aircraft_document_upload(document_id: str, user: dict = Depend
             "s3_key": document['s3_key'],
             "expiry_date": document.get('expiry_date'),
             "renewal_date": document.get('renewal_date'),
-            "uploaded_at": datetime.utcnow().isoformat()
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
         }}}
     )
     
     # Update document status
     await db.aircraft_documents.update_one(
         {"id": document_id},
-        {"$set": {"status": "completed", "confirmed_at": datetime.utcnow().isoformat()}}
+        {"$set": {"status": "completed", "confirmed_at": datetime.now(timezone.utc).isoformat()}}
     )
     
     return {"message": "Document uploaded successfully", "document_id": document_id}
@@ -167,12 +167,12 @@ async def get_expiring_aircraft_documents(user: dict = Depends(get_current_user)
     if not operator:
         return {"expiring_documents": []}
     
-    thirty_days_later = (datetime.utcnow() + timedelta(days=30)).isoformat()
+    thirty_days_later = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
     
     expiring_docs = await db.aircraft_documents.find({
         "operator_id": operator["id"],
         "status": "completed",
-        "expiry_date": {"$lte": thirty_days_later, "$gte": datetime.utcnow().isoformat()}
+        "expiry_date": {"$lte": thirty_days_later, "$gte": datetime.now(timezone.utc).isoformat()}
     }, {"_id": 0}).to_list(100)
     
     return {"expiring_documents": expiring_docs}

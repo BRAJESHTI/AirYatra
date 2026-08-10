@@ -78,7 +78,7 @@ async def register_corporate(corporate: CorporateCreate):
             detail="Company already registered with this registration/GST number"
         )
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     corporate_id = generate_corporate_id()
     
     corporate_doc = {
@@ -172,7 +172,7 @@ async def update_corporate_account(corporate_id: str, update: CorporateUpdate):
     db = get_database()
     
     update_data = {k: v for k, v in update.dict().items() if v is not None}
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = datetime.now(timezone.utc)
     
     result = await db.corporates.update_one(
         {"corporate_id": corporate_id},
@@ -203,8 +203,8 @@ async def approve_corporate_account(
                 "status": "approved",
                 "credit_limit": credit_limit,
                 "admin_notes": admin_notes,
-                "approved_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "approved_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -238,7 +238,7 @@ async def add_employee(employee: EmployeeCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Employee with this email already exists")
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     employee_code = generate_employee_code(employee.corporate_id)
     
     employee_doc = {
@@ -322,7 +322,7 @@ async def update_employee(employee_code: str, update: EmployeeUpdate):
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     if "role" in update_data:
         update_data["role"] = update_data["role"].value
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = datetime.now(timezone.utc)
     
     result = await db.corporate_employees.update_one(
         {"employee_code": employee_code},
@@ -347,7 +347,7 @@ async def deactivate_employee(employee_code: str):
         {
             "$set": {
                 "is_active": False,
-                "deactivated_at": datetime.utcnow()
+                "deactivated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -367,7 +367,7 @@ async def set_department_budget(budget: DepartmentBudget):
     """Set or update department budget"""
     db = get_database()
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # Calculate period end date
     if budget.period == BudgetPeriod.MONTHLY:
@@ -449,7 +449,7 @@ async def request_booking_approval(approval: BookingApprovalCreate):
     elif approval.amount <= employee.get("approval_limit", 0):
         status = CorporateApprovalStatus.AUTO_APPROVED.value
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     approval_doc = {
         "approval_id": f"APR-{uuid.uuid4().hex[:8].upper()}",
@@ -590,7 +590,7 @@ async def create_corporate_booking(req: CorporateBookingCreate, background_tasks
         or req.estimated_amount <= employee.get("approval_limit", 0)
     )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     booking_id = str(uuid.uuid4())
     booking_number = f"CB-{secrets.token_hex(3).upper()}"
     base_fare = round(req.estimated_amount / 1.18, 2)
@@ -668,7 +668,7 @@ async def create_corporate_booking(req: CorporateBookingCreate, background_tasks
 
 async def _finalize_approval(db, approval: dict, action: str, approver_id: str, approver_name: str, comments: Optional[str] = None) -> str:
     """Shared approve/reject logic: updates approval doc, linked booking and spend counters"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     new_status = "approved" if action == "approve" else "rejected"
 
     await db.booking_approvals.update_one(
@@ -779,7 +779,7 @@ async def _send_approval_request_emails(corporate: dict, approval: dict, booking
 
     await db.booking_approvals.update_one(
         {"approval_id": approval["approval_id"]},
-        {"$set": {"alert_emails_sent": sent, "alert_emails_sent_at": datetime.utcnow()}}
+        {"$set": {"alert_emails_sent": sent, "alert_emails_sent_at": datetime.now(timezone.utc)}}
     )
 
 
@@ -885,7 +885,7 @@ async def update_travel_policy(corporate_id: str, policy: TravelPolicy):
     db = get_database()
     
     policy_data = policy.dict()
-    policy_data["updated_at"] = datetime.utcnow()
+    policy_data["updated_at"] = datetime.now(timezone.utc)
     
     result = await db.travel_policies.update_one(
         {"corporate_id": corporate_id},
@@ -911,7 +911,7 @@ async def get_corporate_analytics(
     db = get_database()
     
     # Determine date range
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if period == "monthly":
         start_date = now - timedelta(days=30)
     elif period == "quarterly":

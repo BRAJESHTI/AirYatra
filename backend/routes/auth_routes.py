@@ -100,8 +100,8 @@ async def register(request: Request, user_data: UserCreate):
     user_dict["id"] = str(uuid.uuid4())
     user_dict["password_hash"] = get_password_hash(user_dict.pop("password"))
     user_dict["is_active"] = True
-    user_dict["created_at"] = datetime.utcnow().isoformat()
-    user_dict["updated_at"] = datetime.utcnow().isoformat()
+    user_dict["created_at"] = datetime.now(timezone.utc).isoformat()
+    user_dict["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     # SECURITY FIX: Force role to "customer" for self-registration
     # Admin/operator/pilot roles can only be assigned via admin-authenticated endpoint
@@ -114,7 +114,7 @@ async def register(request: Request, user_data: UserCreate):
     # Welcome bonus: 500 loyalty points for new customers
     if "customer" in user_dict.get("roles", []):
         try:
-            now_iso = datetime.utcnow().isoformat()
+            now_iso = datetime.now(timezone.utc).isoformat()
             await db.loyalty_profiles.insert_one({
                 "user_id": user_dict["id"],
                 "total_points": 500,
@@ -1015,7 +1015,7 @@ async def update_profile(
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
     
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     result = await db.users.update_one(
         {"id": current_user["id"]},
