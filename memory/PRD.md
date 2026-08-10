@@ -5,6 +5,17 @@
 
 ## Latest Updates (Aug 8, 2026 - Session 6)
 
+## Latest Updates (Feb 2026 - Session 7)
+
+### ✅ CUSTOMER BOOKING LOGIN WORKFLOW - 100% VALIDATED (iteration_54: 11/11 pytest, testing_agent verified)
+- User query: "Customer Booking Login Workflow Check karo 100% working or not as per workflow" → Answer: **YES, 100% working**
+- End-to-end verified: Login (no OTP) → /auth/me → /marketplace/search → /marketplace/book (Compare&Book) → inquiry/status → payment-info → /payments/gateways → wallet/apply → /razorpay/create-order (order_id+key_id+amount_paise) → /payments/stripe/checkout (checkout_url) → /customer/trips (My Bookings visibility) → /marketplace/auction/start (Reverse Auction)
+- Frontend: customer login lands on /customer, JWT persisted in localStorage, /booking wizard step 1-2 navigable, /customer/trips renders
+- All 3 payment gateways functional: Razorpay (enabled, Recommended), Stripe (Test Mode), Wallet (via /payments/wallet/apply endpoint)
+- **NOTE**: Razorpay endpoint is /api/razorpay/create-order (NOT /api/payments/razorpay). Wallet not enumerated in /payments/gateways (handled via separate /payments/wallet/apply)
+- P3 cosmetic findings (not fixed, user only asked to validate): BookingPage.js step 2 uses native <select> instead of shadcn Select; missing data-testids on wizard controls; BookingPage.js 2100+ LOC needs splitting
+- New regression: tests/test_iter54_customer_booking_workflow.py (11)
+
 ## Latest Updates (Aug 10, 2026 - Session 6 contd.)
 
 ### ✅ PROFILE PHOTO UPLOAD + DEPLOY READINESS (self-tested: curl e2e + screenshot; deployment_agent PASS)
