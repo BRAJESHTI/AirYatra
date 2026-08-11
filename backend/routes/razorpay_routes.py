@@ -278,6 +278,8 @@ async def verify_payment(request: Request, verify_request: PaymentVerifyRequest)
                     update["status"] = "confirmed"
                 await db.inquiries.update_one({"id": order["booking_id"]}, {"$set": update})
                 await db.bookings.update_one({"id": order["booking_id"]}, {"$set": update})
+                from services.invoice_email_service import schedule_invoice_email
+                schedule_invoice_email(db, order["booking_id"], "razorpay")
         
         # Create notification
         await db.notifications.insert_one({
@@ -413,10 +415,15 @@ async def handle_webhook(request: Request):
             # Get order and update booking
             order = await db.razorpay_orders.find_one({"razorpay_order_id": order_id})
             if order and order.get("booking_id"):
-                await db.bookings.update_one(
-                    {"_id": ObjectId(order["booking_id"])},
-                    {"$set": {"payment_status": "captured", "captured_at": datetime.now(timezone.utc)}}
-                )
+                try:
+                    await db.bookings.update_one(
+                        {"_id": ObjectId(order["booking_id"])},
+                        {"$set": {"payment_status": "captured", "captured_at": datetime.now(timezone.utc)}}
+                    )
+                except Exception:
+                    pass
+                from services.invoice_email_service import schedule_invoice_email
+                schedule_invoice_email(db, order["booking_id"], "razorpay")
             
             # Create success notification
             await db.notifications.insert_one({

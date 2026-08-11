@@ -7,6 +7,14 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ AUTO INVOICE EMAIL ON PAYMENT SUCCESS (June 2026 - verified E2E via live SMTP send)
+- New service `/app/backend/services/invoice_email_service.py`: `send_invoice_email(db, booking_id, gateway)` + fire-and-forget `schedule_invoice_email()` (asyncio task, never delays payment API response)
+- Reuses `_generate_invoice_pdf` from `customer_routes.py`; branded orange "Invoice Ready" HTML email (Hinglish) with PDF attached
+- Idempotency: `invoice_email_log` collection with atomic upsert claim on key `{booking_id}:{advance|full}` — verify endpoint + webhook double-fire safe; advance & full-payment each get exactly ONE email
+- Hooked into ALL gateways: Razorpay (verify + webhook payment.captured), Stripe (`_apply_payment_success`), Wallet (pay-with-wallet when advance/full covered), Cashfree (verify-payment), PayPal (capture)
+- Also wrapped legacy ObjectId booking update in razorpay webhook in try/except (pre-existing crash risk with uuid booking ids)
+- Tested: real email sent to loyaltytest@airyatra.co.in with valid PDF, second call skipped (idempotent), backend healthy
+
 ### ✅ INVOICE PDF HARDENING (iter55: 8/8 pytest pass)
 - **Root cause**: Historical "file: command not found" warning came from testing shell scripts running `file <downloaded.pdf>` — the `file` binary was missing in the container (confirmed via `which file` → not found). Not a code bug, but downloads felt "flaky".
 - **Fixes applied**:

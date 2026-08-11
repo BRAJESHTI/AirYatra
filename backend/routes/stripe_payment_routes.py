@@ -327,6 +327,10 @@ async def apply_wallet_payment(body: WalletApplyRequest, current_user: dict = De
     await db.inquiries.update_one({"id": body.booking_id}, {"$set": update})
     await db.bookings.update_one({"id": body.booking_id}, {"$set": update})
 
+    if "payment_status" in update:
+        from services.invoice_email_service import schedule_invoice_email
+        schedule_invoice_email(db, body.booking_id, "wallet")
+
     return {
         "success": True,
         "applied": amount,
@@ -523,6 +527,10 @@ async def _apply_payment_success(db, txn: dict):
             print(f"Referral bonus processed for booking {txn['booking_id'][:8]}")
         except Exception as e:
             print(f"Referral bonus processing skipped/failed: {e}")
+
+    # Auto-email PDF invoice on payment success
+    from services.invoice_email_service import schedule_invoice_email
+    schedule_invoice_email(db, txn["booking_id"], "stripe")
 
 
 async def _mark_paid_if_needed(db, session_id: str) -> dict:

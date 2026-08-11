@@ -203,6 +203,8 @@ async def capture_paypal_order(
                 "paid_at": datetime.now(timezone.utc).isoformat()
             }}
         )
+        from services.invoice_email_service import schedule_invoice_email
+        schedule_invoice_email(db, booking_id, "paypal")
     
     # Record transaction
     transaction = {

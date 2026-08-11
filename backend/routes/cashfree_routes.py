@@ -203,6 +203,9 @@ async def verify_cashfree_payment(
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.transactions.insert_one(transaction.copy())
+
+        from services.invoice_email_service import schedule_invoice_email
+        schedule_invoice_email(db, booking_id, "cashfree")
     
     return {
         "success": True,
