@@ -7,6 +7,11 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ QUOTE ALERT + PILOT FLIGHT DETAILS (June 2026 - E2E tested via live browser automation)
+- **Quote Alert (sound)**: operator submit-quote now inserts `in_app_notifications` (type=quote_received) for customer; `NotificationBell.js` polls every 15s, plays beep sound + shows blue "New Quote Received" banner (data-testid=quote-alert-banner) with "View Quote" → /customer/inquiry/{id}. Fixed pre-existing wrong navigation (/customer/inquiries/ → /customer/inquiry/). Verified live: banner appeared 7s after quote submit.
+- **Pilot Flight Details**: new endpoint GET /api/pilot/mobile/flights/{booking_id} (assignment-verified) returns full booking details (passengers M/F/children, timings, aircraft, customer, special reqs). Pilot portal HomeTab flight cards now tappable → `FlightDetailsModal.js` (new component). dashboard upcoming_flights now include booking_id. Verified via screenshot on /pilot-portal.
+- LEARNING: one search_replace edit silently didn't persist in NotificationBell.js — always grep-verify critical edits after batch apply.
+
 ### ✅ OPERATOR CROSS-ROLE INTEGRATION AUDIT + FIXES (June 2026 - 25/25 pytest pass)
 - Full audit: Operator ↔ Admin ✅, CEO ✅, Customer ✅, Pilot ✅, Operator core/ERP ✅ (`backend/tests/test_iter56_operator_integration.py`)
 - FIXED: `booking_routes.py` missing `timezone` module import → POST /api/bookings/ was 500 (blocked entire customer→operator custom-quote flow)

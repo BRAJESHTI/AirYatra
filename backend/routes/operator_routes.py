@@ -338,7 +338,20 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
         }}
     )
     
-    # TODO: Send notification to customer
+    # Notify customer instantly (in-app notification with sound on frontend)
+    customer_user_id = booking.get("customer_id") or booking.get("user_id")
+    if customer_user_id:
+        await db.in_app_notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": customer_user_id,
+            "type": "quote_received",
+            "title": f"✈️ New Quote Received - ₹{float(quote_data['amount']):,.0f}",
+            "message": f"{operator['company_name']} ne aapki booking {booking.get('booking_number', booking_id[:8])} ke liye quote bheja hai. Abhi review karein!",
+            "reference_id": booking_id,
+            "data": {"quote_id": quote_id, "amount": quote_data["amount"], "operator_name": operator["company_name"]},
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
     
     return {"message": "Quote submitted successfully", "quote_id": quote_id}
 

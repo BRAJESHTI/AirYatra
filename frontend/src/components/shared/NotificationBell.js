@@ -15,9 +15,11 @@ function NotificationBell({ user }) {
   const [activeTab, setActiveTab] = useState('all');
   const [criticalAlerts, setCriticalAlerts] = useState([]);
   const [showCriticalBanner, setShowCriticalBanner] = useState(false);
+  const [quoteAlert, setQuoteAlert] = useState(null);
   const dropdownRef = useRef(null);
   const audioRef = useRef(null);
   const lastAlertIdRef = useRef(null);
+  const prevNotifIdsRef = useRef(null);
   const navigate = useNavigate();
 
   const tabs = [
@@ -111,11 +113,11 @@ function NotificationBell({ user }) {
     loadNotifications();
     checkCriticalAlerts();
     
-    // Poll for new notifications every 30 seconds
+    // Poll for new notifications every 15 seconds (quote alerts need to feel instant)
     const interval = setInterval(() => {
       loadNotifications();
       checkCriticalAlerts();
-    }, 30000);
+    }, 15000);
     
     // Check critical alerts more frequently (every 10 seconds)
     const criticalInterval = setInterval(checkCriticalAlerts, 10000);
@@ -141,8 +143,22 @@ function NotificationBell({ user }) {
     try {
       setLoading(true);
       const response = await notificationAPI.getInApp(false);
-      setNotifications(response.data.notifications || []);
+      const list = response.data.notifications || [];
+      setNotifications(list);
       setUnreadCount(response.data.unread_count || 0);
+
+      // Quote Alert: play sound + banner when a NEW unread quote arrives (skip first load)
+      if (prevNotifIdsRef.current) {
+        const freshQuotes = list.filter(
+          n => n.type === 'quote_received' && !n.read && !prevNotifIdsRef.current.has(n.id)
+        );
+        if (freshQuotes.length > 0) {
+          playAlertSound();
+          setQuoteAlert(freshQuotes[0]);
+          setTimeout(() => setQuoteAlert(null), 12000);
+        }
+      }
+      prevNotifIdsRef.current = new Set(list.map(n => n.id));
     } catch (error) {
       console.error('Failed to load notifications');
     } finally {
@@ -184,7 +200,7 @@ function NotificationBell({ user }) {
           navigate(`/customer/bookings/${notification.reference_id}`);
           break;
         case 'quote_received':
-          navigate(`/customer/inquiries/${notification.reference_id}`);
+          navigate(`/customer/inquiry/${notification.reference_id}`);
           break;
         case 'new_inquiry':
           if (user?.roles?.includes('operator')) {
@@ -282,6 +298,43 @@ function NotificationBell({ user }) {
 
   return (
     <div className="relative" ref={dropdownRef} data-testid="notification-bell">
+      {/* New Quote Alert Banner */}
+      {quoteAlert && (
+        <div data-testid="quote-alert-banner" className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-3 shadow-lg">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-full">
+                <Plane className="h-6 w-6 animate-bounce" />
+              </div>
+              <div>
+                <p className="font-bold text-lg">✈️ New Quote Received!</p>
+                <p className="text-sm opacity-90">{quoteAlert.message}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                data-testid="quote-alert-view-btn"
+                onClick={() => {
+                  handleMarkRead(quoteAlert.id);
+                  if (quoteAlert.reference_id) navigate(`/customer/inquiry/${quoteAlert.reference_id}`);
+                  setQuoteAlert(null);
+                }}
+                className="px-4 py-2 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                View Quote
+              </button>
+              <button
+                data-testid="quote-alert-dismiss-btn"
+                onClick={() => setQuoteAlert(null)}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Critical Security Alert Banner - Shows on top of screen */}
       {showCriticalBanner && criticalAlerts.length > 0 && (
         <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-3 shadow-lg animate-pulse">

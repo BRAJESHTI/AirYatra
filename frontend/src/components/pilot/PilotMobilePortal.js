@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { PilotChatButton } from './PilotChat';
+import { FlightDetailsModal } from './FlightDetailsModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -535,7 +536,7 @@ const AvailabilityCalendar = ({ onClose }) => {
 };
 
 // Home Tab
-const HomeTab = ({ pilot, stats, upcomingFlights, alerts, emergencyContacts, onSOS }) => (
+const HomeTab = ({ pilot, stats, upcomingFlights, alerts, emergencyContacts, onSOS, onFlightClick }) => (
   <div className="space-y-4 pb-20">
     {/* Welcome Card */}
     <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-4">
@@ -601,7 +602,12 @@ const HomeTab = ({ pilot, stats, upcomingFlights, alerts, emergencyContacts, onS
       {upcomingFlights?.length > 0 ? (
         <div className="space-y-2">
           {upcomingFlights.map((flight, idx) => (
-            <div key={idx} className="bg-slate-800 rounded-xl p-3">
+            <div
+              key={idx}
+              className="bg-slate-800 rounded-xl p-3 cursor-pointer hover:bg-slate-700/80 active:scale-[0.98] transition-all"
+              onClick={() => flight.booking_id && onFlightClick && onFlightClick(flight)}
+              data-testid={`upcoming-flight-card-${idx}`}
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-orange-400 font-mono text-sm">{flight.flight_id || `FL-${idx}`}</span>
                 <span className="text-xs bg-slate-700 px-2 py-1 rounded">{flight.date}</span>
@@ -612,9 +618,14 @@ const HomeTab = ({ pilot, stats, upcomingFlights, alerts, emergencyContacts, onS
                 <ChevronRight className="h-4 w-4 text-slate-500" />
                 <span className="text-sm">{flight.to}</span>
               </div>
-              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
-                <span><Plane className="h-3 w-3 inline mr-1" />{flight.aircraft}</span>
-                <span><Timer className="h-3 w-3 inline mr-1" />{flight.time}</span>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <span><Plane className="h-3 w-3 inline mr-1" />{flight.aircraft}</span>
+                  <span><Timer className="h-3 w-3 inline mr-1" />{flight.time}</span>
+                </div>
+                {flight.booking_id && (
+                  <span className="text-[10px] text-orange-400 flex items-center">Tap for details <ChevronRight className="h-3 w-3" /></span>
+                )}
               </div>
             </div>
           ))}
@@ -1476,6 +1487,7 @@ function PilotMobilePortal() {
   const [isOfflineData, setIsOfflineData] = useState(false);
   const [emergencyContacts, setEmergencyContacts] = useState([]);
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false);
+  const [selectedFlight, setSelectedFlight] = useState(null);
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
@@ -1657,6 +1669,7 @@ function PilotMobilePortal() {
             alerts={alerts}
             emergencyContacts={emergencyContacts}
             onSOS={handleSOS}
+            onFlightClick={(flight) => setSelectedFlight(flight)}
           />
         )}
         {activeTab === 'duty' && (
@@ -1694,6 +1707,11 @@ function PilotMobilePortal() {
       {/* Availability Calendar Modal */}
       {showAvailabilityCalendar && (
         <AvailabilityCalendar onClose={() => setShowAvailabilityCalendar(false)} />
+      )}
+
+      {/* Flight Details Modal */}
+      {selectedFlight && (
+        <FlightDetailsModal bookingId={selectedFlight.booking_id} onClose={() => setSelectedFlight(null)} />
       )}
 
       {/* Bottom Navigation */}

@@ -227,6 +227,7 @@ async def get_pilot_mobile_dashboard(
     for a in upcoming:
         upcoming_flights.append({
             "flight_id": a.get("flight_id", f"FL-{ObjectId()}"),
+            "booking_id": a.get("booking_id"),
             "from": a.get("from_location", "TBD"),
             "to": a.get("to_location", "TBD"),
             "date": a.get("flight_date", "TBD"),
@@ -366,6 +367,77 @@ async def get_pilot_mobile_dashboard(
         "documents": docs_list,
         "flight_logs": logs_list,
         "generated_at": now.isoformat()
+    }
+
+
+@router.get("/mobile/flights/{booking_id}")
+async def get_pilot_flight_details(
+    booking_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Full booking details (passengers, timings, aircraft) for a flight assigned to this pilot"""
+    db = get_database()
+    user_id = current_user.get("id")
+    roles = current_user.get("roles", [])
+    if "pilot" not in roles and "admin" not in roles:
+        raise HTTPException(status_code=403, detail="Pilot access required")
+    
+    pilot = await db.pilots.find_one({"user_id": user_id}, {"_id": 0})
+    pilot_ids = [user_id] + ([pilot["id"]] if pilot and pilot.get("id") else [])
+    
+    assignment = await db.pilot_assignments.find_one({
+        "booking_id": booking_id,
+        "$or": [{"pilot_id": {"$in": pilot_ids}}, {"pilot_user_id": user_id}]
+    }, {"_id": 0})
+    if not assignment and "admin" not in roles:
+        raise HTTPException(status_code=403, detail="Flight not assigned to you")
+    
+    booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0}) or \
+              await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    adult_male = booking.get("adult_male") or booking.get("adults_male") or 0
+    adult_female = booking.get("adult_female") or booking.get("adults_female") or 0
+    children = booking.get("children") or booking.get("children_count") or 0
+    total_pax = booking.get("total_passengers") or booking.get("passengers") or (adult_male + adult_female + children) or 1
+    
+    return {
+        "flight": {
+            "booking_id": booking_id,
+            "reference": booking.get("booking_number") or booking.get("inquiry_number") or booking_id[:8],
+            "status": booking.get("status"),
+            "route": {
+                "from": booking.get("from_location") or booking.get("pickup_location") or booking.get("origin", "N/A"),
+                "to": booking.get("to_location") or booking.get("drop_location") or booking.get("destination", "N/A"),
+            },
+            "date": booking.get("departure_date") or booking.get("travel_date"),
+            "time": booking.get("departure_time") or booking.get("travel_time") or "TBD",
+            "trip_type": booking.get("trip_type") or booking.get("flight_type", "one_way"),
+            "passengers": {
+                "total": total_pax,
+                "adult_male": adult_male,
+                "adult_female": adult_female,
+                "children": children,
+                "names": booking.get("passenger_names") or [p.get("name") for p in booking.get("passenger_details", []) if isinstance(p, dict) and p.get("name")],
+            },
+            "aircraft": {
+                "type": booking.get("aircraft_type") or booking.get("service_type", "N/A"),
+                "registration": booking.get("aircraft_registration") or assignment.get("aircraft_registration") if assignment else booking.get("aircraft_registration"),
+                "name": booking.get("aircraft_name") or booking.get("selected_aircraft"),
+            },
+            "customer": {
+                "name": booking.get("customer_name", "N/A"),
+                "phone": booking.get("customer_phone") or booking.get("contact_phone"),
+            },
+            "special_requirements": booking.get("special_requirements") or booking.get("notes"),
+            "waiting_hours": booking.get("waiting_hours"),
+            "night_halt": booking.get("night_halt"),
+            "assignment": {
+                "pilot_name": assignment.get("pilot_name") if assignment else None,
+                "assigned_at": assignment.get("created_at") if assignment else None,
+            },
+        }
     }
 
 
