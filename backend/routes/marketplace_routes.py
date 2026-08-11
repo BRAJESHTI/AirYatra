@@ -148,6 +148,8 @@ async def _build_options(db, req: MarketplaceSearchRequest):
             "aircraft_id": ac["id"],
             "aircraft_model": ac.get("model_name") or ac.get("aircraft_type"),
             "registration_number": ac.get("registration_number"),
+            "engine_type": ac.get("engine_type"),
+            "engine_model": ac.get("engine_model"),
             "service_category": ac.get("service_category"),
             "image": ac.get("image"),
             "operator_id": ac.get("operator_id"),

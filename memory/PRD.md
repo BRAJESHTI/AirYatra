@@ -7,6 +7,13 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ ENGINE DETAILS IN MARKETPLACE (June 2026 - verified via live screenshot)
+- Aircraft model me `engine_type` (single/twin/triple/quad) + `engine_model` fields: fleet_routes.py create, marketplace_routes.py options, seed_marketplace_fleet.py (ENGINES map), 13 marketplace aircraft DB-updated with realistic engines
+- Compare & Book (MarketplaceResults.js): engine badge har card par ("Single Engine (Safran Arriel 2D Turboshaft)") + filter chips All/Single/Twin Engine (data-testid=engine-filter-*)
+- Operator FleetManagement.js: Add Aircraft form me Engine Type select + Engine Model input
+- CRITICAL LEARNING: NEVER batch parallel search_replace edits on the SAME file — race condition silently drops/corrupts edits (happened twice: NotificationBell.js, MarketplaceResults.js). Same-file edits must be sequential; different files can be parallel.
+- User vision backlog (from hybrid audit): city-wise platform fees + operator payout breakdown, AI auto surge pricing (100% cap), Admin/CEO add price on operator's behalf, registration date display
+
 ### ✅ QUOTE ALERT + PILOT FLIGHT DETAILS (June 2026 - E2E tested via live browser automation)
 - **Quote Alert (sound)**: operator submit-quote now inserts `in_app_notifications` (type=quote_received) for customer; `NotificationBell.js` polls every 15s, plays beep sound + shows blue "New Quote Received" banner (data-testid=quote-alert-banner) with "View Quote" → /customer/inquiry/{id}. Fixed pre-existing wrong navigation (/customer/inquiries/ → /customer/inquiry/). Verified live: banner appeared 7s after quote submit.
 - **Pilot Flight Details**: new endpoint GET /api/pilot/mobile/flights/{booking_id} (assignment-verified) returns full booking details (passengers M/F/children, timings, aircraft, customer, special reqs). Pilot portal HomeTab flight cards now tappable → `FlightDetailsModal.js` (new component). dashboard upcoming_flights now include booking_id. Verified via screenshot on /pilot-portal.

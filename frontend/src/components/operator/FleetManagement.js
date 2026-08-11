@@ -23,6 +23,8 @@ function FleetManagement({ operator }) {
     model_name: '',
     manufacture_year: '',
     registration_number: '',
+    engine_type: '',
+    engine_model: '',
     capacity: '',
     base_location: '',
     hourly_rate: '',
@@ -62,6 +64,8 @@ function FleetManagement({ operator }) {
         model_name: '',
         manufacture_year: '',
         registration_number: '',
+        engine_type: '',
+        engine_model: '',
         capacity: '',
         base_location: '',
         hourly_rate: '',
@@ -202,6 +206,39 @@ function FleetManagement({ operator }) {
                     required
                     className="bg-slate-800 border-slate-700"
                     data-testid="registration-input"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="engine_type">Engine Type</Label>
+                  <select
+                    id="engine_type"
+                    name="engine_type"
+                    value={formData.engine_type}
+                    onChange={handleChange}
+                    className="w-full h-10 rounded-md bg-slate-800 border border-slate-700 text-white text-sm px-3"
+                    data-testid="engine-type-select"
+                  >
+                    <option value="">Select engine type</option>
+                    <option value="single_engine">Single Engine</option>
+                    <option value="twin_engine">Twin Engine</option>
+                    <option value="triple_engine">Triple Engine</option>
+                    <option value="quad_engine">Quad Engine</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="engine_model">Engine Model</Label>
+                  <Input
+                    id="engine_model"
+                    name="engine_model"
+                    placeholder="e.g. Safran Arriel 2D Turboshaft"
+                    value={formData.engine_model}
+                    onChange={handleChange}
+                    className="bg-slate-800 border-slate-700"
+                    data-testid="engine-model-input"
                   />
                 </div>
               </div>

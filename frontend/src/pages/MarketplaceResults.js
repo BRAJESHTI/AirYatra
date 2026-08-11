@@ -7,8 +7,10 @@ import api from '@/services/api';
 import {
   Plane, MapPin, Clock, Users, Wifi, Utensils, Luggage, HeartPulse,
   Star, ShieldCheck, Sparkles, Timer, Loader2, ChevronLeft, Gavel,
-  BadgeCheck, TrendingDown, AlertCircle, Lock, Zap
+  BadgeCheck, TrendingDown, AlertCircle, Lock, Zap, Cog
 } from 'lucide-react';
+
+const ENGINE_LABELS = { single_engine: 'Single Engine', twin_engine: 'Twin Engine', triple_engine: 'Triple Engine', quad_engine: 'Quad Engine' };
 
 const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 
@@ -42,6 +44,7 @@ export default function MarketplaceResults({ user }) {
   const [auctionLive, setAuctionLive] = useState(null);
   const [accepting, setAccepting] = useState(null);
   const [tick, setTick] = useState(0);
+  const [engineFilter, setEngineFilter] = useState('all');
   const pollRef = useRef(null);
   const quotesCountRef = useRef(null);
 
@@ -191,7 +194,9 @@ export default function MarketplaceResults({ user }) {
     );
   }
 
-  const { feasibility, options, mode, fixed_route } = result;
+  const { feasibility, options: allOptions, mode, fixed_route } = result;
+  const options = engineFilter === 'all' ? allOptions : allOptions.filter((o) => o.engine_type === engineFilter);
+  const availableEngineTypes = [...new Set(allOptions.map((o) => o.engine_type).filter(Boolean))];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-8 px-4">
@@ -239,8 +244,25 @@ export default function MarketplaceResults({ user }) {
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold text-lg" data-testid="options-count">
-                {result.options_count} aircraft available from registered operators
+                {options.length} aircraft available from registered operators
               </h2>
+              {availableEngineTypes.length > 1 && (
+                <div className="flex items-center gap-2" data-testid="engine-filter">
+                  <Cog className="h-4 w-4 text-slate-400" />
+                  {['all', ...availableEngineTypes].map((et) => (
+                    <button
+                      key={et}
+                      data-testid={`engine-filter-${et}`}
+                      onClick={() => setEngineFilter(et)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        engineFilter === et ? 'bg-orange-500 text-white' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {et === 'all' ? 'All Engines' : ENGINE_LABELS[et] || et}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-4 mb-8">
               {options.map((o) => (
@@ -283,6 +305,11 @@ export default function MarketplaceResults({ user }) {
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300">
                         <span className="flex items-center gap-1"><Users className="h-3 w-3 text-orange-400" /> {o.capacity} seats</span>
+                        {o.engine_type && (
+                          <span className="flex items-center gap-1" data-testid={`engine-info-${o.aircraft_id}`}>
+                            <Cog className="h-3 w-3 text-orange-400" /> {ENGINE_LABELS[o.engine_type] || o.engine_type}{o.engine_model ? ` (${o.engine_model})` : ''}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1"><Plane className="h-3 w-3 text-orange-400" /> Pilot: {o.pilot_experience_hours.toLocaleString()}+ hrs</span>
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-orange-400" /> Based: {o.base_city}</span>
                         <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-orange-400" /> ETA to pickup: ~{o.pricing.eta_minutes} min</span>

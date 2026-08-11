@@ -45,6 +45,22 @@ IMAGES = {
     "joy_ride": "/services/joy_ride.jpg",
 }
 
+ENGINES = {
+    "Airbus H125": ("single_engine", "Safran Arriel 2D Turboshaft"),
+    "Bell 407GXi": ("single_engine", "Rolls-Royce M250-C47E/4"),
+    "Agusta AW109": ("twin_engine", "Pratt & Whitney PW206C x2"),
+    "Robinson R44": ("single_engine", "Lycoming IO-540 Piston"),
+    "Cessna Citation XLS+": ("twin_engine", "PW545C Turbofan x2"),
+    "King Air B200": ("twin_engine", "PT6A-42 Turboprop x2"),
+    "Hawker 800XP": ("twin_engine", "Honeywell TFE731-5BR x2"),
+    "Bell 429 MedEvac": ("twin_engine", "PW207D1 x2"),
+    "King Air C90 ICU": ("twin_engine", "PT6A-21 Turboprop x2"),
+    "Sunseeker 76 Yacht": ("twin_engine", "MAN V8-1300 Diesel x2"),
+    "Azimut 55 Cruiser": ("twin_engine", "Volvo Penta IPS950 x2"),
+    "Cessna 208 Caravan Cargo": ("single_engine", "PT6A-114A Turboprop"),
+    "Bell 505 JetRanger X": ("single_engine", "Safran Arrius 2R Turboshaft"),
+}
+
 
 async def main():
     client = AsyncIOMotorClient(os.environ["MONGO_URL"])
@@ -66,6 +82,8 @@ async def main():
             "aircraft_type": model,
             "service_category": cat,
             "registration_number": reg,
+            "engine_type": ENGINES.get(model, ("single_engine", None))[0],
+            "engine_model": ENGINES.get(model, (None, None))[1],
             "capacity": cap,
             "hourly_rate": float(rate),
             "base_location": city,

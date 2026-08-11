@@ -28,6 +28,8 @@ async def create_aircraft(aircraft_data: dict, user: dict = Depends(get_current_
         "model_name": aircraft_data.get("model_name"),
         "manufacture_year": aircraft_data.get("manufacture_year"),
         "registration_number": aircraft_data["registration_number"],
+        "engine_type": aircraft_data.get("engine_type"),
+        "engine_model": aircraft_data.get("engine_model"),
         "capacity": aircraft_data["capacity"],
         "base_location": aircraft_data["base_location"],
         "hourly_rate": aircraft_data["hourly_rate"],
