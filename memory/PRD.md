@@ -7,6 +7,15 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ OPERATOR CROSS-ROLE INTEGRATION AUDIT + FIXES (June 2026 - 25/25 pytest pass)
+- Full audit: Operator ↔ Admin ✅, CEO ✅, Customer ✅, Pilot ✅, Operator core/ERP ✅ (`backend/tests/test_iter56_operator_integration.py`)
+- FIXED: `booking_routes.py` missing `timezone` module import → POST /api/bookings/ was 500 (blocked entire customer→operator custom-quote flow)
+- FIXED: quote schema mismatch — operator submit-quote now writes both `amount`+`quoted_price`+`aircraft_id`+correct `valid_until`; accept-quote reads tolerantly (`quoted_price or amount`, `aircraft_id` optional)
+- FIXED: pilot_assignments schema divergence — operator assign now writes `flight_date`, `status:assigned`, `pilot_user_id`, `from/to_location`; pilot mobile dashboard queries by `$or` (user_id / pilot_user_id / pilots.id) so operator assignments now appear in pilot's upcoming flights
+- FIXED: demo pilot linkage — pilot@airyatra.co.in's db.pilots record now has operator_id of operator@airyatra.co.in (AirFleet Services)
+- ADDED: field validation on POST /api/operator/pilots (400 instead of 500 on missing fields)
+- Also this session: Razorpay switched to TEST keys (live keys backed up in /app/memory/razorpay_live_keys_backup.md)
+
 ### ✅ AUTO INVOICE EMAIL ON PAYMENT SUCCESS (June 2026 - verified E2E via live SMTP send)
 - New service `/app/backend/services/invoice_email_service.py`: `send_invoice_email(db, booking_id, gateway)` + fire-and-forget `schedule_invoice_email()` (asyncio task, never delays payment API response)
 - Reuses `_generate_invoice_pdf` from `customer_routes.py`; branded orange "Invoice Ready" HTML email (Hinglish) with PDF attached

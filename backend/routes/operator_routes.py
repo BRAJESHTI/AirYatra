@@ -4,7 +4,7 @@ from models import Operator, OperatorStatus, ApprovalStatus
 from middleware import get_current_user
 import uuid
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -151,6 +151,11 @@ async def create_pilot(pilot_data: dict, user: dict = Depends(get_current_user))
     if not operator:
         raise HTTPException(status_code=404, detail="Operator profile not found")
     
+    required = ["full_name", "license_number", "phone", "email", "experience_years"]
+    missing = [f for f in required if not pilot_data.get(f) and pilot_data.get(f) != 0]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing required fields: {', '.join(missing)}")
+    
     pilot_id = str(uuid.uuid4())
     pilot = {
         "id": pilot_id,
@@ -294,16 +299,19 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
     
     quote_id = existing_quote["id"] if existing_quote else str(uuid.uuid4())
     
+    validity_hours = quote_data.get("validity_hours", 24)
     quote = {
         "id": quote_id,
         "booking_id": booking_id,
         "operator_id": operator["id"],
         "operator_name": operator["company_name"],
-        "customer_id": booking.get("user_id"),
+        "customer_id": booking.get("user_id") or booking.get("customer_id"),
         "amount": quote_data["amount"],
+        "quoted_price": quote_data["amount"],
+        "aircraft_id": quote_data.get("aircraft_id"),
         "breakdown": quote_data.get("breakdown", {}),
-        "validity_hours": quote_data.get("validity_hours", 24),
-        "valid_until": datetime.now(timezone.utc).isoformat(),  # Will be calculated
+        "validity_hours": validity_hours,
+        "valid_until": (datetime.now(timezone.utc) + timedelta(hours=validity_hours)).isoformat(),
         "notes": quote_data.get("notes", ""),
         "status": "sent",
         "revision_count": (existing_quote.get("revision_count", 0) + 1) if existing_quote else 1,
@@ -747,15 +755,22 @@ async def assign_pilot_to_booking(
     if existing:
         raise HTTPException(status_code=400, detail="Pilot already assigned to another booking on this date")
     
-    # Create/update assignment
+    # Create/update assignment (fields aligned with pilot mobile dashboard reader)
+    from_loc = booking.get('from_location') or booking.get('origin', 'N/A')
+    to_loc = booking.get('to_location') or booking.get('destination', 'N/A')
     assignment = {
         "id": str(uuid4()),
         "booking_id": booking_id,
         "pilot_id": pilot_id,
-        "pilot_name": pilot.get("name"),
+        "pilot_user_id": pilot.get("user_id"),
+        "pilot_name": pilot.get("name") or pilot.get("full_name"),
         "operator_id": operator["id"],
         "date": booking_date,
-        "route": f"{booking.get('from_location') or booking.get('origin', 'N/A')} → {booking.get('to_location') or booking.get('destination', 'N/A')}",
+        "flight_date": (booking_date or "")[:10],
+        "status": "assigned",
+        "from_location": from_loc,
+        "to_location": to_loc,
+        "route": f"{from_loc} → {to_loc}",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "created_by": user["id"]
     }

@@ -4,7 +4,7 @@ from models import Booking, BookingStatus, Quote
 from middleware import get_current_user, require_roles
 from models import UserRole
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email_service import email_service
 from ai_service import ai_service
 import logging
@@ -393,14 +393,18 @@ async def accept_quote(booking_id: str, data: dict, user: dict = Depends(get_cur
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     
+    quote_amount = quote.get("quoted_price") or quote.get("amount")
+    if quote_amount is None:
+        raise HTTPException(status_code=400, detail="Quote has no amount")
+    
     # Update booking
     await db.bookings.update_one(
         {"id": booking_id},
         {"$set": {
             "accepted_quote_id": data["quote_id"],
             "operator_id": quote["operator_id"],
-            "aircraft_id": quote["aircraft_id"],
-            "total_amount": quote["quoted_price"],
+            "aircraft_id": quote.get("aircraft_id"),
+            "total_amount": quote_amount,
             "status": BookingStatus.QUOTE_ACCEPTED.value,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}

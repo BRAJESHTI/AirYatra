@@ -206,8 +206,13 @@ async def get_pilot_mobile_dashboard(
     
     # ========== UPCOMING FLIGHTS ==========
     # Get assigned flights for this pilot
+    pilot_record_id = pilot.get("id") if pilot else None
     upcoming = await db.pilot_assignments.find({
-        "pilot_id": user_id,
+        "$or": [
+            {"pilot_id": user_id},
+            {"pilot_user_id": user_id},
+            *([{"pilot_id": pilot_record_id}] if pilot_record_id else [])
+        ],
         "status": {"$in": ["assigned", "confirmed"]},
         "flight_date": {"$gte": now.strftime("%Y-%m-%d")}
     }, {"_id": 0}).sort("flight_date", 1).limit(5).to_list(5)

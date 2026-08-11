@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 56 - Operator cross-role INTEGRATION AUDIT. Ran 25 pytest cases covering all 5 requested integration areas. Result: 18 PASS / 7 FAIL / 1 SKIP. Integrations 3 (Admin), 4 (CEO), and 5 (Operator core health incl. ERP) PASS end-to-end. Integration 1 (Customer<->Operator quote flow) is COMPLETELY BROKEN due to a NameError in POST /api/bookings/ (missing `timezone` import at module scope in booking_routes.py). Integration 2 (Operator<->Pilot) partially works: operator side (list/create/availability/assign) all pass, but the operator->pilot mobile dashboard integration is broken by a data-model mismatch (pilot_assignments schema divergence) AND a missing user_id linkage on pilot@airyatra.co.in's pilot record.",
+  "integration_matrix": {
+    "1_operator_customer_quote_flow": "FAIL - POST /api/bookings/ 500 (NameError). Latent 2nd bug: booking accept-quote reads quote.quoted_price + quote.aircraft_id but operator submit-quote writes quote.amount and does NOT set aircraft_id, so accept-quote would 500 too even if creation worked.",
+    "2_operator_pilot": "PARTIAL - operator CRUD/assign works (assignment doc created + inquiry.assigned_pilot_id set), but pilot mobile dashboard shows 0 upcoming flights due to (a) pilot_assignments schema mismatch: operator writes `pilot_id`=db.pilots.id and `date`=YYYY-MM-DD; pilot_mobile queries `pilot_id`=user_id and `flight_date`; (b) pilot@airyatra.co.in has no db.pilots record linked via user_id under operator@airyatra.co.in.",
+    "3_operator_admin": "PASS - /api/admin/operators-management/pending-approvals, /{id}/documents, /{id}/performance all 200. Suspend+activate roundtrip on demo operator worked; operator was RE-ACTIVATED at end (verified via finally block).",
+    "4_operator_ceo": "PASS - /api/ceo/dashboard returns fleet.operators_total & operators_active as ints > 0.",
+    "5_operator_core_health": "PASS - profile, dashboard, revenue/dashboard, fleet/analytics, aircraft/maintenance-alerts, /api/erp/operator/{overview,logbook,documents,fuel} all 200."
+  },
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/bookings/", "issue": "500 Internal Server Error - NameError: name 'timezone' is not defined at booking_routes.py line 25. Missing `timezone` in `from datetime import datetime, timedelta`. Blocks the entire customer->operator custom-quote flow (Integration 1). Note /api/bookings/inquiry works because it does `from datetime import timezone` locally.", "priority": "CRITICAL"},
+      {"endpoint": "POST /api/bookings/{id}/accept-quote", "issue": "Schema mismatch: reads quote['quoted_price'] and quote['aircraft_id'] (booking_routes.py lines 402-403) but operator submit-quote (operator_routes.py L268) writes quote['amount'] and never sets quote['aircraft_id']. This would raise KeyError->500 when a customer tries to accept a quote submitted through the operator flow.", "priority": "HIGH"},
+      {"endpoint": "GET /api/pilot/mobile/dashboard", "issue": "Integration gap with operator assignments. Operator's POST /api/operator/pilots/assign writes pilot_assignments docs with {pilot_id: db.pilots.id, date: YYYY-MM-DD}. But pilot_mobile_routes.py line 209 queries db.pilot_assignments by {pilot_id: user_id, flight_date: {$gte...}, status: assigned|confirmed}. Field names AND identifier semantics both diverge, so no assigned flight can ever appear in a pilot's dashboard. Additionally the demo pilot user pilot@airyatra.co.in has no db.pilots record with user_id == its user id under operator@airyatra.co.in - so even a fixed schema would not link.", "priority": "HIGH"},
+      {"endpoint": "POST /api/operator/pilots", "issue": "Raises KeyError->500 (not 400) when required fields (full_name, license_number, phone, email, experience_years) are missing. Should validate with Pydantic and return 422/400 with clear message.", "priority": "MEDIUM"}
+    ],
+    "minor": [
+      {"endpoint": "operator_routes: dual-collection split", "issue": "Design gap - /api/operator/quote-requests reads db.bookings ($status=quote_requested), while /api/operator/pilots/assign reads db.inquiries. Customer /api/customer/trips has to dedupe both collections. Consolidating on one collection (or clearly documenting when to use which) would prevent Integration 1 (bookings) failing while Integration 2 (inquiries) works."},
+      {"endpoint": "operator_routes.submit-quote", "issue": "Never sets valid_until (uses datetime.now instead of now+validity_hours). Also writes `amount` while the rest of the accept flow expects `quoted_price` -- rename or add both fields for consistency."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter56_operator_integration.py",
+    "/app/test_reports/pytest/iter56_results.xml"
+  ],
+  "action_items": [
+    "Fix booking_routes.py: change `from datetime import datetime, timedelta` -> `from datetime import datetime, timedelta, timezone` (or add local import inside create_booking). Unblocks POST /api/bookings/.",
+    "Fix schema mismatch between operator submit-quote and booking accept-quote: either operator submit-quote should also write quote.quoted_price and quote.aircraft_id, or booking accept-quote should read quote.amount and tolerate missing aircraft_id.",
+    "Fix pilot mobile dashboard integration: align pilot_assignments field names/values across operator create (uses `date`, pilot_id=db.pilots.id) and pilot mobile read (uses `flight_date`, pilot_id=user_id). Suggest: store BOTH pilot_id (db.pilots.id) and pilot_user_id (users.id) in pilot_assignments and standardise on `flight_date`.",
+    "Seed data: ensure pilot@airyatra.co.in's user id is set as user_id on a db.pilots document owned by operator@airyatra.co.in so the demo pilot actually belongs to the demo operator - otherwise pilot dashboard will always show empty even after schema fix.",
+    "Add Pydantic model to POST /api/operator/pilots so missing fields return 400/422 instead of 500."
+  ],
+  "critical_code_review_comments": [
+    "booking_routes.py line 7: missing `timezone` in datetime import while it's used throughout the file - this is a module-level runtime NameError, and only masked in create_inquiry because that function imports timezone locally at line 151. Must be at module scope.",
+    "operator_routes.py L268 (submit-quote) vs booking_routes.py L392 (accept-quote): the two endpoints operate on different quote schemas (amount vs quoted_price, aircraft_id absent). Contract must be reconciled.",
+    "pilot_mobile_routes.py L209 uses `flight_date` and `pilot_id=user_id` while operator_routes.py L751 stores `date` and `pilot_id=db.pilots.id`. Cross-role integration will silently fail forever - add an integration test in CI to prevent regression.",
+    "POST /api/operator/pilots uses `pilot_data['full_name']` etc. without Pydantic validation - any missing field returns 500 instead of 400/422."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter56_operator_integration.py (NEW - integration audit suite)"
+  ],
+  "success_rate": {"backend": "72% (18/25 pytest cases)", "frontend": "not tested (scope was backend-only)"},
+  "seed_data_creation": "Created 1 test pilot per run under operator@airyatra.co.in (full_name TEST_Pilot_iter56_*). Created 1 test inquiry per run (special_requirements=TEST_iter56_pilot_assign). Suspended+re-activated the demo operator (net state: active). No customer bookings were successfully created because POST /api/bookings/ is broken.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Re-run pytest /app/backend/tests/test_iter56_operator_integration.py after main agent fixes: (1) booking_routes timezone import, (2) submit-quote/accept-quote schema alignment, (3) pilot_assignments field/id alignment, (4) pilot demo user linkage. All 25 cases should pass. If pilot dashboard test still fails, verify with mongo: db.pilots.findOne({user_id: <pilot@airyatra.co.in user.id>, operator_id: <operator@airyatra.co.in operator.id>}) - must return a doc. Also inspect db.pilot_assignments to confirm operator writes match the pilot dashboard query.",
+  "rca_of_the_issue": "Three independent root causes: (a) missing `timezone` in booking_routes.py module import breaks POST /api/bookings/ with NameError; (b) two developers wrote submit-quote and accept-quote against different quote schemas (amount vs quoted_price, missing aircraft_id); (c) operator pilot-assign and pilot mobile dashboard were built against different pilot_assignments schemas (`date`/pilots.id vs `flight_date`/users.id) and the demo pilot user is not linked to any db.pilots record under the demo operator."
+}
