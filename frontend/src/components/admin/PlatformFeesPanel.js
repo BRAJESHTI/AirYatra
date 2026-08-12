@@ -12,6 +12,43 @@ export default function PlatformFeesPanel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ from_city: '', to_city: '', fee_type: 'percent', fee_value: '' });
+  const [settings, setSettings] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/platform-fees/settings');
+      setSettings(res.data);
+    } catch (e) {
+      toast.error('Failed to load pricing settings');
+    }
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await api.put('/platform-fees/settings/update', {
+        commission_percent: parseFloat(settings.global_default_percent),
+        urgency: {
+          ...settings.urgency,
+          tiers: settings.urgency.tiers.map((t) => ({ ...t, percent: parseFloat(t.percent) })),
+        },
+        surge: { ...settings.surge, max_percent: parseFloat(settings.surge.max_percent) },
+      });
+      toast.success('Pricing settings saved');
+      fetchSettings();
+      fetchRules();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const setTierPercent = (idx, val) => {
+    const tiers = settings.urgency.tiers.map((t, i) => (i === idx ? { ...t, percent: val } : t));
+    setSettings({ ...settings, urgency: { ...settings.urgency, tiers } });
+  };
 
   const fetchRules = async () => {
     try {
@@ -25,7 +62,7 @@ export default function PlatformFeesPanel() {
     }
   };
 
-  useEffect(() => { fetchRules(); }, []);
+  useEffect(() => { fetchRules(); fetchSettings(); }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -78,6 +115,73 @@ export default function PlatformFeesPanel() {
           Koi rule match na ho to <span className="text-orange-400 font-semibold">Global Default {globalDefault}%</span> lagega.
         </p>
       </div>
+
+      {/* Pricing Settings: Global Default + Urgency + AI Surge */}
+      {settings && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" data-testid="pricing-settings">
+          {/* Global Default */}
+          <div className="glass p-5 rounded-xl" data-testid="global-default-card">
+            <p className="text-white font-semibold mb-1 flex items-center gap-2"><Percent className="h-4 w-4 text-orange-400" /> Global Default Fee</p>
+            <p className="text-slate-500 text-xs mb-3">Jab koi city/route rule match nahi hota</p>
+            <div className="flex items-center gap-2">
+              <Input type="number" min="0" max="100" step="0.5"
+                value={settings.global_default_percent}
+                onChange={(e) => setSettings({ ...settings, global_default_percent: e.target.value })}
+                className="bg-slate-800 border-slate-700 w-24" data-testid="global-default-input" />
+              <span className="text-slate-400 text-sm">% of quote</span>
+            </div>
+          </div>
+
+          {/* Urgency Pricing */}
+          <div className="glass p-5 rounded-xl" data-testid="urgency-pricing-card">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-white font-semibold flex items-center gap-2">⚡ Urgency Pricing</p>
+              <button type="button" onClick={() => setSettings({ ...settings, urgency: { ...settings.urgency, enabled: !settings.urgency.enabled } })}
+                className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${settings.urgency.enabled ? 'bg-green-500/20 text-green-400' : 'bg-slate-600/40 text-slate-400'}`}
+                data-testid="urgency-toggle">
+                {settings.urgency.enabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            <p className="text-slate-500 text-xs mb-3">Departure jitna paas, price utna zyada. 12hr+ par normal price.</p>
+            {settings.urgency.tiers.map((tier, idx) => (
+              <div key={idx} className="flex items-center gap-2 mb-2">
+                <span className="text-slate-300 text-xs w-24">{tier.min_hours}–{tier.max_hours} hrs:</span>
+                <span className="text-slate-400 text-xs">+</span>
+                <Input type="number" min="0" max="100" step="0.5" value={tier.percent}
+                  onChange={(e) => setTierPercent(idx, e.target.value)}
+                  className="bg-slate-800 border-slate-700 w-20 h-8" data-testid={`urgency-tier-${idx}-input`} />
+                <span className="text-slate-400 text-xs">%</span>
+              </div>
+            ))}
+          </div>
+
+          {/* AI Surge */}
+          <div className="glass p-5 rounded-xl" data-testid="surge-pricing-card">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-white font-semibold flex items-center gap-2">📈 AI Surge Pricing</p>
+              <button type="button" onClick={() => setSettings({ ...settings, surge: { ...settings.surge, enabled: !settings.surge.enabled } })}
+                className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${settings.surge.enabled ? 'bg-green-500/20 text-green-400' : 'bg-slate-600/40 text-slate-400'}`}
+                data-testid="surge-toggle">
+                {settings.surge.enabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            <p className="text-slate-500 text-xs mb-3">Fixed routes par demand (24h searches + bookings) ke hisab se AI rate auto-badhata hai.</p>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300 text-xs">Max increase:</span>
+              <Input type="number" min="0" max="100" step="5" value={settings.surge.max_percent}
+                onChange={(e) => setSettings({ ...settings, surge: { ...settings.surge, max_percent: e.target.value } })}
+                className="bg-slate-800 border-slate-700 w-20 h-8" data-testid="surge-max-input" />
+              <span className="text-slate-400 text-xs">%</span>
+            </div>
+          </div>
+
+          <div className="md:col-span-3">
+            <Button onClick={saveSettings} disabled={savingSettings} className="bg-orange-500 hover:bg-orange-600" data-testid="save-pricing-settings-btn">
+              {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Pricing Settings'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Add rule form */}
       <form onSubmit={handleCreate} className="glass p-5 rounded-xl mb-6 grid grid-cols-2 md:grid-cols-5 gap-3 items-end" data-testid="add-fee-rule-form">

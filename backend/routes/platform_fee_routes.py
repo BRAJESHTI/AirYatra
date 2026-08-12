@@ -40,6 +40,8 @@ class FeePreviewRequest(BaseModel):
     from_location: str
     to_location: str
     amount: float
+    departure_date: Optional[str] = None
+    departure_time: Optional[str] = None
 
 
 def _validate(fee_type: str, fee_value: float):
@@ -115,14 +117,72 @@ async def delete_fee_rule(rule_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("/preview")
 async def preview_fee(body: FeePreviewRequest, user: dict = Depends(get_current_user)):
-    """Operator: live breakdown while quoting - payout + platform fee = customer total"""
+    """Operator: live breakdown while quoting - payout + platform fee + urgency = customer total"""
     db = get_database()
     rule = await resolve_platform_fee(db, body.from_location, body.to_location)
     fee = compute_platform_fee(body.amount, rule)
+
+    from services.dynamic_pricing_service import get_urgency_settings, get_urgency_percent
+    urgency_pct, urgency_label = get_urgency_percent(
+        await get_urgency_settings(db), body.departure_date or "", body.departure_time)
+    urgency_surcharge = round(body.amount * urgency_pct / 100, 2)
+
     return {
         "operator_payout": round(body.amount, 2),
         "platform_fee": fee,
-        "customer_total": round(body.amount + fee, 2),
+        "urgency_percent": urgency_pct,
+        "urgency_surcharge": urgency_surcharge,
+        "urgency_label": urgency_label,
+        "customer_total": round(body.amount + fee + urgency_surcharge, 2),
         "rule_label": rule.get("label"),
         "rule_source": rule.get("source"),
     }
+
+
+class PricingSettingsUpdate(BaseModel):
+    commission_percent: Optional[float] = None
+    urgency: Optional[dict] = None
+    surge: Optional[dict] = None
+
+
+@router.get("/settings")
+async def get_pricing_settings(user: dict = Depends(get_current_user)):
+    _require_admin(user)
+    db = get_database()
+    from services.dynamic_pricing_service import get_urgency_settings, get_surge_settings
+    pricing = await db.platform_settings.find_one({"key": "pricing"}, {"_id": 0}) or {}
+    return {
+        "global_default_percent": pricing.get("commission_percent", 15),
+        "urgency": await get_urgency_settings(db),
+        "surge": await get_surge_settings(db),
+    }
+
+
+@router.put("/settings/update")
+async def update_pricing_settings(body: PricingSettingsUpdate, user: dict = Depends(get_current_user)):
+    _require_admin(user)
+    db = get_database()
+    now = datetime.now(timezone.utc).isoformat()
+    if body.commission_percent is not None:
+        if body.commission_percent < 0 or body.commission_percent > 100:
+            raise HTTPException(status_code=400, detail="commission_percent must be 0-100")
+        await db.platform_settings.update_one(
+            {"key": "pricing"},
+            {"$set": {"commission_percent": body.commission_percent, "updated_at": now, "updated_by": user["id"]}},
+            upsert=True)
+    if body.urgency is not None:
+        for tier in body.urgency.get("tiers", []):
+            if not (0 <= float(tier.get("percent", 0)) <= 100):
+                raise HTTPException(status_code=400, detail="urgency tier percent must be 0-100")
+        await db.platform_settings.update_one(
+            {"key": "urgency_pricing"},
+            {"$set": {"value": body.urgency, "updated_at": now, "updated_by": user["id"]}},
+            upsert=True)
+    if body.surge is not None:
+        if not (0 <= float(body.surge.get("max_percent", 100)) <= 100):
+            raise HTTPException(status_code=400, detail="surge max_percent must be 0-100")
+        await db.platform_settings.update_one(
+            {"key": "surge_pricing"},
+            {"$set": {"value": body.surge, "updated_at": now, "updated_by": user["id"]}},
+            upsert=True)
+    return {"message": "Pricing settings updated"}

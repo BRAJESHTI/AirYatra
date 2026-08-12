@@ -71,7 +71,8 @@ async def _engine_settings(db):
     }
 
 
-def _price_option(aircraft: dict, distance_km: float, passengers: int, settings: dict, fixed_route: Optional[dict]):
+def _price_option(aircraft: dict, distance_km: float, passengers: int, settings: dict, fixed_route: Optional[dict],
+                  urgency_pct: float = 0.0, urgency_label: str = None, surge_pct: float = 0.0):
     """Compute full transparent pricing for one aircraft option"""
     speed = aircraft.get("cruise_speed_kmh") or SERVICE_SPEEDS.get(aircraft.get("service_category"), 220)
     flight_hours = max(round((distance_km or 100) / speed, 2), 0.5)
@@ -95,9 +96,17 @@ def _price_option(aircraft: dict, distance_km: float, passengers: int, settings:
         base_fare = round(aircraft.get("hourly_rate", 50000) * max(flight_hours, 1.0), 2)
         pricing_model = "dynamic"
 
+    # AI Surge (fixed routes only) + Urgency surcharge (all)
+    surge_amount = 0.0
+    applied_surge_pct = 0.0
+    if pricing_model == "fixed_route" and surge_pct > 0:
+        surge_amount = round(base_fare * surge_pct / 100, 2)
+        applied_surge_pct = surge_pct
+    urgency_amount = round((base_fare + surge_amount) * urgency_pct / 100, 2) if urgency_pct else 0.0
+
     convenience_fee = round((base_fare + ferry_charge) * 0.05, 2)
-    gst = round((base_fare + ferry_charge + convenience_fee) * 0.18, 2)
-    total = round(base_fare + ferry_charge + convenience_fee + gst, 2)
+    gst = round((base_fare + surge_amount + urgency_amount + ferry_charge + convenience_fee) * 0.18, 2)
+    total = round(base_fare + surge_amount + urgency_amount + ferry_charge + convenience_fee + gst, 2)
 
     positioning_minutes = int((ferry_km / speed) * 60) if ferry_km else 0
     flight_minutes = int(flight_hours * 60)
@@ -107,6 +116,11 @@ def _price_option(aircraft: dict, distance_km: float, passengers: int, settings:
         "base_fare": base_fare,
         "ferry_km": ferry_km,
         "ferry_charge": ferry_charge,
+        "surge_percent": applied_surge_pct,
+        "surge_amount": surge_amount,
+        "urgency_percent": urgency_pct,
+        "urgency_amount": urgency_amount,
+        "urgency_label": urgency_label,
         "convenience_fee": convenience_fee,
         "gst": gst,
         "total": total,
@@ -139,10 +153,22 @@ async def _build_options(db, req: MarketplaceSearchRequest):
         "capacity": {"$gte": req.passengers},
     }, {"_id": 0}).to_list(50)
 
+    # Urgency (time-to-departure) + AI Surge (demand on this route, fixed routes only)
+    from services.dynamic_pricing_service import (
+        get_urgency_settings, get_surge_settings, get_urgency_percent, compute_surge_percent,
+    )
+    urgency_pct, urgency_label = get_urgency_percent(
+        await get_urgency_settings(db), req.travel_date, req.travel_time)
+    surge_pct = 0.0
+    if fixed_route:
+        surge_pct, _demand = await compute_surge_percent(
+            db, await get_surge_settings(db), req.from_location, req.to_location)
+
     options = []
     for ac in aircraft_list:
         ac["_pickup_lat"], ac["_pickup_lng"] = req.pickup_latitude, req.pickup_longitude
-        pricing = _price_option(ac, distance_km, req.passengers, settings, fixed_route)
+        pricing = _price_option(ac, distance_km, req.passengers, settings, fixed_route,
+                                urgency_pct=urgency_pct, urgency_label=urgency_label, surge_pct=surge_pct)
         options.append({
             "option_id": ac["id"],
             "aircraft_id": ac["id"],
@@ -196,6 +222,10 @@ async def marketplace_search(req: MarketplaceSearchRequest, current_user: dict =
 
     if req.aircraft_type not in SERVICE_SPEEDS:
         raise HTTPException(status_code=400, detail="Invalid service type")
+
+    # Demand signal for AI Surge pricing
+    from services.dynamic_pricing_service import log_route_search
+    await log_route_search(db, req.from_location, req.to_location)
 
     distance_km, fixed_route, options, settings = await _build_options(db, req)
 

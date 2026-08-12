@@ -35,7 +35,17 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
     )
     operator_payout = float(quote_data["quoted_price"])
     platform_fee = compute_platform_fee(operator_payout, fee_rule)
-    customer_total = round(operator_payout + platform_fee, 2)
+
+    # Urgency surcharge (time-to-departure based, admin-configurable)
+    from services.dynamic_pricing_service import get_urgency_settings, get_urgency_percent
+    urgency_settings = await get_urgency_settings(db)
+    urgency_pct, urgency_label = get_urgency_percent(
+        urgency_settings,
+        booking.get("departure_date") or booking.get("travel_date") or "",
+        booking.get("departure_time") or booking.get("travel_time"),
+    )
+    urgency_surcharge = round(operator_payout * urgency_pct / 100, 2)
+    customer_total = round(operator_payout + platform_fee + urgency_surcharge, 2)
     
     quote_id = str(uuid.uuid4())
     quote = {
@@ -48,6 +58,9 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
         "operator_payout": operator_payout,
         "platform_fee": platform_fee,
         "platform_fee_rule": fee_rule.get("label"),
+        "urgency_percent": urgency_pct,
+        "urgency_surcharge": urgency_surcharge,
+        "urgency_label": urgency_label,
         "validity_hours": quote_data.get("validity_hours", 24),
         "special_notes": quote_data.get("special_notes"),
         "is_accepted": False,

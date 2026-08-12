@@ -315,7 +315,17 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
     except (ValueError, TypeError, KeyError):
         raise HTTPException(status_code=400, detail="Valid quote amount required")
     platform_fee = compute_platform_fee(operator_payout, fee_rule)
-    customer_total = round(operator_payout + platform_fee, 2)
+
+    # Urgency surcharge (time-to-departure based, admin-configurable)
+    from services.dynamic_pricing_service import get_urgency_settings, get_urgency_percent
+    urgency_settings = await get_urgency_settings(db)
+    urgency_pct, urgency_label = get_urgency_percent(
+        urgency_settings,
+        booking.get("departure_date") or booking.get("travel_date") or "",
+        booking.get("departure_time") or booking.get("travel_time"),
+    )
+    urgency_surcharge = round(operator_payout * urgency_pct / 100, 2)
+    customer_total = round(operator_payout + platform_fee + urgency_surcharge, 2)
 
     quote = {
         "id": quote_id,
@@ -328,6 +338,9 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
         "operator_payout": operator_payout,
         "platform_fee": platform_fee,
         "platform_fee_rule": fee_rule.get("label"),
+        "urgency_percent": urgency_pct,
+        "urgency_surcharge": urgency_surcharge,
+        "urgency_label": urgency_label,
         "aircraft_id": quote_data.get("aircraft_id"),
         "breakdown": quote_data.get("breakdown", {}),
         "validity_hours": validity_hours,

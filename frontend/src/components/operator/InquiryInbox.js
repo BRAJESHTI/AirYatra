@@ -35,6 +35,8 @@ function InquiryInbox({ operator }) {
           from_location: booking.from_location || booking.pickup_location || '',
           to_location: booking.to_location || booking.drop_location || '',
           amount,
+          departure_date: booking.departure_date || booking.travel_date || null,
+          departure_time: booking.departure_time || booking.travel_time || null,
         });
         setFeePreview(res.data);
       } catch (e) {
@@ -367,6 +369,12 @@ function InquiryInbox({ operator }) {
                     <span className="text-slate-300">+ Platform Fee <span className="text-slate-500 text-xs">({feePreview.rule_label})</span></span>
                     <span className="text-orange-400 font-semibold" data-testid="fee-platform-fee">₹{feePreview.platform_fee.toLocaleString()}</span>
                   </div>
+                  {feePreview.urgency_surcharge > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-300">+ Urgency Surcharge <span className="text-yellow-500 text-xs">({feePreview.urgency_label})</span></span>
+                      <span className="text-yellow-400 font-semibold" data-testid="fee-urgency-surcharge">₹{feePreview.urgency_surcharge.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-base border-t border-slate-700 pt-1.5">
                     <span className="text-white font-semibold">= Customer Total</span>
                     <span className="text-white font-bold" data-testid="fee-customer-total">₹{feePreview.customer_total.toLocaleString()}</span>

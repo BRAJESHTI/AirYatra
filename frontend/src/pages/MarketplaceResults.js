@@ -316,10 +316,12 @@ export default function MarketplaceResults({ user }) {
                       </div>
                       <AmenityIcons amenities={o.amenities} cabinCrew={o.cabin_crew} />
                       {/* Price breakdown row */}
-                      <div className="text-xs text-slate-500 pt-1">
+                      <div className="text-xs text-slate-500 pt-1" data-testid={`price-breakdown-${o.aircraft_id}`}>
                         Base {fmt(o.pricing.base_fare)}
                         {o.pricing.ferry_charge > 0 && <> + Ferry ({o.pricing.ferry_km}km) {fmt(o.pricing.ferry_charge)}</>}
                         {o.pricing.ferry_charge === 0 && o.pricing.pricing_model === 'fixed_route' && <> • Ferry included</>}
+                        {o.pricing.surge_amount > 0 && <> + Surge {fmt(o.pricing.surge_amount)}</>}
+                        {o.pricing.urgency_amount > 0 && <> + Urgency {fmt(o.pricing.urgency_amount)}</>}
                         {' '}+ Fees {fmt(o.pricing.convenience_fee)} + GST {fmt(o.pricing.gst)}
                       </div>
                     </div>
@@ -328,6 +330,20 @@ export default function MarketplaceResults({ user }) {
                       <div className="text-center">
                         <p className="text-2xl font-bold text-white" data-testid={`option-price-${o.aircraft_id}`}>{fmt(o.pricing.total)}</p>
                         <p className="text-slate-500 text-xs">{o.pricing.pricing_model === 'fixed_route' ? 'Fixed route price' : 'All-inclusive'}</p>
+                        {(o.pricing.urgency_percent > 0 || o.pricing.surge_percent > 0) && (
+                          <div className="flex gap-1 justify-end mt-1 flex-wrap">
+                            {o.pricing.urgency_percent > 0 && (
+                              <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full" data-testid={`urgency-badge-${o.aircraft_id}`}>
+                                ⚡ Urgent +{o.pricing.urgency_percent}%
+                              </span>
+                            )}
+                            {o.pricing.surge_percent > 0 && (
+                              <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full" data-testid={`surge-badge-${o.aircraft_id}`}>
+                                📈 High demand +{o.pricing.surge_percent}%
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <Button
                         data-testid={`book-now-${o.aircraft_id}`}

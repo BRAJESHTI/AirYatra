@@ -7,6 +7,15 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ GLOBAL DEFAULT SETTING + URGENCY PRICING + AI SURGE PRICING (June 2026 - curl E2E + UI screenshots + 16/16 regression pass)
+- NEW `services/dynamic_pricing_service.py`: urgency tiers (0-6hr +15%, 6-12hr +10%, 12hr+ normal — admin-editable), AI surge (24h route searches via route_search_log + bookings → percent, capped at max_percent default 100%)
+- Settings endpoints: GET /api/platform-fees/settings, PUT /api/platform-fees/settings/update (commission_percent + urgency + surge; NOTE: PUT path is /settings/update to avoid /{rule_id} route conflict)
+- Marketplace search: logs demand signal, applies surge (fixed routes only) + urgency to all options; pricing dict has surge_percent/surge_amount/urgency_percent/urgency_amount/urgency_label; GST computed on full amount
+- Quote paths (operator submit-quote, /api/quotes/) + /preview: urgency surcharge added → customer_total = payout + platform_fee + urgency
+- Admin UI (PlatformFeesPanel): 3 settings cards (Global Default %, Urgency tiers with toggle, AI Surge with cap) + Save; Customer UI: ⚡ Urgent +X% and 📈 High demand +X% badges on Compare & Book cards with full breakdown
+- Operator UI: urgency row in quote breakdown (fee-urgency-surcharge)
+- Verified live: 7 searches+bookings on Mumbai-Pune → surge 68%, urgency 15% at <6hr departure, math correct (₹85,131 total)
+
 ### ✅ CITY/ROUTE-WISE PLATFORM FEES (June 2026 - 16/16 pytest + full UI test pass, iteration_57)
 - NEW: `services/platform_fee_service.py` (resolver: route rule > city rule > global default 15% from platform_settings.pricing) + `routes/platform_fee_routes.py` (/api/platform-fees: admin/ceo CRUD, /preview for any auth user)
 - Fee AUTO-APPLIES on all 3 operator quote paths: operator_routes submit-quote, quote_routes POST /api/quotes/, auction_routes (submit+update, gst on subtotal+fee). Quote stores: operator_payout, platform_fee, platform_fee_rule, amount/quoted_price = customer_total
