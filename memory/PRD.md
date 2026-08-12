@@ -7,6 +7,11 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ REPORT DATE FILTER (June 2026 - curl + UI verified)
+- Both report endpoints (/api/admin/pricing/own-fleet-bookings, /fee-revenue-report) accept start_date/end_date (YYYY-MM-DD, created_at ISO string range)
+- RevenueReports.js: filter bar with All Time / This Week (last 7d) / This Month (calendar) / Custom (date inputs + Apply) — data-testids report-filter-*, report-start-date, report-apply-custom
+- Verified: 2025 range → 0 rows, week range → current data
+
 ### ✅ OWN FLEET BOOKINGS + FEE REVENUE REPORT (June 2026 - curl E2E + UI screenshot verified)
 - GET /api/admin/pricing/own-fleet-bookings: AirYatra own aircraft bookings (inquiries+bookings, operator airyatra_own_fleet or aircraft own-*) with summary (total/paid/gross earnings/pending)
 - GET /api/admin/pricing/fee-revenue-report: route-wise + city-wise platform fee, urgency, surge & convenience income; realized = accepted quotes / paid bookings (quotes joined to bookings via bulk $in lookup; marketplace paid bookings via pricing_breakdown)

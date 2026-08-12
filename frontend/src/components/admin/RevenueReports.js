@@ -15,24 +15,49 @@ export default function RevenueReports() {
   const [ownFleet, setOwnFleet] = useState(null);
   const [feeReport, setFeeReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [preset, setPreset] = useState('all');
+  const [custom, setCustom] = useState({ start: '', end: '' });
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [of, fr] = await Promise.all([
-          api.get('/admin/pricing/own-fleet-bookings'),
-          api.get('/admin/pricing/fee-revenue-report'),
-        ]);
-        setOwnFleet(of.data);
-        setFeeReport(fr.data);
-      } catch (e) {
-        console.error('Failed to load reports');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const rangeFor = (p) => {
+    const today = new Date();
+    const iso = (d) => d.toISOString().slice(0, 10);
+    if (p === 'week') {
+      const s = new Date(today); s.setDate(s.getDate() - 6);
+      return { start_date: iso(s), end_date: iso(today) };
+    }
+    if (p === 'month') {
+      const s = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start_date: iso(s), end_date: iso(today) };
+    }
+    if (p === 'custom' && custom.start && custom.end) {
+      return { start_date: custom.start, end_date: custom.end };
+    }
+    return {};
+  };
+
+  const load = async (p = preset) => {
+    setLoading(true);
+    try {
+      const params = rangeFor(p);
+      const [of, fr] = await Promise.all([
+        api.get('/admin/pricing/own-fleet-bookings', { params }),
+        api.get('/admin/pricing/fee-revenue-report', { params }),
+      ]);
+      setOwnFleet(of.data);
+      setFeeReport(fr.data);
+    } catch (e) {
+      console.error('Failed to load reports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load('all'); }, []);
+
+  const selectPreset = (p) => {
+    setPreset(p);
+    if (p !== 'custom') load(p);
+  };
 
   if (loading) return <div className="p-6"><Loader2 className="h-6 w-6 animate-spin text-orange-400" /></div>;
 
@@ -44,6 +69,29 @@ export default function RevenueReports() {
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">Revenue Reports</h2>
         <p className="text-slate-400 text-sm">AirYatra own fleet ki bookings/earnings aur route-wise platform fee, urgency & surge income.</p>
+      </div>
+
+      {/* Date filter */}
+      <div className="glass p-4 rounded-xl flex flex-wrap items-center gap-3" data-testid="report-date-filter">
+        {[['all', 'All Time'], ['week', 'This Week'], ['month', 'This Month'], ['custom', 'Custom']].map(([p, label]) => (
+          <button key={p} onClick={() => selectPreset(p)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${preset === p ? 'bg-orange-500 text-white' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600'}`}
+            data-testid={`report-filter-${p}`}>
+            {label}
+          </button>
+        ))}
+        {preset === 'custom' && (
+          <div className="flex items-center gap-2" data-testid="custom-range-inputs">
+            <input type="date" value={custom.start} onChange={(e) => setCustom({ ...custom, start: e.target.value })}
+              className="bg-slate-800 border border-slate-700 rounded-md text-white text-xs px-2 py-1.5" data-testid="report-start-date" />
+            <span className="text-slate-500 text-xs">to</span>
+            <input type="date" value={custom.end} onChange={(e) => setCustom({ ...custom, end: e.target.value })}
+              className="bg-slate-800 border border-slate-700 rounded-md text-white text-xs px-2 py-1.5" data-testid="report-end-date" />
+            <button onClick={() => custom.start && custom.end && load('custom')}
+              className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-600 text-white hover:bg-green-500"
+              data-testid="report-apply-custom">Apply</button>
+          </div>
+        )}
       </div>
 
       {/* Own Fleet Bookings */}

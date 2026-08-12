@@ -359,12 +359,28 @@ async def remove_own_aircraft(aircraft_id: str, user: dict = Depends(get_current
 PAID_STATUSES = {"paid", "fully_paid", "captured"}
 
 
+def _created_range(start_date: Optional[str], end_date: Optional[str]) -> Optional[dict]:
+    rng = {}
+    if start_date:
+        rng["$gte"] = f"{start_date[:10]}T00:00:00"
+    if end_date:
+        rng["$lte"] = f"{end_date[:10]}T23:59:59.999999+00:00"
+    return rng or None
+
+
 @router.get("/own-fleet-bookings")
-async def own_fleet_bookings(user: dict = Depends(get_current_user)):
+async def own_fleet_bookings(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
     """Bookings landed on AirYatra's own aircraft + earnings"""
     _require_admin(user)
     db = get_database()
     query = {"$or": [{"operator_id": OWN_FLEET_OPERATOR_ID}, {"aircraft_id": {"$regex": "^own-"}}]}
+    rng = _created_range(start_date, end_date)
+    if rng:
+        query["created_at"] = rng
     proj = {"_id": 0, "id": 1, "inquiry_number": 1, "booking_number": 1, "from_location": 1,
             "to_location": 1, "travel_date": 1, "departure_date": 1, "customer_name": 1,
             "aircraft_model": 1, "aircraft_id": 1, "final_price": 1, "total_amount": 1,
@@ -392,10 +408,15 @@ async def own_fleet_bookings(user: dict = Depends(get_current_user)):
 
 
 @router.get("/fee-revenue-report")
-async def fee_revenue_report(user: dict = Depends(get_current_user)):
+async def fee_revenue_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
     """Platform fee + urgency + surge income grouped by route and city"""
     _require_admin(user)
     db = get_database()
+    rng = _created_range(start_date, end_date)
 
     routes: dict = {}
 
@@ -410,8 +431,11 @@ async def fee_revenue_report(user: dict = Depends(get_current_user)):
         return routes[key]
 
     # 1) Operator/admin quotes (custom quote flow)
+    quotes_query = {"$or": [{"platform_fee": {"$gt": 0}}, {"urgency_surcharge": {"$gt": 0}}]}
+    if rng:
+        quotes_query["created_at"] = rng
     quotes = await db.quotes.find(
-        {"$or": [{"platform_fee": {"$gt": 0}}, {"urgency_surcharge": {"$gt": 0}}]},
+        quotes_query,
         {"_id": 0, "booking_id": 1, "platform_fee": 1, "urgency_surcharge": 1, "status": 1}
     ).sort("created_at", -1).to_list(500)
     booking_ids = list({q["booking_id"] for q in quotes if q.get("booking_id")})
@@ -432,8 +456,11 @@ async def fee_revenue_report(user: dict = Depends(get_current_user)):
             r["realized_income"] += fee + urg
 
     # 2) Marketplace instant bookings (convenience fee + surge + urgency), paid only
+    mkt_query = {"pricing_breakdown": {"$exists": True}, "payment_status": {"$in": list(PAID_STATUSES)}}
+    if rng:
+        mkt_query["created_at"] = rng
     async for b in db.inquiries.find(
-            {"pricing_breakdown": {"$exists": True}, "payment_status": {"$in": list(PAID_STATUSES)}},
+            mkt_query,
             {"_id": 0, "from_location": 1, "to_location": 1, "pricing_breakdown": 1}).limit(500):
         p = b.get("pricing_breakdown") or {}
         r = bucket(b.get("from_location"), b.get("to_location"))
