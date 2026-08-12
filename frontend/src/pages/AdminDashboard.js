@@ -89,6 +89,7 @@ import PaymentRulesPanel from '@/components/admin/PaymentRulesPanel';
 import PlatformFeesPanel from '@/components/admin/PlatformFeesPanel';
 import AdminPricingPanel from '@/components/admin/AdminPricingPanel';
 import RevenueReports from '@/components/admin/RevenueReports';
+import OperatorScorecards from '@/components/admin/OperatorScorecards';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
 import VerificationAPISettings from '@/components/admin/VerificationAPISettings';
@@ -160,6 +161,7 @@ const navGroups = [
     items: [
       { id: 'operators', label: 'Operator Management', icon: Building2 },
       { id: 'operator_performance', label: 'Operator Performance', icon: TrendingUp },
+      { id: 'operator_scorecards', label: 'Operator Scorecards / स्कोरकार्ड', icon: TrendingUp, highlight: true },
       { id: 'suspended', label: 'Suspended Operators', icon: Ban },
       { id: 'fleet_maintenance', label: 'Fleet Maintenance', icon: Settings },
       { id: 'doc_verify', label: 'Document Verification', icon: FileCheck },
@@ -498,6 +500,8 @@ function AdminDashboard({ user, onLogout }) {
         return <OperatorManagement />;
       case 'operator_performance':
         return <OperatorPerformance />;
+      case 'operator_scorecards':
+        return <OperatorScorecards />;
       case 'suspended':
         return <SuspendedOperators />;
       case 'bookings':

@@ -7,6 +7,11 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ OPERATOR SCORECARDS (June 2026 - curl + UI verified)
+- GET /api/admin/pricing/operator-scorecards: per-operator quotes sent/won + win rate, avg aircraft rating, on-time % (flight_records departure vs booking schedule, ≤30min = on-time), composite score = 40% win rate + 30% rating + 25% on-time + 5% participation; grades A+/A/B/C, sorted by score/wins/rating
+- Admin UI: "Operator Scorecards / स्कोरकार्ड" tab under Operators & Fleet (OperatorScorecards.js) — medal top-3, metric columns, score progress bar, grade badge
+- Demo operator's 2 aircraft seeded rating 4.6 (missing data); AirFleet Services Pvt Ltd ranks #1 (10 quotes, 79 flights)
+
 ### ✅ REPORT EXPORT (EXCEL/PDF) + WEEKLY TREND CHART (June 2026 - curl + browser download verified)
 - GET /api/admin/pricing/export?format=excel|pdf (+date range): Excel via openpyxl (3 sheets: Summary, Route Income, Own Fleet Bookings), PDF via reportlab platypus (landscape A4, styled tables), proper StreamingResponse headers
 - GET /api/admin/pricing/revenue-trend?weeks=8: weekly buckets (Mon-start) of quote fees + marketplace fees + own-fleet paid earnings

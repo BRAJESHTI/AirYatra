@@ -551,6 +551,93 @@ async def revenue_trend(weeks: int = 8, user: dict = Depends(get_current_user)):
     return {"weeks": buckets}
 
 
+@router.get("/operator-scorecards")
+async def operator_scorecards(user: dict = Depends(get_current_user)):
+    """Rank operators by quotes won, ratings and on-time flights"""
+    _require_admin(user)
+    db = get_database()
+
+    operators = await db.operators.find({}, {"_id": 0, "id": 1, "company_name": 1, "status": 1, "rating": 1}).to_list(200)
+    quotes = await db.quotes.find({}, {"_id": 0, "operator_id": 1, "status": 1}).to_list(2000)
+    aircraft = await db.aircraft.find({}, {"_id": 0, "id": 1, "operator_id": 1, "rating": 1}).to_list(1000)
+    records = await db.flight_records.find(
+        {}, {"_id": 0, "aircraft_id": 1, "booking_id": 1, "departure_time": 1}).to_list(2000)
+
+    ac_owner = {a["id"]: a.get("operator_id") for a in aircraft}
+    booking_ids = list({r["booking_id"] for r in records if r.get("booking_id")})
+    sched = {}
+    for coll in (db.bookings, db.inquiries):
+        async for b in coll.find({"id": {"$in": booking_ids}},
+                                 {"_id": 0, "id": 1, "travel_date": 1, "departure_date": 1,
+                                  "pickup_time": 1, "departure_time": 1, "travel_time": 1}):
+            sched.setdefault(b["id"], b)
+
+    def parse_dt(val):
+        try:
+            return datetime.fromisoformat(str(val).replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    stats = {}
+    for op in operators:
+        stats[op["id"]] = {"operator_id": op["id"], "company_name": op["company_name"],
+                           "status": op.get("status"), "quotes_sent": 0, "quotes_won": 0,
+                           "flights_total": 0, "on_time_flights": 0, "on_time_known": 0,
+                           "_ratings": []}
+
+    for q in quotes:
+        s = stats.get(q.get("operator_id"))
+        if s:
+            s["quotes_sent"] += 1
+            if q.get("status") == "accepted":
+                s["quotes_won"] += 1
+
+    for a in aircraft:
+        s = stats.get(a.get("operator_id"))
+        if s and a.get("rating"):
+            s["_ratings"].append(float(a["rating"]))
+
+    for r in records:
+        op_id = ac_owner.get(r.get("aircraft_id"))
+        s = stats.get(op_id)
+        if not s:
+            continue
+        s["flights_total"] += 1
+        b = sched.get(r.get("booking_id")) or {}
+        sched_date = (b.get("travel_date") or b.get("departure_date") or "")[:10]
+        sched_time = (b.get("pickup_time") or b.get("departure_time") or b.get("travel_time") or "")[:5]
+        actual = parse_dt(r.get("departure_time"))
+        if sched_date and sched_time and actual:
+            planned = parse_dt(f"{sched_date}T{sched_time}:00+00:00")
+            if planned:
+                s["on_time_known"] += 1
+                delay_min = (actual.replace(tzinfo=None) - planned.replace(tzinfo=None)).total_seconds() / 60
+                if delay_min <= 30:
+                    s["on_time_flights"] += 1
+
+    cards = []
+    for op in operators:
+        s = stats[op["id"]]
+        win_rate = round(s["quotes_won"] / s["quotes_sent"] * 100, 1) if s["quotes_sent"] else 0.0
+        rating = round(sum(s["_ratings"]) / len(s["_ratings"]), 2) if s["_ratings"] else float(op.get("rating") or 0) or None
+        on_time = round(s["on_time_flights"] / s["on_time_known"] * 100, 1) if s["on_time_known"] else None
+
+        participation = min(s["quotes_sent"] / 10, 1) * 100
+        score = round(
+            win_rate * 0.40 + ((rating or 0) / 5 * 100) * 0.30 + (on_time or 0) * 0.25 + participation * 0.05, 1)
+        grade = "A+" if score >= 70 else "A" if score >= 55 else "B" if score >= 35 else "C" if score > 0 else "—"
+
+        cards.append({"operator_id": s["operator_id"], "company_name": s["company_name"],
+                      "status": s["status"], "quotes_sent": s["quotes_sent"], "quotes_won": s["quotes_won"],
+                      "flights_total": s["flights_total"], "win_rate": win_rate, "rating": rating,
+                      "on_time_percent": on_time, "score": score, "grade": grade})
+
+    cards.sort(key=lambda c: (-c["score"], -c["quotes_won"], -(c["rating"] or 0)))
+    for i, c in enumerate(cards):
+        c["rank"] = i + 1
+    return {"scorecards": cards, "total_operators": len(cards)}
+
+
 @router.get("/export")
 async def export_revenue_report(
     format: str = "excel",
