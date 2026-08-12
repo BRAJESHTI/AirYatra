@@ -494,3 +494,209 @@ async def fee_revenue_report(
     totals["total_paid_bookings"] = sum(r["paid_bookings"] for r in route_list)
 
     return {"routes": route_list, "cities": city_list, "totals": totals}
+
+
+@router.get("/revenue-trend")
+async def revenue_trend(weeks: int = 8, user: dict = Depends(get_current_user)):
+    """Weekly income trend: quote fees + marketplace fees + own-fleet paid earnings"""
+    _require_admin(user)
+    db = get_database()
+    weeks = max(2, min(weeks, 26))
+    now = datetime.now(timezone.utc)
+    start_of_week = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    buckets = []
+    for i in range(weeks - 1, -1, -1):
+        ws = start_of_week - timedelta(weeks=i)
+        buckets.append({
+            "week_start": ws.strftime("%Y-%m-%d"),
+            "label": ws.strftime("%d %b"),
+            "fee_income": 0.0,
+            "marketplace_income": 0.0,
+            "own_fleet_earnings": 0.0,
+            "total": 0.0,
+        })
+    range_start = buckets[0]["week_start"]
+
+    def bucket_for(created_at):
+        d = (created_at or "")[:10]
+        for b in reversed(buckets):
+            if d >= b["week_start"]:
+                return b
+        return None
+
+    async for q in db.quotes.find(
+            {"created_at": {"$gte": range_start},
+             "$or": [{"platform_fee": {"$gt": 0}}, {"urgency_surcharge": {"$gt": 0}}]},
+            {"_id": 0, "created_at": 1, "platform_fee": 1, "urgency_surcharge": 1}).limit(2000):
+        b = bucket_for(q.get("created_at"))
+        if b:
+            b["fee_income"] += float(q.get("platform_fee") or 0) + float(q.get("urgency_surcharge") or 0)
+
+    async for m in db.inquiries.find(
+            {"created_at": {"$gte": range_start}, "pricing_breakdown": {"$exists": True},
+             "payment_status": {"$in": list(PAID_STATUSES)}},
+            {"_id": 0, "created_at": 1, "pricing_breakdown": 1, "operator_id": 1, "final_price": 1}).limit(2000):
+        b = bucket_for(m.get("created_at"))
+        if not b:
+            continue
+        p = m.get("pricing_breakdown") or {}
+        b["marketplace_income"] += float(p.get("convenience_fee") or 0) + float(p.get("surge_amount") or 0) + float(p.get("urgency_amount") or 0)
+        if m.get("operator_id") == OWN_FLEET_OPERATOR_ID:
+            b["own_fleet_earnings"] += float(m.get("final_price") or 0)
+
+    for b in buckets:
+        for k in ("fee_income", "marketplace_income", "own_fleet_earnings"):
+            b[k] = round(b[k], 2)
+        b["total"] = round(b["fee_income"] + b["marketplace_income"] + b["own_fleet_earnings"], 2)
+    return {"weeks": buckets}
+
+
+@router.get("/export")
+async def export_revenue_report(
+    format: str = "excel",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
+    """Download revenue report as Excel or PDF"""
+    _require_admin(user)
+    fee = await fee_revenue_report(start_date=start_date, end_date=end_date, user=user)
+    own = await own_fleet_bookings(start_date=start_date, end_date=end_date, user=user)
+    period = f"{start_date or 'Beginning'} to {end_date or 'Today'}"
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+
+    import io
+    from fastapi.responses import StreamingResponse
+
+    if format == "pdf":
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=landscape(A4), title="AirYatra Revenue Report")
+        styles = getSampleStyleSheet()
+        story = [
+            Paragraph("AirYatra - Revenue Report", styles["Title"]),
+            Paragraph(f"Period: {period} | Generated: {datetime.now(timezone.utc).strftime('%d %b %Y %H:%M UTC')}", styles["Normal"]),
+            Spacer(1, 12),
+            Paragraph("Summary", styles["Heading2"]),
+        ]
+        t = fee["totals"]
+        s = own["summary"]
+        summary_rows = [
+            ["Platform Fees", f"Rs {t['platform_fee']:,.0f}", "Urgency Income", f"Rs {t['urgency_income']:,.0f}"],
+            ["Surge Income", f"Rs {t['surge_income']:,.0f}", "Convenience Fees", f"Rs {t['convenience_fee']:,.0f}"],
+            ["Realized Income", f"Rs {t['realized_income']:,.0f}", "Total Quotes", str(t["total_quotes"])],
+            ["Own Fleet Bookings", str(s["total_bookings"]), "Own Fleet Gross Earnings", f"Rs {s['gross_earnings']:,.0f}"],
+        ]
+        st = Table(summary_rows, colWidths=[160, 120, 160, 120])
+        st.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (0, -1), colors.whitesmoke),
+            ("BACKGROUND", (2, 0), (2, -1), colors.whitesmoke),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ]))
+        story += [st, Spacer(1, 16), Paragraph("Route-wise Income", styles["Heading2"])]
+
+        route_rows = [["Route", "Quotes", "Paid Bkgs", "Platform Fee", "Urgency", "Surge", "Convenience", "Realized"]]
+        for r in fee["routes"][:40]:
+            route_rows.append([r["route"], r["quotes"], r["paid_bookings"], f"{r['platform_fee']:,.0f}",
+                               f"{r['urgency_income']:,.0f}", f"{r['surge_income']:,.0f}",
+                               f"{r['convenience_fee']:,.0f}", f"{r['realized_income']:,.0f}"])
+        rt = Table(route_rows, repeatRows=1)
+        rt.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f97316")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+        ]))
+        story += [rt, Spacer(1, 16), Paragraph("Own Fleet Bookings", styles["Heading2"])]
+
+        own_rows = [["Ref", "Route", "Aircraft", "Date", "Customer", "Amount", "Status"]]
+        for b in own["bookings"][:40]:
+            own_rows.append([
+                b.get("booking_number") or b.get("inquiry_number") or b["id"][:8],
+                f"{b.get('from_location')} - {b.get('to_location')}",
+                b.get("aircraft_model") or "", (b.get("travel_date") or b.get("departure_date") or "")[:10],
+                b.get("customer_name") or "", f"{b['amount']:,.0f}",
+                "Paid" if b["is_paid"] else (b.get("payment_status") or "pending"),
+            ])
+        ot = Table(own_rows, repeatRows=1)
+        ot.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(ot)
+        doc.build(story)
+        pdf = buf.getvalue()
+        return StreamingResponse(
+            io.BytesIO(pdf), media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="AirYatra_Revenue_Report_{stamp}.pdf"',
+                "Content-Length": str(len(pdf)),
+                "Cache-Control": "no-cache",
+            })
+
+    # Excel
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    wb = Workbook()
+    header_fill = PatternFill("solid", fgColor="F97316")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    ws = wb.active
+    ws.title = "Summary"
+    t, s = fee["totals"], own["summary"]
+    ws.append(["AirYatra Revenue Report", period])
+    ws.append([])
+    for row in [("Platform Fees", t["platform_fee"]), ("Urgency Income", t["urgency_income"]),
+                ("Surge Income", t["surge_income"]), ("Convenience Fees", t["convenience_fee"]),
+                ("Realized Income", t["realized_income"]), ("Total Quotes", t["total_quotes"]),
+                ("Own Fleet Bookings", s["total_bookings"]), ("Own Fleet Paid Bookings", s["paid_bookings"]),
+                ("Own Fleet Gross Earnings", s["gross_earnings"]), ("Own Fleet Pending Amount", s["pending_amount"])]:
+        ws.append(list(row))
+    ws["A1"].font = Font(bold=True, size=14)
+
+    ws2 = wb.create_sheet("Route Income")
+    headers = ["Route", "Quotes", "Paid Bookings", "Platform Fee", "Urgency", "Surge", "Convenience", "Realized"]
+    ws2.append(headers)
+    for c in ws2[1]:
+        c.fill, c.font = header_fill, header_font
+    for r in fee["routes"]:
+        ws2.append([r["route"], r["quotes"], r["paid_bookings"], r["platform_fee"],
+                    r["urgency_income"], r["surge_income"], r["convenience_fee"], r["realized_income"]])
+
+    ws3 = wb.create_sheet("Own Fleet Bookings")
+    headers3 = ["Ref", "From", "To", "Aircraft", "Date", "Customer", "Amount", "Payment Status"]
+    ws3.append(headers3)
+    for c in ws3[1]:
+        c.fill, c.font = header_fill, header_font
+    for b in own["bookings"]:
+        ws3.append([b.get("booking_number") or b.get("inquiry_number") or b["id"][:8],
+                    b.get("from_location"), b.get("to_location"), b.get("aircraft_model"),
+                    (b.get("travel_date") or b.get("departure_date") or "")[:10],
+                    b.get("customer_name"), b["amount"],
+                    "Paid" if b["is_paid"] else (b.get("payment_status") or "pending")])
+
+    for sheet in wb.worksheets:
+        for col in sheet.columns:
+            width = max((len(str(c.value)) for c in col if c.value is not None), default=10)
+            sheet.column_dimensions[col[0].column_letter].width = min(width + 3, 40)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    data = buf.getvalue()
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="AirYatra_Revenue_Report_{stamp}.xlsx"',
+            "Content-Length": str(len(data)),
+            "Cache-Control": "no-cache",
+        })

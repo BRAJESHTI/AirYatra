@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plane, Loader2, TrendingUp, IndianRupee, MapPin } from 'lucide-react';
+import { Plane, Loader2, TrendingUp, IndianRupee, MapPin, Download, FileText } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { toast } from 'sonner';
 import api from '@/services/api';
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
@@ -17,6 +19,27 @@ export default function RevenueReports() {
   const [loading, setLoading] = useState(true);
   const [preset, setPreset] = useState('all');
   const [custom, setCustom] = useState({ start: '', end: '' });
+  const [trend, setTrend] = useState([]);
+  const [exporting, setExporting] = useState('');
+
+  const exportReport = async (fmt) => {
+    setExporting(fmt);
+    try {
+      const params = { ...rangeFor(preset), format: fmt };
+      const res = await api.get('/admin/pricing/export', { params, responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AirYatra_Revenue_Report.${fmt === 'pdf' ? 'pdf' : 'xlsx'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${fmt === 'pdf' ? 'PDF' : 'Excel'} report downloaded`);
+    } catch (e) {
+      toast.error('Export failed');
+    } finally {
+      setExporting('');
+    }
+  };
 
   const rangeFor = (p) => {
     const today = new Date();
@@ -45,6 +68,10 @@ export default function RevenueReports() {
       ]);
       setOwnFleet(of.data);
       setFeeReport(fr.data);
+      try {
+        const tr = await api.get('/admin/pricing/revenue-trend', { params: { weeks: 8 } });
+        setTrend(tr.data.weeks || []);
+      } catch (e) { /* trend optional */ }
     } catch (e) {
       console.error('Failed to load reports');
     } finally {
@@ -92,7 +119,43 @@ export default function RevenueReports() {
               data-testid="report-apply-custom">Apply</button>
           </div>
         )}
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => exportReport('excel')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
+            data-testid="export-excel-btn">
+            {exporting === 'excel' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Excel
+          </button>
+          <button onClick={() => exportReport('pdf')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
+            data-testid="export-pdf-btn">
+            {exporting === 'pdf' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} PDF
+          </button>
+        </div>
       </div>
+
+      {/* Weekly Revenue Trend */}
+      {trend.length > 0 && (
+        <div className="glass p-5 rounded-xl" data-testid="revenue-trend-chart">
+          <p className="text-white font-semibold mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-orange-400" /> Weekly Income Trend (Last 8 Weeks)</p>
+          <div style={{ width: '100%', height: 260 }}>
+            <ResponsiveContainer>
+              <BarChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <XAxis dataKey="label" stroke="#64748b" fontSize={11} />
+                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `₹${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} />
+                <Tooltip
+                  formatter={(v, name) => [fmt(v), name]}
+                  contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#e2e8f0' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="fee_income" name="Quote Fees" stackId="a" fill="#f97316" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="marketplace_income" name="Marketplace Fees" stackId="a" fill="#3b82f6" />
+                <Bar dataKey="own_fleet_earnings" name="Own Fleet" stackId="a" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Own Fleet Bookings */}
       <div className="glass p-5 rounded-xl" data-testid="own-fleet-bookings-section">

@@ -7,6 +7,12 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ REPORT EXPORT (EXCEL/PDF) + WEEKLY TREND CHART (June 2026 - curl + browser download verified)
+- GET /api/admin/pricing/export?format=excel|pdf (+date range): Excel via openpyxl (3 sheets: Summary, Route Income, Own Fleet Bookings), PDF via reportlab platypus (landscape A4, styled tables), proper StreamingResponse headers
+- GET /api/admin/pricing/revenue-trend?weeks=8: weekly buckets (Mon-start) of quote fees + marketplace fees + own-fleet paid earnings
+- RevenueReports.js: recharts stacked BarChart "Weekly Income Trend" + Excel/PDF download buttons (blob download, respects active date filter)
+- Verified: valid xlsx (Microsoft Excel 2007+) & PDF files, browser download E2E with toast, chart rendering ₹142.5k current week
+
 ### ✅ REPORT DATE FILTER (June 2026 - curl + UI verified)
 - Both report endpoints (/api/admin/pricing/own-fleet-bookings, /fee-revenue-report) accept start_date/end_date (YYYY-MM-DD, created_at ISO string range)
 - RevenueReports.js: filter bar with All Time / This Week (last 7d) / This Month (calendar) / Custom (date inputs + Apply) — data-testids report-filter-*, report-start-date, report-apply-custom
