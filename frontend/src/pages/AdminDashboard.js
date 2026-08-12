@@ -87,6 +87,7 @@ import PartnerManagement from '@/components/admin/PartnerManagement';
 import AdminPaymentsDashboard from '@/components/admin/AdminPaymentsDashboard';
 import PaymentRulesPanel from '@/components/admin/PaymentRulesPanel';
 import PlatformFeesPanel from '@/components/admin/PlatformFeesPanel';
+import AdminPricingPanel from '@/components/admin/AdminPricingPanel';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
 import VerificationAPISettings from '@/components/admin/VerificationAPISettings';
@@ -185,6 +186,7 @@ const navGroups = [
       { id: 'payments_dashboard', label: 'Payments Dashboard', icon: Wallet, highlight: true },
       { id: 'payment_rules', label: 'Payment Rules / भुगतान नियम', icon: SlidersHorizontal, highlight: true },
       { id: 'platform_fees', label: 'Platform Fees / प्लेटफ़ॉर्म फीस', icon: SlidersHorizontal, highlight: true },
+      { id: 'route_pricing', label: 'Route Pricing & Own Fleet / रूट प्राइसिंग', icon: SlidersHorizontal, highlight: true },
       { id: 'commission_settings', label: 'Commission Settings / कमीशन', icon: Percent, highlight: true },
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
@@ -373,6 +375,8 @@ function AdminDashboard({ user, onLogout }) {
         return <PaymentRulesPanel />;
       case 'platform_fees':
         return <PlatformFeesPanel />;
+      case 'route_pricing':
+        return <AdminPricingPanel />;
       case 'commission_settings':
         return <AdminCommissionSettings />;
       case 'flight_calendar':

@@ -7,6 +7,15 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ ADMIN ROUTE PRICING + QUOTE ON BEHALF + AIRYATRA OWN FLEET (June 2026 - curl E2E + UI screenshots verified)
+- NEW `routes/admin_pricing_routes.py` (/api/admin/pricing, roles admin/super_admin/ceo):
+  - POST /fixed-route: admin/CEO adds fixed route price on operator's behalf (marketplace-compatible doc: status active, route_code, demand_multiplier; added_by_admin flag) + GET /fixed-routes + DELETE deactivate
+  - POST /quote-on-behalf: custom quote on operator's behalf — platform fee + urgency auto-applied, customer notification fired, submitted_by_admin flag; GET /pending-quote-bookings for dropdown
+  - Own fleet CRUD /own-aircraft: AirYatra own/self-rented helicopters with rent price (hourly_rate) → operator_id "airyatra_own_fleet", marketplace_listed, appears in Compare & Book as "AirYatra Own Fleet"
+- Admin UI: new tab "Route Pricing & Own Fleet" (AdminPricingPanel.js, Finance & Billing group) — 3 sections
+- Operator UI: new tab "My Routes & Quotes" (MyRoutesQuotes.js, /operator/my-routes-quotes) — fixed routes with "ADDED BY ADMIN" badge + quotes with payout/fee/urgency breakdown and "By Admin" badge
+- Verified E2E: admin route → operator my-routes visible; quote-on-behalf (₹150k payout + ₹22.5k fee = ₹172.5k customer) → operator my-quotes visible; H130 own aircraft + Indore-Bhopal fixed route live in marketplace search
+
 ### ✅ GLOBAL DEFAULT SETTING + URGENCY PRICING + AI SURGE PRICING (June 2026 - curl E2E + UI screenshots + 16/16 regression pass)
 - NEW `services/dynamic_pricing_service.py`: urgency tiers (0-6hr +15%, 6-12hr +10%, 12hr+ normal — admin-editable), AI surge (24h route searches via route_search_log + bookings → percent, capped at max_percent default 100%)
 - Settings endpoints: GET /api/platform-fees/settings, PUT /api/platform-fees/settings/update (commission_percent + urgency + surge; NOTE: PUT path is /settings/update to avoid /{rule_id} route conflict)
