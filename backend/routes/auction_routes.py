@@ -662,6 +662,17 @@ async def submit_operator_quote(
     )
     gst = round(subtotal * 0.18, 2)
     total = round(subtotal + gst, 2)
+
+    # City/route-wise platform fee auto-apply (admin-set rules)
+    from services.platform_fee_service import resolve_platform_fee, compute_platform_fee
+    fee_rule = await resolve_platform_fee(
+        db,
+        auction.get("from_location") or auction.get("pickup_location", ""),
+        auction.get("to_location") or auction.get("drop_location", ""),
+    )
+    platform_fee = compute_platform_fee(subtotal, fee_rule)
+    gst = round((subtotal + platform_fee) * 0.18, 2)
+    total = round(subtotal + platform_fee + gst, 2)
     
     # Get operator details
     operator = await db.users.find_one(
@@ -698,6 +709,9 @@ async def submit_operator_quote(
         "subtotal": round(subtotal, 2),
         "gst_amount": gst,
         "gst_rate": 18,
+        "platform_fee": platform_fee,
+        "platform_fee_rule": fee_rule.get("label"),
+        "operator_payout": round(subtotal, 2),
         "total_amount": total,
         
         # Flight Details
@@ -784,6 +798,18 @@ async def update_operator_quote(
     )
     gst = round(subtotal * 0.18, 2)
     total = round(subtotal + gst, 2)
+
+    # City/route-wise platform fee auto-apply (admin-set rules)
+    from services.platform_fee_service import resolve_platform_fee, compute_platform_fee
+    auction_doc = await db.auctions.find_one({"id": auction_id}, {"_id": 0}) or {}
+    fee_rule = await resolve_platform_fee(
+        db,
+        auction_doc.get("from_location") or auction_doc.get("pickup_location", ""),
+        auction_doc.get("to_location") or auction_doc.get("drop_location", ""),
+    )
+    platform_fee = compute_platform_fee(subtotal, fee_rule)
+    gst = round((subtotal + platform_fee) * 0.18, 2)
+    total = round(subtotal + platform_fee + gst, 2)
     
     now = datetime.now(timezone.utc)
     
@@ -802,6 +828,9 @@ async def update_operator_quote(
         "discount": quote.discount,
         "subtotal": round(subtotal, 2),
         "gst_amount": gst,
+        "platform_fee": platform_fee,
+        "platform_fee_rule": fee_rule.get("label"),
+        "operator_payout": round(subtotal, 2),
         "total_amount": total,
         "estimated_flight_time": quote.estimated_flight_time,
         "departure_time": quote.departure_time,

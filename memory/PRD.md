@@ -7,6 +7,14 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ CITY/ROUTE-WISE PLATFORM FEES (June 2026 - 16/16 pytest + full UI test pass, iteration_57)
+- NEW: `services/platform_fee_service.py` (resolver: route rule > city rule > global default 15% from platform_settings.pricing) + `routes/platform_fee_routes.py` (/api/platform-fees: admin/ceo CRUD, /preview for any auth user)
+- Fee AUTO-APPLIES on all 3 operator quote paths: operator_routes submit-quote, quote_routes POST /api/quotes/, auction_routes (submit+update, gst on subtotal+fee). Quote stores: operator_payout, platform_fee, platform_fee_rule, amount/quoted_price = customer_total
+- Admin UI: new "Platform Fees" tab (PlatformFeesPanel.js) — add/toggle/delete rules (percent or flat, route ya city-wide), bidirectional route matching
+- Operator UI: InquiryInbox quote dialog me live debounced breakdown — "Aapka Payout + Platform Fee (rule) = Customer Total"
+- Testing agent fixed in-scope bug: quote_routes ObjectId 500 (insert_one .copy() + _id pop + email try/except). Added 400 validation for invalid amount in submit-quote
+- Test suite: /app/backend/tests/test_iter57_platform_fees.py
+
 ### ✅ ENGINE DETAILS IN MARKETPLACE (June 2026 - verified via live screenshot)
 - Aircraft model me `engine_type` (single/twin/triple/quad) + `engine_model` fields: fleet_routes.py create, marketplace_routes.py options, seed_marketplace_fleet.py (ENGINES map), 13 marketplace aircraft DB-updated with realistic engines
 - Compare & Book (MarketplaceResults.js): engine badge har card par ("Single Engine (Safran Arriel 2D Turboshaft)") + filter chips All/Single/Twin Engine (data-testid=engine-filter-*)

@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 57: City/Route Platform Fees — Comprehensive backend + frontend testing done. 16/16 backend pytest cases pass covering admin CRUD (route rule, city-wide rule, toggle, delete), validation (invalid fee_type / percent>100 / negative → 400), RBAC (customer→403 on GET/POST), preview endpoint (route match, bidirectional Pune→Mumbai match, global default 15% fallback for unmatched routes), auto-apply on operator submit-quote (payout=200000, fee=20000, customer_total=220000, platform_fee_rule set), auto-apply on POST /api/quotes/ (100000→110000), and marketplace search regression. Admin UI (Platform Fees panel under Finance & Billing) exercised end-to-end via Playwright — add rule, toggle, delete all work. Operator InquiryInbox Submit Quote dialog shows the live fee-breakdown box (payout ₹100,000 + platform fee ₹10,000 [Mumbai → Pune: 10.0%] = customer total ₹110,000) with correct math on the seeded Mumbai→Pune rule. One backend bug found and fixed in scope (see updated_files).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/quotes/", "issue": "Was returning 500 due to MongoDB ObjectId leaking into the response dict (insert_one mutated the same dict returned to caller). Fixed by inserting a .copy() and popping _id before return; also wrapped email notification in try/except so SMTP 401 does not fail the request."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter57_platform_fees.py",
+    "/app/test_reports/pytest/iter57_results.xml"
+  ],
+  "action_items": [
+    "None blocking — feature is production-ready. Main agent may verify the small quote_routes.py fix (added .copy() + _id pop + try/except around email send)."
+  ],
+  "critical_code_review_comments": [
+    "services/platform_fee_service.py _match() uses a fuzzy substring/prefix match (city substring in text OR first 6 chars of text-prefix substring in city). This is loose — e.g., very short city names could accidentally match. Consider using explicit normalized equality plus alias table for production robustness.",
+    "operator_routes.submit-quote no longer validates payload fields (amount is float-cast without try/except) — sending non-numeric amount would raise 500. Consider adding pydantic model."
+  ],
+  "updated_files": [
+    "/app/backend/routes/quote_routes.py (fix: insert_one(.copy()) + quote.pop('_id') + email try/except to prevent ObjectId serialization 500)",
+    "/app/backend/tests/test_iter57_platform_fees.py (new)"
+  ],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "100% (Admin CRUD UI + Operator live breakdown verified)"},
+  "seed_data_creation": "Test rules created and cleaned up during pytest (autouse cleanup fixture). Additionally seeded and deleted a Mumbai→Pune 10% rule for the operator UI walkthrough (rule id 301bc759-af12-4380-85c5-6eeea9c163f5 — deleted).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin/Operator/Customer from /app/memory/test_credentials.md — all worked without OTP.",
+  "context_for_next_testing_agent": "Feature is fully working end-to-end. Backend fee resolver priority = route_rule > city_rule > global_default (from platform_settings.pricing.commission_percent). All three flows (submit-quote, /api/quotes/, /api/platform-fees/preview) use the same resolver so quotes and preview always agree. Auction flow was not exercised in this iteration; iter56 already covered operator auction quote and code path (auction_routes.py) also adds platform_fee via the same service.",
+  "rca_of_the_issue": "quote_routes.create_quote passed the raw quote dict to db.quotes.insert_one() and returned the same dict to the client. Motor mutates the dict in place, adding an ObjectId as `_id`, which FastAPI's jsonable_encoder cannot serialize → 500. Fix: pass quote.copy() to insert_one and quote.pop('_id', None) before returning. Also wrapped the email notification call in try/except (SMTP was returning 401 in preview env and would have failed the whole request even after the ObjectId fix)."
+}

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { quoteAPI, fleetAPI } from '../../services/api';
+import api from '../../services/api';
 import { toast } from 'sonner';
 
 function InquiryInbox({ operator }) {
@@ -13,12 +14,35 @@ function InquiryInbox({ operator }) {
   const [loading, setLoading] = useState(true);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [feePreview, setFeePreview] = useState(null);
   const [quoteData, setQuoteData] = useState({
     aircraft_id: '',
     quoted_price: '',
     validity_hours: '24',
     special_notes: '',
   });
+
+  useEffect(() => {
+    const amount = parseFloat(quoteData.quoted_price);
+    if (!selectedInquiry || !amount || amount <= 0) {
+      setFeePreview(null);
+      return;
+    }
+    const booking = selectedInquiry.booking || {};
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.post('/platform-fees/preview', {
+          from_location: booking.from_location || booking.pickup_location || '',
+          to_location: booking.to_location || booking.drop_location || '',
+          amount,
+        });
+        setFeePreview(res.data);
+      } catch (e) {
+        setFeePreview(null);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [quoteData.quoted_price, selectedInquiry]);
 
   useEffect(() => {
     fetchData();
@@ -331,6 +355,24 @@ function InquiryInbox({ operator }) {
                   data-testid="quoted-price-input"
                 />
               </div>
+
+              {feePreview && (
+                <div className="bg-slate-800/80 border border-orange-500/30 rounded-lg p-4 space-y-1.5" data-testid="fee-breakdown">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Payout Breakdown (auto platform fee)</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300">Aapka Payout (Your Earning)</span>
+                    <span className="text-green-400 font-semibold" data-testid="fee-operator-payout">₹{feePreview.operator_payout.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300">+ Platform Fee <span className="text-slate-500 text-xs">({feePreview.rule_label})</span></span>
+                    <span className="text-orange-400 font-semibold" data-testid="fee-platform-fee">₹{feePreview.platform_fee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-base border-t border-slate-700 pt-1.5">
+                    <span className="text-white font-semibold">= Customer Total</span>
+                    <span className="text-white font-bold" data-testid="fee-customer-total">₹{feePreview.customer_total.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="validity_hours">Quote Validity (Hours) *</Label>

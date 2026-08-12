@@ -26,13 +26,28 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     
+    # City/route-wise platform fee auto-apply (admin-set rules)
+    from services.platform_fee_service import resolve_platform_fee, compute_platform_fee
+    fee_rule = await resolve_platform_fee(
+        db,
+        booking.get("from_location") or booking.get("pickup_location", ""),
+        booking.get("to_location") or booking.get("drop_location", ""),
+    )
+    operator_payout = float(quote_data["quoted_price"])
+    platform_fee = compute_platform_fee(operator_payout, fee_rule)
+    customer_total = round(operator_payout + platform_fee, 2)
+    
     quote_id = str(uuid.uuid4())
     quote = {
         "id": quote_id,
         "booking_id": quote_data["booking_id"],
         "operator_id": operator["id"],
         "aircraft_id": quote_data["aircraft_id"],
-        "quoted_price": quote_data["quoted_price"],
+        "quoted_price": customer_total,
+        "amount": customer_total,
+        "operator_payout": operator_payout,
+        "platform_fee": platform_fee,
+        "platform_fee_rule": fee_rule.get("label"),
         "validity_hours": quote_data.get("validity_hours", 24),
         "special_notes": quote_data.get("special_notes"),
         "is_accepted": False,
@@ -40,8 +55,9 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
         "expires_at": (datetime.now(timezone.utc) + timedelta(hours=quote_data.get("validity_hours", 24))).isoformat()
     }
     
-    await db.quotes.insert_one(quote)
-    
+    await db.quotes.insert_one(quote.copy())
+    quote.pop("_id", None)
+
     # Update booking
     await db.bookings.update_one(
         {"id": quote_data["booking_id"]},
@@ -51,8 +67,11 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
     # Notify customer
     customer = await db.users.find_one({"id": booking["customer_id"]}, {"_id": 0})
     if customer:
-        email_service.send_quote_notification(customer["email"], quote)
-    
+        try:
+            email_service.send_quote_notification(customer["email"], quote)
+        except Exception as e:
+            logger.error(f"Failed to send quote notification email: {e}")
+
     return {"message": "Quote created", "quote": quote}
 
 @router.get("/operator/inquiries")

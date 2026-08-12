@@ -300,14 +300,34 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
     quote_id = existing_quote["id"] if existing_quote else str(uuid.uuid4())
     
     validity_hours = quote_data.get("validity_hours", 24)
+
+    # City/route-wise platform fee auto-apply (admin-set rules)
+    from services.platform_fee_service import resolve_platform_fee, compute_platform_fee
+    fee_rule = await resolve_platform_fee(
+        db,
+        booking.get("from_location") or booking.get("pickup_location", ""),
+        booking.get("to_location") or booking.get("drop_location", ""),
+    )
+    try:
+        operator_payout = float(quote_data["amount"])
+        if operator_payout <= 0:
+            raise ValueError
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=400, detail="Valid quote amount required")
+    platform_fee = compute_platform_fee(operator_payout, fee_rule)
+    customer_total = round(operator_payout + platform_fee, 2)
+
     quote = {
         "id": quote_id,
         "booking_id": booking_id,
         "operator_id": operator["id"],
         "operator_name": operator["company_name"],
         "customer_id": booking.get("user_id") or booking.get("customer_id"),
-        "amount": quote_data["amount"],
-        "quoted_price": quote_data["amount"],
+        "amount": customer_total,
+        "quoted_price": customer_total,
+        "operator_payout": operator_payout,
+        "platform_fee": platform_fee,
+        "platform_fee_rule": fee_rule.get("label"),
         "aircraft_id": quote_data.get("aircraft_id"),
         "breakdown": quote_data.get("breakdown", {}),
         "validity_hours": validity_hours,
@@ -345,7 +365,7 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
             "id": str(uuid.uuid4()),
             "user_id": customer_user_id,
             "type": "quote_received",
-            "title": f"✈️ New Quote Received - ₹{float(quote_data['amount']):,.0f}",
+            "title": f"✈️ New Quote Received - ₹{customer_total:,.0f}",
             "message": f"{operator['company_name']} ne aapki booking {booking.get('booking_number', booking_id[:8])} ke liye quote bheja hai. Abhi review karein!",
             "reference_id": booking_id,
             "data": {"quote_id": quote_id, "amount": quote_data["amount"], "operator_name": operator["company_name"]},
