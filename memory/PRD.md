@@ -7,6 +7,12 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ OWN FLEET BOOKINGS + FEE REVENUE REPORT (June 2026 - curl E2E + UI screenshot verified)
+- GET /api/admin/pricing/own-fleet-bookings: AirYatra own aircraft bookings (inquiries+bookings, operator airyatra_own_fleet or aircraft own-*) with summary (total/paid/gross earnings/pending)
+- GET /api/admin/pricing/fee-revenue-report: route-wise + city-wise platform fee, urgency, surge & convenience income; realized = accepted quotes / paid bookings (quotes joined to bookings via bulk $in lookup; marketplace paid bookings via pricing_breakdown)
+- Admin UI: new tab "Revenue Reports / रिपोर्ट्स" (RevenueReports.js, Finance & Billing) — own fleet stats + bookings list, route-wise income table, city rollup chips
+- Verified: H130 own-fleet booking (Indore→Bhopal ₹180,237) captured; ₹142,500 platform fees Mumbai→Pune reported
+
 ### ✅ ADMIN ROUTE PRICING + QUOTE ON BEHALF + AIRYATRA OWN FLEET (June 2026 - curl E2E + UI screenshots verified)
 - NEW `routes/admin_pricing_routes.py` (/api/admin/pricing, roles admin/super_admin/ceo):
   - POST /fixed-route: admin/CEO adds fixed route price on operator's behalf (marketplace-compatible doc: status active, route_code, demand_multiplier; added_by_admin flag) + GET /fixed-routes + DELETE deactivate

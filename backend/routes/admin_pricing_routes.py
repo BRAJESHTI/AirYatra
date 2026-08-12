@@ -352,3 +352,118 @@ async def remove_own_aircraft(aircraft_id: str, user: dict = Depends(get_current
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Own aircraft not found")
     return {"message": "Aircraft removed from marketplace"}
+
+
+# ==================== REPORTS ====================
+
+PAID_STATUSES = {"paid", "fully_paid", "captured"}
+
+
+@router.get("/own-fleet-bookings")
+async def own_fleet_bookings(user: dict = Depends(get_current_user)):
+    """Bookings landed on AirYatra's own aircraft + earnings"""
+    _require_admin(user)
+    db = get_database()
+    query = {"$or": [{"operator_id": OWN_FLEET_OPERATOR_ID}, {"aircraft_id": {"$regex": "^own-"}}]}
+    proj = {"_id": 0, "id": 1, "inquiry_number": 1, "booking_number": 1, "from_location": 1,
+            "to_location": 1, "travel_date": 1, "departure_date": 1, "customer_name": 1,
+            "aircraft_model": 1, "aircraft_id": 1, "final_price": 1, "total_amount": 1,
+            "estimated_price": 1, "payment_status": 1, "status": 1, "created_at": 1}
+    rows = await db.inquiries.find(query, proj).sort("created_at", -1).to_list(200)
+    rows += await db.bookings.find(query, proj).sort("created_at", -1).to_list(200)
+    seen, bookings = set(), []
+    for b in rows:
+        if b["id"] not in seen:
+            seen.add(b["id"])
+            b["amount"] = b.get("final_price") or b.get("total_amount") or b.get("estimated_price") or 0
+            b["is_paid"] = (b.get("payment_status") or "") in PAID_STATUSES
+            bookings.append(b)
+    bookings.sort(key=lambda b: b.get("created_at") or "", reverse=True)
+    paid = [b for b in bookings if b["is_paid"]]
+    return {
+        "bookings": bookings,
+        "summary": {
+            "total_bookings": len(bookings),
+            "paid_bookings": len(paid),
+            "gross_earnings": round(sum(b["amount"] for b in paid), 2),
+            "pending_amount": round(sum(b["amount"] for b in bookings if not b["is_paid"]), 2),
+        },
+    }
+
+
+@router.get("/fee-revenue-report")
+async def fee_revenue_report(user: dict = Depends(get_current_user)):
+    """Platform fee + urgency + surge income grouped by route and city"""
+    _require_admin(user)
+    db = get_database()
+
+    routes: dict = {}
+
+    def bucket(from_loc, to_loc):
+        f = (from_loc or "Unknown").split(",")[0].strip().title()
+        t = (to_loc or "Unknown").split(",")[0].strip().title()
+        key = f"{f} → {t}"
+        if key not in routes:
+            routes[key] = {"route": key, "from_city": f, "to_city": t, "quotes": 0, "paid_bookings": 0,
+                           "platform_fee": 0.0, "urgency_income": 0.0, "surge_income": 0.0,
+                           "convenience_fee": 0.0, "realized_income": 0.0}
+        return routes[key]
+
+    # 1) Operator/admin quotes (custom quote flow)
+    quotes = await db.quotes.find(
+        {"$or": [{"platform_fee": {"$gt": 0}}, {"urgency_surcharge": {"$gt": 0}}]},
+        {"_id": 0, "booking_id": 1, "platform_fee": 1, "urgency_surcharge": 1, "status": 1}
+    ).sort("created_at", -1).to_list(500)
+    booking_ids = list({q["booking_id"] for q in quotes if q.get("booking_id")})
+    route_map = {}
+    for coll in (db.bookings, db.inquiries):
+        async for b in coll.find({"id": {"$in": booking_ids}},
+                                 {"_id": 0, "id": 1, "from_location": 1, "to_location": 1, "payment_status": 1}):
+            route_map.setdefault(b["id"], b)
+    for q in quotes:
+        b = route_map.get(q.get("booking_id")) or {}
+        r = bucket(b.get("from_location"), b.get("to_location"))
+        r["quotes"] += 1
+        fee = float(q.get("platform_fee") or 0)
+        urg = float(q.get("urgency_surcharge") or 0)
+        r["platform_fee"] += fee
+        r["urgency_income"] += urg
+        if q.get("status") == "accepted" or (b.get("payment_status") or "") in PAID_STATUSES:
+            r["realized_income"] += fee + urg
+
+    # 2) Marketplace instant bookings (convenience fee + surge + urgency), paid only
+    async for b in db.inquiries.find(
+            {"pricing_breakdown": {"$exists": True}, "payment_status": {"$in": list(PAID_STATUSES)}},
+            {"_id": 0, "from_location": 1, "to_location": 1, "pricing_breakdown": 1}).limit(500):
+        p = b.get("pricing_breakdown") or {}
+        r = bucket(b.get("from_location"), b.get("to_location"))
+        r["paid_bookings"] += 1
+        conv = float(p.get("convenience_fee") or 0)
+        surge = float(p.get("surge_amount") or 0)
+        urg = float(p.get("urgency_amount") or 0)
+        r["convenience_fee"] += conv
+        r["surge_income"] += surge
+        r["urgency_income"] += urg
+        r["realized_income"] += conv + surge + urg
+
+    route_list = sorted(routes.values(), key=lambda r: -(r["platform_fee"] + r["surge_income"] + r["urgency_income"] + r["convenience_fee"]))
+    for r in route_list:
+        for k in ("platform_fee", "urgency_income", "surge_income", "convenience_fee", "realized_income"):
+            r[k] = round(r[k], 2)
+
+    cities: dict = {}
+    for r in route_list:
+        c = cities.setdefault(r["from_city"], {"city": r["from_city"], "routes": 0, "platform_fee": 0.0,
+                                               "urgency_income": 0.0, "surge_income": 0.0,
+                                               "convenience_fee": 0.0, "realized_income": 0.0})
+        c["routes"] += 1
+        for k in ("platform_fee", "urgency_income", "surge_income", "convenience_fee", "realized_income"):
+            c[k] = round(c[k] + r[k], 2)
+    city_list = sorted(cities.values(), key=lambda c: -c["realized_income"])
+
+    totals = {k: round(sum(r[k] for r in route_list), 2)
+              for k in ("platform_fee", "urgency_income", "surge_income", "convenience_fee", "realized_income")}
+    totals["total_quotes"] = sum(r["quotes"] for r in route_list)
+    totals["total_paid_bookings"] = sum(r["paid_bookings"] for r in route_list)
+
+    return {"routes": route_list, "cities": city_list, "totals": totals}
