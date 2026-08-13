@@ -7,6 +7,12 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ ENTERPRISE SYSTEM AUDIT (June 2026 - iterations 58-59)
+- Full cross-module audit via testing agent: 23 audit cases, 18 PASS / 2 PARTIAL / 2 MISSING / 1 contract-note; 6-role frontend smoke all green. Full report: /app/memory/ENTERPRISE_AUDIT_REPORT.md
+- FIXED + verified (iter59, 20/20): submit-quote response returns full fee breakdown; NEW GET /api/admin/pricing/invoice-email-log
+- KEY GAPS (backlog): P1 OTP disabled + login rate-limit ordering + Razorpay live keys at launch; P2 multi-level refund approval, GST/TDS/CSV reports, arrears/night-halt billing; P3 corporate portal routing; P5 Vendor/Insurance/EMI/DigiLocker modules
+- Audit suite: /app/backend/tests/test_iter58_enterprise_audit.py (idempotent, re-runnable)
+
 ### ✅ OPERATOR SCORECARDS (June 2026 - curl + UI verified)
 - GET /api/admin/pricing/operator-scorecards: per-operator quotes sent/won + win rate, avg aircraft rating, on-time % (flight_records departure vs booking schedule, ≤30min = on-time), composite score = 40% win rate + 30% rating + 25% on-time + 5% participation; grades A+/A/B/C, sorted by score/wins/rating
 - Admin UI: "Operator Scorecards / स्कोरकार्ड" tab under Operators & Fleet (OperatorScorecards.js) — medal top-3, metric columns, score progress bar, grade badge

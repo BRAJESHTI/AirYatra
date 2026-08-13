@@ -386,7 +386,16 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
             "created_at": datetime.now(timezone.utc).isoformat()
         })
     
-    return {"message": "Quote submitted successfully", "quote_id": quote_id}
+    return {
+        "message": "Quote submitted successfully",
+        "quote_id": quote_id,
+        "operator_payout": operator_payout,
+        "platform_fee": platform_fee,
+        "platform_fee_rule": fee_rule.get("label"),
+        "urgency_percent": urgency_pct,
+        "urgency_surcharge": urgency_surcharge,
+        "customer_total": customer_total,
+    }
 
 @router.get("/my-quotes")
 async def get_my_quotes(user: dict = Depends(get_current_user)):

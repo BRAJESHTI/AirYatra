@@ -551,6 +551,16 @@ async def revenue_trend(weeks: int = 8, user: dict = Depends(get_current_user)):
     return {"weeks": buckets}
 
 
+@router.get("/invoice-email-log")
+async def invoice_email_log(limit: int = 50, user: dict = Depends(get_current_user)):
+    """Audit log of auto-sent invoice emails"""
+    _require_admin(user)
+    db = get_database()
+    logs = await db.invoice_email_log.find({}, {"_id": 0}).sort("created_at", -1).to_list(min(limit, 200))
+    sent = sum(1 for l in logs if l.get("status") == "sent")
+    return {"logs": logs, "total": len(logs), "sent": sent}
+
+
 @router.get("/operator-scorecards")
 async def operator_scorecards(user: dict = Depends(get_current_user)):
     """Rank operators by quotes won, ratings and on-time flights"""
