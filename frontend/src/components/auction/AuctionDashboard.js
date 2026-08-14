@@ -86,6 +86,69 @@ const CountdownTimer = ({ endTime, onExpire }) => {
   );
 };
 
+// Live Countdown Progress Bar — urgency to pick a quote
+const CountdownBar = ({ startTime, endTime, onExpire }) => {
+  const [state, setState] = useState({ pct: 100, minutes: 0, seconds: 0, expired: false });
+
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      const end = new Date(endTime).getTime();
+      const start = startTime ? new Date(startTime).getTime() : end - 30 * 60000;
+      const total = Math.max(end - start, 1);
+      const diff = end - now;
+      if (diff <= 0) {
+        setState({ pct: 0, minutes: 0, seconds: 0, expired: true });
+        if (onExpire) onExpire();
+        return;
+      }
+      setState({
+        pct: Math.min(100, Math.max(0, (diff / total) * 100)),
+        minutes: Math.floor(diff / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+        expired: false,
+      });
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [startTime, endTime, onExpire]);
+
+  if (state.expired) {
+    return (
+      <div className="mt-4" data-testid="auction-countdown-bar">
+        <div className="w-full h-2 rounded-full bg-slate-800" />
+        <p className="text-red-400 text-xs mt-1 font-medium">Auction ended</p>
+      </div>
+    );
+  }
+
+  const urgent = state.pct < 20 || (state.minutes === 0 && state.seconds <= 59);
+  const warning = !urgent && state.pct < 50;
+  const barColor = urgent ? 'bg-red-500' : warning ? 'bg-amber-500' : 'bg-green-500';
+  const textColor = urgent ? 'text-red-400' : warning ? 'text-amber-400' : 'text-green-400';
+
+  return (
+    <div className="mt-4" data-testid="auction-countdown-bar">
+      <div className="flex items-center justify-between mb-1">
+        <span className={`text-xs font-medium flex items-center gap-1 ${textColor}`}>
+          <Timer className={`h-3.5 w-3.5 ${urgent ? 'animate-pulse' : ''}`} />
+          {urgent ? 'Hurry! Auction ending soon' : warning ? 'Auction closing — compare quotes now' : 'Auction live — quotes coming in'}
+        </span>
+        <span className={`font-mono text-sm font-bold ${textColor} ${urgent ? 'animate-pulse' : ''}`} data-testid="countdown-time-left">
+          {String(state.minutes).padStart(2, '0')}:{String(state.seconds).padStart(2, '0')} left
+        </span>
+      </div>
+      <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${barColor} ${urgent ? 'animate-pulse' : ''}`}
+          style={{ width: `${state.pct}%`, transition: 'width 1s linear, background-color 0.5s' }}
+        />
+      </div>
+    </div>
+  );
+};
+
 // ============ CUSTOMER COMPONENTS ============
 
 // Create Auction Form
@@ -463,6 +526,15 @@ export const CustomerAuctions = () => {
                     </div>
                   </div>
                 </div>
+                
+                {/* Live Countdown Bar */}
+                {auction.status === 'active' && (
+                  <CountdownBar
+                    startTime={auction.start_time || auction.created_at}
+                    endTime={auction.end_time}
+                    onExpire={fetchAuctions}
+                  />
+                )}
                 
                 {/* Quotes List */}
                 {auction.quotes && auction.quotes.length > 0 && (

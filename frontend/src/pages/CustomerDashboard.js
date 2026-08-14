@@ -126,6 +126,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/kyc')) setActiveTab('kyc');
     else if (path.includes('/smart-booking')) setActiveTab('smart-booking');
     else if (path.includes('/marine')) setActiveTab('marine');
+    else if (path.includes('/auctions')) setActiveTab('auctions');
     else if (path.includes('/carbon')) setActiveTab('carbon');
     else setActiveTab('overview');
   }, [location.pathname]);

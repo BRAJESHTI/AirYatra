@@ -3703,3 +3703,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend (NotificationBell.js): auction_quote type wired into 15s polling quote-alert banner (sound + top banner via existing playAlertSound path), bell dropdown icon/color/booking tab, click navigates to /customer/auctions. Banner title now dynamic per notification
 - BUGFIX during build: NotificationBell.js file tail corrupted during edit (duplicate export lines) — syntax error fixed
 - TESTED: python E2E (create auction → operator quote → ⚡ notif; revise lower → 📉 notif; competitor seeded → revise → 🔥 LOWEST w/ previous best ₹1,50,000) + UI screenshot (bell dropdown shows all 3 alert types). Test auction/quotes/notifs cleaned
+
+##### 20. Auction Countdown Bar 🟢 DONE (June 2026)
+- AuctionDashboard.js: new CountdownBar component — 1s ticking progress bar (start_time→end_time %), color urgency: green >50%, amber <50%, red+pulse <20% or <60s, labels ("Auction live" / "closing — compare quotes now" / "Hurry! ending soon"), mm:ss left, expired state "Auction ended". Rendered on every active customer auction card, onExpire refreshes list
+- BUGFIX (dead tab): CustomerDashboard.js URL-sync effect me /auctions case missing tha — /customer/auctions ya sidebar Live Auctions click hamesha overview pe reset ho jata tha. Fixed
+- TESTED: screenshot verified (bar renders, ticks 13:12→13:10, green fill, expired auction shows ended state)
