@@ -89,6 +89,7 @@ import PaymentRulesPanel from '@/components/admin/PaymentRulesPanel';
 import PlatformFeesPanel from '@/components/admin/PlatformFeesPanel';
 import AdminPricingPanel from '@/components/admin/AdminPricingPanel';
 import RevenueReports from '@/components/admin/RevenueReports';
+import RefundApprovals from '@/components/admin/RefundApprovals';
 import OperatorScorecards from '@/components/admin/OperatorScorecards';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
@@ -191,6 +192,7 @@ const navGroups = [
       { id: 'platform_fees', label: 'Platform Fees / प्लेटफ़ॉर्म फीस', icon: SlidersHorizontal, highlight: true },
       { id: 'route_pricing', label: 'Route Pricing & Own Fleet / रूट प्राइसिंग', icon: SlidersHorizontal, highlight: true },
       { id: 'revenue_reports', label: 'Revenue Reports / रिपोर्ट्स', icon: SlidersHorizontal, highlight: true },
+      { id: 'refund_approvals', label: 'Refund Approvals / रिफंड', icon: SlidersHorizontal, highlight: true },
       { id: 'commission_settings', label: 'Commission Settings / कमीशन', icon: Percent, highlight: true },
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
@@ -383,6 +385,8 @@ function AdminDashboard({ user, onLogout }) {
         return <AdminPricingPanel />;
       case 'revenue_reports':
         return <RevenueReports />;
+      case 'refund_approvals':
+        return <RefundApprovals />;
       case 'commission_settings':
         return <AdminCommissionSettings />;
       case 'flight_calendar':
