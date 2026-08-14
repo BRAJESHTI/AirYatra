@@ -3609,3 +3609,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Roles: accounts/finance/admin/super_admin/ceo (403 others - tested)
 - Frontend: GSTReports.js (month picker, 6 summary cards, 2 preview tables, Excel/PDF blob download) — wired in AdminDashboard (Finance & Billing group) + FinanceDashboard (GST Compliance group)
 - TESTED: curl JSON (365 bookings, ₹1.34Cr, GST ₹6.39L, TDS ₹1.28L, 3 refunds), valid .xlsx (2 sheets) + 13-page PDF, 403 check, finance UI screenshot verified
+
+##### 8. FY Yearly GST/TDS Report 🟢 DONE (June 2026)
+- Backend: GET /api/gst-reports/yearly?fy=YYYY (Apr-Mar Indian FY) + /yearly/export?fy=&format=xlsx|pdf
+- Excel: 3 sheets (Month-wise Summary first, then Bookings GST-TDS, Refunds); PDF: month-wise table + full bookings + refunds
+- Frontend: GSTReports.js — Monthly/Financial Year toggle, FY dropdown (last 5 FYs), month-wise summary table in FY mode
+- TESTED: curl FY JSON/xlsx(3 sheets)/pdf(14pg), monthly regression OK, finance UI screenshot with FY toggle verified

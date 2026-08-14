@@ -33,12 +33,20 @@ def _month_range(month: str):
     return start, end
 
 
+def _fy_range(fy: str):
+    """fy = '2026-27' ya '2026' -> Apr 1 2026 to Mar 31 2027"""
+    try:
+        y = int(fy[:4])
+    except Exception:
+        raise HTTPException(status_code=400, detail="fy must be YYYY or YYYY-YY")
+    return f"{y:04d}-04-01", f"{y + 1:04d}-04-01", f"FY {y}-{str(y + 1)[2:]}"
+
+
 def _amt(b):
     return float(b.get("amount_paid") or b.get("final_price") or b.get("total_amount") or b.get("estimated_price") or 0)
 
 
-async def _collect(db, month: str):
-    start, end = _month_range(month)
+async def _collect(db, start: str, end: str, label: str):
     proj = {"_id": 0, "id": 1, "booking_number": 1, "inquiry_number": 1, "customer_id": 1,
             "customer_name": 1, "created_at": 1, "departure_date": 1, "travel_date": 1,
             "from_location": 1, "to_location": 1, "pickup_location": 1, "drop_location": 1,
@@ -112,7 +120,7 @@ async def _collect(db, month: str):
         })
 
     summary = {
-        "month": month,
+        "month": label,
         "total_bookings": len(rows),
         "total_amount": round(sum(r["amount"] for r in rows), 2),
         "total_taxable": round(sum(r["taxable_value"] for r in rows), 2),
@@ -126,13 +134,54 @@ async def _collect(db, month: str):
     return rows, refunds, summary
 
 
+def _month_breakdown(rows, refunds):
+    months = {}
+    def m(key):
+        return months.setdefault(key, {"month": key, "bookings": 0, "amount": 0.0, "taxable": 0.0,
+                                       "gst": 0.0, "tds": 0.0, "refunds": 0, "refund_amount": 0.0})
+    for r in rows:
+        k = (r["booking_date"] or "")[:7]
+        if not k:
+            continue
+        b = m(k)
+        b["bookings"] += 1
+        b["amount"] += r["amount"]
+        b["taxable"] += r["taxable_value"]
+        b["gst"] += r["gst_amount"]
+        b["tds"] += r["tds_amount"]
+    for r in refunds:
+        k = (r["refund_date"] or "")[:7]
+        if not k:
+            continue
+        b = m(k)
+        b["refunds"] += 1
+        b["refund_amount"] += r["refund_amount"]
+    out = sorted(months.values(), key=lambda x: x["month"])
+    for b in out:
+        for k in ("amount", "taxable", "gst", "tds", "refund_amount"):
+            b[k] = round(b[k], 2)
+    return out
+
+
 @router.get("/monthly")
 async def monthly_report(month: str, user: dict = Depends(get_current_user)):
     """JSON preview: month = YYYY-MM"""
     _require_access(user)
     db = get_database()
-    rows, refunds, summary = await _collect(db, month)
+    start, end = _month_range(month)
+    rows, refunds, summary = await _collect(db, start, end, month)
     return {"summary": summary, "bookings": rows, "refunds": refunds}
+
+
+@router.get("/yearly")
+async def yearly_report(fy: str, user: dict = Depends(get_current_user)):
+    """JSON preview: fy = YYYY or YYYY-YY (Apr-Mar financial year)"""
+    _require_access(user)
+    db = get_database()
+    start, end, label = _fy_range(fy)
+    rows, refunds, summary = await _collect(db, start, end, label)
+    return {"summary": summary, "monthly_breakdown": _month_breakdown(rows, refunds),
+            "bookings": rows, "refunds": refunds}
 
 
 BOOKING_HEADERS = ["Client Name", "Booking ID", "Booking Date", "Travel Date", "Route",
@@ -148,7 +197,11 @@ REFUND_KEYS = ["refund_id", "booking_id", "refund_type", "initiated_by", "amount
                "deduction_pct", "refund_amount", "refund_date", "gateway_status"]
 
 
-def _build_xlsx(rows, refunds, summary):
+BREAKDOWN_HEADERS = ["Month", "Bookings", "Amount (₹)", "Taxable (₹)", "GST (₹)", "TDS (₹)", "Refunds", "Refund Amount (₹)"]
+BREAKDOWN_KEYS = ["month", "bookings", "amount", "taxable", "gst", "tds", "refunds", "refund_amount"]
+
+
+def _build_xlsx(rows, refunds, summary, breakdown=None):
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     wb = Workbook()
@@ -188,13 +241,31 @@ def _build_xlsx(rows, refunds, summary):
     for i, w in enumerate([22, 20, 12, 16, 15, 12, 16, 12, 15], start=1):
         ws2.column_dimensions[ws2.cell(row=3, column=i).column_letter].width = w
 
+    if breakdown:
+        ws0 = wb.create_sheet("Month-wise Summary", 0)
+        ws0.append([f"AirYatra GST/TDS {summary['month']} — Month-wise Summary"])
+        ws0["A1"].font = Font(bold=True, size=13)
+        ws0.append([])
+        ws0.append(BREAKDOWN_HEADERS)
+        for c in ws0[3]:
+            c.font, c.fill = head_font, head_fill
+        for b in breakdown:
+            ws0.append([b[k] for k in BREAKDOWN_KEYS])
+        ws0.append([])
+        ws0.append(["TOTAL", summary["total_bookings"], summary["total_amount"], summary["total_taxable"],
+                    summary["total_gst"], summary["total_tds"], summary["total_refunds"],
+                    summary["total_refund_amount"]])
+        ws0[ws0.max_row][0].font = Font(bold=True)
+        for i, w in enumerate([12, 10, 15, 15, 13, 12, 10, 17], start=1):
+            ws0.column_dimensions[ws0.cell(row=3, column=i).column_letter].width = w
+
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
     return buf
 
 
-def _build_pdf(rows, refunds, summary):
+def _build_pdf(rows, refunds, summary, breakdown=None):
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
@@ -208,6 +279,20 @@ def _build_pdf(rows, refunds, summary):
                        f"TDS @{TDS_RATE:.0f}%: ₹{summary['total_tds']:,.0f} | Refunds: {summary['total_refunds']} "
                        f"(₹{summary['total_refund_amount']:,.0f})", styles["Normal"]),
              Spacer(1, 10)]
+    if breakdown:
+        bdata = [BREAKDOWN_HEADERS]
+        for b in breakdown:
+            bdata.append([b["month"], b["bookings"], f"{b['amount']:,.0f}", f"{b['taxable']:,.0f}",
+                          f"{b['gst']:,.0f}", f"{b['tds']:,.0f}", b["refunds"], f"{b['refund_amount']:,.0f}"])
+        bt = Table(bdata, repeatRows=1)
+        bt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563eb")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+        ]))
+        elems += [Paragraph("Month-wise Summary", styles["Heading2"]), bt, Spacer(1, 12),
+                  Paragraph("All Bookings", styles["Heading2"])]
     pdf_headers = ["Client", "Booking ID", "Bkg Date", "Travel", "Amount", "Taxable", "GST", "TDS",
                    "Invoice No", "Inv Date", "Refund ID", "Ref Date", "Ref Amt", "Pay Status"]
     pdf_keys = ["client_name", "booking_id", "booking_date", "travel_date", "amount", "taxable_value",
@@ -255,13 +340,30 @@ async def export_monthly_report(month: str, format: str = "xlsx", user: dict = D
     if format not in ("xlsx", "pdf"):
         raise HTTPException(status_code=400, detail="format must be xlsx or pdf")
     db = get_database()
-    rows, refunds, summary = await _collect(db, month)
+    start, end = _month_range(month)
+    rows, refunds, summary = await _collect(db, start, end, month)
+    return _stream(rows, refunds, summary, None, f"AirYatra_GST_TDS_Report_{month}", format)
+
+
+@router.get("/yearly/export")
+async def export_yearly_report(fy: str, format: str = "xlsx", user: dict = Depends(get_current_user)):
+    """Download full FY (Apr-Mar) Excel/PDF: fy=YYYY or YYYY-YY"""
+    _require_access(user)
+    if format not in ("xlsx", "pdf"):
+        raise HTTPException(status_code=400, detail="format must be xlsx or pdf")
+    db = get_database()
+    start, end, label = _fy_range(fy)
+    rows, refunds, summary = await _collect(db, start, end, label)
+    breakdown = _month_breakdown(rows, refunds)
+    return _stream(rows, refunds, summary, breakdown, f"AirYatra_GST_TDS_{label.replace(' ', '_')}", format)
+
+
+def _stream(rows, refunds, summary, breakdown, fname_base, format):
     if format == "pdf":
-        buf = _build_pdf(rows, refunds, summary)
+        buf = _build_pdf(rows, refunds, summary, breakdown)
         media, ext = "application/pdf", "pdf"
     else:
-        buf = _build_xlsx(rows, refunds, summary)
+        buf = _build_xlsx(rows, refunds, summary, breakdown)
         media, ext = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"
-    fname = f"AirYatra_GST_TDS_Report_{month}.{ext}"
     return StreamingResponse(buf, media_type=media,
-                             headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+                             headers={"Content-Disposition": f'attachment; filename="{fname_base}.{ext}"'})
