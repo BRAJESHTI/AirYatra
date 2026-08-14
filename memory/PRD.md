@@ -3595,3 +3595,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Fixed pre-existing bug: payment_service.py `if db:` -> `if db is not None:` (Motor db truth-testing crash)
 - payment_service now also inits Razorpay client from env keys (earlier only DB settings)
 - TESTED via API E2E: 2-approval flow -> real Razorpay test API called (fake/mock payment ids fail gracefully as expected). TRUE success path needs a real captured test payment via checkout.
+
+##### 6. Failed Refunds Panel 🟢 DONE (June 2026)
+- Backend: GET /api/refunds/failed-gateway (approved + no gateway_refund_id + not manual_processed), POST /{id}/retry-gateway, POST /{id}/mark-processed (remark mandatory, logs refund_transactions method=manual). Roles: finance/accounts/admin/super_admin/ceo (403 for others - tested)
+- Frontend: FailedRefundsPanel.js embedded below RefundApprovals list — Retry Razorpay Refund + Mark Manually Processed (UTR remark)
+- Wiring: Admin/CEO dashboard (existing refund_approvals tab) + FinanceDashboard Billing -> "Refunds / वापसी" tab now renders RefundApprovals (was previously dead nav item)
+- TESTED: curl (list 3 -> mark processed -> 2, retry graceful fail on mock payment, 403 operator) + finance dashboard screenshot verified

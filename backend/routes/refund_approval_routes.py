@@ -303,6 +303,64 @@ async def pending_refunds(user: dict = Depends(get_current_user)):
     return {"requests": reqs, "total": len(reqs)}
 
 
+@router.get("/failed-gateway")
+async def failed_gateway_refunds(user: dict = Depends(get_current_user)):
+    """Approved refunds jinka gateway refund fail/pending hai — Finance/Admin/CEO monitoring"""
+    if not ({"finance", "accounts"} | SENIOR_ROLES) & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Finance/Admin/CEO access required")
+    db = get_database()
+    reqs = await db.refund_requests.find(
+        {"status": "approved", "gateway_refund_id": {"$exists": False},
+         "manual_processed": {"$ne": True}},
+        {"_id": 0}).sort("approved_at", -1).to_list(100)
+    return {"requests": reqs, "total": len(reqs)}
+
+
+@router.post("/{request_id}/retry-gateway")
+async def retry_gateway_refund(request_id: str, user: dict = Depends(get_current_user)):
+    """Failed gateway refund ko dobara try karein"""
+    if not ({"finance", "accounts"} | SENIOR_ROLES) & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Finance/Admin/CEO access required")
+    db = get_database()
+    req = await db.refund_requests.find_one({"id": request_id}, {"_id": 0})
+    if not req or req["status"] != "approved":
+        raise HTTPException(status_code=404, detail="Approved refund request not found")
+    if req.get("gateway_refund_id"):
+        raise HTTPException(status_code=400, detail="Gateway refund already processed")
+    gw = await _trigger_gateway_refund(db, req)
+    if gw.get("triggered"):
+        return {"message": f"Razorpay refund successful (ID: {gw['refund_id']})", "gateway_refund": gw}
+    return {"message": f"Retry failed: {gw.get('reason')}", "gateway_refund": gw}
+
+
+@router.post("/{request_id}/mark-processed")
+async def mark_refund_processed(request_id: str, remark: str = Body(..., embed=True),
+                                user: dict = Depends(get_current_user)):
+    """Manual gateway refund hone par resolved mark karein (remark mandatory)"""
+    if not ({"finance", "accounts"} | SENIOR_ROLES) & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Finance/Admin/CEO access required")
+    if not remark.strip():
+        raise HTTPException(status_code=400, detail="Remark required")
+    db = get_database()
+    req = await db.refund_requests.find_one({"id": request_id}, {"_id": 0})
+    if not req or req["status"] != "approved":
+        raise HTTPException(status_code=404, detail="Approved refund request not found")
+    if req.get("gateway_refund_id") or req.get("manual_processed"):
+        raise HTTPException(status_code=400, detail="Already processed")
+    await db.refund_requests.update_one(
+        {"id": request_id},
+        {"$set": {"manual_processed": True, "manual_processed_by": user.get("full_name") or user["email"],
+                  "manual_processed_remark": remark.strip(), "manual_processed_at": _now().isoformat()}})
+    for coll in (db.inquiries, db.bookings):
+        await coll.update_one({"id": req["booking_id"]}, {"$set": {"refund_status": "processed"}})
+    await db.refund_transactions.insert_one({
+        "id": str(uuid.uuid4()), "refund_request_id": request_id, "booking_id": req["booking_id"],
+        "amount": req["refundable_amount"], "method": "manual",
+        "processed_by": user.get("full_name") or user["email"], "remark": remark.strip(),
+        "created_at": _now().isoformat()})
+    return {"message": "Refund marked as manually processed"}
+
+
 @router.post("/{request_id}/request-otp")
 async def request_approval_otp(request_id: str, user: dict = Depends(get_current_user)):
     db = get_database()

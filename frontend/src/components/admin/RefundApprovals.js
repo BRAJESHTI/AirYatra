@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import api from '@/services/api';
+import FailedRefundsPanel from './FailedRefundsPanel';
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -141,6 +142,8 @@ export default function RefundApprovals() {
           </div>
         ))}
       </div>
+
+      <FailedRefundsPanel />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import InvoiceManagement from '@/components/admin/InvoiceManagement';
 import DynamicPricing from '@/components/admin/DynamicPricing';
 import AccountingIntegration from '@/components/admin/AccountingIntegration';
 import CurrencyConverter from '@/components/admin/CurrencyConverter';
+import RefundApprovals from '@/components/admin/RefundApprovals';
 
 // Lazy load new Finance components
 const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSalaryPayment'));
@@ -289,6 +290,8 @@ function FinanceDashboard({ user, onLogout }) {
         return <SettlementManagement />;
       case 'invoices':
         return <InvoiceManagement />;
+      case 'refunds':
+        return <RefundApprovals />;
       case 'dynamic_pricing':
         return <DynamicPricing />;
       case 'accounting_integration':
