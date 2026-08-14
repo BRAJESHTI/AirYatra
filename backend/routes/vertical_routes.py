@@ -408,6 +408,32 @@ async def delete_photo(asset_id: str, index: int, user: dict = Depends(get_curre
     return {"message": "Photo deleted", "total": len(images)}
 
 
+@router.get("/featured")
+async def featured_assets(user: dict = Depends(get_current_user)):
+    """Best-photographed assets + top aircraft for customer home page"""
+    db = get_database()
+    assets = await db.vertical_assets.find(
+        {"status": "active"}, {"_id": 0, "id": 1, "vertical": 1, "name": 1, "city": 1,
+                               "base_price": 1, "price_unit": 1, "images": 1}).to_list(200)
+    assets.sort(key=lambda a: len(a.get("images", [])), reverse=True)
+    featured = []
+    for a in assets[:6]:
+        featured.append({"id": a["id"], "type": a["vertical"], "name": a["name"], "city": a["city"],
+                         "price": a["base_price"], "unit": a["price_unit"],
+                         "cover": (a.get("images") or [None])[0], "photo_count": len(a.get("images", []))})
+    aircraft = await db.aircraft.find(
+        {"status": {"$in": ["active", "available", "approved"]}},
+        {"_id": 0, "id": 1, "aircraft_type": 1, "model": 1, "registration_number": 1,
+         "hourly_rate": 1, "seating_capacity": 1}).sort("hourly_rate", -1).to_list(4)
+    for a in aircraft:
+        kind = "jet" if any(k in (a.get("aircraft_type") or "").lower() for k in ("citation", "hawker", "king air", "jet")) else "helicopter"
+        featured.append({"id": a["id"], "type": kind,
+                         "name": a.get("model") or a.get("aircraft_type") or a.get("registration_number"),
+                         "city": f"{a.get('seating_capacity') or '—'} seats",
+                         "price": a.get("hourly_rate") or 0, "unit": "hour", "cover": None, "photo_count": 0})
+    return {"featured": featured}
+
+
 # ==================== REPORTS ====================
 
 @router.get("/reports/revenue")

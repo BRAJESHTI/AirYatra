@@ -30,6 +30,7 @@ import RefundHistory from '../components/customer/RefundHistory';
 import CarbonCalculator from '../components/customer/CarbonCalculator';
 import ASREBookingWidget from '../components/customer/ASREBookingWidget';
 import MarineBookings from '../components/customer/MarineBookings';
+import FeaturedAssets from '../components/customer/FeaturedAssets';
 import { Zap } from 'lucide-react';
 
 // Organized Navigation Structure - 4 Main Categories (English Only)
@@ -223,6 +224,7 @@ function CustomerDashboard({ user, onLogout }) {
       default:
         return (
           <div className="max-w-6xl mx-auto">
+            <FeaturedAssets />
             {/* Welcome Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
               <div>
