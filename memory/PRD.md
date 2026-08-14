@@ -7,6 +7,11 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ CORPORATE PORTAL ROUTING FIX (June 2026 - screenshot verified)
+- ROLE_HOME_PATH me `corporate: '/corporate'` added (LoginPage.js + GoogleLogin.js)
+- corporate@airyatra.co.in user roles = ['corporate','customer'] (roles[0] decides redirect); linked as admin_email to CORP-DEMO26 (TechVista Solutions Pvt Ltd)
+- Verified: corporate login → /corporate lands on full corporate dashboard (4 employees, ₹17.35L credit, bookings, approvals)
+
 ### ✅ ENTERPRISE SYSTEM AUDIT (June 2026 - iterations 58-59)
 - Full cross-module audit via testing agent: 23 audit cases, 18 PASS / 2 PARTIAL / 2 MISSING / 1 contract-note; 6-role frontend smoke all green. Full report: /app/memory/ENTERPRISE_AUDIT_REPORT.md
 - FIXED + verified (iter59, 20/20): submit-quote response returns full fee breakdown; NEW GET /api/admin/pricing/invoice-email-log

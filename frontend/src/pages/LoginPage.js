@@ -49,6 +49,7 @@ function LoginPage({ setUser }) {
   // Role to dashboard path mapping
   const ROLE_HOME_PATH = {
     customer: '/customer',
+    corporate: '/corporate',
     operator: '/operator',
     admin: '/admin',
     super_admin: '/admin',
