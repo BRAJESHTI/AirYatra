@@ -10,7 +10,6 @@ const api = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL + '/api',
   headers: {
     'Content-Type': 'application/json',
-    'Accept-Encoding': 'gzip, deflate, br',  // Enable compression
   },
   timeout: 30000,  // 30 second timeout
   // Connection pooling hints

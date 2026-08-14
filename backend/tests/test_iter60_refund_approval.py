@@ -210,6 +210,12 @@ class TestOperatorCancel:
 
     def test_operator_cancel_with_valid_reason_full_refund(self, tokens, db_sync):
         bid = _create_booking(tokens["customer"], db_sync, days_ahead=15, amount_paid=60000)
+        # Link the booking to operator@airyatra so ownership check passes
+        op_user = db_sync.users.find_one({"email": "operator@airyatra.co.in"})
+        op_doc = db_sync.operators.find_one({"user_id": op_user["id"]})
+        assert op_doc, "operator record missing for operator@airyatra.co.in"
+        db_sync.bookings.update_one({"id": bid}, {"$set": {"operator_id": op_doc["id"]}})
+        db_sync.inquiries.update_one({"id": bid}, {"$set": {"operator_id": op_doc["id"]}})
         reasons = requests.get(f"{BASE_URL}/api/refunds/reasons?audience=operator",
                                headers=_h(tokens["operator"]), timeout=10).json()["reasons"]
         assert reasons, "no operator reasons"

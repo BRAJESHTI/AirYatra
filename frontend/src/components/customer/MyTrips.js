@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plane, MapPin, Calendar, Clock, IndianRupee, Star, MessageSquare, FileText, X, ChevronRight, AlertTriangle, Bell, Check, RefreshCw, Flag, Download, Loader2, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { customerAPI, feedbackAPI } from '../../services/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import api, { customerAPI, feedbackAPI } from '../../services/api';
 import { toast } from 'sonner';
 import ComplaintForm from './ComplaintForm';
 import PostFlightRating from './PostFlightRating';
@@ -22,7 +22,8 @@ function MyTrips({ user }) {
   const [showPreflightDialog, setShowPreflightDialog] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [isEmergency, setIsEmergency] = useState(false);
+  const [cancelReasons, setCancelReasons] = useState([]);
+  const [cancelRemark, setCancelRemark] = useState('');
   const [reviewData, setReviewData] = useState({ overall_rating: 5, comment: '', recommend: true });
   const [processing, setProcessing] = useState(false);
   const [pendingQuotes, setPendingQuotes] = useState([]);
@@ -122,15 +123,29 @@ function MyTrips({ user }) {
     }
   };
 
+  const openCancelDialog = async (trip) => {
+    setSelectedTrip(trip);
+    setCancelReason('');
+    setCancelRemark('');
+    setShowCancelDialog(true);
+    try {
+      const res = await api.get('/refunds/reasons?audience=customer');
+      setCancelReasons(res.data.reasons || []);
+    } catch (e) {
+      setCancelReasons([]);
+    }
+  };
+
   const handleCancelTrip = async () => {
     if (!selectedTrip || !cancelReason) return;
     setProcessing(true);
     try {
-      const response = await customerAPI.cancelTrip(selectedTrip.id, {
-        reason: cancelReason,
-        is_emergency: isEmergency
+      const reason = cancelRemark ? `${cancelReason} — ${cancelRemark}` : cancelReason;
+      const response = await api.post('/refunds/customer-cancel', {
+        booking_id: selectedTrip.id,
+        reason
       });
-      toast.success(`Booking cancelled. Refund: ₹${response.data.refund_amount?.toLocaleString()}`);
+      toast.success(response.data.message || 'Cancellation submitted for approval');
       setShowCancelDialog(false);
       setSelectedTrip(null);
       setCancelReason('');
@@ -173,6 +188,7 @@ function MyTrips({ user }) {
       confirmed: 'bg-green-500/20 text-green-400',
       completed: 'bg-green-500/20 text-green-400',
       cancelled: 'bg-red-500/20 text-red-400',
+      cancellation_requested: 'bg-amber-500/20 text-amber-400',
     };
     return badges[status] || badges.pending;
   };
@@ -189,6 +205,7 @@ function MyTrips({ user }) {
       confirmed: 'Confirmed',
       completed: 'Completed',
       cancelled: 'Cancelled',
+      cancellation_requested: 'Cancellation Requested',
     };
     return labels[status] || status;
   };
@@ -423,11 +440,12 @@ function MyTrips({ user }) {
                     Invoice
                   </Button>
                 )}
-                {['pending', 'confirmed'].includes(trip.status) && (
+                {['pending', 'confirmed', 'quote_accepted', 'payment_completed', 'passenger_details_filled'].includes(trip.status) && (
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => { setSelectedTrip(trip); setShowCancelDialog(true); }}
+                    onClick={() => openCancelDialog(trip)}
+                    data-testid={`cancel-booking-btn-${trip.id}`}
                   >
                     <X className="h-4 w-4 mr-1" /> Cancel
                   </Button>
@@ -473,34 +491,51 @@ function MyTrips({ user }) {
               <AlertTriangle className="h-5 w-5 text-red-400" />
               Cancel Booking
             </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Cancellation policy ke anusaar deduction lagega aur refund team approval ke baad process hoga.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <p className="text-slate-400">Are you sure you want to cancel this booking?</p>
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm text-amber-300 space-y-1">
+              <p className="font-semibold text-amber-400">Cancellation Policy (deduction on paid amount):</p>
+              <p>• 72+ hrs before departure: 10% deduction</p>
+              <p>• 24–72 hrs before: 25% deduction</p>
+              <p>• Less than 24 hrs: 50% deduction</p>
+              <p>• After departure: No refund</p>
+              <p className="text-slate-400 pt-1">Refund is processed after team approval.</p>
+            </div>
             <div>
               <label className="block text-sm text-slate-400 mb-2">Reason for cancellation *</label>
-              <textarea
+              <select
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                rows={3}
-                placeholder="Please provide a reason..."
+                data-testid="cancel-reason-select"
+              >
+                <option value="">-- Select a reason --</option>
+                {cancelReasons.map((r) => (
+                  <option key={r.id} value={r.label}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">Additional remarks (optional)</label>
+              <textarea
+                value={cancelRemark}
+                onChange={(e) => setCancelRemark(e.target.value)}
+                className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                rows={2}
+                placeholder="Any details you'd like to add..."
+                data-testid="cancel-remark-input"
               />
             </div>
-            <label className="flex items-center gap-2 text-slate-300">
-              <input
-                type="checkbox"
-                checked={isEmergency}
-                onChange={(e) => setIsEmergency(e.target.checked)}
-                className="rounded"
-              />
-              <span>This is an emergency cancellation (full refund)</span>
-            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCancelDialog(false)} className="border-slate-600 text-slate-300">
               Keep Booking
             </Button>
-            <Button variant="destructive" onClick={handleCancelTrip} disabled={processing || !cancelReason}>
+            <Button variant="destructive" onClick={handleCancelTrip} disabled={processing || !cancelReason} data-testid="confirm-cancel-btn">
               {processing ? 'Processing...' : 'Cancel Booking'}
             </Button>
           </DialogFooter>

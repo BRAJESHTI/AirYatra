@@ -164,6 +164,28 @@ async def customer_cancel(booking_id: str = Body(...), reason: Optional[str] = B
             "refund_request": req}
 
 
+CANCELLABLE_STATUSES = ["confirmed", "quote_accepted", "payment_pending", "payment_completed",
+                        "passenger_details_filled", "pending"]
+
+
+@router.get("/operator/cancellable")
+async def operator_cancellable_bookings(user: dict = Depends(get_current_user)):
+    """Operator ki bookings jo cancel ho sakti hain"""
+    db = get_database()
+    if "operator" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Operator access required")
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0, "id": 1})
+    if not operator:
+        return {"bookings": []}
+    q = {"operator_id": operator["id"], "status": {"$in": CANCELLABLE_STATUSES}}
+    proj = {"_id": 0, "id": 1, "booking_number": 1, "inquiry_number": 1, "status": 1,
+            "from_location": 1, "to_location": 1, "pickup_location": 1, "drop_location": 1,
+            "departure_date": 1, "travel_date": 1, "total_amount": 1, "final_price": 1, "amount_paid": 1}
+    bookings = await db.bookings.find(q, proj).sort("created_at", -1).to_list(100)
+    inquiries = await db.inquiries.find(q, proj).sort("created_at", -1).to_list(100)
+    return {"bookings": bookings + inquiries}
+
+
 @router.post("/operator-cancel")
 async def operator_cancel(booking_id: str = Body(...), reason_id: str = Body(...),
                           remark: Optional[str] = Body(None), user: dict = Depends(get_current_user)):
@@ -178,6 +200,9 @@ async def operator_cancel(booking_id: str = Body(...), reason_id: str = Body(...
     booking = await _get_booking(db, booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0, "id": 1})
+    if not operator or booking.get("operator_id") != operator["id"]:
+        raise HTTPException(status_code=403, detail="Not your booking")
     if await db.refund_requests.find_one({"booking_id": booking_id, "status": {"$in": ["pending_approval", "approved"]}}):
         raise HTTPException(status_code=400, detail="Refund request already exists for this booking")
     req = await _create_request(db, booking, "full", 0.0, "operator_cancel", remark, user,

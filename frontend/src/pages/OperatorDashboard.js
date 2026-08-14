@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload, Menu, Gavel, Flag } from 'lucide-react';
+import { Plane, Home, Building2, Users, FileText, MessageSquare, LogOut, Settings, Fuel, MapPin, Shield, BookOpen, Key, DollarSign, Bell, User, ChevronDown, ChevronRight, Calendar, BarChart3, Briefcase, Navigation, UserPlus, Wrench, Upload, Menu, Gavel, Flag, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { operatorAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ import FuelRecordsManager from '../components/operator/FuelRecordsManager';
 import LiveTrackingMap from '../components/operator/LiveTrackingMap';
 import LandingPermissionViewer from '../components/operator/LandingPermissionViewer';
 import JourneyOTPManager from '../components/operator/JourneyOTPManager';
+import OperatorCancelBookings from '../components/operator/OperatorCancelBookings';
 import ReviseQuoteManager from '../components/operator/ReviseQuoteManager';
 import InquiryNotifications from '../components/operator/InquiryNotifications';
 import OperatorProfile from '../components/operator/OperatorProfile';
@@ -67,6 +68,7 @@ const navGroups = [
       { id: 'quotes', label: 'Quote Requests / कोटेशन', icon: DollarSign, path: '/operator/quotes', highlight: true },
       { id: 'my-routes-quotes', label: 'My Routes & Quotes / मेरे रूट्स', icon: DollarSign, path: '/operator/my-routes-quotes', highlight: true },
       { id: 'journey-otp', label: 'Journey OTP / यात्रा OTP', icon: Key, path: '/operator/journey-otp', highlight: true },
+      { id: 'cancel-bookings', label: 'Cancel Booking / बुकिंग रद्द', icon: Ban, path: '/operator/cancel-bookings', highlight: true },
     ]
   },
   {
@@ -291,6 +293,7 @@ function OperatorDashboard({ user, onLogout }) {
               <Route path="my-routes-quotes" element={<MyRoutesQuotes />} />
               <Route path="pilots" element={<PilotManagement operator={operator} />} />
               <Route path="journey-otp" element={<JourneyOTPManager operator={operator} />} />
+              <Route path="cancel-bookings" element={<OperatorCancelBookings />} />
               <Route path="flight-records" element={<FlightRecordsManager operator={operator} />} />
               <Route path="fuel-records" element={<FuelRecordsManager operator={operator} />} />
               <Route path="live-tracking" element={<LiveTrackingMap operator={operator} />} />

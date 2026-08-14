@@ -3546,3 +3546,38 @@ PAYPAL_MODE=sandbox  # or 'live'
 
 ---
 
+
+---
+
+### Session: June 2026 (Fork) - Customer & Operator Cancellation UIs
+
+#### Completed in This Session:
+
+##### 1. Customer Cancellation UI (MyTrips.js) 🟢 DONE
+- Cancel dialog now uses admin-managed reason dropdown (GET /api/refunds/reasons?audience=customer)
+- Policy deduction info shown (72+h: 10%, 24-72h: 25%, <24h: 50%, post-departure: 100%)
+- Calls POST /api/refunds/customer-cancel -> booking status = cancellation_requested
+- New status badge/label "Cancellation Requested"; cancel button on pending/confirmed/quote_accepted/payment_completed/passenger_details_filled
+
+##### 2. Operator Cancellation UI 🟢 DONE
+- New: /app/frontend/src/components/operator/OperatorCancelBookings.js at /operator/cancel-bookings
+- Lists cancellable bookings (GET /api/refunds/operator/cancellable - new backend endpoint)
+- MANDATORY reason dropdown (audience=operator) + optional remark -> POST /api/refunds/operator-cancel (full refund)
+- Backend hardened: operator-cancel now verifies booking ownership (403 if not operator's booking)
+
+##### 3. Admin/CEO Cancellation Reasons Manager 🟢 DONE
+- New: /app/frontend/src/components/admin/CancellationReasonsManager.js
+- AdminDashboard -> Settings & System -> "Cancellation Reasons / रद्दीकरण कारण" tab
+- Two panels (Customer / Operator reasons) with add + soft-delete; Admin/CEO only
+
+##### Cleanups
+- Removed invalid Accept-Encoding header from apiClient.js (console spam fix)
+- Added DialogDescription to both cancel dialogs (Radix a11y)
+
+#### Testing: iteration_61.json - Backend 18/18 pass, Frontend 100% (all 3 role flows E2E)
+
+## Upcoming Tasks (Next Session)
+### P0 - LoginShield OTP bypass disable for production (security launch blocker)
+### P1 - Razorpay Auto-Refund API trigger on 2nd approval (refund_approval_routes.py approve step: method still 'pending_gateway')
+### P2 - GST/TDS CSV reports, Auction push alerts (WebSocket), Live flight tracking map
+### Backlog - Vendor Portal, Insurance workflow, EMI module, DigiLocker

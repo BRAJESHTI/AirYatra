@@ -90,6 +90,7 @@ import PlatformFeesPanel from '@/components/admin/PlatformFeesPanel';
 import AdminPricingPanel from '@/components/admin/AdminPricingPanel';
 import RevenueReports from '@/components/admin/RevenueReports';
 import RefundApprovals from '@/components/admin/RefundApprovals';
+import CancellationReasonsManager from '@/components/admin/CancellationReasonsManager';
 import OperatorScorecards from '@/components/admin/OperatorScorecards';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
@@ -263,6 +264,7 @@ const navGroups = [
     icon: Cog,
     items: [
       { id: 'settings', label: 'Global Settings', icon: Settings },
+      { id: 'cancellation_reasons', label: 'Cancellation Reasons / रद्दीकरण कारण', icon: Ban, highlight: true },
       { id: 'template_settings', label: 'Template Settings / टेम्पलेट', icon: FileText, highlight: true },
       { id: 'legal_docs', label: 'Legal Docs / कानूनी दस्तावेज़', icon: Shield, highlight: true },
       { id: 'email_heatmap', label: 'Email Analytics / ईमेल हीटमैप', icon: BarChart3, highlight: true },
@@ -387,6 +389,8 @@ function AdminDashboard({ user, onLogout }) {
         return <RevenueReports />;
       case 'refund_approvals':
         return <RefundApprovals />;
+      case 'cancellation_reasons':
+        return <CancellationReasonsManager />;
       case 'commission_settings':
         return <AdminCommissionSettings />;
       case 'flight_calendar':
