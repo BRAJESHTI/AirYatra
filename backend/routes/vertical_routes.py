@@ -3,7 +3,7 @@ Assets, availability, bookings, payments, invoices, payouts, revenue reports."""
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import uuid
 import logging
 
@@ -431,6 +431,12 @@ async def featured_assets(user: dict = Depends(get_current_user)):
                          "name": a.get("aircraft_type") or a.get("registration_number"),
                          "city": a.get("base_location") or f"{a.get('capacity') or '—'} seats",
                          "price": a.get("hourly_rate") or 0, "unit": "hour", "cover": None, "photo_count": 0})
+    if featured:
+        idx = date.today().toordinal() % len(featured)
+        deal = featured[idx]
+        deal["deal_of_the_day"] = True
+        deal["deal_price"] = round(float(deal["price"]) * 0.9)
+        featured.insert(0, featured.pop(idx))
     return {"featured": featured}
 
 

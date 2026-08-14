@@ -3670,3 +3670,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend: components/customer/FeaturedAssets.js — horizontal scroll row on CustomerDashboard home; cover image or gradient+icon fallback, type badge, photo count badge, INR price/unit; click routes to /customer/marine?v={type} or /booking
 - Cleaned test artifact TEST_UI_Yacht from DB
 - TESTED: curl (10 items returned: 2 helipads, 2 yachts, 2 cruises, 4 jets) + screenshot verified row renders on customer dashboard
+
+##### 15. Featured Auto-Rotate + Deal of the Day 🟢 DONE (June 2026)
+- Backend: /api/verticals/featured picks daily-rotating Deal of the Day (date.toordinal() % list) — flagged deal_of_the_day + deal_price (10% off), moved to front of list
+- Frontend: FeaturedAssets.js — auto-scroll every 3.5s (240px steps, loops back, pauses on hover); deal card gets orange ring, pulsing "DEAL OF THE DAY" flame badge, deal price with strikethrough original
+- TESTED: curl (deal flag + 13,500 from 15,000 verified) + screenshot (badge, ring, strikethrough visible; auto-scroll 240->480 confirmed)
