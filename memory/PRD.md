@@ -7,6 +7,16 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ REFUND APPROVAL CHAIN (June 2026 - testing_agent iter60: 18/18 PASS)
+- NEW /app/backend/routes/refund_approval_routes.py (/api/refunds):
+  - 2-of-5 approval (sales/accounts/finance/admin/ceo) with EMAIL OTP (db.refund_otps, 10-min expiry); reject with remark bhi supported; double-approve blocked
+  - ADMIN-ONLY GATE: trip completed ya invoice generated (invoice_email_log sent) → sirf admin/super_admin/ceo approve kar sakte hain
+  - Customer self-cancel → policy auto-deduction (>72h 10%, 24-72h 25%, <24h 50%, post-departure 100%) → pending_approval
+  - Operator cancel → dropdown reason MANDATORY (db.cancellation_reasons, seeded: weather/night/engine/pilot/permission) → full refund request
+  - Admin/CEO reasons CRUD (POST/DELETE /api/refunds/reasons); manual partial/full refund with remark (/api/refunds/manual); /pending list
+  - On 2nd approval: booking → cancelled + refund_amount, refund_transactions record (method pending_gateway)
+- PENDING (P2 backlog): staff approval UI panel, customer/operator cancel buttons wiring in portals, actual Razorpay refund API call on approval
+
 ### ✅ CREDIT ALERT THRESHOLD UI (June 2026 - browser E2E verified)
 - CorporateDashboard.js Credit Summary card me "⚠️ Low Credit Alert Limit" setting: input + Save → PUT /api/corporate/credit-alert-settings, current threshold label, success toast (data-testids: credit-alert-setting, alert-threshold-input, save-alert-threshold-btn, current-alert-threshold)
 - Verified live: ₹5,00,000 set via UI → DB persisted → label updated. TechVista current threshold: ₹5,00,000

@@ -1,0 +1,33 @@
+{
+  "summary": "Iter60 backend testing of NEW Refund Approval Chain (/api/refunds/*). All 18 tests PASSED (100%). Coverage: (1) Reasons CRUD - default seeds present (weather/engine/night etc.), admin add+delete work, customer 403; (2) Customer-cancel with departure ~30d out correctly applies 10% policy deduction (paid=100000 -> refundable=90000), booking flips to cancellation_requested, duplicate cancel -> 400, non-owner -> 403; (3) Operator-cancel WITHOUT valid reason_id -> 400, WITH valid reason -> full refund (0% deduction) and booking gets operator_cancel_reason; (4) 2-of-5 approval with EMAIL OTP - sales request-otp works, wrong OTP -> 401, sales first approval -> 1/2 pending, sales double-approve blocked (400 already approved), admin second approval -> approved status, booking cancelled, refund_amount set, refund_transactions row created with method=pending_gateway; (5) Admin-only gate - after inserting invoice_email_log status=sent, sales request-otp -> 403 'only Admin/CEO', admin request-otp -> 200; (6) Manual partial refund by admin -> created; amount > paid -> 400; (7) GET /api/refunds/pending - staff 200, customer 403. All refund_otps read directly from mongo db.refund_otps as instructed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/refunds/{id}/request-otp + approve", "issue": "IMPORTANT CONFIG NOTE (not a code bug): The seeded sales user (sales@airyatra.co.in) has roles=['sales','admin'] in mongo. Because _role_of() picks the highest role in order (ceo>super_admin>admin>...>sales), a sales-login effectively behaves as 'admin' and bypasses the admin-only invoice gate. Tests worked around this by temporarily stripping 'admin'/'super_admin'/'ceo' from the sales user's roles during the module run and restoring them in teardown. If sales@ should be sales-only in production the extra 'admin' role must be removed from the seed; if the dual-role is intentional, then the admin-only gate cannot be verified using this account and a pure-sales test user should be seeded."},
+      {"endpoint": "/api/refunds/{id}/approve", "issue": "OTP is not invalidated on wrong-code attempts — same code remains usable after any number of 401s until it expires or is consumed. Minor security hardening opportunity (add attempt counter / 3-strike lock)."},
+      {"endpoint": "/api/refunds/manual", "issue": "Any staff role (sales/accounts/finance/admin/CEO) can create a manual refund request via _role_of() check. Spec does not explicitly restrict this, but consider whether junior roles should be gated to admin-only for manual creation."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter60_refund_approval.py",
+    "/app/test_reports/pytest/iter60_results.xml"
+  ],
+  "action_items": [
+    "Decide whether sales@airyatra.co.in should retain the 'admin' role (currently ['sales','admin']). If sales-only, remove 'admin' from seed to make the invoice-sent admin-only gate actually enforceable via that account.",
+    "Optional: invalidate refund OTP after N (e.g. 3) failed attempts."
+  ],
+  "critical_code_review_comments": [
+    "refund_approval_routes.py _role_of() returns FIRST matched role in priority order; combined with sales user having ['sales','admin'] this bypasses the SENIOR_ROLES gate. The gate logic itself is correct (checks role in SENIOR_ROLES) but is only as strong as the seeded role assignments.",
+    "OTP verification (L264-266) compares expires_at string with _now().isoformat() lexicographically — works because both are UTC ISO with same offset, but a subtle timezone/format drift would silently pass expired OTPs. Consider parsing to datetime for comparison.",
+    "_policy_deduction_pct assumes IST offset (+05:30) hardcoded for parsing departure_date; if departure_date is already ISO with timezone, parsing may misinterpret. Currently fine for test data but worth defensive parsing."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter60_refund_approval.py (new)"],
+  "success_rate": {"backend": "100% (18/18)", "frontend": "not tested (backend-only per request)"},
+  "seed_data_creation": "8 test bookings (Mumbai->Pune, +15..+45d), 6 refund_requests, 1 TEST_ cancellation_reason (deleted), 1 invoice_email_log row — all cleaned in module teardown. Sales user roles temporarily changed (['sales','admin'] -> ['sales']) during run and restored to ['sales','admin'] in teardown.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@airyatra.co.in/Admin123!, sales@airyatra.co.in/Sales@123456, operator@airyatra.co.in/Operator@123456, customer@airyatra.co.in/Customer@123 — all worked. Real emails were sent to these mailboxes during OTP tests (expected).",
+  "context_for_next_testing_agent": "Refund Approval Chain feature is fully green. Test file at /app/backend/tests/test_iter60_refund_approval.py can serve as regression. Key gotcha for future iterations: sales@ user has BOTH 'sales' and 'admin' roles in the seed DB; if you need to test SENIOR_ROLES-gated behavior with sales role, temporarily strip admin (this module's autouse cleanup fixture demonstrates the pattern). OTPs must be read from db.refund_otps ({user_id, request_id}).",
+  "rca_of_the_issue": "N/A — feature works as specified. Only latent config concern is the dual-role sales seed noted above."
+}
