@@ -25,6 +25,34 @@ const statusBadge = (status) => {
 const CorporateDashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [corporate, setCorporate] = useState(null);
+  const [alertThreshold, setAlertThreshold] = useState('');
+  const [savingThreshold, setSavingThreshold] = useState(false);
+
+  const saveAlertThreshold = async () => {
+    const val = parseFloat(alertThreshold);
+    if (isNaN(val) || val < 0) {
+      toast.error('Valid threshold amount daalein');
+      return;
+    }
+    setSavingThreshold(true);
+    try {
+      const res = await fetch(`${API_URL}/api/corporate/credit-alert-settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ threshold_amount: val }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+      toast.success(`Low credit alert limit set: ₹${val.toLocaleString()}`);
+      setCorporate((c) => ({ ...c, credit_alert_threshold: val }));
+    } catch (e) {
+      toast.error(e.message || 'Threshold save failed');
+    } finally {
+      setSavingThreshold(false);
+    }
+  };
   const [employeeCode, setEmployeeCode] = useState('CORP-ADMIN');
   const [corpRole, setCorpRole] = useState('admin');
   const [employees, setEmployees] = useState([]);
@@ -591,6 +619,39 @@ const CorporateDashboard = ({ user }) => {
                     <div className="flex justify-between items-center pt-2 border-t border-slate-700">
                       <span className="text-slate-300 font-medium">Available</span>
                       <span className="text-green-400 font-bold text-lg">{formatCurrency(corporate?.credit_available)}</span>
+                    </div>
+
+                    {/* Low Credit Alert Threshold */}
+                    <div className="pt-3 border-t border-slate-700" data-testid="credit-alert-setting">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-slate-300 text-sm font-medium">⚠️ Low Credit Alert Limit</span>
+                        {corporate?.credit_alert_threshold > 0 && (
+                          <span className="text-[11px] text-yellow-400" data-testid="current-alert-threshold">
+                            Current: {formatCurrency(corporate.credit_alert_threshold)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-500 text-xs mb-2">Available credit isse neeche girte hi admin ko email alert jayega. (Default: credit limit ka 20%)</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder={String(corporate?.credit_alert_threshold || Math.round((corporate?.credit_limit || 0) * 0.2))}
+                          value={alertThreshold}
+                          onChange={(e) => setAlertThreshold(e.target.value)}
+                          className="bg-slate-900 border-slate-600 h-9 text-white"
+                          data-testid="alert-threshold-input"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={saveAlertThreshold}
+                          disabled={savingThreshold || !alertThreshold}
+                          className="bg-orange-500 hover:bg-orange-600 h-9"
+                          data-testid="save-alert-threshold-btn"
+                        >
+                          {savingThreshold ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

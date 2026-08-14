@@ -7,6 +7,10 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ CREDIT ALERT THRESHOLD UI (June 2026 - browser E2E verified)
+- CorporateDashboard.js Credit Summary card me "⚠️ Low Credit Alert Limit" setting: input + Save → PUT /api/corporate/credit-alert-settings, current threshold label, success toast (data-testids: credit-alert-setting, alert-threshold-input, save-alert-threshold-btn, current-alert-threshold)
+- Verified live: ₹5,00,000 set via UI → DB persisted → label updated. TechVista current threshold: ₹5,00,000
+
 ### ✅ CORPORATE CREDIT ALERTS (June 2026 - live SMTP E2E verified)
 - NEW services/credit_alert_service.py: check_credit_alert (available = credit_limit - credit_used; threshold = corp.credit_alert_threshold or 20% of limit; red-branded warning email to admin_email; 24h cooldown via credit_alert_active + credit_alert_last_sent; flag auto-resets when credit back above threshold; log in db.credit_alert_log)
 - Hook: _apply_corporate_booking_spend (corporate_routes) → schedule_credit_alert fires on every corporate booking spend
