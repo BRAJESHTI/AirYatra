@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import ComplaintForm from './ComplaintForm';
 import PostFlightRating from './PostFlightRating';
 import PreFlightChecklist from './PreFlightChecklist';
+import RefundTracker from './RefundTracker';
 
 function MyTrips({ user }) {
   const [trips, setTrips] = useState([]);
@@ -28,10 +29,21 @@ function MyTrips({ user }) {
   const [processing, setProcessing] = useState(false);
   const [pendingQuotes, setPendingQuotes] = useState([]);
   const [tripQuotes, setTripQuotes] = useState([]);
+  const [refundMap, setRefundMap] = useState({});
+
+  const loadRefunds = async () => {
+    try {
+      const res = await api.get('/refunds/my');
+      const map = {};
+      (res.data.refunds || []).forEach(r => { if (!map[r.booking_id]) map[r.booking_id] = r; });
+      setRefundMap(map);
+    } catch (e) {}
+  };
 
   useEffect(() => {
     loadTrips();
     loadPendingQuotes();
+    loadRefunds();
   }, []);
 
   const loadTrips = async () => {
@@ -150,6 +162,7 @@ function MyTrips({ user }) {
       setSelectedTrip(null);
       setCancelReason('');
       loadTrips();
+      loadRefunds();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to cancel');
     } finally {
@@ -355,6 +368,9 @@ function MyTrips({ user }) {
                   )}
                 </div>
               )}
+
+              {/* Refund Progress Tracker */}
+              {refundMap[trip.id] && <RefundTracker refund={refundMap[trip.id]} />}
 
               {/* Latest Quote Alert */}
               {trip.latest_quote && trip.status !== 'quote_accepted' && (

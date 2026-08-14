@@ -3692,3 +3692,8 @@ PAYPAL_MODE=sandbox  # or 'live'
   - Cancellation email uses asset_name (vertical) instead of route
 - Frontend: MarineBookings.js customer Cancel button + reason dialog (policy note for paid); VerticalOwnerDashboard.js owner Cancel on confirmed/paid + mandatory reason dropdown + remark
 - TESTED (python E2E): unpaid instant cancel ✓, paid cancel 10% deduction ₹24k→₹21.6k ✓, finance+admin OTP approvals ✓, booking→cancelled/refund processed ✓, owner full refund ₹12k ✓, mock gateway refund ID stored ✓, cross-owner 403 ✓ + UI screenshots (both dialogs, 5/6 reason options)
+
+##### 18. Refund Status Tracker 🟢 DONE (June 2026)
+- Backend: GET /api/refunds/my — customer ke saare refund requests with 3-step progress (requested → team approval x/2 → credited), current_step, rejected state, gateway refund_id, deduction %
+- Frontend: components/customer/RefundTracker.js (shared) — horizontal progress bar (green done circles w/ dates, connectors, amount header, ref id, rejected red banner). Integrated in MarineBookings.js (below cancelled/refund bookings) + MyTrips.js (inside trip cards). Cancel actions refresh trackers
+- TESTED: curl (/refunds/my returns 6 refunds — credited/approved/pending states for both AIR + YB refs) + UI screenshots (marine: full green tracker w/ rfnd_mock ref; My Trips cancelled tab: ₹1,03,500 tracker with 10% deduction note)

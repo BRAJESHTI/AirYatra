@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import api from '@/services/api';
 import { toast } from 'sonner';
+import RefundTracker from './RefundTracker';
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const VERTICALS = [
@@ -29,6 +30,18 @@ export default function MarineBookings() {
   const [cancelFor, setCancelFor] = useState(null);
   const [cancelReasons, setCancelReasons] = useState([]);
   const [cancelReason, setCancelReason] = useState('');
+  const [refundMap, setRefundMap] = useState({});
+
+  const loadRefunds = async () => {
+    try {
+      const res = await api.get('/refunds/my');
+      const map = {};
+      (res.data.refunds || []).forEach(r => { if (!map[r.booking_id]) map[r.booking_id] = r; });
+      setRefundMap(map);
+    } catch (e) {}
+  };
+
+  useEffect(() => { loadRefunds(); }, []);
 
   useEffect(() => {
     api.get('/verticals/featured').then(r => {
@@ -102,6 +115,7 @@ export default function MarineBookings() {
       toast.success(res.data.message);
       setCancelFor(null);
       load();
+      loadRefunds();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Cancellation failed');
     } finally { setBusy(''); }
@@ -191,7 +205,8 @@ export default function MarineBookings() {
             {myBookings.length === 0 ? (
               <div className="glass p-8 rounded-xl text-center text-slate-500">No bookings yet</div>
             ) : myBookings.map(b => (
-              <div key={b.id} className="glass p-4 rounded-xl flex flex-wrap items-center justify-between gap-3" data-testid={`my-vbooking-${b.id}`}>
+              <div key={b.id} className="glass p-4 rounded-xl" data-testid={`my-vbooking-${b.id}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold text-white">{b.booking_number} <span className="text-slate-500 text-xs">• {b.asset_name} ({b.vertical})</span></p>
                   <p className="text-slate-400 text-sm flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {b.start_date} → {b.end_date} • {b.quantity} {b.unit}(s)</p>
@@ -224,6 +239,8 @@ export default function MarineBookings() {
                     </Button>
                   )}
                 </div>
+                </div>
+                {refundMap[b.id] && <RefundTracker refund={refundMap[b.id]} />}
               </div>
             ))}
           </div>

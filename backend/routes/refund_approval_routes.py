@@ -318,6 +318,37 @@ async def manual_refund_request(booking_id: str = Body(...), refund_type: str = 
 
 # ==================== APPROVAL WITH OTP ====================
 
+@router.get("/my")
+async def my_refund_trackers(user: dict = Depends(get_current_user)):
+    """Customer ke refund requests with step-by-step progress (requested -> approved -> credited)"""
+    db = get_database()
+    reqs = await db.refund_requests.find(
+        {"customer_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    out = []
+    for r in reqs:
+        credited = bool(r.get("gateway_refund_id") or r.get("manual_processed"))
+        approved = r["status"] == "approved" or credited
+        rejected = r["status"] == "rejected"
+        n_approvals = len(r.get("approvals", []))
+        steps = [
+            {"key": "requested", "label": "Refund Requested", "done": True, "at": r.get("created_at")},
+            {"key": "approved", "label": "Team Approval",
+             "sub": f"{min(n_approvals, REQUIRED_APPROVALS)}/{REQUIRED_APPROVALS} approvals",
+             "done": approved, "at": r.get("approved_at")},
+            {"key": "credited", "label": "Amount Credited",
+             "sub": "5–7 business days to your payment method" if not credited else None,
+             "done": credited, "at": r.get("gateway_refund_at") or r.get("manual_processed_at")},
+        ]
+        current = 2 if credited else (1 if approved else 0)
+        out.append({
+            "booking_id": r["booking_id"], "booking_ref": r["booking_ref"],
+            "refundable_amount": r["refundable_amount"], "deduction_pct": r["deduction_pct"],
+            "status": r["status"], "rejected": rejected, "reject_remark": r.get("reject_remark"),
+            "refund_id": r.get("gateway_refund_id"), "steps": steps, "current_step": current,
+        })
+    return {"refunds": out}
+
+
 @router.get("/pending")
 async def pending_refunds(user: dict = Depends(get_current_user)):
     if not _role_of(user):
