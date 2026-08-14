@@ -38,26 +38,43 @@ function GlobalSearch({ user }) {
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [recentQueries, setRecentQueries] = useState([]);
   const inputRef = useRef(null);
   const navigate = useNavigate();
+  const storageId = user?.id || 'anon';
 
-  // Load recent searches from localStorage
+  // Load per-user recent searches from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('airyatra_recent_searches');
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved).slice(0, 5));
-      } catch (e) {
-        console.error('Failed to parse recent searches');
-      }
+    try {
+      const saved = localStorage.getItem(`airyatra_recent_searches_${storageId}`);
+      setRecentSearches(saved ? JSON.parse(saved).slice(0, 5) : []);
+      const savedQ = localStorage.getItem(`airyatra_recent_queries_${storageId}`);
+      setRecentQueries(savedQ ? JSON.parse(savedQ).slice(0, 6) : []);
+    } catch (e) {
+      console.error('Failed to parse recent searches');
     }
-  }, []);
+  }, [storageId]);
 
   // Save recent search
   const saveRecentSearch = (item) => {
     const updated = [item, ...recentSearches.filter(r => r.id !== item.id)].slice(0, 5);
     setRecentSearches(updated);
-    localStorage.setItem('airyatra_recent_searches', JSON.stringify(updated));
+    localStorage.setItem(`airyatra_recent_searches_${storageId}`, JSON.stringify(updated));
+  };
+
+  const saveRecentQuery = (term) => {
+    const t = term.trim();
+    if (!t) return;
+    const updated = [t, ...recentQueries.filter(x => x.toLowerCase() !== t.toLowerCase())].slice(0, 6);
+    setRecentQueries(updated);
+    localStorage.setItem(`airyatra_recent_queries_${storageId}`, JSON.stringify(updated));
+  };
+
+  const clearRecents = () => {
+    setRecentQueries([]);
+    setRecentSearches([]);
+    localStorage.removeItem(`airyatra_recent_queries_${storageId}`);
+    localStorage.removeItem(`airyatra_recent_searches_${storageId}`);
   };
 
   // Keyboard shortcut: Ctrl+K or Cmd+K
@@ -191,6 +208,10 @@ function GlobalSearch({ user }) {
 
   // Navigate to result
   const handleNavigate = (item) => {
+    // Remember the typed search term for one-tap re-search
+    if (query.trim()) {
+      saveRecentQuery(query);
+    }
     // Save to recent searches if it's a search result
     if (item.category && item.id) {
       saveRecentSearch({
@@ -334,10 +355,34 @@ function GlobalSearch({ user }) {
               {/* No query - show recent & quick actions */}
               {!query && (
                 <>
+                  {recentQueries.length > 0 && (
+                    <div className="py-2" data-testid="recent-queries-section">
+                      <div className="px-4 py-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Recent Searches
+                        </span>
+                        <button onClick={clearRecents} className="text-[11px] text-slate-500 hover:text-red-400"
+                          data-testid="clear-recents-btn">
+                          Clear
+                        </button>
+                      </div>
+                      <div className="px-4 pb-1 flex flex-wrap gap-2">
+                        {recentQueries.map((term) => (
+                          <button key={term} onClick={() => setQuery(term)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-orange-500/60 hover:text-white transition-colors"
+                            data-testid={`recent-query-${term.replace(/\s+/g, '-').toLowerCase()}`}>
+                            <Clock className="h-3.5 w-3.5 text-slate-500" />
+                            {term}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {recentSearches.length > 0 && (
-                    <div className="py-2">
+                    <div className="py-2 border-t border-slate-800">
                       <div className="px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Recent Searches
+                        Recently Viewed
                       </div>
                       {recentSearches.map((item, index) => renderItem(item, index))}
                     </div>

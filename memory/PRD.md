@@ -3713,3 +3713,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Backend (search_routes.py): _fuzzy() matcher — substring + difflib word-level (>0.72) + whole-text (>0.6) + multi-word token matching ("Sea Brese"→Sea Breeze). Applied to aviation bookings, vertical bookings, assets (in-python filter over recent 150-200 docs). Finance role ab vertical bookings+assets bhi search karta hai; sales ko assets; corporate NAV quick actions added
 - Frontend: GlobalSearch mounted on 5 more dashboards — Finance, Sales, HR, Support, Corporate (pehle sirf Customer/Admin/Operator/VerticalOwner pe tha). Ab har user ke paas Ctrl+K
 - TESTED: curl (customer: yatch→yachts, Aravali→helipad, crusie→cruises, Sea Brese→bookings; finance: STL→payouts, yatch→assets) + UI screenshot (Finance dashboard Ctrl+K modal, typo search 2 results)
+
+##### 22. Recent Searches (one-tap) 🟢 DONE (June 2026)
+- GlobalSearch.js: per-user localStorage (airyatra_recent_queries_{userId} + airyatra_recent_searches_{userId} — pehle global key thi, cross-user leak). Typed query term saved on result selection (max 6)
+- UI: empty state me "Recent Searches" chip row (Clock icon pills, tap → setQuery → re-search), "Recently Viewed" section (clicked results, direct navigate), Clear button (dono wipe)
+- TESTED: single-session E2E screenshot — search "yatch" → select → reopen → chip visible → tap → 2 yacht results re-loaded ✓; localStorage keys verified per-user
