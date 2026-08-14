@@ -83,15 +83,56 @@ export default function MarineBookings() {
     } finally { setBusy(''); }
   };
 
+  const loadRazorpayScript = () => new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
   const pay = async (b) => {
     setBusy(`pay-${b.id}`);
     try {
       const res = await api.post(`/verticals/bookings/${b.id}/pay`);
+      if (res.data.gateway === 'razorpay') {
+        const ok = await loadRazorpayScript();
+        if (!ok) throw new Error('Failed to load Razorpay checkout');
+        const o = res.data;
+        const rzp = new window.Razorpay({
+          key: o.key_id, amount: o.amount_paise, currency: 'INR',
+          name: 'AirYatra', description: o.description, order_id: o.order_id,
+          prefill: o.prefill, theme: { color: '#f97316' },
+          handler: async (response) => {
+            try {
+              const v = await api.post(`/verticals/bookings/${b.id}/verify-payment`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              toast.success(v.data.message);
+              load();
+            } catch (e) {
+              toast.error(e.response?.data?.detail || 'Payment verification failed');
+            } finally { setBusy(''); }
+          },
+          modal: { ondismiss: () => setBusy('') },
+        });
+        rzp.on('payment.failed', (resp) => {
+          toast.error(resp.error?.description || 'Payment failed');
+          setBusy('');
+        });
+        rzp.open();
+        return;
+      }
       toast.success(res.data.message);
       load();
+      setBusy('');
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Payment failed');
-    } finally { setBusy(''); }
+      setBusy('');
+    }
   };
 
   const openManifest = (b) => {

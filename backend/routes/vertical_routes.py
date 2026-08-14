@@ -239,27 +239,85 @@ async def booking_decision(booking_id: str, action: str = Body(..., embed=True),
 
 @router.post("/bookings/{booking_id}/pay")
 async def pay_booking(booking_id: str, user: dict = Depends(get_current_user)):
-    """Payment + auto invoice email + ledger + owner payout settlement"""
+    """Create REAL Razorpay order for vertical booking (mock fallback only if gateway unavailable)"""
     db = get_database()
     booking = await db.vertical_bookings.find_one({"id": booking_id}, {"_id": 0})
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking["customer_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Not your booking")
-    if booking["status"] != "confirmed":
-        raise HTTPException(status_code=400, detail="Booking must be confirmed by owner before payment")
     if booking["payment_status"] == "paid":
         raise HTTPException(status_code=400, detail="Already paid")
+    if booking["status"] != "confirmed":
+        raise HTTPException(status_code=400, detail="Booking must be confirmed by owner before payment")
 
-    order_id = f"order_vt_{uuid.uuid4().hex[:12]}"
-    payment_id = f"pay_vt_{uuid.uuid4().hex[:12]}"
-    now = _now().isoformat()
-    await db.payment_orders.insert_one({
-        "id": str(uuid.uuid4()), "order_id": order_id, "payment_id": payment_id,
-        "booking_id": booking_id, "amount": booking["amount"], "currency": "INR",
-        "status": "paid", "mock": True, "vertical": booking["vertical"],
-        "created_at": now, "verified_at": now,
+    import routes.razorpay_routes as rzp
+    if rzp.razorpay_client is None:
+        # Gateway not configured — mock fallback (preview/demo only)
+        order_id = f"order_vt_{uuid.uuid4().hex[:12]}"
+        payment_id = f"pay_vt_{uuid.uuid4().hex[:12]}"
+        await db.payment_orders.insert_one({
+            "id": str(uuid.uuid4()), "order_id": order_id, "payment_id": payment_id,
+            "booking_id": booking_id, "amount": booking["amount"], "currency": "INR",
+            "status": "paid", "mock": True, "vertical": booking["vertical"],
+            "created_at": _now().isoformat(), "verified_at": _now().isoformat(),
+        })
+        return await _complete_vertical_payment(db, booking, order_id, payment_id, mock=True)
+
+    rz_order = rzp.razorpay_client.order.create({
+        "amount": int(round(booking["amount"] * 100)),
+        "currency": "INR",
+        "receipt": booking["booking_number"][:38],
+        "notes": {"booking_id": booking_id, "vertical": booking["vertical"], "type": "vertical_booking"},
     })
+    await db.payment_orders.insert_one({
+        "id": str(uuid.uuid4()), "order_id": rz_order["id"], "payment_id": None,
+        "booking_id": booking_id, "amount": booking["amount"], "currency": "INR",
+        "status": "created", "mock": False, "vertical": booking["vertical"],
+        "created_at": _now().isoformat(),
+    })
+    return {"gateway": "razorpay", "order_id": rz_order["id"], "key_id": rzp.RAZORPAY_KEY_ID,
+            "amount": booking["amount"], "amount_paise": int(round(booking["amount"] * 100)),
+            "currency": "INR", "mode": rzp.GATEWAY_MODE,
+            "prefill": {"name": booking.get("customer_name") or user.get("full_name", ""),
+                        "email": user.get("email", ""), "contact": user.get("phone") or "9999999999"},
+            "description": f"{booking['vertical'].title()} Booking {booking['booking_number']}"}
+
+
+@router.post("/bookings/{booking_id}/verify-payment")
+async def verify_vertical_payment(booking_id: str, data: dict = Body(...),
+                                  user: dict = Depends(get_current_user)):
+    """Verify Razorpay signature -> mark paid + settlement + invoice"""
+    db = get_database()
+    booking = await db.vertical_bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking or booking["customer_id"] != user["id"]:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking["payment_status"] == "paid":
+        return {"message": "Already paid", "already_paid": True}
+    order_id = data.get("razorpay_order_id")
+    payment_id = data.get("razorpay_payment_id")
+    signature = data.get("razorpay_signature")
+    order = await db.payment_orders.find_one({"order_id": order_id, "booking_id": booking_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Payment order not found")
+    import routes.razorpay_routes as rzp
+    try:
+        rzp.razorpay_client.utility.verify_payment_signature({
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature,
+        })
+    except Exception:
+        raise HTTPException(status_code=400, detail="Payment signature verification failed")
+    await db.payment_orders.update_one(
+        {"order_id": order_id},
+        {"$set": {"payment_id": payment_id, "status": "paid", "verified_at": _now().isoformat()}})
+    return await _complete_vertical_payment(db, booking, order_id, payment_id, mock=False)
+
+
+async def _complete_vertical_payment(db, booking, order_id, payment_id, mock=False):
+    booking_id = booking["id"]
+    now = _now().isoformat()
     await db.vertical_bookings.update_one(
         {"id": booking_id},
         {"$set": {"payment_status": "paid", "status": "paid", "paid_at": now,
@@ -292,7 +350,7 @@ async def pay_booking(booking_id: str, user: dict = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Vertical invoice email failed: {e}")
     return {"message": f"Payment successful! Invoice emailed. Booking {booking['booking_number']} is confirmed & paid.",
-            "order_id": order_id, "payment_id": payment_id, "amount": booking["amount"]}
+            "order_id": order_id, "payment_id": payment_id, "amount": booking["amount"], "mock": mock}
 
 
 async def _send_vertical_invoice(db, booking, order_id):

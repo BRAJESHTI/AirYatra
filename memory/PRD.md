@@ -3798,3 +3798,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - GET /admin/audit-trail/alerts (staff): stored security_alerts fast-read for dashboard
 - CEO Alert Emails: on NEW high-severity alert upsert → HTML email to user with role ceo (fallback ceo@airyatra.co.in) via email_service; self-audited as security_alert_email_sent. TESTED: SMTP log "Email sent successfully to ceo@airyatra.co.in — 2 high-severity event(s)"
 - Frontend admin/SecurityAlertsFeed.js on AdminOverview top: triggers fresh detection then shows last 6 alerts w/ severity dots, count badge, "View all" → audit tab. Screenshot verified (6 multi-IP alerts visible on admin home)
+
+##### 34. SEC-001 CLOSED — Real Razorpay Vertical Payments 🟢 testing_agent VERIFIED 11/11 (June 2026)
+- vertical_routes.py: POST /bookings/{id}/pay ab REAL Razorpay order banata hai (order.create, notes w/ booking_id) — instant mock-paid HATAYA. New POST /bookings/{id}/verify-payment: razorpay.utility.verify_payment_signature (HMAC) → tabhi paid + owner settlement + ledger + invoice email (_complete_vertical_payment helper). Mock fallback sirf jab razorpay_client None (preview safety). Guards: already-paid check first (post-test fix), cross-user 404, fake signature 400
+- MarineBookings.js pay(): checkout.razorpay.com script load → official Razorpay modal (prefill, orange theme) → handler verify-payment → toast+reload; payment.failed + dismiss handling
+- iteration_67: backend 11/11 pytest (tests/test_vertical_razorpay.py — reusable regression) + frontend modal opens w/ real gateway iframe. Mixed-content warnings = Razorpay's own test-mode CDN, ignore
+- ⚠️ USER NOTE: gateway TEST mode me hai (rzp_test) — real UPI (dr.brajeshptiwari@okicici) charge karne ke liye LIVE keys + Go Live toggle chahiye. Test mode me koi real paisa nahi katta

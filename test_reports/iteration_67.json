@@ -1,0 +1,35 @@
+{
+  "summary": "SEC-001 real Razorpay integration for vertical (yacht/helipad/cruise) bookings verified end-to-end. 11/11 backend pytest cases pass (test_vertical_razorpay.py) and frontend Razorpay checkout modal opens correctly with 'Secured By Razorpay' branding. Mock instant-paid path is gone — pay endpoint returns gateway=razorpay + real order_TPk... order_id + rzp_test_ key, booking stays payment_status=unpaid until HMAC signature verification. Fake signature -> 400, cross-user verify -> 404, pay on pending -> 400, pay on paid -> 400. Refund regression unaffected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/verticals/bookings/{id}/pay", "issue": "When called on an already-paid booking (status='paid'), the guard `status != 'confirmed'` triggers FIRST and returns detail='Booking must be confirmed by owner before payment' instead of 'Already paid'. Correct 400 status but misleading error message. Reorder checks: `if payment_status=='paid'` before `if status!='confirmed'`."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vertical_razorpay.py",
+    "/app/test_reports/pytest/iter67.xml"
+  ],
+  "action_items": [
+    "(minor) In routes/vertical_routes.py pay_booking: move `if booking['payment_status']=='paid'` check ABOVE the `status != 'confirmed'` check so paid bookings return the accurate 'Already paid' 400 instead of the confirmation message."
+  ],
+  "critical_code_review_comments": [
+    "verify_vertical_payment (vertical_routes.py L288-315): correctly uses razorpay.utility.verify_payment_signature (HMAC) — no manual/insecure comparison. Order lookup includes booking_id constraint (prevents cross-booking replay). Good.",
+    "pay_booking creates a Razorpay order row with status='created' and mock=False before returning to client, then verify-payment flips to status='paid' — proper 2-phase flow with server-side ledger + settlement created only after signature verification.",
+    "Mock fallback path in pay_booking is dead code in current config (razorpay_client is initialised); acceptable but note that it still writes settlement/ledger identically — good parity."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vertical_razorpay.py (new)"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "100% (Razorpay checkout modal opens with real gateway iframe)"},
+  "seed_data_creation": "Created 1 fresh TEST yacht booking (2027-03-01) and a real Razorpay order via customer@airyatra.co.in against the seeded yacht asset. Booking left in 'confirmed, unpaid' state (no real money moved — signature verification intentionally fails on fake signature).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "SEC-001 vertical Razorpay flow verified end-to-end. Backend regression test lives at /app/backend/tests/test_vertical_razorpay.py — run with `pytest tests/test_vertical_razorpay.py -v`. Frontend Razorpay modal loads checkout.razorpay.com script + iframe correctly. Console logs a batch of Mixed-Content warnings for http://localhost:7071/*.png — these come from Razorpay's OWN checkout bundle (their icon CDN misconfig in test mode), NOT from AirYatra code; safe to ignore. When gateway is switched to LIVE keys, re-run this test file to confirm order_id/key_id prefixes update accordingly.",
+  "rca_of_the_issue": "N/A — implementation is correct. Only cosmetic point: pay endpoint's error message priority when booking is already paid says 'must be confirmed' because after payment the booking status transitions to 'paid' (not 'confirmed'), and the confirmation guard is evaluated first."
+}
