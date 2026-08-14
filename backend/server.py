@@ -628,6 +628,13 @@ async def startup_event():
         logger.info(f"Database optimization complete: {result}")
     except Exception as e:
         logger.warning(f"Database optimization warning: {e}")
+
+    # Apply persisted Razorpay gateway mode (test/live toggle)
+    try:
+        from routes.razorpay_routes import apply_gateway_mode
+        await apply_gateway_mode()
+    except Exception as e:
+        logger.warning(f"Gateway mode sync warning: {e}")
     
     # Initialize Security Middleware (Audit Logger, Session Manager, File Encryption)
     try:

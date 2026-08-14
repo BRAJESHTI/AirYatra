@@ -4,7 +4,7 @@ Order creation, payment verification, webhook handling
 Receipt Prefix: AY000125 format
 Website: airyatra.co.in
 """
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends, Body
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -34,6 +34,100 @@ WEBSITE = os.environ.get("RAZORPAY_WEBSITE", "airyatra.co.in")
 razorpay_client = None
 if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
     razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+GATEWAY_MODE = "test"
+
+
+async def apply_gateway_mode(mode: str = None):
+    """Apply test/live Razorpay keys globally (module client + payment_service singleton)"""
+    global razorpay_client, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET, GATEWAY_MODE
+    db = get_database()
+    if mode is None:
+        doc = await db.settings.find_one({"type": "payment_gateway_mode"}, {"_id": 0})
+        mode = (doc or {}).get("mode") or os.environ.get("RAZORPAY_MODE", "test").strip('"') or "test"
+    if mode == "live":
+        kid = os.environ.get("RAZORPAY_LIVE_KEY_ID", "").strip('"')
+        sec = os.environ.get("RAZORPAY_LIVE_KEY_SECRET", "").strip('"')
+        wh = os.environ.get("RAZORPAY_LIVE_WEBHOOK_SECRET", "").strip('"')
+    else:
+        mode = "test"
+        kid = os.environ.get("RAZORPAY_KEY_ID", "")
+        sec = os.environ.get("RAZORPAY_KEY_SECRET", "")
+        wh = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "")
+    RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET = kid, sec
+    if wh:
+        RAZORPAY_WEBHOOK_SECRET = wh
+    razorpay_client = razorpay.Client(auth=(kid, sec)) if kid and sec else None
+    GATEWAY_MODE = mode
+    try:
+        from services.payment_service import payment_service
+        payment_service.key_id, payment_service.key_secret = kid, sec
+        payment_service.client = razorpay_client
+        payment_service._db_settings_loaded = True
+    except Exception as e:
+        logger.warning(f"payment_service sync failed: {e}")
+    logger.info(f"Razorpay gateway mode applied: {mode.upper()} (key: {kid[:12] + '****' if kid else 'NONE'})")
+    return mode
+
+
+GATEWAY_STAFF = {"admin", "super_admin", "finance", "ceo", "cfo"}
+
+
+@router.get("/gateway-mode")
+async def get_gateway_mode(current_user: dict = Depends(get_current_user)):
+    """Current payment gateway mode (staff only)"""
+    if not GATEWAY_STAFF & set(current_user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    live_kid = os.environ.get("RAZORPAY_LIVE_KEY_ID", "").strip('"')
+    return {
+        "mode": GATEWAY_MODE,
+        "active_key": RAZORPAY_KEY_ID[:12] + "****" if RAZORPAY_KEY_ID else None,
+        "live_keys_configured": bool(live_kid and os.environ.get("RAZORPAY_LIVE_KEY_SECRET", "").strip('"')),
+        "live_key_valid_format": live_kid.startswith("rzp_live_") if live_kid else False,
+        "can_toggle": "super_admin" in current_user.get("roles", []),
+    }
+
+
+@router.post("/gateway-mode")
+async def set_gateway_mode(
+    payload: dict = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Switch payment gateway between test and live (super_admin only, confirmation required)"""
+    if "super_admin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Only Super Admin can switch payment gateway mode")
+    mode = payload.get("mode")
+    if mode not in ("test", "live"):
+        raise HTTPException(status_code=400, detail="mode must be 'test' or 'live'")
+    if mode == "live":
+        if payload.get("confirm") != "GO LIVE":
+            raise HTTPException(status_code=400, detail="Type confirm: 'GO LIVE' to switch to live payments")
+        kid = os.environ.get("RAZORPAY_LIVE_KEY_ID", "").strip('"')
+        sec = os.environ.get("RAZORPAY_LIVE_KEY_SECRET", "").strip('"')
+        if not kid or not sec:
+            raise HTTPException(status_code=400,
+                                detail="Live keys not configured. Set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET in backend .env first")
+        if not kid.startswith("rzp_live_"):
+            raise HTTPException(status_code=400, detail="RAZORPAY_LIVE_KEY_ID must start with 'rzp_live_'")
+    db = get_database()
+    await db.settings.update_one(
+        {"type": "payment_gateway_mode"},
+        {"$set": {"mode": mode, "changed_by": current_user["id"],
+                  "changed_by_email": current_user.get("email"),
+                  "changed_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True)
+    applied = await apply_gateway_mode(mode)
+    try:
+        await db.audit_logs.insert_one({
+            "action": "payment_gateway_mode_changed", "category": "payments",
+            "user_id": current_user["id"], "user_email": current_user.get("email"),
+            "details": {"new_mode": applied}, "status": "success", "risk_level": "high",
+            "created_at": datetime.now(timezone.utc).isoformat()})
+    except Exception:
+        pass
+    return {"message": f"Payment gateway switched to {applied.upper()} mode",
+            "mode": applied,
+            "active_key": RAZORPAY_KEY_ID[:12] + "****" if RAZORPAY_KEY_ID else None}
 
 # Models
 class OrderRequest(BaseModel):

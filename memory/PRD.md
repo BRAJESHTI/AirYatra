@@ -3769,3 +3769,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - 🟢 Refund OTP hardening (refund_approval_routes.py): random.randint → secrets.randbelow; constant-time compare (secrets.compare_digest); attempts counter, 5 wrong → 429 lockout + OTP invalidated. Test: 5x401 then 429 ✓
 - 🟢 PayPal /order/{id} IDOR guard: owner (user_id) or staff, else 404
 **Remaining OPEN (business-accepted):** SEC-001 mocked vertical checkout (demo mode — real Razorpay integration pending user decision)
+
+##### 29. Razorpay Live Keys Toggle 🟢 DONE (June 2026)
+- .env: RAZORPAY_MODE="test" + RAZORPAY_LIVE_KEY_ID/SECRET/WEBHOOK_SECRET (empty — user fills when ready)
+- Backend (razorpay_routes.py): apply_gateway_mode() swaps module globals (client/key/webhook secret) + syncs payment_service singleton; persisted in db.settings (payment_gateway_mode); server.py startup re-applies persisted mode. GET /razorpay/gateway-mode (staff): mode/masked key/live-configured/can_toggle. POST (super_admin only): live requires confirm:"GO LIVE" + live keys present + rzp_live_ prefix; audit_logs entry (risk high)
+- Frontend: admin/PaymentGatewayMode.js card at top of APIKeysSettings (Settings & System → API Keys): TEST/LIVE badge, masked key, missing-keys warning, Go Live button (super_admin only, disabled till keys set) with type-"GO LIVE" confirm box, Switch-to-Test button
+- TESTED: API 7/7 (customer 403, admin view ok + toggle 403, super_admin: no-confirm 400, no-live-keys 400, test-mode 200); startup log "mode applied: TEST"; UI verified via full browser OTP login (SEC-003 E2E re-confirmed!) — card renders with TEST badge + Super Admin only gating
