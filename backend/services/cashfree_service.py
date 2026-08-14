@@ -142,6 +142,25 @@ class CashfreeService:
             logger.error(f"Cashfree create order error: {e}")
             return {"success": False, "error": str(e)}
     
+    async def pay_upi_collect(self, payment_session_id: str, upi_id: str) -> Dict[str, Any]:
+        """Initiate a UPI Collect request to a specific VPA (GPay/PhonePe approval popup)"""
+        if not self.is_configured():
+            return {"success": True, "cf_payment_id": f"mock_pay_{uuid.uuid4().hex[:10]}",
+                    "action": "custom", "mode": "MOCK", "mock_mode": True,
+                    "message": "MOCK collect request (configure Cashfree keys for real UPI)"}
+        try:
+            payload = {
+                "payment_session_id": payment_session_id,
+                "payment_method": {
+                    "upi": {"channel": "collect", "upi_id": upi_id, "upi_expiry_minutes": 10}
+                }
+            }
+            return await self._request("POST", "/orders/sessions", body=payload,
+                                       idempotency_key=str(uuid.uuid4()))
+        except Exception as e:
+            logger.error(f"Cashfree UPI collect error: {e}")
+            return {"success": False, "error": str(e)}
+
     async def get_order(self, order_id: str) -> Dict[str, Any]:
         """Get order details from Cashfree"""
         if not self.is_configured():
@@ -275,10 +294,10 @@ class CashfreeService:
     
     def verify_webhook(self, raw_body: bytes, timestamp: str, signature: str) -> bool:
         """Verify Cashfree webhook signature"""
-        webhook_secret = os.environ.get("CASHFREE_WEBHOOK_SECRET", "")
+        webhook_secret = os.environ.get("CASHFREE_WEBHOOK_SECRET", "") or self.client_secret
         if not webhook_secret:
             logger.warning("Webhook secret not configured")
-            return True  # Allow in dev mode
+            return True  # Allow in dev/mock mode only
         
         try:
             expected = base64.b64encode(

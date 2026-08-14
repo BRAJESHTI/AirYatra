@@ -3810,3 +3810,13 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend PaymentGatewayMode.js: 'One Rupee Gateway Test' section + 'Pay ₹1 Test' button (data-testid one-rupee-test-btn) → opens official Razorpay checkout modal with ₹1; success/failure banner (one-rupee-test-result); LIVE mode me real ₹1 UPI charge, TEST mode me nahi
 - iter_68: backend 7/7 pytest (order create, RBAC 403, fake-sig 400, unauth). Found UI gating bug (button super_admin-only) → fixed via can_one_rupee_test flag. iter_69: 100% backend+frontend — admin sees button, Razorpay iframe opens with ₹1
 - Regression test: /app/backend/tests/test_iter68_one_rupee.py
+
+##### 36. Cashfree PRODUCTION UPI Collect Integration + Test Pricing 🟢 CODE DONE — testing_agent 33/33 PASS (June 2026)
+- backend/.env: CASHFREE_CLIENT_ID/SECRET (PRODUCTION), CASHFREE_MODE=production
+- cashfree_service.py: pay_upi_collect() (POST /orders/sessions channel=collect), verify_webhook secret fallback to client_secret
+- cashfree_routes.py: POST /payments/cashfree/upi-collect (server-side amount via _resolve_payable — vertical bookings + aviation inquiries advance-aware), GET /collect-status/{order_id} (poll + idempotent finalize), _finalize_cashfree_payment (vertical → _complete_vertical_payment settlement+ledger+invoice; aviation → payment_transactions+booking update+invoice email; notifications + audit_event cashfree_payment_success), webhook HARDENED (invalid sig → 401, duplicate protection via cashfree_webhook_events, PAYMENT_SUCCESS(_WEBHOOK) finalize), test-pricing apply/restore (admin, backup in db.test_pricing_backup)
+- S2S direct collect NOT approved on merchant account (s2s_enabled_not_approved) → auto HOSTED CHECKOUT fallback (Cashfree JS SDK v3 modal)
+- Frontend: MarineBookings.js UPI Collect button+dialog (prefill dr.brajeshptiwari@okicici, 4s polling, 10min timeout); PaymentPage.js cashfree gateway → UPI section + hosted checkout
+- TEST PRICING ACTIVE: Helicopter ₹5/hr, Jet ₹10/hr, Yacht ₹15, Cruise ₹20, AirAmb ₹25, Cargo ₹30, Scenic ₹35, Helipad ₹40. Restore: POST /api/payments/cashfree/test-pricing/restore
+- ⚠️ USER BLOCKERS: (1) Domain whitelist at merchant.cashfree.com > Developers (preview URL + production domain) — checkout modal shows 'Broken Link!' until done. (2) Optional: email care@cashfree.com for S2S direct-collect enablement. (3) Razorpay real UPI needs LIVE keys (not provided — Razorpay stays TEST mode)
+- Regression suite: /app/backend/tests/test_cashfree_upi_collect.py (15 tests)

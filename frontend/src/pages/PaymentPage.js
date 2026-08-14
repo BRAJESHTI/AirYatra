@@ -207,9 +207,67 @@ function PaymentPage({ user }) {
     }
   };
 
+  const loadCashfreeSdk = () => new Promise((resolve) => {
+    if (window.Cashfree) return resolve(true);
+    const s = document.createElement('script');
+    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+
+  const handleCashfreeCollect = async () => {
+    const upi = upiId.trim();
+    if (!upi.includes('@')) return toast.error('Valid UPI ID daaliye (e.g. name@okicici)');
+    setProcessing(true);
+    setCollectState({ status: 'sending' });
+    try {
+      const res = await api.post('/payments/cashfree/upi-collect', { booking_id: inquiryId, upi_id: upi });
+      toast.success(res.data.message);
+      if (res.data.collect_mode === 'hosted_checkout' && res.data.payment_session_id) {
+        const ok = await loadCashfreeSdk();
+        if (ok) {
+          const cashfree = window.Cashfree({ mode: res.data.mode === 'production' ? 'production' : 'sandbox' });
+          cashfree.checkout({ paymentSessionId: res.data.payment_session_id, redirectTarget: '_modal' });
+        } else {
+          toast.error('Cashfree checkout load nahi hua — retry karein');
+        }
+      }
+      setCollectState({ status: 'pending', orderId: res.data.order_id, amount: res.data.amount, hosted: res.data.collect_mode === 'hosted_checkout' });
+      const started = Date.now();
+      const poll = setInterval(async () => {
+        if (Date.now() - started > 10 * 60 * 1000) {
+          clearInterval(poll);
+          setCollectState({ status: 'timeout' });
+          setProcessing(false);
+          toast.error('Collect request expire ho gaya — dobara try karein');
+          return;
+        }
+        try {
+          const s = await api.get(`/payments/cashfree/collect-status/${res.data.order_id}`);
+          if (s.data.status === 'SUCCESS') {
+            clearInterval(poll);
+            toast.success('UPI payment successful!');
+            navigate(`/payment/success?gateway=cashfree&booking_id=${inquiryId}&amount=${res.data.amount}`);
+          } else if (s.data.status === 'FAILED') {
+            clearInterval(poll);
+            setCollectState({ status: 'failed' });
+            setProcessing(false);
+            toast.error('UPI collect failed / declined');
+          }
+        } catch (e) { /* keep polling */ }
+      }, 4000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'UPI collect request failed');
+      setCollectState(null);
+      setProcessing(false);
+    }
+  };
+
   const handlePayment = async () => {
     if (selectedGateway === 'razorpay') return handleRazorpayPayment();
     if (selectedGateway === 'wallet') return handleWalletPayment();
+    if (selectedGateway === 'cashfree') return handleCashfreeCollect();
     setProcessing(true);
     try {
       const res = await api.post('/payments/stripe/checkout', {
@@ -476,6 +534,43 @@ function PaymentPage({ user }) {
           </div>
         </div>
 
+        {/* Cashfree UPI Collect */}
+        {selectedGateway === 'cashfree' && (
+          <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 mb-6" data-testid="cashfree-upi-section">
+            <h3 className="text-lg font-semibold text-white mb-2">UPI Collect Request</h3>
+            <p className="text-slate-400 text-sm mb-3">
+              Apni UPI ID daaliye — payment approval popup aapke GPay/PhonePe me aayega
+            </p>
+            <Input
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+              placeholder="yourname@okicici"
+              className="bg-slate-800 border-slate-600 text-white font-mono"
+              disabled={collectState?.status === 'pending'}
+              data-testid="upi-id-input"
+            />
+            {collectState?.status === 'pending' && (
+              <div className="mt-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center gap-3" data-testid="collect-pending-banner">
+                <Loader2 className="h-5 w-5 text-blue-400 animate-spin flex-shrink-0" />
+                <div>
+                  <p className="text-blue-300 font-medium text-sm">
+                    {collectState.hosted ? `Cashfree checkout khula — ₹${collectState.amount?.toLocaleString()}` : `Collect request bheja gaya — ₹${collectState.amount?.toLocaleString()}`}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-0.5">
+                    {collectState.hosted ? 'Checkout me UPI select karke apni UPI ID daaliye, phir GPay me approve karein. Status auto-update hoga...' : 'Google Pay kholiye aur payment request approve karein. Status auto-update hoga...'}
+                  </p>
+                </div>
+              </div>
+            )}
+            {collectState?.status === 'failed' && (
+              <p className="mt-3 text-red-400 text-sm" data-testid="collect-failed-msg">❌ Collect request declined/failed — dobara try karein</p>
+            )}
+            {collectState?.status === 'timeout' && (
+              <p className="mt-3 text-amber-400 text-sm" data-testid="collect-timeout-msg">⏱️ Request expire ho gaya — dobara bhejein</p>
+            )}
+          </div>
+        )}
+
         {/* Pay Button */}
         <Button
           onClick={handlePayment}
@@ -484,11 +579,16 @@ function PaymentPage({ user }) {
           data-testid="pay-now-btn"
         >
           {processing ? (
-            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Processing...</>
+            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> {selectedGateway === 'cashfree' && collectState?.status === 'pending' ? 'Waiting for GPay approval...' : 'Processing...'}</>
           ) : selectedGateway === 'wallet' ? (
             <>
               <Wallet className="h-5 w-5 mr-2" />
               Pay from Wallet / Reward Points
+            </>
+          ) : selectedGateway === 'cashfree' ? (
+            <>
+              <CreditCard className="h-5 w-5 mr-2" />
+              Send UPI Collect Request — ₹{payableAmount?.toLocaleString()}
             </>
           ) : (
             <>

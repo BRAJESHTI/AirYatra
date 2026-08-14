@@ -31,6 +31,60 @@ export default function MarineBookings() {
   const [cancelReasons, setCancelReasons] = useState([]);
   const [cancelReason, setCancelReason] = useState('');
   const [refundMap, setRefundMap] = useState({});
+  const [collectFor, setCollectFor] = useState(null);
+  const [upiId, setUpiId] = useState('dr.brajeshptiwari@okicici');
+  const [collectStatus, setCollectStatus] = useState(null);
+  const pollRef = React.useRef(null);
+
+  const stopPoll = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  useEffect(() => () => stopPoll(), []);
+
+  const loadCashfreeSdk = () => new Promise((resolve) => {
+    if (window.Cashfree) return resolve(true);
+    const s = document.createElement('script');
+    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+
+  const sendCollect = async () => {
+    const upi = upiId.trim();
+    if (!upi.includes('@')) return toast.error('Valid UPI ID daaliye');
+    setBusy('collect');
+    setCollectStatus('sending');
+    try {
+      const res = await api.post('/payments/cashfree/upi-collect', { booking_id: collectFor.id, upi_id: upi });
+      toast.success(res.data.message);
+      if (res.data.collect_mode === 'hosted_checkout' && res.data.payment_session_id) {
+        const ok = await loadCashfreeSdk();
+        if (ok) {
+          const cashfree = window.Cashfree({ mode: res.data.mode === 'production' ? 'production' : 'sandbox' });
+          cashfree.checkout({ paymentSessionId: res.data.payment_session_id, redirectTarget: '_modal' });
+        }
+      }
+      setCollectStatus('pending');
+      const started = Date.now();
+      stopPoll();
+      pollRef.current = setInterval(async () => {
+        if (Date.now() - started > 10 * 60 * 1000) { stopPoll(); setCollectStatus('timeout'); setBusy(''); return; }
+        try {
+          const s = await api.get(`/payments/cashfree/collect-status/${res.data.order_id}`);
+          if (s.data.status === 'SUCCESS') {
+            stopPoll(); setCollectStatus('success'); setBusy('');
+            toast.success('UPI payment successful! Booking confirmed & paid.');
+            setCollectFor(null); load();
+          } else if (s.data.status === 'FAILED') {
+            stopPoll(); setCollectStatus('failed'); setBusy('');
+            toast.error('UPI collect failed / declined');
+          }
+        } catch (e) { /* keep polling */ }
+      }, 4000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'UPI collect failed');
+      setCollectStatus(null); setBusy('');
+    }
+  };
 
   const loadRefunds = async () => {
     try {
@@ -278,10 +332,16 @@ export default function MarineBookings() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             {b.status === 'confirmed' && (
-                              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8" disabled={busy === `pay-${b.id}`}
-                                onClick={() => pay(b)} data-testid={`pay-vbooking-${b.id}`}>
-                                {busy === `pay-${b.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CreditCard className="h-4 w-4 mr-1" /> Pay</>}
-                              </Button>
+                              <>
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8" disabled={busy === `pay-${b.id}`}
+                                  onClick={() => pay(b)} data-testid={`pay-vbooking-${b.id}`}>
+                                  {busy === `pay-${b.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CreditCard className="h-4 w-4 mr-1" /> Pay</>}
+                                </Button>
+                                <Button size="sm" variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 h-8"
+                                  onClick={() => { setCollectFor(b); setCollectStatus(null); }} data-testid={`upi-collect-vbooking-${b.id}`}>
+                                  <IndianRupee className="h-3.5 w-3.5 mr-1" /> UPI Collect
+                                </Button>
+                              </>
                             )}
                             {['pending', 'confirmed', 'paid'].includes(b.status) && (
                               <>
@@ -313,6 +373,37 @@ export default function MarineBookings() {
           )}
         </>
       )}
+
+      <Dialog open={!!collectFor} onOpenChange={(o) => { if (!o) { setCollectFor(null); stopPoll(); setBusy(''); } }}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white" data-testid="upi-collect-dialog">
+          <DialogHeader>
+            <DialogTitle>UPI Collect — {collectFor?.booking_number}</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {fmt(collectFor?.amount)} ka collect request aapke UPI app (GPay) me approval ke liye jayega
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="yourname@okicici"
+              className="bg-slate-800 border-slate-600 text-white font-mono"
+              disabled={collectStatus === 'pending'} data-testid="marine-upi-id-input" />
+            {collectStatus === 'pending' && (
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center gap-2 text-sm" data-testid="marine-collect-pending">
+                <Loader2 className="h-4 w-4 text-blue-400 animate-spin flex-shrink-0" />
+                <span className="text-blue-300">Google Pay me request approve karein — status auto-update hoga...</span>
+              </div>
+            )}
+            {collectStatus === 'failed' && <p className="text-red-400 text-sm">❌ Collect failed/declined — dobara try karein</p>}
+            {collectStatus === 'timeout' && <p className="text-amber-400 text-sm">⏱️ Request expire ho gaya</p>}
+          </div>
+          <DialogFooter>
+            <Button onClick={sendCollect} disabled={busy === 'collect' || collectStatus === 'pending'}
+              className="bg-cyan-600 hover:bg-cyan-700" data-testid="marine-send-collect-btn">
+              {busy === 'collect' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <IndianRupee className="h-4 w-4 mr-1" />}
+              Send Collect Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!cancelFor} onOpenChange={(o) => !o && setCancelFor(null)}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
