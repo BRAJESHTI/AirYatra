@@ -212,7 +212,7 @@ async def get_admin_dashboard(user: dict = Depends(require_roles([UserRole.ADMIN
     }
 
 @router.get("/operators")
-async def get_all_operators(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])), status: str = None):
+async def get_all_operators(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])), status: str = None):
     """Get all operators with optional status filter"""
     db = get_database()
     

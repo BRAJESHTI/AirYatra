@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import api from '../../services/api';
 import { toast } from 'sonner';
 
-function SupportDashboard() {
+function SupportDashboard({ initialStatus = '' }) {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
   const [tickets, setTickets] = useState([]);
@@ -18,7 +18,7 @@ function SupportDashboard() {
   const [agents, setAgents] = useState([]);
   const [slaConfig, setSlaConfig] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [filters, setFilters] = useState({ status: '', priority: '', category: '' });
+  const [filters, setFilters] = useState({ status: initialStatus, priority: '', category: '' });
   const [replyText, setReplyText] = useState('');
   const [isInternal, setIsInternal] = useState(false);
 

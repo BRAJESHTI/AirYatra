@@ -756,16 +756,33 @@ async def reject_leave(
 
 @router.get("/leave/pending")
 async def get_pending_leaves(
-    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
     db=Depends(get_database)
 ):
-    """Get all pending leave applications (Admin)"""
+    """Get all pending leave applications (HR/Admin)"""
     leaves = await db.leaves.find(
         {"status": LeaveStatus.PENDING.value},
         {"_id": 0}
     ).sort("created_at", 1).to_list(100)
     
     return {"pending_leaves": leaves, "count": len(leaves)}
+
+
+@router.get("/leave/all")
+async def get_all_leaves(
+    status: Optional[str] = None,
+    current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
+    db=Depends(get_database)
+):
+    """All leave applications with optional status filter (HR/Admin)"""
+    query = {}
+    if status:
+        query["status"] = status
+    leaves = await db.leaves.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    counts = {}
+    for s in ["pending", "approved", "rejected"]:
+        counts[s] = await db.leaves.count_documents({"status": s})
+    return {"leaves": leaves, "counts": counts}
 
 
 # ==================== SALARY MANAGEMENT ====================

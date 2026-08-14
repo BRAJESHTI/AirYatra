@@ -5,6 +5,8 @@ import NotificationBell from '@/components/shared/NotificationBell';
 
 // Import Sales Components
 import CRMDashboard from '@/components/admin/CRMDashboard';
+import IncentiveConfig from '@/components/admin/IncentiveConfig';
+const SalesTargets = React.lazy(() => import('@/components/hr/SalesTargets'));
 import MarketingCampaigns from '@/components/admin/MarketingCampaigns';
 import ReferralSettings from '@/components/admin/ReferralSettings';
 
@@ -99,9 +101,25 @@ function SalesDashboard({ user, onLogout }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'crm_dashboard':
+      case 'leads':
+      case 'calls':
+      case 'tasks':
+      case 'sales_report':
+      case 'conversion_report':
         return <CRMDashboard />;
       case 'campaigns':
+      case 'promotions':
         return <MarketingCampaigns />;
+      case 'targets':
+      case 'my_performance':
+      case 'team_performance':
+        return (
+          <React.Suspense fallback={<div className="text-white">Loading...</div>}>
+            <SalesTargets activeTab={activeTab} user={user} />
+          </React.Suspense>
+        );
+      case 'incentives':
+        return <IncentiveConfig />;
       case 'referral':
         return <ReferralSettings />;
       default:

@@ -11,6 +11,7 @@ import TeamAttendanceToday from '@/components/admin/TeamAttendanceToday';
 import HolidayCalendar from '@/components/admin/HolidayCalendar';
 import LiveTrackingDashboard from '@/components/admin/LiveTrackingDashboard';
 import LoginShieldDashboard from '@/components/admin/LoginShieldDashboard';
+import LeaveManagement from '@/components/hr/LeaveManagement';
 import SessionManager from '@/components/auth/SessionManager';
 
 // Lazy load new components
@@ -139,7 +140,12 @@ function HRDashboard({ user, onLogout }) {
       case 'field_tracking':
         return <LiveTrackingDashboard />;
       case 'attendance_payroll':
+      case 'attendance_report':
+      case 'payroll_report':
+      case 'salary':
         return <AttendancePayroll />;
+      case 'leaves':
+        return <LeaveManagement />;
       case 'incentive_config':
         return <IncentiveConfig />;
       case 'expense_claims':
@@ -152,6 +158,8 @@ function HRDashboard({ user, onLogout }) {
         );
       case 'sales_targets':
       case 'leaderboard':
+      case 'performance':
+      case 'achievements':
         return (
           <React.Suspense fallback={<div className="text-white">Loading...</div>}>
             <SalesTargets activeTab={activeTab} user={user} />

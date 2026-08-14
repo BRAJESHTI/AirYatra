@@ -171,7 +171,7 @@ async def list_templates(
     search: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """List all templates with filters"""
     
@@ -218,7 +218,7 @@ async def list_templates(
 
 @router.get("/stats")
 async def get_template_stats(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get template statistics by category"""
     
@@ -265,7 +265,7 @@ async def get_template_stats(
 
 @router.get("/scheduled")
 async def get_scheduled_templates(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get all templates with scheduling configured"""
     
@@ -308,7 +308,7 @@ async def get_scheduled_templates(
 async def get_pending_notifications_route(
     category: str = None,
     limit: int = Query(50, ge=1, le=200),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get pending notifications in queue"""
     
@@ -342,7 +342,7 @@ async def get_send_history_route(
     status: str = None,
     days: int = Query(7, ge=1, le=30),
     limit: int = Query(100, ge=1, le=500),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get notification send history"""
     
@@ -386,7 +386,7 @@ async def get_send_history_route(
 
 @router.get("/approvals/pending")
 async def get_pending_approvals_route(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get all templates pending approval"""
     
@@ -612,7 +612,7 @@ async def browse_template_library_route(
 async def list_alerts_route(
     template_id: str = None,
     is_active: bool = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """List all configured alerts"""
     
@@ -645,7 +645,7 @@ async def list_alerts_route(
 async def get_alert_history_route(
     alert_id: str = None,
     days: int = Query(7, ge=1, le=30),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get alert trigger history"""
     
@@ -673,7 +673,7 @@ async def get_delivery_reports_route(
     provider: str = None,
     days: int = Query(7, ge=1, le=30),
     limit: int = Query(100, ge=1, le=500),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get delivery reports with filters"""
     
@@ -713,7 +713,7 @@ async def get_delivery_reports_route(
 @router.get("/{template_id}")
 async def get_template(
     template_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get a single template by ID"""
     
@@ -734,7 +734,7 @@ async def get_template(
 @router.post("/create")
 async def create_template(
     template: TemplateCreate,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Create a new notification template"""
     
@@ -798,7 +798,7 @@ async def create_template(
 async def update_template(
     template_id: str,
     updates: TemplateUpdate,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Update an existing template"""
     
@@ -826,7 +826,7 @@ async def update_template(
 @router.patch("/{template_id}/toggle")
 async def toggle_template_status(
     template_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Toggle template active/inactive status"""
     
@@ -858,7 +858,7 @@ async def toggle_template_status(
 @router.delete("/{template_id}")
 async def delete_template(
     template_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Delete a template"""
     
@@ -876,7 +876,7 @@ async def delete_template(
 async def preview_template(
     template_id: str,
     sample_data: dict = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Preview template with sample data"""
     
@@ -941,7 +941,7 @@ async def preview_template(
 async def duplicate_template(
     template_id: str,
     new_name: str = Query(..., min_length=2),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Duplicate an existing template"""
     
@@ -989,7 +989,7 @@ async def duplicate_template(
 
 @router.post("/seed-defaults")
 async def seed_default_templates(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Seed default notification templates"""
     
@@ -1506,7 +1506,7 @@ T&C apply.
 async def create_ab_variant(
     template_id: str,
     variant_name: str = Query(..., min_length=2),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Create an A/B test variant of an existing template"""
     
@@ -1582,7 +1582,7 @@ async def create_ab_variant(
 @router.get("/{template_id}/variants")
 async def get_template_variants(
     template_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get all variants of a template"""
     
@@ -1605,7 +1605,7 @@ async def get_template_variants(
 async def toggle_ab_test(
     template_id: str,
     percentage: int = Query(50, ge=10, le=90),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Toggle A/B test on/off for a variant"""
     
@@ -1642,7 +1642,7 @@ async def toggle_ab_test(
 @router.get("/{template_id}/ab-stats")
 async def get_ab_test_stats(
     template_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get A/B test statistics comparing original and variant"""
     
@@ -1758,7 +1758,7 @@ async def track_template_usage(
 @router.get("/analytics/overview")
 async def get_analytics_overview(
     days: int = Query(30, ge=7, le=365),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get overall template usage analytics"""
     
@@ -1827,7 +1827,7 @@ async def get_analytics_overview(
 async def get_template_analytics(
     template_id: str,
     days: int = Query(30, ge=7, le=365),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get detailed analytics for a specific template"""
     
@@ -1895,7 +1895,7 @@ async def update_template_schedule(
     schedule_offset: int = Query(None, ge=1, le=168),  # Max 168 hours (1 week)
     schedule_unit: str = Query(None, pattern="^(minutes|hours|days)$"),
     schedule_time: str = Query(None, pattern="^[0-2][0-9]:[0-5][0-9]$"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Configure scheduling for a template"""
     
@@ -1949,7 +1949,7 @@ async def update_template_schedule(
 async def get_template_history(
     template_id: str,
     limit: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get version history of a template"""
     
@@ -1982,7 +1982,7 @@ async def get_template_history(
 async def save_template_version(
     template_id: str,
     change_note: str = Query(None, max_length=500),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually save current state as a version"""
     
@@ -2042,7 +2042,7 @@ async def save_template_version(
 async def rollback_template(
     template_id: str,
     version: int,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Rollback template to a previous version"""
     
@@ -2129,7 +2129,7 @@ async def compare_versions(
     template_id: str,
     version1: int,
     version2: int,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Compare two versions of a template"""
     
@@ -2174,7 +2174,7 @@ async def compare_versions(
 async def submit_for_approval(
     template_id: str,
     note: str = Query(None, max_length=500),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Submit template for approval"""
     
@@ -2227,7 +2227,7 @@ async def submit_for_approval(
 
 @router.get("/approvals/pending")
 async def get_pending_approvals(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get all templates pending approval"""
     
@@ -2400,7 +2400,7 @@ async def request_changes(
 @router.get("/{template_id}/approval-history")
 async def get_approval_history(
     template_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get approval history for a template"""
     
@@ -2431,7 +2431,7 @@ async def queue_notification(
     recipient_data: dict,
     scheduled_time: datetime = None,
     language: str = Query("en"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Queue a notification to be sent"""
     
@@ -2494,7 +2494,7 @@ async def queue_notification(
 async def get_pending_notifications(
     category: str = None,
     limit: int = Query(50, ge=1, le=200),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get pending notifications in queue"""
     
@@ -2528,7 +2528,7 @@ async def get_send_history(
     status: str = None,
     days: int = Query(7, ge=1, le=30),
     limit: int = Query(100, ge=1, le=500),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get notification send history"""
     
@@ -2572,7 +2572,7 @@ async def get_send_history(
 async def send_notification_now(
     queue_id: str,
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger sending a queued notification"""
     
@@ -2638,7 +2638,7 @@ async def send_notification_now(
 @router.post("/queue/{queue_id}/cancel")
 async def cancel_queued_notification(
     queue_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Cancel a queued notification"""
     
@@ -2666,7 +2666,7 @@ async def get_ai_suggestions(
     template_id: str,
     suggestion_type: str = Query("improve", pattern="^(improve|shorten|translate|emoji|formal|casual)$"),
     target_language: str = Query(None),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get AI-powered suggestions for template improvement"""
     
@@ -2870,7 +2870,7 @@ async def generate_template_with_ai(
     trigger_event: str = Query(...),
     tone: str = Query("professional", pattern="^(professional|friendly|urgent|casual)$"),
     include_hindi: bool = Query(True),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Generate a new template using AI"""
     
@@ -3021,7 +3021,7 @@ async def get_delivery_reports(
     provider: str = None,
     days: int = Query(7, ge=1, le=30),
     limit: int = Query(100, ge=1, le=500),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get delivery reports with filters"""
     
@@ -3078,7 +3078,7 @@ async def get_delivery_reports(
 async def get_template_delivery_stats(
     template_id: str,
     days: int = Query(30, ge=1, le=90),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get delivery statistics for a specific template"""
     
@@ -3155,7 +3155,7 @@ async def configure_alert(
     comparison: str = Query("below", pattern="^(below|above)$"),
     notify_emails: List[str] = None,
     is_active: bool = True,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Configure performance alerts for templates"""
     
@@ -3214,7 +3214,7 @@ async def configure_alert(
 async def list_alerts(
     template_id: str = None,
     is_active: bool = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """List all configured alerts"""
     
@@ -3254,7 +3254,7 @@ async def list_alerts(
 @router.delete("/alerts/{alert_id}")
 async def delete_alert(
     alert_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Delete an alert"""
     
@@ -3270,7 +3270,7 @@ async def delete_alert(
 
 @router.post("/alerts/check")
 async def check_alerts_manual(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger alert check (usually run by scheduler)"""
     
@@ -3375,7 +3375,7 @@ async def check_alerts_manual(
 async def get_alert_history(
     alert_id: str = None,
     days: int = Query(7, ge=1, le=30),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get alert trigger history"""
     
@@ -3409,7 +3409,7 @@ async def test_template_sandbox(
     test_recipient: str = Query(..., description="Phone number or email to send test to"),
     language: str = Query("en"),
     test_data: dict = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Send a test notification using sandbox mode"""
     
@@ -3510,7 +3510,7 @@ async def test_template_sandbox(
 async def get_sandbox_test_history(
     template_id: str,
     limit: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get sandbox test history for a template"""
     
@@ -3538,7 +3538,7 @@ async def bulk_test_templates(
     template_ids: List[str],
     test_recipient: str = Query(...),
     language: str = Query("en"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Test multiple templates at once"""
     
@@ -3902,7 +3902,7 @@ async def get_library_template(library_id: str):
 async def import_library_template(
     library_id: str,
     custom_name: str = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Import a template from the library"""
     
@@ -3970,7 +3970,7 @@ async def import_library_template(
 @router.post("/library/import-bulk")
 async def import_multiple_templates(
     library_ids: List[str],
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Import multiple templates from library"""
     
@@ -4044,7 +4044,7 @@ except ImportError:
 
 @router.get("/whatsapp/status")
 async def get_whatsapp_status(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get WhatsApp service status"""
     if not WHATSAPP_AVAILABLE:
@@ -4064,7 +4064,7 @@ async def get_whatsapp_status(
 
 @router.get("/whatsapp/templates")
 async def get_whatsapp_templates(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get available WhatsApp templates"""
     if not WHATSAPP_AVAILABLE:
@@ -4082,7 +4082,7 @@ async def send_whatsapp_message(
     template_id: str = Query(..., description="Template ID"),
     variables: dict = None,
     background_tasks: BackgroundTasks = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Send WhatsApp message using template"""
     if not WHATSAPP_AVAILABLE:
@@ -4126,7 +4126,7 @@ async def send_whatsapp_message(
 async def send_bulk_whatsapp(
     template_id: str = Query(...),
     recipients: List[dict] = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Send WhatsApp to multiple recipients"""
     if not WHATSAPP_AVAILABLE:
@@ -4573,7 +4573,7 @@ async def send_alert_email(
 @router.post("/alerts/trigger-check")
 async def trigger_alert_check(
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger alert check for all active alerts"""
     
@@ -4687,7 +4687,7 @@ async def trigger_alert_check(
 async def get_analytics_chart_data(
     days: int = Query(7, ge=1, le=30),
     category: str = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get chart data for template analytics"""
     
@@ -4819,7 +4819,7 @@ async def get_analytics_chart_data(
 @router.get("/analytics/delivery-trends")
 async def get_delivery_trends(
     days: int = Query(30, ge=7, le=90),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get delivery trend data for advanced charts"""
     
@@ -4905,7 +4905,7 @@ except ImportError:
 
 @router.get("/push/status")
 async def get_push_status(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get push notification service status"""
     if not PUSH_AVAILABLE:
@@ -4920,7 +4920,7 @@ async def get_push_status(
 
 @router.get("/push/templates")
 async def get_push_templates(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get available push notification templates"""
     if not PUSH_AVAILABLE:
@@ -4949,7 +4949,7 @@ async def send_push_notification(
     template_id: str = Query(None, description="Template ID (optional)"),
     title: str = Query(None, description="Custom title"),
     body: str = Query(None, description="Custom body"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Send push notification"""
     if not PUSH_AVAILABLE:
@@ -5003,7 +5003,7 @@ except ImportError:
 @router.get("/export/delivery-reports")
 async def export_delivery_reports_csv(
     days: int = Query(7, ge=1, le=30),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Export delivery reports as CSV"""
     if not EXPORT_AVAILABLE:
@@ -5047,7 +5047,7 @@ async def export_delivery_reports_csv(
 async def export_notification_queue_csv(
     days: int = Query(7, ge=1, le=30),
     status: str = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Export notification queue as CSV"""
     if not EXPORT_AVAILABLE:
@@ -5086,7 +5086,7 @@ async def export_notification_queue_csv(
 @router.get("/export/analytics-csv")
 async def export_analytics_csv(
     days: int = Query(7, ge=1, le=30),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Export analytics chart data as CSV"""
     if not EXPORT_AVAILABLE:
@@ -5161,7 +5161,7 @@ async def export_analytics_csv(
 @router.get("/export/analytics-pdf")
 async def export_analytics_pdf(
     days: int = Query(7, ge=1, le=30),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Export analytics report as PDF"""
     if not EXPORT_AVAILABLE:
@@ -5244,7 +5244,7 @@ async def export_analytics_pdf(
 @router.get("/export/alerts")
 async def export_alerts_csv(
     days: int = Query(7, ge=1, le=30),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Export alerts and history as CSV"""
     if not EXPORT_AVAILABLE:
@@ -5290,7 +5290,7 @@ except ImportError:
 
 @router.get("/scheduler/status")
 async def get_alert_scheduler_status(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get alert scheduler status"""
     if not SCHEDULER_AVAILABLE:
@@ -5305,7 +5305,7 @@ async def get_alert_scheduler_status(
 
 @router.post("/scheduler/run-now")
 async def trigger_scheduler_run(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger scheduler to run alert check now"""
     if not SCHEDULER_AVAILABLE:
@@ -5337,7 +5337,7 @@ except ImportError:
 
 @router.get("/email-templates/list")
 async def get_email_templates_list(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """List all available branded email templates"""
     if not BRANDED_TEMPLATES_AVAILABLE:
@@ -5354,7 +5354,7 @@ async def get_email_templates_list(
 async def preview_email_template(
     template_name: str,
     theme: str = Query("dark", enum=["dark", "light"]),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Preview a branded email template with sample data"""
     if not BRANDED_TEMPLATES_AVAILABLE:
@@ -5483,7 +5483,7 @@ async def send_test_branded_email(
     template_name: str = Query(...),
     recipient_email: str = Query(...),
     theme: str = Query("dark", enum=["dark", "light"]),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Send a test branded email to specified recipient"""
     if not BRANDED_TEMPLATES_AVAILABLE:
@@ -5605,7 +5605,7 @@ async def test_alert_email_trigger(
     metric: str = Query("delivery_rate"),
     current_value: float = Query(75.5),
     threshold: float = Query(90.0),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Send a test alert email to verify the branded template"""
     
@@ -5713,7 +5713,7 @@ async def track_email_click(
 async def get_email_tracking_analytics(
     days: int = Query(30, ge=1, le=90),
     template_name: str = None,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get email open/click analytics"""
     if not TRACKING_AVAILABLE:
@@ -5731,7 +5731,7 @@ async def get_email_tracking_analytics(
 @router.get("/email/tracking/{tracking_id}")
 async def get_email_tracking_details(
     tracking_id: str,
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get tracking details for a specific email"""
     if not TRACKING_AVAILABLE:
@@ -5759,7 +5759,7 @@ async def get_email_click_heatmap(
     days: int = Query(30, ge=1, le=90, description="Days to analyze"),
     email_type: str = Query(None, description="Filter by email type"),
     template_name: str = Query(None, description="Filter by template"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """
     Get click heatmap data showing which links get the most clicks.
@@ -5890,7 +5890,7 @@ async def get_email_click_heatmap(
 async def get_click_heatmap_by_template(
     template_name: str = Query(..., description="Template name to analyze"),
     days: int = Query(30, ge=1, le=90),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get click heatmap for a specific email template"""
     if not TRACKING_AVAILABLE:
@@ -5964,7 +5964,7 @@ except ImportError:
 
 @router.get("/email/languages")
 async def get_supported_languages(
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get list of supported email languages"""
     if not MULTILANG_AVAILABLE:
@@ -5984,7 +5984,7 @@ async def get_supported_languages(
 async def get_template_translations(
     template_name: str,
     lang: str = Query("en"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Get translations for a specific template"""
     if not MULTILANG_AVAILABLE:
@@ -6022,7 +6022,7 @@ except ImportError:
 @router.post("/email/trigger/booking-confirmed")
 async def trigger_booking_confirmation_email(
     booking_id: str = Query(...),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger booking confirmation email"""
     if not BOOKING_EMAIL_AVAILABLE:
@@ -6056,7 +6056,7 @@ async def trigger_payment_receipt_email(
     booking_id: str = Query(...),
     transaction_id: str = Query(...),
     amount: str = Query(...),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger payment receipt email"""
     if not BOOKING_EMAIL_AVAILABLE:
@@ -6091,7 +6091,7 @@ async def trigger_payment_receipt_email(
 @router.post("/email/trigger/flight-reminder")
 async def trigger_flight_reminder_email(
     booking_id: str = Query(...),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger flight reminder email"""
     if not BOOKING_EMAIL_AVAILABLE:
@@ -6118,7 +6118,7 @@ async def trigger_cancellation_email(
     booking_id: str = Query(...),
     reason: str = Query("Operational requirements"),
     refund_amount: str = Query("0"),
-    current_user: dict = Depends(require_roles(["admin", "super_admin"]))
+    current_user: dict = Depends(require_roles(["admin", "super_admin", "support"]))
 ):
     """Manually trigger flight cancellation email"""
     if not BOOKING_EMAIL_AVAILABLE:

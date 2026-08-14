@@ -54,7 +54,7 @@ async def create_settlement(data: dict, user: dict = Depends(require_roles([User
     return {"message": "Settlement created", "settlement": settlement}
 
 @router.get("/")
-async def get_settlements(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])), status: str = None):
+async def get_settlements(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])), status: str = None):
     """Get all settlements"""
     db = get_database()
     
@@ -74,7 +74,7 @@ async def get_settlements(user: dict = Depends(require_roles([UserRole.ADMIN, Us
     return {"settlements": settlements}
 
 @router.post("/{settlement_id}/approve")
-async def approve_settlement(settlement_id: str, data: dict, user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+async def approve_settlement(settlement_id: str, data: dict, user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE]))):
     """Approve settlement for payout"""
     db = get_database()
     
@@ -110,7 +110,7 @@ async def approve_settlement(settlement_id: str, data: dict, user: dict = Depend
     return {"message": "Settlement approved"}
 
 @router.post("/{settlement_id}/mark-paid")
-async def mark_settlement_paid(settlement_id: str, data: dict, user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+async def mark_settlement_paid(settlement_id: str, data: dict, user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE]))):
     """Mark settlement as paid"""
     db = get_database()
     

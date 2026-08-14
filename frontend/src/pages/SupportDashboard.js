@@ -9,6 +9,9 @@ import ReviewsManagement from '@/components/admin/ReviewsManagement';
 import KnowledgeBase from '@/components/admin/KnowledgeBase';
 import VoiceVideoSupport from '@/components/admin/VoiceVideoSupport';
 import AIChatbot from '@/components/admin/AIChatbot';
+import ComplaintAnalytics from '@/components/admin/ComplaintAnalytics';
+import TemplateSettings from '@/components/admin/TemplateSettings';
+import InAppChat from '@/components/shared/InAppChat';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -100,7 +103,21 @@ function SupportDashboardPage({ user, onLogout }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'helpdesk':
+      case 'my_tickets':
+      case 'all_tickets':
         return <SupportDashboardComp />;
+      case 'open_tickets':
+        return <SupportDashboardComp initialStatus="open" />;
+      case 'escalated':
+        return <SupportDashboardComp initialStatus="escalated" />;
+      case 'complaints':
+        return <ComplaintAnalytics />;
+      case 'ratings':
+        return <ReviewsManagement />;
+      case 'live_chat':
+        return <InAppChat user={user} />;
+      case 'templates':
+        return <TemplateSettings />;
       case 'reviews':
         return <ReviewsManagement />;
       case 'knowledge_base':

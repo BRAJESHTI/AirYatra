@@ -3630,3 +3630,14 @@ PAYPAL_MODE=sandbox  # or 'live'
 ### P1 - Razorpay LIVE keys toggle for production payments
 ### P2 - Refund status emails (approved/rejected), Report email scheduler (monthly GST auto-email), Auction push alerts (WebSocket), Live flight tracking map
 ### Backlog - Vendor Portal, Insurance workflow, EMI module, DigiLocker
+
+##### 10. Dead Dashboard Tabs Fixed (25+ tabs) 🟢 DONE (June 2026)
+- NEW components: hr/LeaveManagement.js (approve/reject leaves), finance/PaymentTransactions.js (gateway orders table), operator/OperatorSettings.js (profile form)
+- NEW backend: GET /api/razorpay/transactions (finance), GET /api/hr/leave/all + HR role on /leave/pending
+- Finance: Payments->PaymentTransactions, Financial Reports->RevenueReports, Operator Payouts->SettlementManagement; Helipad Payouts nav REMOVED (no data model - future module)
+- Support: My/All Tickets->helpdesk, Open/Escalated->helpdesk prefiltered (initialStatus prop), Complaints->ComplaintAnalytics, Ratings->ReviewsManagement, Live Chat->InAppChat, Templates->TemplateSettings
+- HR: Leaves->LeaveManagement, Salary/Attendance Report/Payroll Report->AttendancePayroll, Performance/Achievements->SalesTargets
+- Sales: Leads/Calls/Tasks/Reports->CRMDashboard, Targets/Performance->SalesTargets, Incentives->IncentiveConfig, Promotions->MarketingCampaigns
+- Operator: /operator/settings route added (was blank)
+- ROLE PERMISSION FIXES (were 403): finance -> pricing reports/settlements/operators endpoints; support -> reviews admin, templates, SLA config, chat conversations (support/admin see all chats)
+- TESTED: testing agent iteration_63 (backend 100%, frontend 95% - all tabs render, leave approved via UI, operator settings persist) + curl verified all 9 previously-403 endpoints now 200

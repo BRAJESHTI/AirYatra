@@ -24,7 +24,14 @@ async def get_conversations(
     roles = current_user.get("roles", [])
     
     # Find conversations where user is participant
-    if "operator" in roles:
+    if {"support", "admin", "super_admin"} & set(roles):
+        # Support/Admin: all bookings that have chat messages
+        booking_ids = await db.chat_messages.distinct("booking_id")
+        bookings = await db.bookings.find(
+            {"id": {"$in": booking_ids}},
+            {"_id": 0, "id": 1, "booking_number": 1, "customer_id": 1, "from_location": 1, "to_location": 1}
+        ).to_list(100)
+    elif "operator" in roles:
         # Get operator's bookings
         operator = await db.operators.find_one({"user_id": user_id}, {"_id": 0})
         if operator:
@@ -91,7 +98,7 @@ async def get_messages(
         operator = await db.operators.find_one({"user_id": user_id}, {"_id": 0})
         if operator and operator["id"] == booking.get("operator_id"):
             has_access = True
-    elif "admin" in roles:
+    elif {"admin", "super_admin", "support"} & set(roles):
         has_access = True
     
     if not has_access:

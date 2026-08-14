@@ -364,8 +364,8 @@ async def update_ticket(
 @router.get("/admin/sla-config")
 async def get_sla_config(current_user: dict = Depends(get_current_user)):
     """Get SLA configuration"""
-    if "admin" not in current_user.get("roles", []):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not {"admin", "super_admin", "support"} & set(current_user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Admin/Support access required")
     
     db = get_database()
     config = await db.settings.find_one({"type": "sla_config"}, {"_id": 0})

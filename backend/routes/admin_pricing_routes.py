@@ -20,6 +20,14 @@ def _require_admin(user: dict):
         raise HTTPException(status_code=403, detail="Admin/CEO access required")
 
 
+REPORT_ROLES = ADMIN_ROLES | {"finance", "accounts"}
+
+
+def _require_reports(user: dict):
+    if not REPORT_ROLES & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Finance/Admin/CEO access required")
+
+
 # ==================== HELPERS FOR ADMIN UI ====================
 
 @router.get("/operators")
@@ -375,7 +383,7 @@ async def own_fleet_bookings(
     user: dict = Depends(get_current_user),
 ):
     """Bookings landed on AirYatra's own aircraft + earnings"""
-    _require_admin(user)
+    _require_reports(user)
     db = get_database()
     query = {"$or": [{"operator_id": OWN_FLEET_OPERATOR_ID}, {"aircraft_id": {"$regex": "^own-"}}]}
     rng = _created_range(start_date, end_date)
@@ -414,7 +422,7 @@ async def fee_revenue_report(
     user: dict = Depends(get_current_user),
 ):
     """Platform fee + urgency + surge income grouped by route and city"""
-    _require_admin(user)
+    _require_reports(user)
     db = get_database()
     rng = _created_range(start_date, end_date)
 
@@ -499,7 +507,7 @@ async def fee_revenue_report(
 @router.get("/revenue-trend")
 async def revenue_trend(weeks: int = 8, user: dict = Depends(get_current_user)):
     """Weekly income trend: quote fees + marketplace fees + own-fleet paid earnings"""
-    _require_admin(user)
+    _require_reports(user)
     db = get_database()
     weeks = max(2, min(weeks, 26))
     now = datetime.now(timezone.utc)
@@ -656,7 +664,7 @@ async def export_revenue_report(
     user: dict = Depends(get_current_user),
 ):
     """Download revenue report as Excel or PDF"""
-    _require_admin(user)
+    _require_reports(user)
     fee = await fee_revenue_report(start_date=start_date, end_date=end_date, user=user)
     own = await own_fleet_bookings(start_date=start_date, end_date=end_date, user=user)
     period = f"{start_date or 'Beginning'} to {end_date or 'Today'}"

@@ -20,6 +20,7 @@ import LiveTrackingMap from '../components/operator/LiveTrackingMap';
 import LandingPermissionViewer from '../components/operator/LandingPermissionViewer';
 import JourneyOTPManager from '../components/operator/JourneyOTPManager';
 import OperatorCancelBookings from '../components/operator/OperatorCancelBookings';
+import OperatorSettings from '../components/operator/OperatorSettings';
 import ReviseQuoteManager from '../components/operator/ReviseQuoteManager';
 import InquiryNotifications from '../components/operator/InquiryNotifications';
 import OperatorProfile from '../components/operator/OperatorProfile';
@@ -294,6 +295,7 @@ function OperatorDashboard({ user, onLogout }) {
               <Route path="pilots" element={<PilotManagement operator={operator} />} />
               <Route path="journey-otp" element={<JourneyOTPManager operator={operator} />} />
               <Route path="cancel-bookings" element={<OperatorCancelBookings />} />
+              <Route path="settings" element={<OperatorSettings />} />
               <Route path="flight-records" element={<FlightRecordsManager operator={operator} />} />
               <Route path="fuel-records" element={<FuelRecordsManager operator={operator} />} />
               <Route path="live-tracking" element={<LiveTrackingMap operator={operator} />} />

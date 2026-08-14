@@ -12,6 +12,8 @@ import AccountingIntegration from '@/components/admin/AccountingIntegration';
 import CurrencyConverter from '@/components/admin/CurrencyConverter';
 import RefundApprovals from '@/components/admin/RefundApprovals';
 import GSTReports from '@/components/admin/GSTReports';
+import RevenueReports from '@/components/admin/RevenueReports';
+import PaymentTransactions from '@/components/finance/PaymentTransactions';
 
 // Lazy load new Finance components
 const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSalaryPayment'));
@@ -159,7 +161,6 @@ const navGroups = [
     items: [
       { id: 'all_settlements', label: 'All Settlements', icon: DollarSign },
       { id: 'operator_payouts', label: 'Operator Payouts', icon: Building2 },
-      { id: 'helipad_payouts', label: 'Helipad Payouts', icon: Building2 },
     ]
   },
   {
@@ -289,7 +290,12 @@ function FinanceDashboard({ user, onLogout }) {
         );
       case 'all_settlements':
       case 'pending_settlements':
+      case 'operator_payouts':
         return <SettlementManagement />;
+      case 'payments':
+        return <PaymentTransactions />;
+      case 'reports':
+        return <RevenueReports />;
       case 'invoices':
         return <InvoiceManagement />;
       case 'refunds':

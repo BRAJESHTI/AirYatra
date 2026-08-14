@@ -709,3 +709,42 @@ async def get_payment_stats(
         "total_revenue": total_revenue,
         "success_rate": round((paid_orders / total_orders * 100) if total_orders > 0 else 0, 2)
     }
+
+
+@router.get("/transactions")
+async def get_payment_transactions(status: Optional[str] = None, limit: int = 100,
+                                   user: dict = Depends(get_current_user)):
+    """All payment transactions for finance team (payment_orders + razorpay_orders)"""
+    if not {"finance", "accounts", "admin", "super_admin", "ceo"} & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Finance/Admin access required")
+    db = get_database()
+    query = {}
+    if status:
+        query["status"] = status
+    txns = await db.payment_orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    rz = await db.razorpay_orders.find(query, {"_id": 0, "razorpay_response": 0}).sort("created_at", -1).to_list(limit)
+    for r in rz:
+        if hasattr(r.get("created_at"), "isoformat"):
+            r["created_at"] = r["created_at"].isoformat()
+        r.setdefault("order_id", r.get("razorpay_order_id"))
+    seen = {t.get("order_id") for t in txns}
+    txns += [r for r in rz if r.get("order_id") not in seen]
+    booking_ids = list({t.get("booking_id") for t in txns if t.get("booking_id")})
+    refs = {}
+    for coll in (db.bookings, db.inquiries):
+        async for b in coll.find({"id": {"$in": booking_ids}},
+                                 {"_id": 0, "id": 1, "booking_number": 1, "inquiry_number": 1, "customer_name": 1}):
+            refs[b["id"]] = {"ref": b.get("booking_number") or b.get("inquiry_number"),
+                             "customer": b.get("customer_name")}
+    for t in txns:
+        info = refs.get(t.get("booking_id"), {})
+        t["booking_ref"] = info.get("ref")
+        t["customer_name"] = info.get("customer")
+    txns.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    totals = {
+        "total": len(txns),
+        "paid": sum(1 for t in txns if t.get("status") in ("paid", "captured", "verified")),
+        "pending": sum(1 for t in txns if t.get("status") in ("created", "pending")),
+        "total_amount": sum(t.get("amount") or 0 for t in txns if t.get("status") in ("paid", "captured", "verified")),
+    }
+    return {"transactions": txns[:limit], "totals": totals}

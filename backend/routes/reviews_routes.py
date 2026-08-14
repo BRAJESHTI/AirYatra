@@ -351,9 +351,9 @@ async def get_all_reviews(
     limit: int = 50,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all reviews (Admin only)"""
-    if "admin" not in current_user.get("roles", []):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    """Get all reviews (Admin/Support)"""
+    if not {"admin", "super_admin", "support"} & set(current_user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Admin/Support access required")
     
     db = get_database()
     
@@ -406,8 +406,8 @@ async def get_review_reports(
     status: str = "pending",
     current_user: dict = Depends(get_current_user)
 ):
-    """Get reported reviews (Admin only)"""
-    if "admin" not in current_user.get("roles", []):
+    """Get reported reviews (Admin/Support)"""
+    if not {"admin", "super_admin", "support"} & set(current_user.get("roles", [])):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     db = get_database()
