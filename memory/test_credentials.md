@@ -90,3 +90,9 @@ curl -X POST "https://airyatra-corporate.preview.emergentagent.com/api/auth/dev/
 | yachtowner@airyatra.co.in | Yacht@123456 | Yacht Owner Dashboard (/yacht-owner) |
 | cruiseop@airyatra.co.in | Cruise@123456 | Cruise Operator Dashboard (/cruise-operator) |
 | helipadowner@airyatra.co.in | Helipad@123456 | Helipad Owner Dashboard (/helipad-owner) |
+
+## ⚠️ SEC-003 UPDATE (June 2026) — Login OTP now ENFORCED for privileged roles
+- `LOGIN_OTP_ENABLED=true` (production). Per-user backdoor (`login_shield_bypass`, `otp_enabled=false`) CLEARED for all privileged accounts (admin, super_admin, ceo, operator, finance, cfo, finance_head, accounts_manager, treasury_analyst).
+- **Privileged logins (admin@, finance@, operator@, ceo@, etc.) now require an emailed 6-digit OTP.** Login flow: POST /api/auth/login → {otp_required:true, otp_sent:true} → OTP emailed → POST /api/auth/login/verify-otp {email, otp_code} → JWT. Use "Trust this device for 30 days" to skip OTP on the same device for 30 days.
+- **Customer / non-privileged accounts** (customer@airyatra.co.in etc.) still log in directly (token in login response) — no OTP unless risk/new-device triggers it.
+- AUTOMATED TESTING NOTE: OTP is SHA256-hashed in db.otp_codes (plaintext not recoverable). To test privileged flows programmatically, mint a known OTP server-side via services.otp_service.OTPService().create_otp(user_id, email, purpose='login') then call /login/verify-otp. Alternatively use a customer account (no OTP).

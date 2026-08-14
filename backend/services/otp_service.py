@@ -348,9 +348,13 @@ class OTPService:
         if not user_data.get("otp_enabled", True):
             return False, "otp_disabled"
         
-        # Admin and operator roles always require OTP
+        # Privileged / finance roles always require OTP (step-up MFA)
         roles = user_data.get("roles", [])
-        if "admin" in roles or "operator" in roles:
+        PRIVILEGED_ROLES = {
+            "admin", "super_admin", "ceo", "operator",
+            "finance", "cfo", "finance_head", "accounts_manager", "treasury_analyst",
+        }
+        if PRIVILEGED_ROLES & set(roles):
             # But check if device is trusted first
             is_trusted, _ = await self.is_device_trusted(user_id, user_agent, ip_address)
             if is_trusted:

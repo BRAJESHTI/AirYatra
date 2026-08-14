@@ -3747,3 +3747,11 @@ PAYPAL_MODE=sandbox  # or 'live'
   - SEC-003 MEDIUM: LOGIN_OTP_ENABLED=false in prod (known P0 task, pending)
   - P3: refund OTP random.randint + no lockout; Razorpay read BOLA; admin dangerouslySetInnerHTML; JWT in localStorage
 - SEC-002 FIX (admin_user_routes.py update_user): role allowlist from UserRole enum; only super_admin can grant/revoke admin|super_admin (symmetric-diff check); admin cannot change own roles. TESTED: grant-to-other 403, self-escalate 403, invalid role 400, legit phone update 200, non-privileged role change 200
+
+##### 26. SEC-003 Fix — Login OTP (step-up MFA) re-enabled & enforced 🟢 DONE (June 2026)
+- .env: LOGIN_OTP_ENABLED="false" → "true" (backend restarted)
+- otp_service.should_require_otp(): mandatory-OTP role set broadened from {admin, operator} → {admin, super_admin, ceo, operator, finance, cfo, finance_head, accounts_manager, treasury_analyst}
+- DATA FIX (root cause): 23 privileged accounts had per-user backdoor flags (login_shield_bypass=true + otp_enabled=false) that defeated the global flag — cleared for all accounts holding a privileged role (customer/non-priv left as-is to limit blast radius). Verified 0 privileged accounts still bypass
+- integration_expert consulted (custom JWT + email OTP playbook) — confirmed existing impl already best-practice (secrets RNG, SHA256-hashed OTP, attempts/max_attempts lockout, generic 401 no-enumeration, JWT issued only post-verify)
+- TESTED: email delivery works (SMTP sent OK); admin@/finance@ login → otp_required+otp_sent, NO token leaked; wrong OTP → 401; correct OTP → JWT issued; customer@ → direct login (non-priv); frontend "Verify OTP" screen renders (6 boxes + Trust device 30d) — screenshot verified
+- Trusted-device (30d) mitigates re-challenge friction. Customer flows unaffected
