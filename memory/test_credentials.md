@@ -15,8 +15,8 @@
 | Sales | sales@airyatra.co.in | Sales@123456 | Rahul Kapoor, Sales Manager |
 | Employee | employee@airyatra.co.in | Employee@123 | EMP-0001, HRMS portal |
 
-## 2FA/OTP Status: GLOBALLY DISABLED (Aug 8, 2026)
-All users login directly without OTP. Controlled by `LOGIN_OTP_ENABLED="false"` in backend/.env (set to "true" to re-enable).
+## 2FA/OTP Status: ADMIN STEP-UP MFA ACTIVE (June 2026 — SEC-003)
+Admin/privileged logins return `otp_required:true` (email OTP). For automated tests, mint OTP directly via backend OTPService (delete old `otp_codes` first to bypass 60s cooldown) then POST /api/auth/login/verify-otp — pattern in `/app/backend/tests/test_vertical_razorpay.py` `_mint_otp_and_verify()`. Customer/non-privileged users login directly without OTP.
 **IMPORTANT**: backend/.env DB_NAME must stay `"airyatra_db"` (the `airyatra` DB is stale/empty — wrong DB caused destination search to return no suggestions).
 
 ## Additional Test Users

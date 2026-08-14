@@ -3804,3 +3804,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - MarineBookings.js pay(): checkout.razorpay.com script load → official Razorpay modal (prefill, orange theme) → handler verify-payment → toast+reload; payment.failed + dismiss handling
 - iteration_67: backend 11/11 pytest (tests/test_vertical_razorpay.py — reusable regression) + frontend modal opens w/ real gateway iframe. Mixed-content warnings = Razorpay's own test-mode CDN, ignore
 - ⚠️ USER NOTE: gateway TEST mode me hai (rzp_test) — real UPI (dr.brajeshptiwari@okicici) charge karne ke liye LIVE keys + Go Live toggle chahiye. Test mode me koi real paisa nahi katta
+
+##### 35. One Rupee Gateway Test (₹1 Safe Payment Test) 🟢 DONE — testing_agent VERIFIED iter 68+69 100% (June 2026)
+- Backend razorpay_routes.py: POST /razorpay/one-rupee-test (GATEWAY_STAFF only — admin/super_admin/finance/ceo/cfo) creates real Razorpay ₹1 order (amount hardcoded 100 paise), records in db.gateway_tests. POST /one-rupee-test/verify HMAC-verifies signature → marks paid + audit_event 'one_rupee_gateway_test_success'. Fixed missing `import uuid`. GET /gateway-mode now returns `can_one_rupee_test` (separate from super_admin-only `can_toggle`)
+- Frontend PaymentGatewayMode.js: 'One Rupee Gateway Test' section + 'Pay ₹1 Test' button (data-testid one-rupee-test-btn) → opens official Razorpay checkout modal with ₹1; success/failure banner (one-rupee-test-result); LIVE mode me real ₹1 UPI charge, TEST mode me nahi
+- iter_68: backend 7/7 pytest (order create, RBAC 403, fake-sig 400, unauth). Found UI gating bug (button super_admin-only) → fixed via can_one_rupee_test flag. iter_69: 100% backend+frontend — admin sees button, Razorpay iframe opens with ₹1
+- Regression test: /app/backend/tests/test_iter68_one_rupee.py

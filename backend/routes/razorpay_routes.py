@@ -13,6 +13,7 @@ from database import get_database
 from security_middleware import limiter, RATE_LIMITS
 from routes.auth_routes import get_current_user
 import razorpay
+import uuid
 import hmac
 import hashlib
 import os
@@ -85,6 +86,7 @@ async def get_gateway_mode(current_user: dict = Depends(get_current_user)):
         "live_keys_configured": bool(live_kid and os.environ.get("RAZORPAY_LIVE_KEY_SECRET", "").strip('"')),
         "live_key_valid_format": live_kid.startswith("rzp_live_") if live_kid else False,
         "can_toggle": "super_admin" in current_user.get("roles", []),
+        "can_one_rupee_test": bool(GATEWAY_STAFF & set(current_user.get("roles", []))),
     }
 
 

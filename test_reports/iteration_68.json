@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 68 — One Rupee Gateway Test. Backend fully verified (7/7 pytest passes: admin can create ₹1 order via real Razorpay, customer 403, unauth 401/403, fake-sig verify 400, gateway_tests record NOT marked paid on invalid sig). Frontend UI shows gateway-mode-card correctly with 'TEST' badge, but the one-rupee-test-section and Pay ₹1 button are HIDDEN for admin role because they are gated behind info.can_toggle, which the backend only returns true for super_admin. Feature spec requires admin/super_admin/finance/ceo/cfo to see the button.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "PaymentGatewayMode.js (line 122) + razorpay_routes.py get_gateway_mode (line 88)",
+        "issue": "The one-rupee-test-section is rendered only when `info.can_toggle === true`, but backend sets `can_toggle` to true ONLY for super_admin. Result: users with roles admin, finance, ceo, cfo — who ARE authorized to call POST /api/razorpay/one-rupee-test — cannot see the Pay ₹1 Test button in the UI. The card still shows 'Super Admin only' label to admin@airyatra.co.in. This directly violates the feature spec: 'admin/staff (roles admin, super_admin, finance, ceo, cfo) can create a real Razorpay ₹1 order'.",
+        "selector": "[data-testid=\"one-rupee-test-section\"], [data-testid=\"one-rupee-test-btn\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter68_one_rupee.py",
+    "/app/test_reports/pytest/iter68.xml"
+  ],
+  "action_items": [
+    "Decouple the ₹1 test button visibility from `can_toggle` (which is super_admin-only). Two options: (a) Backend — add a separate flag `can_one_rupee_test` in GET /api/razorpay/gateway-mode that is true whenever the user has any GATEWAY_STAFF role, and gate the frontend section on that. Or (b) simpler: in PaymentGatewayMode.js render the one-rupee-test-section unconditionally (backend already RBAC-enforces both create and verify endpoints). Do NOT reuse `can_toggle` which correctly stays super_admin-only for the Go Live switch.",
+    "After fix, re-run testing_agent to confirm the Razorpay checkout iframe opens with ₹1 amount and dismiss resets the busy state."
+  ],
+  "critical_code_review_comments": [
+    "razorpay_routes.py L88: `can_toggle` semantically means 'can switch between test/live gateway' (super_admin only) — it should not be repurposed as the visibility flag for the ₹1 test section, which has a broader RBAC (GATEWAY_STAFF).",
+    "PaymentGatewayMode.js L122: The `info.can_toggle && <one-rupee-test-section>` guard conflates two different permissions; move ₹1 test out of that conditional."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter68_one_rupee.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "40%"},
+  "seed_data_creation": "Created real Razorpay TEST orders via /api/razorpay/one-rupee-test (2-3 orders, order_id starts with order_). gateway_tests collection contains 'created' records; none marked 'paid' because signature verify was intentionally invalid.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@airyatra.co.in / Admin123! (OTP required — mint via backend OTPService as done in test_vertical_razorpay.py; global OTP disable flag in credentials.md is stale — admin still returns otp_required:true). customer@airyatra.co.in / Customer@123 logs in directly.",
+  "context_for_next_testing_agent": "Backend contract: POST /api/razorpay/one-rupee-test returns {order_id, key_id, amount_paise:100, currency:INR, mode}. Verify endpoint HMAC-checks signature. gateway_tests Mongo collection tracks state. To UI-test: mint admin OTP via /app/backend/services/otp_service.py (see /tmp/admin_token.json helper snippet), inject token+user into localStorage, then goto /admin, click sidebar 'Settings & System' → 'API Keys (GST/PAN)'. Frontend card is at data-testid='gateway-mode-card'. After the RBAC gating fix, click data-testid='one-rupee-test-btn' — expect a Razorpay checkout iframe (checkout.razorpay.com) to open with ₹1; Escape dismisses and busy state should reset.",
+  "rca_of_the_issue": "The developer reused the existing `can_toggle` field (which the GET /api/razorpay/gateway-mode endpoint sets ONLY for super_admin, since only super_admin can switch test↔live) as the render guard for the new ₹1 test section in PaymentGatewayMode.js. But the ₹1 test feature has a broader RBAC (admin/super_admin/finance/ceo/cfo). Consequence: only super_admin sees the button in UI, while admin/finance/ceo/cfo — despite backend allowing them — see the card with 'Super Admin only' label and no test button. Repro: login as admin@airyatra.co.in, go to Admin → Settings & System → API Keys (GST/PAN), scroll to Razorpay Payment Mode card — button is missing. Backend API works directly (7/7 tests pass)."
+}
