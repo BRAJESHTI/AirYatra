@@ -422,14 +422,14 @@ async def featured_assets(user: dict = Depends(get_current_user)):
                          "price": a["base_price"], "unit": a["price_unit"],
                          "cover": (a.get("images") or [None])[0], "photo_count": len(a.get("images", []))})
     aircraft = await db.aircraft.find(
-        {"status": {"$in": ["active", "available", "approved"]}},
-        {"_id": 0, "id": 1, "aircraft_type": 1, "model": 1, "registration_number": 1,
-         "hourly_rate": 1, "seating_capacity": 1}).sort("hourly_rate", -1).to_list(4)
+        {"is_available": True},
+        {"_id": 0, "id": 1, "aircraft_type": 1, "registration_number": 1,
+         "hourly_rate": 1, "capacity": 1, "base_location": 1}).sort("hourly_rate", -1).to_list(4)
     for a in aircraft:
-        kind = "jet" if any(k in (a.get("aircraft_type") or "").lower() for k in ("citation", "hawker", "king air", "jet")) else "helicopter"
+        kind = "jet" if any(k in (a.get("aircraft_type") or "").lower() for k in ("citation", "hawker", "king air", "jet", "falcon", "gulfstream", "legacy", "phenom", "challenger", "global")) else "helicopter"
         featured.append({"id": a["id"], "type": kind,
-                         "name": a.get("model") or a.get("aircraft_type") or a.get("registration_number"),
-                         "city": f"{a.get('seating_capacity') or '—'} seats",
+                         "name": a.get("aircraft_type") or a.get("registration_number"),
+                         "city": a.get("base_location") or f"{a.get('capacity') or '—'} seats",
                          "price": a.get("hourly_rate") or 0, "unit": "hour", "cover": None, "photo_count": 0})
     return {"featured": featured}
 

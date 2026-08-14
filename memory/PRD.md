@@ -3664,3 +3664,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend: AssetManagePanel 4th tab "Photos" — client-side resize (900px JPEG 0.7) upload, thumbnail grid, hover-delete; MarineBookings customer cards show cover image + photo count badge + gallery strip in booking dialog
 - TESTED: curl (owner upload, sales upload, customer 403, browse images, delete) + UI screenshot (photo renders 1/6)
 - Bugfix during build: missing setImages in panel useEffect + duplicated JSX tail (parse error) fixed
+
+##### 14. Featured Assets Row 🟢 DONE (June 2026)
+- Backend: GET /api/verticals/featured — top 6 vertical_assets (sorted by photo count) + top 4 aircraft by hourly_rate (jet/helicopter classified from aircraft_type keywords). FIXED: aircraft query used wrong fields (status/model/seating_capacity) — corrected to is_available/capacity/base_location
+- Frontend: components/customer/FeaturedAssets.js — horizontal scroll row on CustomerDashboard home; cover image or gradient+icon fallback, type badge, photo count badge, INR price/unit; click routes to /customer/marine?v={type} or /booking
+- Cleaned test artifact TEST_UI_Yacht from DB
+- TESTED: curl (10 items returned: 2 helipads, 2 yachts, 2 cruises, 4 jets) + screenshot verified row renders on customer dashboard
