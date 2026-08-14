@@ -344,11 +344,8 @@ class OTPService:
         if user_data.get("login_shield_bypass", False):
             return False, "bypass_enabled"
         
-        # Check if user has 2FA enabled
-        if not user_data.get("otp_enabled", True):
-            return False, "otp_disabled"
-        
         # Privileged / finance roles always require OTP (step-up MFA)
+        # Enforced BEFORE the per-user otp_enabled flag so it cannot be self-disabled
         roles = user_data.get("roles", [])
         PRIVILEGED_ROLES = {
             "admin", "super_admin", "ceo", "operator",
@@ -360,6 +357,10 @@ class OTPService:
             if is_trusted:
                 return False, "trusted_device"
             return True, "privileged_role"
+        
+        # Check if user has 2FA enabled
+        if not user_data.get("otp_enabled", True):
+            return False, "otp_disabled"
         
         # Check if device is trusted
         is_trusted, _ = await self.is_device_trusted(user_id, user_agent, ip_address)

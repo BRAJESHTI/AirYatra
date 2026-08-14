@@ -9,6 +9,17 @@ from models import InvoiceItem, InvoiceCreate, InvoiceUpdate, InvoiceStatus, Inv
 
 router = APIRouter(prefix="/invoices", tags=["Invoice & Billing"])
 
+INVOICE_STAFF_ROLES = {"admin", "super_admin", "finance", "ceo", "cfo", "finance_head", "accounts_manager"}
+
+
+def _is_invoice_staff(user: dict) -> bool:
+    return bool(INVOICE_STAFF_ROLES & set(user.get("roles", [])))
+
+
+def _require_invoice_staff(user: dict):
+    if not _is_invoice_staff(user):
+        raise HTTPException(status_code=403, detail="Finance/Admin access required")
+
 # Models (RefundCreate kept local as it's invoice-specific)
 class RefundCreate(BaseModel):
     invoice_id: str
@@ -116,16 +127,18 @@ async def get_invoices(
     limit: int = 50,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all invoices"""
+    """Get all invoices (staff) / own invoices (customer)"""
     db = get_database()
     
     query = {}
+    if not _is_invoice_staff(current_user):
+        query["customer_id"] = current_user["id"]
+    elif customer_id:
+        query["customer_id"] = customer_id
     if status:
         query["status"] = status
     if invoice_type:
         query["invoice_type"] = invoice_type
-    if customer_id:
-        query["customer_id"] = customer_id
     if from_date:
         query["invoice_date"] = {"$gte": from_date}
     if to_date:
@@ -139,6 +152,7 @@ async def get_invoices(
 @router.get("/dashboard")
 async def get_invoice_dashboard(current_user: dict = Depends(get_current_user)):
     """Get invoice dashboard stats"""
+    _require_invoice_staff(current_user)
     db = get_database()
     
     # Current month
@@ -201,10 +215,12 @@ async def get_invoice_dashboard(current_user: dict = Depends(get_current_user)):
 
 @router.get("/{invoice_id}")
 async def get_invoice(invoice_id: str, current_user: dict = Depends(get_current_user)):
-    """Get invoice details"""
+    """Get invoice details (owner or staff)"""
     db = get_database()
     invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
     if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if not _is_invoice_staff(current_user) and invoice.get("customer_id") != current_user["id"]:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return invoice
 
@@ -214,7 +230,8 @@ async def update_invoice_status(
     status: str = Query(..., regex="^(draft|sent|paid|cancelled)$"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Update invoice status"""
+    """Update invoice status (finance/admin only)"""
+    _require_invoice_staff(current_user)
     db = get_database()
     
     update_data = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
@@ -240,7 +257,8 @@ async def record_payment(
     reference: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Record a payment against invoice"""
+    """Record a payment against invoice (finance/admin only)"""
+    _require_invoice_staff(current_user)
     db = get_database()
     
     invoice = await db.invoices.find_one({"id": invoice_id})
@@ -315,10 +333,12 @@ async def get_refunds(
     status: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all refunds"""
+    """Get all refunds (staff) / own refunds (customer)"""
     db = get_database()
     
     query = {}
+    if not _is_invoice_staff(current_user):
+        query["customer_id"] = current_user["id"]
     if status:
         query["status"] = status
     
@@ -328,6 +348,7 @@ async def get_refunds(
 @router.get("/settings/config")
 async def get_invoice_settings(current_user: dict = Depends(get_current_user)):
     """Get invoice settings"""
+    _require_invoice_staff(current_user)
     db = get_database()
     settings = await db.settings.find_one({"type": "invoice_settings"}, {"_id": 0})
     
@@ -434,6 +455,8 @@ async def download_invoice_pdf(
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    if not _is_invoice_staff(current_user) and invoice.get("customer_id") != current_user["id"]:
+        raise HTTPException(status_code=404, detail="Invoice not found")
     
     # Check authorization
     user_roles = current_user.get("roles", [])
@@ -502,6 +525,13 @@ async def download_invoice_by_booking(
     Download invoice PDF by booking ID.
     Creates invoice record if not exists.
     """
+    # Ownership guard: booking owner or finance staff only
+    if not _is_invoice_staff(current_user):
+        owned = await db.inquiries.find_one({"id": booking_id, "customer_id": current_user["id"]}, {"_id": 0, "id": 1}) \
+            or await db.bookings.find_one({"id": booking_id, "customer_id": current_user["id"]}, {"_id": 0, "id": 1}) \
+            or await db.vertical_bookings.find_one({"id": booking_id, "customer_id": current_user["id"]}, {"_id": 0, "id": 1})
+        if not owned:
+            raise HTTPException(status_code=404, detail="Booking not found")
     # Find or create invoice for booking
     invoice = await db.invoices.find_one({"booking_id": booking_id}, {"_id": 0})
     

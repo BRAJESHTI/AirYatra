@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone, timedelta
-import uuid, random, logging
+import uuid, secrets, logging
 from pymongo import ReturnDocument
 
 from database import get_database
@@ -428,10 +428,11 @@ async def request_approval_otp(request_id: str, user: dict = Depends(get_current
         raise HTTPException(status_code=404, detail="Pending refund request not found")
     if req.get("requires_admin_only") and role not in SENIOR_ROLES:
         raise HTTPException(status_code=403, detail="Trip completed/invoice generated — only Admin/CEO can approve")
-    code = f"{random.randint(100000, 999999)}"
+    code = "".join(str(secrets.randbelow(10)) for _ in range(6))
     await db.refund_otps.update_one(
         {"user_id": user["id"], "request_id": request_id},
-        {"$set": {"code": code, "expires_at": (_now() + timedelta(minutes=10)).isoformat()}}, upsert=True)
+        {"$set": {"code": code, "attempts": 0,
+                  "expires_at": (_now() + timedelta(minutes=10)).isoformat()}}, upsert=True)
     from services.email_service import email_service
     await email_service.send_email(
         to_email=user["email"],
@@ -527,7 +528,14 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
     if any(a["user_id"] == user["id"] for a in req.get("approvals", [])):
         raise HTTPException(status_code=400, detail="You have already approved this request")
     otp_doc = await db.refund_otps.find_one({"user_id": user["id"], "request_id": request_id}, {"_id": 0})
-    if not otp_doc or otp_doc["code"] != otp or otp_doc["expires_at"] < _now().isoformat():
+    if not otp_doc or otp_doc["expires_at"] < _now().isoformat():
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    if otp_doc.get("attempts", 0) >= 5:
+        await db.refund_otps.delete_one({"user_id": user["id"], "request_id": request_id})
+        raise HTTPException(status_code=429, detail="Too many wrong OTP attempts — request a new OTP")
+    if not secrets.compare_digest(str(otp_doc["code"]), str(otp)):
+        await db.refund_otps.update_one(
+            {"user_id": user["id"], "request_id": request_id}, {"$inc": {"attempts": 1}})
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
     await db.refund_otps.delete_one({"user_id": user["id"], "request_id": request_id})
 

@@ -1557,6 +1557,12 @@ async def update_security_settings(
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid settings to update")
     
+    # SECURITY: privileged roles cannot self-disable mandatory login OTP
+    PRIVILEGED_OTP_ROLES = {"admin", "super_admin", "ceo", "operator",
+                            "finance", "cfo", "finance_head", "accounts_manager", "treasury_analyst"}
+    if update_data.get("otp_enabled") is False and PRIVILEGED_OTP_ROLES & set(current_user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="OTP is mandatory for privileged roles and cannot be disabled")
+    
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.users.update_one(

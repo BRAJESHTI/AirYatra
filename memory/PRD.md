@@ -3760,3 +3760,12 @@ PAYPAL_MODE=sandbox  # or 'live'
 - razorpay_routes.py: GET /order/{id} — owner (customer_id match) ya payment staff (admin/super_admin/finance/ceo/cfo/finance_head/accounts_manager) only; non-owner gets 404 (no ID enumeration). GET /payment/{id} — non-staff must own local razorpay_orders doc linked to that payment_id, else 404
 - Stripe routes audited: transactions/{booking_id} + receipt already owner/admin-guarded; status/{session_id} unauthenticated but returns minimal fields with unguessable session token — acceptable
 - TESTED (7/7): own order 200, other's order 404, finance any-order 200, other's payment 404, nonexistent 404; finance login tested via new OTP flow (server-minted OTP per test_credentials.md doc)
+
+##### 28. Security Re-audit + All Findings Closed (June 2026)
+**Re-audit verdicts (security_audit_agent pass 2):** SEC-002 role escalation = CLOSED ✓, Razorpay IDOR = CLOSED ✓, dev/seed backdoors = CLOSED (flags false) ✓, login OTP = PARTIALLY (self-disable loophole), + NEW HIGH: invoice endpoints no authz
+**Fixes applied this round (all TESTED):**
+- 🟢 NEW HIGH invoice BOLA (invoice_routes.py): _is_invoice_staff (admin/super_admin/finance/ceo/cfo/finance_head/accounts_manager). List → customer sees own only; dashboard/status/payment/settings → staff only (403); detail/download → owner-or-staff (404); download-by-booking → booking owner check (incl vertical_bookings); refunds/list → own-scoped for customers. Tests: foreign read 404, mark-paid 403, record-payment 403, PDF 404, finance full access 200
+- 🟢 OTP self-disable (auth_routes.py /security-settings + otp_service.py): privileged roles blocked from otp_enabled=false (403); should_require_otp now checks privileged roles BEFORE otp_enabled flag (server-side enforcement). Tests: finance disable → 403, customer toggle → 200
+- 🟢 Refund OTP hardening (refund_approval_routes.py): random.randint → secrets.randbelow; constant-time compare (secrets.compare_digest); attempts counter, 5 wrong → 429 lockout + OTP invalidated. Test: 5x401 then 429 ✓
+- 🟢 PayPal /order/{id} IDOR guard: owner (user_id) or staff, else 404
+**Remaining OPEN (business-accepted):** SEC-001 mocked vertical checkout (demo mode — real Razorpay integration pending user decision)

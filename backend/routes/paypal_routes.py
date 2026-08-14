@@ -245,7 +245,7 @@ async def get_paypal_order(
     order_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get PayPal order details"""
+    """Get PayPal order details (owner or finance/admin staff only)"""
     db = get_database()
     
     # Get from our database first
@@ -253,6 +253,12 @@ async def get_paypal_order(
         {"paypal_order_id": order_id},
         {"_id": 0}
     )
+    
+    # SECURITY (IDOR guard): non-staff must own the order
+    STAFF = {"admin", "super_admin", "finance", "ceo", "cfo", "finance_head", "accounts_manager"}
+    if not STAFF & set(current_user.get("roles", [])):
+        if not order_record or order_record.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=404, detail="Order not found")
     
     # Get from PayPal
     paypal_result = await paypal_service.get_order(order_id)
