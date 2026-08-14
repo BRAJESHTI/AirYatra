@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 64 — Multi-vertical (Helipad/Yacht/Cruise) Phase-1 backend + frontend testing. Backend suite (19 tests, /app/backend/tests/test_iter64_verticals.py) is 100% green: owner dashboards, asset registration RBAC, customer booking → owner confirm → mock pay → invoice/settlement/ledger, role-gated revenue report, and Ctrl+K /search/global role isolation (customer sees no admin categories, typo-tolerant, owns bookings only). Frontend: owner dashboards render fine and new-yacht registration via add-asset-btn dialog works. Ctrl+K global search dialog works for customer with correct role-scoped results (yacht/yact/YB2026 verified, no Payouts/Operators leakage). BUT two critical routing wiring bugs block the customer marine flow and finance vertical-revenue tab.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CustomerDashboard.js (URL→activeTab sync useEffect around lines 108–129)",
+        "issue": "Navigating to /customer/marine (either direct URL or sidebar click on 'Yacht • Cruise • Helipad') falls through to the else branch and sets activeTab='overview' because the effect never matches '/marine'. Result: <MarineBookings/> (data-testid marine-bookings-page) NEVER renders, so customers cannot book any helipad/yacht/cruise from the UI. E2E cross-panel flow (book → confirm → pay) is blocked from the customer side despite the backend working end-to-end.",
+        "selector": "[data-testid=\"marine-bookings-page\"]",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "FinanceDashboard.js (activeTab initial state / URL sync)",
+        "issue": "activeTab defaults to 'treasury_dashboard' and there is no useSearchParams/useEffect syncing ?tab=vertical_revenue. Navigating to /finance?tab=vertical_revenue does NOT render <VerticalRevenue/> (data-testid vertical-revenue-panel). Deep-links from Ctrl+K quick actions ('Vertical Revenue' -> /finance?tab=vertical_revenue) therefore land on the wrong tab.",
+        "selector": "[data-testid=\"vertical-revenue-panel\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Customer helipad booking E2E (Book → Confirm → Pay)",
+        "issue": "Cannot be exercised through the UI because /customer/marine renders the overview instead of MarineBookings. Verified working end-to-end via backend API (test_iter64_verticals.TestBookingFlow all pass).",
+        "affected_selectors": ["[data-testid=\"marine-bookings-page\"]", "[data-testid^=\"book-asset-\"]", "[data-testid=\"submit-booking-btn\"]", "[data-testid^=\"pay-vbooking-\"]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter64_verticals.py"
+  ],
+  "action_items": [
+    "CustomerDashboard.js: add `else if (path.includes('/marine')) setActiveTab('marine');` in the URL→activeTab useEffect (before the final else).",
+    "FinanceDashboard.js: read ?tab= from useSearchParams and set activeTab on mount + when the query param changes; alternatively initialise `useState(searchParams.get('tab') || 'treasury_dashboard')`. This will fix the Ctrl+K 'Vertical Revenue' quick-action deep-link too.",
+    "After fix, re-run E2E: login customer → sidebar 'Yacht • Cruise • Helipad' → book a helipad → login helipadowner → confirm → back to customer → Pay Now → login finance → vertical revenue panel & Operator Payouts should reflect STL-VT."
+  ],
+  "critical_code_review_comments": [
+    "CustomerDashboard URL→tab sync uses a chained if/else on path.includes which is brittle — every new route needs a manual add. Consider a route→tab map or nested <Route> rendering.",
+    "FinanceDashboard has no URL state at all; quick-action deep-links across the app (from GlobalSearch, dashboards, notifications) will all silently fail. Same pattern likely present on AdminDashboard — worth auditing.",
+    "vertical_routes.py: pay_booking sets both status='paid' and payment_status='paid'; consider keeping status='confirmed' and only toggling payment_status for cleaner state machine (current design works but conflates two concerns)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter64_verticals.py (new)"
+  ],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "~70% — owner dashboards, asset creation, Ctrl+K search all work; customer marine tab and finance vertical-revenue tab blocked by routing wiring bugs"},
+  "seed_data_creation": "Backend test suite creates TEST_Yacht_QA (yacht asset) and one helipad booking (2026-12-25) that goes through pending→confirmed→paid, spawning a new STL-VT settlement + order_vt_ payment_order + ledger entry + invoice_email_log. UI test also created TEST_UI_Yacht via the yacht owner dashboard.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "yachtowner@airyatra.co.in / Yacht@123456, cruiseop@airyatra.co.in / Cruise@123456, helipadowner@airyatra.co.in / Helipad@123456, customer@airyatra.co.in / Customer@123, finance@airyatra.co.in / Finance@123, admin@airyatra.co.in / Admin123!",
+  "context_for_next_testing_agent": "Backend is production-ready for Phase 1 verticals. Two frontend wiring fixes needed (see action_items). After fixes, run the UI E2E: /customer/marine must show marine-bookings-page with vertical-tab-{helipad|yacht|cruise}; book-asset-{id} -> submit-booking-btn -> booking appears in 'My Marine & Helipad Bookings'. Then helipadowner confirm-booking-{id}; then customer pay-vbooking-{id}; then /finance?tab=vertical_revenue shows helipad gross > ₹0 and STL-VT settlement in Operator Payouts. Existing seed booking YB2026080001 (₹36,000) with settlement STL-VT-00001 is intact and searchable.",
+  "rca_of_the_issue": "In /app/frontend/src/pages/CustomerDashboard.js the useEffect that maps location.pathname → activeTab has no branch for '/marine', so navigating to /customer/marine (both via sidebar and direct URL) resolves activeTab to 'overview' and the switch(activeTab) block in renderContent never hits `case 'marine': return <MarineBookings/>`. Identical class of bug in /app/frontend/src/pages/FinanceDashboard.js where activeTab is initialised to a hard-coded 'treasury_dashboard' with no useSearchParams sync, so ?tab=vertical_revenue is ignored."
+}

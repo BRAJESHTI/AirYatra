@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale, Flag, Leaf } from 'lucide-react';
+import { Plane, Home, Calendar, FileText, Wallet, LogOut, MapPin, MessageSquare, User, Gift, ChevronDown, ChevronRight, Settings, Bell, CreditCard, HelpCircle, Star, Shield, PieChart, TrendingUp, Sparkles, Menu, Eye, XCircle, Gavel, Scale, Flag, Leaf, Anchor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { customerAPI } from '../services/api';
 import { toast } from 'sonner';
@@ -29,6 +29,7 @@ import { AircraftComparison } from '../components/aircraft/AircraftComparison';
 import RefundHistory from '../components/customer/RefundHistory';
 import CarbonCalculator from '../components/customer/CarbonCalculator';
 import ASREBookingWidget from '../components/customer/ASREBookingWidget';
+import MarineBookings from '../components/customer/MarineBookings';
 import { Zap } from 'lucide-react';
 
 // Organized Navigation Structure - 4 Main Categories (English Only)
@@ -40,6 +41,7 @@ const navGroups = [
     items: [
       { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
       { id: 'smart-booking', label: 'Smart Booking', icon: Zap, path: '/customer/smart-booking', highlight: true },
+      { id: 'marine', label: 'Yacht • Cruise • Helipad', icon: Anchor, path: '/customer/marine', highlight: true },
       { id: 'trips', label: 'My Trips', icon: MapPin, path: '/customer/trips', highlight: true },
       { id: 'compare', label: 'Compare Aircraft', icon: Scale, path: '/customer/compare', highlight: true },
       { id: 'stats', label: 'My Stats', icon: PieChart, path: '/customer/stats', highlight: true },
@@ -122,6 +124,7 @@ function CustomerDashboard({ user, onLogout }) {
     else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
     else if (path.includes('/kyc')) setActiveTab('kyc');
     else if (path.includes('/smart-booking')) setActiveTab('smart-booking');
+    else if (path.includes('/marine')) setActiveTab('marine');
     else if (path.includes('/carbon')) setActiveTab('carbon');
     else setActiveTab('overview');
   }, [location.pathname]);
@@ -209,6 +212,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <CarbonCalculator />;
       case 'smart-booking':
         return <ASREBookingWidget />;
+      case 'marine':
+        return <MarineBookings />;
       case 'complaints':
         return <MyComplaints user={user} />;
       case 'auctions':

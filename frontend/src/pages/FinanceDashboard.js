@@ -14,6 +14,7 @@ import RefundApprovals from '@/components/admin/RefundApprovals';
 import GSTReports from '@/components/admin/GSTReports';
 import RevenueReports from '@/components/admin/RevenueReports';
 import PaymentTransactions from '@/components/finance/PaymentTransactions';
+import VerticalRevenue from '@/components/finance/VerticalRevenue';
 
 // Lazy load new Finance components
 const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSalaryPayment'));
@@ -161,6 +162,7 @@ const navGroups = [
     items: [
       { id: 'all_settlements', label: 'All Settlements', icon: DollarSign },
       { id: 'operator_payouts', label: 'Operator Payouts', icon: Building2 },
+      { id: 'vertical_revenue', label: 'Helipad / Yacht / Cruise', icon: Building2, highlight: true },
     ]
   },
   {
@@ -175,7 +177,16 @@ const navGroups = [
 ];
 
 function FinanceDashboard({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState('treasury_dashboard');
+  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'treasury_dashboard');
+
+  useEffect(() => {
+    const onPop = () => {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (t) setActiveTab(t);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [expandedGroups, setExpandedGroups] = useState(['treasury', 'compliance', 'analytics', 'advanced']);
   const [stats, setStats] = useState({
     total_revenue: 1250000,
@@ -294,6 +305,8 @@ function FinanceDashboard({ user, onLogout }) {
         return <SettlementManagement />;
       case 'payments':
         return <PaymentTransactions />;
+      case 'vertical_revenue':
+        return <VerticalRevenue />;
       case 'reports':
         return <RevenueReports />;
       case 'invoices':

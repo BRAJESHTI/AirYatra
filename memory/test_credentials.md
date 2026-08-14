@@ -85,3 +85,8 @@ curl -X POST "https://airyatra-corporate.preview.emergentagent.com/api/auth/dev/
 *Last Updated: August 8, 2026*
 
 ## Note (June 2026): corporate@airyatra.co.in ab roles ['corporate','customer'] ke saath /corporate portal par land karta hai (TechVista Solutions CORP-DEMO26 linked).
+
+## Vertical Business Lines (Added June 2026)
+| yachtowner@airyatra.co.in | Yacht@123456 | Yacht Owner Dashboard (/yacht-owner) |
+| cruiseop@airyatra.co.in | Cruise@123456 | Cruise Operator Dashboard (/cruise-operator) |
+| helipadowner@airyatra.co.in | Helipad@123456 | Helipad Owner Dashboard (/helipad-owner) |

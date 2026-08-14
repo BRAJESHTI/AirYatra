@@ -3641,3 +3641,12 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Operator: /operator/settings route added (was blank)
 - ROLE PERMISSION FIXES (were 403): finance -> pricing reports/settlements/operators endpoints; support -> reviews admin, templates, SLA config, chat conversations (support/admin see all chats)
 - TESTED: testing agent iteration_63 (backend 100%, frontend 95% - all tabs render, leave approved via UI, operator settings persist) + curl verified all 9 previously-403 endpoints now 200
+
+##### 11. HELIPAD + YACHT + CRUISE Business Lines — Phase 1 LIVE 🟢 (June 2026)
+- Backend: routes/vertical_routes.py (assets CRUD, availability, bookings, confirm/reject, mock pay -> invoice email + payment_orders + settlements STL-VT + ledger_entries, revenue report) + routes/search_routes.py REPLACED with role-based multi-vertical Ctrl+K engine (typo tolerant, entity detection mobile/email/GST/PAN, per-role categories)
+- Frontend: pages/VerticalOwnerDashboard.js (yacht_owner + cruise_operator), components/customer/MarineBookings.js (/customer/marine), components/finance/VerticalRevenue.js (finance tab), App.js routes + LoginPage redirects
+- New roles: yacht_owner, cruise_operator (models.py) | Seed: scripts/seed_verticals.py (3 owner accounts + 6 assets)
+- Fixed: CustomerDashboard marine tab sync, FinanceDashboard ?tab= deep-link support (Ctrl+K quick actions now work)
+- Audit: /app/memory/VERTICALS_AUDIT_REPORT.md — 92% Phase 1 score, all 3 verticals LIVE
+- TESTED: iteration_64 backend 19/19 + UI E2E (book->confirm->pay->finance sync) verified via screenshots
+- Phase 2 backlog: crew mgmt, passenger manifest, seasonal pricing, availability calendar UI, compliance doc uploads, real Razorpay checkout for verticals, vertical refund chain

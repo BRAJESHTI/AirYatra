@@ -8,6 +8,8 @@ class UserRole(str, Enum):
     OPERATOR = "operator"
     REGIONAL_MANAGER = "regional_manager"
     HELIPAD_OWNER = "helipad_owner"
+    YACHT_OWNER = "yacht_owner"
+    CRUISE_OPERATOR = "cruise_operator"
     HR = "hr"
     FINANCE = "finance"
     MARKETING = "marketing"

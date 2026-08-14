@@ -17,6 +17,7 @@ const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const RegionalManagerDashboard = lazy(() => import('./pages/RegionalManagerDashboard'));
 const HelipadOwnerDashboard = lazy(() => import('./pages/HelipadOwnerDashboard'));
+const VerticalOwnerDashboard = lazy(() => import('./pages/VerticalOwnerDashboard'));
 const BookingPage = lazy(() => import('./pages/BookingPage'));
 const PaymentPage = lazy(() => import('./pages/PaymentPage'));
 const MarketplaceResults = lazy(() => import('./pages/MarketplaceResults'));
@@ -144,6 +145,10 @@ function App() {
           <Route path="/aircraft/browse" element={<PublicAircraftBrowse />} />
           
           <Route
+            path="/customer/marine"
+            element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
+          <Route
             path="/customer"
             element={user && user.roles.includes('customer') ? <CustomerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
@@ -250,6 +255,14 @@ function App() {
         <Route
           path="/regional/*"
           element={user && (user.roles.includes('regional_manager') || user.roles.includes('admin')) ? <RegionalManagerDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/yacht-owner/*"
+          element={user && (user.roles.includes('yacht_owner') || user.roles.includes('admin')) ? <VerticalOwnerDashboard vertical="yacht" user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/cruise-operator/*"
+          element={user && (user.roles.includes('cruise_operator') || user.roles.includes('admin')) ? <VerticalOwnerDashboard vertical="cruise" user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
         <Route
           path="/helipad-owner/*"

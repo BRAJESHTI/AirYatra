@@ -62,6 +62,8 @@ function LoginPage({ setUser }) {
     employee: '/employee',
     regional_manager: '/regional',
     helipad_owner: '/helipad-owner',
+    yacht_owner: '/yacht-owner',
+    cruise_operator: '/cruise-operator',
   };
 
   const getHomePath = (role) => {
