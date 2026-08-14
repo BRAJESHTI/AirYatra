@@ -700,6 +700,56 @@ def _is_payment_staff(user: dict) -> bool:
     return bool(PAYMENT_VIEW_STAFF_ROLES & set(user.get("roles", [])))
 
 
+@router.post("/one-rupee-test")
+async def one_rupee_test(current_user: dict = Depends(get_current_user)):
+    """Safe ₹1 gateway test order — staff only, amount hardcoded to ₹1"""
+    if not GATEWAY_STAFF & set(current_user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Razorpay not configured")
+    order = razorpay_client.order.create({
+        "amount": 100, "currency": "INR",
+        "receipt": f"RS1TEST-{uuid.uuid4().hex[:8]}",
+        "notes": {"type": "one_rupee_gateway_test", "by": current_user.get("email")},
+    })
+    db = get_database()
+    await db.gateway_tests.insert_one({
+        "id": str(uuid.uuid4()), "order_id": order["id"], "amount": 1, "mode": GATEWAY_MODE,
+        "by": current_user.get("email"), "status": "created",
+        "created_at": datetime.now(timezone.utc).isoformat()})
+    return {"order_id": order["id"], "key_id": RAZORPAY_KEY_ID, "amount_paise": 100,
+            "currency": "INR", "mode": GATEWAY_MODE,
+            "note": "LIVE mode me aapke UPI se real ₹1 katega; TEST mode me koi paisa nahi katta"}
+
+
+@router.post("/one-rupee-test/verify")
+async def one_rupee_test_verify(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    if not GATEWAY_STAFF & set(current_user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    try:
+        razorpay_client.utility.verify_payment_signature({
+            "razorpay_order_id": payload.get("razorpay_order_id"),
+            "razorpay_payment_id": payload.get("razorpay_payment_id"),
+            "razorpay_signature": payload.get("razorpay_signature"),
+        })
+    except Exception:
+        raise HTTPException(status_code=400, detail="Signature verification failed")
+    db = get_database()
+    await db.gateway_tests.update_one(
+        {"order_id": payload.get("razorpay_order_id")},
+        {"$set": {"status": "paid", "payment_id": payload.get("razorpay_payment_id"),
+                  "verified_at": datetime.now(timezone.utc).isoformat()}})
+    try:
+        from routes.audit_trail_routes import audit_event
+        await audit_event(db, "one_rupee_gateway_test_success", current_user,
+                          details={"order_id": payload.get("razorpay_order_id"), "mode": GATEWAY_MODE},
+                          resource_type="gateway_test", risk_level="medium")
+    except Exception:
+        pass
+    return {"message": f"✅ ₹1 {GATEWAY_MODE.upper()} payment verified! Gateway is charging correctly.",
+            "mode": GATEWAY_MODE}
+
+
 # Get Order Status - REQUIRES AUTHENTICATION + OWNERSHIP
 @router.get("/order/{order_id}")
 async def get_order_status(
