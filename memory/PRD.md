@@ -3586,3 +3586,12 @@ PAYPAL_MODE=sandbox  # or 'live'
 - _send_cancellation_email() in refund_approval_routes.py — fired on both customer-cancel & operator-cancel
 - Email includes: route, cancelled-by, amount paid, deduction %, refund amount, timeline (approval 24-48h, credit 5-7 business days)
 - Logged in db.cancellation_email_log; verified live via SMTP (customer@airyatra.co.in, ₹4,32,000 refund email sent)
+
+##### 5. Razorpay Auto-Refund Trigger 🟢 DONE (June 2026)
+- _trigger_gateway_refund() in refund_approval_routes.py — 2nd approval lagte hi auto-fires
+- payment_id resolution: booking.razorpay_payment_id -> payment_orders fallback
+- Success: refund_transactions (method=razorpay, gateway_refund_id), refund_requests.gateway_refund_id, booking.refund_status=processed
+- No payment_id / gateway error: gracefully logged as pending_gateway with error, approval still stands (manual processing note in response)
+- Fixed pre-existing bug: payment_service.py `if db:` -> `if db is not None:` (Motor db truth-testing crash)
+- payment_service now also inits Razorpay client from env keys (earlier only DB settings)
+- TESTED via API E2E: 2-approval flow -> real Razorpay test API called (fake/mock payment ids fail gracefully as expected). TRUE success path needs a real captured test payment via checkout.

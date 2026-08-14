@@ -56,7 +56,7 @@ class PaymentService:
         """Create a Razorpay order for payment"""
         
         # Load keys from DB if provided
-        if db:
+        if db is not None:
             await self._load_api_keys_from_db(db)
         
         if self.client:
@@ -107,7 +107,7 @@ class PaymentService:
     ) -> Dict:
         """Verify Razorpay payment signature"""
         
-        if db:
+        if db is not None:
             await self._load_api_keys_from_db(db)
         
         if self.client and self.key_secret:
@@ -167,8 +167,16 @@ class PaymentService:
     ) -> Dict:
         """Create a refund for a payment"""
         
-        if db:
+        if db is not None:
             await self._load_api_keys_from_db(db)
+        
+        if not self.client and self.key_id and self.key_secret and len(self.key_id) > 10:
+            try:
+                import razorpay
+                self.client = razorpay.Client(auth=(self.key_id, self.key_secret))
+                print("[PaymentService] Razorpay client initialized from env keys")
+            except ImportError:
+                pass
         
         if self.client:
             try:
@@ -191,8 +199,9 @@ class PaymentService:
                     "mock": False
                 }
             except Exception as e:
-                print(f"[Razorpay] Refund error: {e}")
-                return {"success": False, "error": str(e)}
+                err = str(e) or repr(e)
+                print(f"[Razorpay] Refund error: {err}")
+                return {"success": False, "error": err}
         
         # Mock refund
         mock_refund_id = f"rfnd_{uuid4().hex[:16]}"
@@ -210,7 +219,7 @@ class PaymentService:
     async def get_payment_status(self, db=None) -> Dict:
         """Get payment service status"""
         
-        if db:
+        if db is not None:
             await self._load_api_keys_from_db(db)
         
         return {
@@ -222,7 +231,7 @@ class PaymentService:
     async def get_payment_methods(self, db=None) -> Dict:
         """Get available payment methods"""
         
-        if db:
+        if db is not None:
             await self._load_api_keys_from_db(db)
         
         return {

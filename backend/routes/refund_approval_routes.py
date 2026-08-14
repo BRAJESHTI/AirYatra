@@ -328,6 +328,56 @@ async def request_approval_otp(request_id: str, user: dict = Depends(get_current
     return {"message": f"OTP emailed to {user['email']}", "expires_in_minutes": 10}
 
 
+async def _trigger_gateway_refund(db, req):
+    """2nd approval milte hi Razorpay refund API auto-trigger"""
+    booking = await _get_booking(db, req["booking_id"])
+    payment_id = (booking or {}).get("razorpay_payment_id")
+    if not payment_id:
+        order = await db.payment_orders.find_one(
+            {"booking_id": req["booking_id"], "payment_id": {"$ne": None}}, {"_id": 0, "payment_id": 1})
+        payment_id = (order or {}).get("payment_id")
+    txn = {
+        "id": str(uuid.uuid4()), "refund_request_id": req["id"], "booking_id": req["booking_id"],
+        "amount": req["refundable_amount"], "created_at": _now().isoformat(),
+    }
+    if not payment_id:
+        txn.update({"method": "pending_gateway", "gateway_status": "no_payment_id",
+                    "note": "Razorpay payment ID not found — manual gateway refund required"})
+        await db.refund_transactions.insert_one({**txn})
+        return {"triggered": False, "reason": "no_payment_id"}
+    from services.payment_service import payment_service
+    result = await payment_service.create_refund(
+        payment_id=payment_id,
+        amount=int(round(req["refundable_amount"] * 100)),
+        reason=f"Refund approved (2-of-5) for booking {req['booking_ref']}",
+        db=db)
+    if result.get("success"):
+        txn.update({"method": "razorpay", "payment_id": payment_id,
+                    "gateway_refund_id": result.get("refund_id"),
+                    "gateway_status": result.get("status", "processed"),
+                    "mock": bool(result.get("mock"))})
+        await db.refund_transactions.insert_one({**txn})
+        await db.refund_requests.update_one(
+            {"id": req["id"]},
+            {"$set": {"gateway_refund_id": result.get("refund_id"),
+                      "gateway_refund_status": result.get("status", "processed"),
+                      "gateway_refund_at": _now().isoformat()}})
+        for coll in (db.inquiries, db.bookings):
+            await coll.update_one({"id": req["booking_id"]},
+                                  {"$set": {"refund_status": "processed",
+                                            "razorpay_refund_id": result.get("refund_id")}})
+        logger.info(f"Auto-refund triggered: {result.get('refund_id')} for booking {req['booking_id']}")
+        return {"triggered": True, "refund_id": result.get("refund_id"), "mock": bool(result.get("mock"))}
+    txn.update({"method": "pending_gateway", "payment_id": payment_id,
+                "gateway_status": "failed", "error": result.get("error")})
+    await db.refund_transactions.insert_one({**txn})
+    await db.refund_requests.update_one(
+        {"id": req["id"]}, {"$set": {"gateway_refund_status": "failed",
+                                     "gateway_refund_error": result.get("error")}})
+    logger.error(f"Auto-refund FAILED for booking {req['booking_id']}: {result.get('error')}")
+    return {"triggered": False, "reason": result.get("error")}
+
+
 @router.post("/{request_id}/approve")
 async def approve_refund(request_id: str, otp: str = Body(...), action: str = Body("approve"),
                          remark: str = Body(...), user: dict = Depends(get_current_user)):
@@ -365,12 +415,14 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
             await coll.update_one({"id": req["booking_id"]},
                                   {"$set": {"status": "cancelled", "refund_status": "approved",
                                             "refund_amount": req["refundable_amount"]}})
-        await db.refund_transactions.insert_one({
-            "id": str(uuid.uuid4()), "refund_request_id": request_id, "booking_id": req["booking_id"],
-            "amount": req["refundable_amount"], "method": "pending_gateway",
-            "created_at": _now().isoformat()})
-        return {"message": f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} queued for processing.",
-                "status": "approved", "approvals": approvals}
+        gw = await _trigger_gateway_refund(db, req)
+        if gw.get("triggered"):
+            msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} "
+                   f"auto-refunded via Razorpay (Refund ID: {gw['refund_id']}).")
+        else:
+            msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} approved, "
+                   f"but auto gateway refund pending ({gw.get('reason')}). Manual processing required.")
+        return {"message": msg, "status": "approved", "approvals": approvals, "gateway_refund": gw}
     await db.refund_requests.update_one({"id": request_id}, {"$set": {"approvals": approvals}})
     return {"message": f"Approval 1/{REQUIRED_APPROVALS} recorded. Ek aur approver chahiye.",
             "status": "pending_approval", "approvals": approvals}
