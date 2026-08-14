@@ -233,6 +233,10 @@ async def update_invoice_status(
     """Update invoice status (finance/admin only)"""
     _require_invoice_staff(current_user)
     db = get_database()
+    from routes.audit_trail_routes import audit_event
+    await audit_event(db, "invoice_status_changed", current_user,
+                      details={"invoice_id": invoice_id, "new_status": status},
+                      resource_type="invoice", resource_id=invoice_id, risk_level="medium")
     
     update_data = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
     if status == "paid":
@@ -260,6 +264,10 @@ async def record_payment(
     """Record a payment against invoice (finance/admin only)"""
     _require_invoice_staff(current_user)
     db = get_database()
+    from routes.audit_trail_routes import audit_event
+    await audit_event(db, "invoice_payment_recorded", current_user,
+                      details={"invoice_id": invoice_id, "amount": amount},
+                      resource_type="invoice", resource_id=invoice_id, risk_level="medium")
     
     invoice = await db.invoices.find_one({"id": invoice_id})
     if not invoice:

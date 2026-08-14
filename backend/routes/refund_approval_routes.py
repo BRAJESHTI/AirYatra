@@ -10,6 +10,7 @@ from pymongo import ReturnDocument
 
 from database import get_database
 from middleware import get_current_user
+from routes.audit_trail_routes import audit_event
 
 router = APIRouter(prefix="/refunds", tags=["Refund Approval Chain"])
 logger = logging.getLogger(__name__)
@@ -568,6 +569,10 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
                                   {"$set": {"status": "cancelled", "refund_status": "approved",
                                             "refund_amount": req["refundable_amount"]}})
         gw = await _trigger_gateway_refund(db, req)
+        await audit_event(db, "refund_approved", user,
+                          details={"booking_ref": req.get("booking_ref"),
+                                   "amount": req["refundable_amount"], "gateway": gw},
+                          resource_type="refund_request", resource_id=req["id"], risk_level="high")
         if gw.get("triggered"):
             msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} "
                    f"auto-refunded via Razorpay (Refund ID: {gw['refund_id']}).")
@@ -575,5 +580,8 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
             msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} approved, "
                    f"but auto gateway refund pending ({gw.get('reason')}). Manual processing required.")
         return {"message": msg, "status": "approved", "approvals": approvals, "gateway_refund": gw}
+    await audit_event(db, "refund_approval_recorded", user,
+                      details={"booking_ref": req.get("booking_ref"), "approval_no": len(approvals)},
+                      resource_type="refund_request", resource_id=req["id"], risk_level="medium")
     return {"message": f"Approval 1/{REQUIRED_APPROVALS} recorded. One more approver is required.",
             "status": "pending_approval", "approvals": approvals}
