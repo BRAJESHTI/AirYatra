@@ -144,7 +144,10 @@ export default function AuditLogs() {
                     <td className="px-3 py-2.5 text-slate-300">{l.user_name}</td>
                     <td className="px-3 py-2.5 text-slate-500 text-xs">{(l.roles || []).join(', ')}</td>
                     <td className="px-3 py-2.5 text-slate-400 text-xs max-w-[160px] truncate">{l.resource || l.details}</td>
-                    <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{l.ip}{l.browser ? ` • ${l.browser}/${l.os}` : ''}</td>
+                    <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">
+                      {l.ip}{l.browser ? ` • ${l.browser}/${l.os}` : ''}
+                      {l.location && <span className="block text-[10px] text-cyan-400/80" data-testid={`geo-${i}`}>📍 {l.location}</span>}
+                    </td>
                     <td className="px-3 py-2.5"><span className={`text-[10px] px-2 py-0.5 rounded-full ${l.status === 'success' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>{l.status}</span></td>
                     <td className="px-3 py-2.5"><span className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${RISK_C[l.risk] || RISK_C.low}`}>{l.risk}</span></td>
                     <td className="px-3 py-2.5">{l.signed ? '🔏' : ''}</td>

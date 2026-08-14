@@ -3786,3 +3786,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - audit_event() signed helper + hooks added: refund_approved, refund_approval_recorded (refund_approval_routes), invoice_status_changed, invoice_payment_recorded (invoice_routes), audit_report_downloaded, audit_logs_archived
 - Frontend AuditLogs.js REWRITTEN: Live Feed tab (10s polling, LIVE badge toggle), filter bar (preset/custom dates/role/16 report types/action/search), table w/ IST time, roles, IP/browser/OS, risk badges, 🔏 signed marker; Suspicious tab (severity alert cards); Verify Integrity banner; CSV/Excel/PDF export buttons
 - iteration_66: backend 20/20 pytest + frontend Playwright — ALL PASS (log generation login/failed/logout/report-download/refund-approval, 16 report types, exports w/ correct content-types, suspicious detection, immutability: DELETE 405 + admin archive 403 + integrity OK, RBAC customer/yacht 403). Post-test hardening: sig_v2 full-entry HMAC + device preset widened (re-verified OK)
+
+##### 32. GeoIP Locations in Audit Trail 🟢 DONE (June 2026)
+- audit_trail_routes.py: _geoip_resolve() — ip-api.com (keyless, city+country) with PERMANENT db.geoip_cache (each IP looked up once), private/internal ranges (10.x/192.168/172.16-31/127) → "Internal Network", max 15 fresh lookups per request, 4s timeout fail-safe ("Unknown")
+- Wired into /feed (location field per log) + all 3 exports (CSV/Excel/PDF me Location column)
+- Frontend AuditLogs.js: IP cell ke neeche 📍 city, country (cyan, data-testid geo-{i})
+- TESTED (curl): internal 10.81.x → "Internal Network", public 8.8.8.8 → "Ashburn, United States", CSV header me location column ✓, cache verified

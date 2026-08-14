@@ -45,6 +45,46 @@ def _require_staff(user):
         raise HTTPException(status_code=403, detail="Staff access required")
 
 
+def _is_private_ip(ip: str) -> bool:
+    return (not ip or ip.startswith(("10.", "127.", "192.168.", "172.16.", "172.17.", "172.18.",
+                                     "172.19.", "172.2", "172.30.", "172.31.", "::1", "fc", "fd"))
+            or ip == "localhost")
+
+
+async def _geoip_resolve(db, ips: set) -> dict:
+    """Resolve IPs to City, Country via ip-api.com with permanent mongo cache"""
+    out = {}
+    to_fetch = []
+    for ip in ips:
+        if not ip:
+            continue
+        if _is_private_ip(ip):
+            out[ip] = "Internal Network"
+            continue
+        cached = await db.geoip_cache.find_one({"ip": ip}, {"_id": 0})
+        if cached:
+            out[ip] = cached.get("location") or "Unknown"
+        else:
+            to_fetch.append(ip)
+    if to_fetch:
+        import httpx
+        async with httpx.AsyncClient(timeout=4) as client:
+            for ip in to_fetch[:15]:
+                loc = "Unknown"
+                try:
+                    r = await client.get(f"http://ip-api.com/json/{ip}?fields=status,city,country")
+                    d = r.json()
+                    if d.get("status") == "success":
+                        loc = ", ".join(x for x in (d.get("city"), d.get("country")) if x) or "Unknown"
+                except Exception:
+                    pass
+                out[ip] = loc
+                await db.geoip_cache.update_one(
+                    {"ip": ip}, {"$set": {"ip": ip, "location": loc,
+                                          "cached_at": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+    return out
+
+
 def sign_entry(entry: dict) -> str:
     if entry.get("sig_v") == 2:
         base = "|".join(str(entry.get(k)) for k in
@@ -166,7 +206,11 @@ async def live_feed(
     q = await _build_query(preset, from_date, to_date, action, role, module, ip, search, report_type)
     docs = await db.audit_logs.find(q, {"_id": 0}).sort([("created_at", -1), ("timestamp", -1)]).to_list(limit)
     total = await db.audit_logs.count_documents(q)
-    return {"logs": [_norm(d) for d in docs], "total": total,
+    logs = [_norm(d) for d in docs]
+    geo = await _geoip_resolve(db, {l["ip"] for l in logs if l["ip"]})
+    for l in logs:
+        l["location"] = geo.get(l["ip"], "")
+    return {"logs": logs, "total": total,
             "report_types": list(REPORT_PRESETS.keys())}
 
 
@@ -259,7 +303,10 @@ async def export_report(
     q = await _build_query(preset, from_date, to_date, None, None, None, None, search, report_type)
     docs = await db.audit_logs.find(q, {"_id": 0}).sort([("created_at", -1), ("timestamp", -1)]).to_list(2000)
     rows = [_norm(d) for d in docs]
-    headers = ["time", "action", "category", "user_name", "roles", "resource", "ip", "browser", "os", "status", "risk", "details"]
+    geo = await _geoip_resolve(db, {r["ip"] for r in rows if r["ip"]})
+    for r in rows:
+        r["location"] = geo.get(r["ip"], "")
+    headers = ["time", "action", "category", "user_name", "roles", "resource", "ip", "location", "browser", "os", "status", "risk", "details"]
     fname = f"audit_{report_type}_{datetime.now(IST).strftime('%Y%m%d_%H%M')}"
 
     # log the report download itself
@@ -273,7 +320,7 @@ async def export_report(
         w.writerow(headers)
         for r in rows:
             w.writerow([r["time"], r["action"], r["category"], r["user_name"], "|".join(r["roles"]),
-                        r["resource"], r["ip"], r["browser"], r["os"], r["status"], r["risk"], r["details"]])
+                        r["resource"], r["ip"], r["location"], r["browser"], r["os"], r["status"], r["risk"], r["details"]])
         return StreamingResponse(io.BytesIO(buf.getvalue().encode()), media_type="text/csv",
                                  headers={"Content-Disposition": f"attachment; filename={fname}.csv"})
     if format == "excel":
@@ -284,7 +331,7 @@ async def export_report(
         ws.append([h.upper() for h in headers])
         for r in rows:
             ws.append([r["time"], r["action"], r["category"], r["user_name"], "|".join(r["roles"]),
-                       r["resource"], r["ip"], r["browser"], r["os"], r["status"], r["risk"], r["details"]])
+                       r["resource"], r["ip"], r["location"], r["browser"], r["os"], r["status"], r["risk"], r["details"]])
         out = io.BytesIO()
         wb.save(out)
         out.seek(0)
@@ -298,10 +345,10 @@ async def export_report(
         out = io.BytesIO()
         doc = SimpleDocTemplate(out, pagesize=landscape(A4))
         styles = getSampleStyleSheet()
-        data = [["Time", "Action", "User", "Roles", "IP", "Status", "Risk"]]
+        data = [["Time", "Action", "User", "Roles", "IP", "Location", "Status", "Risk"]]
         for r in rows[:300]:
             data.append([str(r["time"])[:19], r["action"][:30], str(r["user_name"])[:25],
-                         "|".join(r["roles"])[:20], r["ip"][:15], r["status"], r["risk"]])
+                         "|".join(r["roles"])[:20], r["ip"][:15], r["location"][:20], r["status"], r["risk"]])
         t = Table(data, repeatRows=1)
         t.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f97316")),
