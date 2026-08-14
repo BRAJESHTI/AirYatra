@@ -3681,3 +3681,14 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend MarineBookings.js: deal card gets orange ring + "DEAL OF THE DAY — 10% OFF TODAY" banner, strikethrough pricing; booking dialog shows Deal Total with strikethrough; My Bookings rows show "🔥 Deal -10% (saved ₹X)"
 - BUGFIX: MarineBookings used Users/Trash2/Plus icons without importing (latent crash on bookings list) — imports fixed
 - TESTED: curl (deal booking 30,000→27,000 saved 3,000; non-deal booking no discount) + UI E2E screenshot (banner, ₹16,200 deal total w/ strikethrough ₹18,000 in dialog). Test artifacts (TEST_Yacht_QA, test bookings) cleaned from DB
+
+##### 17. Vertical Refund Chain Integration 🟢 DONE (June 2026)
+- Marine/Helipad bookings ab existing 2-of-5 OTP refund approval system se jude hain (refund_approval_routes.py):
+  - _get_booking/_paid_amount/_policy_deduction_pct vertical_bookings aware (paid check via payment_status, start_date for policy %)
+  - All status-update loops include db.vertical_bookings
+  - customer-cancel: unpaid vertical → instant cancel (no refund request); paid → policy deduction (>72h=10% etc.) → approval chain
+  - operator-cancel: vertical owners (yacht_owner/cruise_operator/helipad_owner) supported via owner_user_id check + mandatory dropdown reason → FULL refund
+  - _trigger_gateway_refund: MOCK payments (pay_vt_*) short-circuit to mock Razorpay refund (rfnd_mock_*) instead of failing against real gateway
+  - Cancellation email uses asset_name (vertical) instead of route
+- Frontend: MarineBookings.js customer Cancel button + reason dialog (policy note for paid); VerticalOwnerDashboard.js owner Cancel on confirmed/paid + mandatory reason dropdown + remark
+- TESTED (python E2E): unpaid instant cancel ✓, paid cancel 10% deduction ₹24k→₹21.6k ✓, finance+admin OTP approvals ✓, booking→cancelled/refund processed ✓, owner full refund ₹12k ✓, mock gateway refund ID stored ✓, cross-owner 403 ✓ + UI screenshots (both dialogs, 5/6 reason options)

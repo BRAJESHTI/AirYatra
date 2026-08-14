@@ -26,6 +26,10 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
   const [form, setForm] = useState({ name: '', city: '', location: '', description: '', base_price: '' });
   const [busy, setBusy] = useState('');
   const [manageAsset, setManageAsset] = useState(null);
+  const [cancelFor, setCancelFor] = useState(null);
+  const [cancelReasons, setCancelReasons] = useState([]);
+  const [cancelReasonId, setCancelReasonId] = useState('');
+  const [cancelRemark, setCancelRemark] = useState('');
   const M = META[vertical];
 
   const load = async () => {
@@ -68,6 +72,31 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
       load();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed');
+    } finally { setBusy(''); }
+  };
+
+  const openCancel = async (b) => {
+    setCancelFor(b);
+    setCancelReasonId('');
+    setCancelRemark('');
+    try {
+      const res = await api.get('/refunds/reasons?audience=operator');
+      setCancelReasons(res.data.reasons || []);
+    } catch (e) { setCancelReasons([]); }
+  };
+
+  const submitCancel = async () => {
+    if (!cancelReasonId) { toast.error('Cancellation reason is mandatory'); return; }
+    setBusy('cancel');
+    try {
+      const res = await api.post('/refunds/operator-cancel', {
+        booking_id: cancelFor.id, reason_id: cancelReasonId, remark: cancelRemark || null,
+      });
+      toast.success(res.data.message);
+      setCancelFor(null);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Cancellation failed');
     } finally { setBusy(''); }
   };
 
@@ -173,6 +202,12 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
                           <Button size="sm" variant="destructive" className="h-8" disabled={!!busy} onClick={() => decide(b, 'reject')} data-testid={`reject-booking-${b.id}`}><X className="h-3 w-3" /></Button>
                         </div>
                       )}
+                      {['confirmed', 'paid'].includes(b.status) && (
+                        <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-8"
+                          onClick={() => openCancel(b)} data-testid={`owner-cancel-booking-${b.id}`}>
+                          Cancel
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -207,6 +242,40 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
 
       <AssetManagePanel asset={manageAsset} open={!!manageAsset}
         onClose={() => setManageAsset(null)} onSaved={() => { setManageAsset(null); load(); }} />
+
+      <Dialog open={!!cancelFor} onOpenChange={(o) => !o && setCancelFor(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Cancel Booking {cancelFor?.booking_number}</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {cancelFor?.payment_status === 'paid'
+                ? 'Owner cancellation triggers a FULL refund to the customer (team approval required). A valid reason is mandatory.'
+                : 'No payment made yet — booking will be cancelled with the selected reason.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2" data-testid="owner-cancel-dialog">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Cancellation Reason *</label>
+              <select value={cancelReasonId} onChange={(e) => setCancelReasonId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-white h-10 rounded-md px-2 text-sm" data-testid="owner-cancel-reason-select">
+                <option value="">Select a reason (mandatory)</option>
+                {cancelReasons.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Remark (optional)</label>
+              <Input value={cancelRemark} onChange={(e) => setCancelRemark(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white" data-testid="owner-cancel-remark" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelFor(null)} className="border-slate-600 text-slate-300">Keep Booking</Button>
+            <Button variant="destructive" onClick={submitCancel} disabled={busy === 'cancel'} data-testid="owner-confirm-cancel-btn">
+              {busy === 'cancel' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null} Cancel Booking
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">

@@ -31,17 +31,20 @@ def _role_of(user: dict) -> Optional[str]:
 
 async def _get_booking(db, booking_id):
     return await db.inquiries.find_one({"id": booking_id}, {"_id": 0}) or \
-           await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+           await db.bookings.find_one({"id": booking_id}, {"_id": 0}) or \
+           await db.vertical_bookings.find_one({"id": booking_id}, {"_id": 0})
 
 
 def _paid_amount(booking) -> float:
+    if booking.get("vertical"):
+        return float(booking.get("amount") or 0) if booking.get("payment_status") == "paid" else 0.0
     return float(booking.get("amount_paid") or booking.get("final_price") or booking.get("total_amount") or 0)
 
 
 def _policy_deduction_pct(booking) -> float:
     """Customer self-cancel policy: >72h=10%, 24-72h=25%, <24h=50%, post-departure=100%"""
     try:
-        d = (booking.get("departure_date") or booking.get("travel_date") or "")[:10]
+        d = (booking.get("departure_date") or booking.get("travel_date") or booking.get("start_date") or "")[:10]
         t = (booking.get("departure_time") or booking.get("travel_time") or "09:00")[:5]
         dep = datetime.fromisoformat(f"{d}T{t}:00+05:30")
         hours = (dep - _now()).total_seconds() / 3600
@@ -147,7 +150,10 @@ async def _send_cancellation_email(db, booking, req):
         customer = await db.users.find_one({"id": req.get("customer_id")}, {"_id": 0, "email": 1, "full_name": 1})
         if not customer or not customer.get("email"):
             return
-        route = f"{booking.get('from_location') or booking.get('pickup_location') or 'N/A'} → {booking.get('to_location') or booking.get('drop_location') or 'N/A'}"
+        if booking.get("vertical"):
+            route = f"{booking.get('asset_name')} ({booking['vertical'].title()}) • {booking.get('city') or ''}"
+        else:
+            route = f"{booking.get('from_location') or booking.get('pickup_location') or 'N/A'} → {booking.get('to_location') or booking.get('drop_location') or 'N/A'}"
         by = "Operator" if req["initiated_by"] == "operator_cancel" else "You"
         deduction_row = "" if req["deduction_pct"] == 0 else (
             f"<div style='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;'>"
@@ -209,9 +215,14 @@ async def customer_cancel(booking_id: str = Body(...), reason: Optional[str] = B
         raise HTTPException(status_code=403, detail="Not your booking")
     if await db.refund_requests.find_one({"booking_id": booking_id, "status": {"$in": ["pending_approval", "approved"]}}):
         raise HTTPException(status_code=400, detail="Refund request already exists for this booking")
+    if booking.get("vertical") and booking.get("payment_status") != "paid":
+        await db.vertical_bookings.update_one(
+            {"id": booking_id}, {"$set": {"status": "cancelled", "cancelled_by": "customer",
+                                          "cancel_reason": reason}})
+        return {"message": "Booking cancelled. No payment was made, so no refund is needed."}
     pct = _policy_deduction_pct(booking)
     req = await _create_request(db, booking, "policy_auto", pct, "customer_cancel", reason, user)
-    for coll in (db.inquiries, db.bookings):
+    for coll in (db.inquiries, db.bookings, db.vertical_bookings):
         await coll.update_one({"id": booking_id}, {"$set": {"status": "cancellation_requested",
                                                             "cancelled_by": "customer"}})
     await _send_cancellation_email(db, booking, req)
@@ -241,13 +252,17 @@ async def operator_cancellable_bookings(user: dict = Depends(get_current_user)):
     return {"bookings": bookings + inquiries}
 
 
+VERTICAL_OWNER_ROLES = {"operator", "helipad_owner", "yacht_owner", "cruise_operator",
+                        "admin", "super_admin", "ceo"}
+
+
 @router.post("/operator-cancel")
 async def operator_cancel(booking_id: str = Body(...), reason_id: str = Body(...),
                           remark: Optional[str] = Body(None), user: dict = Depends(get_current_user)):
-    """Operator cancel -> valid dropdown reason MANDATORY -> full refund request"""
+    """Operator/Vertical-owner cancel -> valid dropdown reason MANDATORY -> full refund request"""
     db = get_database()
-    if "operator" not in user.get("roles", []):
-        raise HTTPException(status_code=403, detail="Operator access required")
+    if not VERTICAL_OWNER_ROLES & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Operator/Owner access required")
     reason_doc = await db.cancellation_reasons.find_one(
         {"id": reason_id, "audience": "operator", "active": True}, {"_id": 0})
     if not reason_doc:
@@ -255,14 +270,23 @@ async def operator_cancel(booking_id: str = Body(...), reason_id: str = Body(...
     booking = await _get_booking(db, booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0, "id": 1})
-    if not operator or booking.get("operator_id") != operator["id"]:
-        raise HTTPException(status_code=403, detail="Not your booking")
+    if booking.get("vertical"):
+        if booking.get("owner_user_id") != user["id"] and not SENIOR_ROLES & set(user.get("roles", [])):
+            raise HTTPException(status_code=403, detail="Not your booking")
+        if booking.get("payment_status") != "paid":
+            await db.vertical_bookings.update_one(
+                {"id": booking_id}, {"$set": {"status": "cancelled", "cancelled_by": "owner",
+                                              "operator_cancel_reason": reason_doc["label"]}})
+            return {"message": "Booking cancelled. No payment was made, so no refund is needed."}
+    else:
+        operator = await db.operators.find_one({"user_id": user["id"]}, {"_id": 0, "id": 1})
+        if not operator or booking.get("operator_id") != operator["id"]:
+            raise HTTPException(status_code=403, detail="Not your booking")
     if await db.refund_requests.find_one({"booking_id": booking_id, "status": {"$in": ["pending_approval", "approved"]}}):
         raise HTTPException(status_code=400, detail="Refund request already exists for this booking")
     req = await _create_request(db, booking, "full", 0.0, "operator_cancel", remark, user,
                                 operator_reason=reason_doc["label"])
-    for coll in (db.inquiries, db.bookings):
+    for coll in (db.inquiries, db.bookings, db.vertical_bookings):
         await coll.update_one({"id": booking_id}, {"$set": {"status": "cancellation_requested",
                                                             "cancelled_by": "operator",
                                                             "operator_cancel_reason": reason_doc["label"]}})
@@ -351,7 +375,7 @@ async def mark_refund_processed(request_id: str, remark: str = Body(..., embed=T
         {"id": request_id},
         {"$set": {"manual_processed": True, "manual_processed_by": user.get("full_name") or user["email"],
                   "manual_processed_remark": remark.strip(), "manual_processed_at": _now().isoformat()}})
-    for coll in (db.inquiries, db.bookings):
+    for coll in (db.inquiries, db.bookings, db.vertical_bookings):
         await coll.update_one({"id": req["booking_id"]}, {"$set": {"refund_status": "processed"}})
     await db.refund_transactions.insert_one({
         "id": str(uuid.uuid4()), "refund_request_id": request_id, "booking_id": req["booking_id"],
@@ -390,9 +414,11 @@ async def _trigger_gateway_refund(db, req):
     """2nd approval milte hi Razorpay refund API auto-trigger"""
     booking = await _get_booking(db, req["booking_id"])
     payment_id = (booking or {}).get("razorpay_payment_id")
+    order = None
     if not payment_id:
         order = await db.payment_orders.find_one(
-            {"booking_id": req["booking_id"], "payment_id": {"$ne": None}}, {"_id": 0, "payment_id": 1})
+            {"booking_id": req["booking_id"], "payment_id": {"$ne": None}},
+            {"_id": 0, "payment_id": 1, "mock": 1})
         payment_id = (order or {}).get("payment_id")
     txn = {
         "id": str(uuid.uuid4()), "refund_request_id": req["id"], "booking_id": req["booking_id"],
@@ -403,6 +429,20 @@ async def _trigger_gateway_refund(db, req):
                     "note": "Razorpay payment ID not found — manual gateway refund required"})
         await db.refund_transactions.insert_one({**txn})
         return {"triggered": False, "reason": "no_payment_id"}
+    if (order or {}).get("mock"):
+        mock_refund_id = f"rfnd_mock_{uuid.uuid4().hex[:12]}"
+        txn.update({"method": "razorpay", "payment_id": payment_id,
+                    "gateway_refund_id": mock_refund_id, "gateway_status": "processed", "mock": True})
+        await db.refund_transactions.insert_one({**txn})
+        await db.refund_requests.update_one(
+            {"id": req["id"]},
+            {"$set": {"gateway_refund_id": mock_refund_id, "gateway_refund_status": "processed",
+                      "gateway_refund_at": _now().isoformat()}})
+        for coll in (db.inquiries, db.bookings, db.vertical_bookings):
+            await coll.update_one({"id": req["booking_id"]},
+                                  {"$set": {"refund_status": "processed",
+                                            "razorpay_refund_id": mock_refund_id}})
+        return {"triggered": True, "refund_id": mock_refund_id, "mock": True}
     from services.payment_service import payment_service
     result = await payment_service.create_refund(
         payment_id=payment_id,
@@ -420,7 +460,7 @@ async def _trigger_gateway_refund(db, req):
             {"$set": {"gateway_refund_id": result.get("refund_id"),
                       "gateway_refund_status": result.get("status", "processed"),
                       "gateway_refund_at": _now().isoformat()}})
-        for coll in (db.inquiries, db.bookings):
+        for coll in (db.inquiries, db.bookings, db.vertical_bookings):
             await coll.update_one({"id": req["booking_id"]},
                                   {"$set": {"refund_status": "processed",
                                             "razorpay_refund_id": result.get("refund_id")}})
@@ -469,7 +509,7 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
         await db.refund_requests.update_one(
             {"id": request_id},
             {"$set": {"approvals": approvals, "status": "approved", "approved_at": _now().isoformat()}})
-        for coll in (db.inquiries, db.bookings):
+        for coll in (db.inquiries, db.bookings, db.vertical_bookings):
             await coll.update_one({"id": req["booking_id"]},
                                   {"$set": {"status": "cancelled", "refund_status": "approved",
                                             "refund_amount": req["refundable_amount"]}})

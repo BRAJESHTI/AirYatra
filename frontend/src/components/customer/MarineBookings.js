@@ -26,6 +26,9 @@ export default function MarineBookings() {
   const [manifestFor, setManifestFor] = useState(null);
   const [passengers, setPassengers] = useState([]);
   const [dealId, setDealId] = useState(null);
+  const [cancelFor, setCancelFor] = useState(null);
+  const [cancelReasons, setCancelReasons] = useState([]);
+  const [cancelReason, setCancelReason] = useState('');
 
   useEffect(() => {
     api.get('/verticals/featured').then(r => {
@@ -81,6 +84,27 @@ export default function MarineBookings() {
   const openManifest = (b) => {
     setManifestFor(b);
     setPassengers(b.passengers?.length ? b.passengers : [{ name: '', age: '', gender: '', id_proof: '' }]);
+  };
+
+  const openCancel = async (b) => {
+    setCancelFor(b);
+    setCancelReason('');
+    try {
+      const res = await api.get('/refunds/reasons?audience=customer');
+      setCancelReasons(res.data.reasons || []);
+    } catch (e) { setCancelReasons([]); }
+  };
+
+  const submitCancel = async () => {
+    setBusy('cancel');
+    try {
+      const res = await api.post('/refunds/customer-cancel', { booking_id: cancelFor.id, reason: cancelReason || null });
+      toast.success(res.data.message);
+      setCancelFor(null);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Cancellation failed');
+    } finally { setBusy(''); }
   };
 
   const saveManifest = async () => {
@@ -185,8 +209,14 @@ export default function MarineBookings() {
                     </Button>
                   )}
                   <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${b.status === 'paid' ? 'bg-green-500/20 text-green-400' : b.status === 'confirmed' ? 'bg-blue-500/20 text-blue-300' : b.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {b.status === 'confirmed' ? 'Confirmed — Pay Now' : b.status}
+                    {b.status === 'confirmed' ? 'Confirmed — Pay Now' : b.status === 'cancellation_requested' ? 'Refund Pending' : b.status}
                   </span>
+                  {['pending', 'confirmed', 'paid'].includes(b.status) && (
+                    <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-8"
+                      onClick={() => openCancel(b)} data-testid={`cancel-vbooking-${b.id}`}>
+                      Cancel
+                    </Button>
+                  )}
                   {b.status === 'confirmed' && (
                     <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={busy === `pay-${b.id}`}
                       onClick={() => pay(b)} data-testid={`pay-vbooking-${b.id}`}>
@@ -199,6 +229,33 @@ export default function MarineBookings() {
           </div>
         </>
       )}
+
+      <Dialog open={!!cancelFor} onOpenChange={(o) => !o && setCancelFor(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Cancel Booking {cancelFor?.booking_number}</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {cancelFor?.payment_status === 'paid'
+                ? 'Cancellation policy deduction applies based on start date. Refund goes through team approval (24–48h), then 5–7 business days to your payment method.'
+                : 'No payment made yet — booking will be cancelled instantly with no charges.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2" data-testid="cancel-dialog">
+            <label className="block text-sm text-slate-400 mb-1">Reason (optional)</label>
+            <select value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-white h-10 rounded-md px-2 text-sm" data-testid="cancel-reason-select">
+              <option value="">Select a reason</option>
+              {cancelReasons.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelFor(null)} className="border-slate-600 text-slate-300">Keep Booking</Button>
+            <Button variant="destructive" onClick={submitCancel} disabled={busy === 'cancel'} data-testid="confirm-cancel-btn">
+              {busy === 'cancel' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null} Confirm Cancellation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!manifestFor} onOpenChange={(o) => !o && setManifestFor(null)}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-xl">
