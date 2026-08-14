@@ -3755,3 +3755,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - integration_expert consulted (custom JWT + email OTP playbook) — confirmed existing impl already best-practice (secrets RNG, SHA256-hashed OTP, attempts/max_attempts lockout, generic 401 no-enumeration, JWT issued only post-verify)
 - TESTED: email delivery works (SMTP sent OK); admin@/finance@ login → otp_required+otp_sent, NO token leaked; wrong OTP → 401; correct OTP → JWT issued; customer@ → direct login (non-priv); frontend "Verify OTP" screen renders (6 boxes + Trust device 30d) — screenshot verified
 - Trusted-device (30d) mitigates re-challenge friction. Customer flows unaffected
+
+##### 27. Razorpay Access Guard (P3 IDOR fix) 🟢 DONE (June 2026)
+- razorpay_routes.py: GET /order/{id} — owner (customer_id match) ya payment staff (admin/super_admin/finance/ceo/cfo/finance_head/accounts_manager) only; non-owner gets 404 (no ID enumeration). GET /payment/{id} — non-staff must own local razorpay_orders doc linked to that payment_id, else 404
+- Stripe routes audited: transactions/{booking_id} + receipt already owner/admin-guarded; status/{session_id} unauthenticated but returns minimal fields with unguessable session token — acceptable
+- TESTED (7/7): own order 200, other's order 404, finance any-order 200, other's payment 404, nonexistent 404; finance login tested via new OTP flow (server-minted OTP per test_credentials.md doc)

@@ -598,13 +598,21 @@ async def create_refund(
         logger.error(f"Refund failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Refund failed: {str(e)}")
 
-# Get Order Status - REQUIRES AUTHENTICATION
+# Staff roles allowed to view any transaction
+PAYMENT_VIEW_STAFF_ROLES = {"admin", "super_admin", "finance", "ceo", "cfo", "finance_head", "accounts_manager"}
+
+
+def _is_payment_staff(user: dict) -> bool:
+    return bool(PAYMENT_VIEW_STAFF_ROLES & set(user.get("roles", [])))
+
+
+# Get Order Status - REQUIRES AUTHENTICATION + OWNERSHIP
 @router.get("/order/{order_id}")
 async def get_order_status(
     order_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get order status - requires authentication"""
+    """Get order status - owner or finance/admin staff only"""
     db = get_database()
     
     order = await db.razorpay_orders.find_one(
@@ -615,17 +623,31 @@ async def get_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # SECURITY (IDOR guard): only the order owner or staff can view; 404 to avoid ID enumeration
+    if not _is_payment_staff(current_user) and order.get("customer_id") != current_user.get("id"):
+        raise HTTPException(status_code=404, detail="Order not found")
+    
     return order
 
-# Get Payment Status - REQUIRES AUTHENTICATION
+# Get Payment Status - REQUIRES AUTHENTICATION + OWNERSHIP
 @router.get("/payment/{payment_id}")
 async def get_payment_status(
     payment_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get payment status - requires authentication"""
+    """Get payment status - owner or finance/admin staff only"""
     if not razorpay_client:
         raise HTTPException(status_code=500, detail="Razorpay not configured")
+    
+    # SECURITY (IDOR guard): non-staff must own the local order linked to this payment
+    if not _is_payment_staff(current_user):
+        db = get_database()
+        owned = await db.razorpay_orders.find_one(
+            {"razorpay_payment_id": payment_id, "customer_id": current_user.get("id")},
+            {"_id": 0, "razorpay_order_id": 1}
+        )
+        if not owned:
+            raise HTTPException(status_code=404, detail="Payment not found")
     
     try:
         payment = razorpay_client.payment.fetch(payment_id)
