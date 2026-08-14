@@ -180,6 +180,7 @@ function GlobalSearch({ user }) {
   // Keyboard navigation
   const handleKeyDown = (e) => {
     const totalItems = query ? results.length : QUICK_ACTIONS.length + recentSearches.length;
+    if (totalItems === 0) return;
     
     switch (e.key) {
       case 'ArrowDown':
@@ -261,6 +262,7 @@ function GlobalSearch({ user }) {
         key={item.id || index}
         onClick={() => handleNavigate(item)}
         onMouseEnter={() => setSelectedIndex(index)}
+        data-testid={`search-result-${index}`}
         className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
           isSelected 
             ? 'bg-orange-500/10 border-l-2 border-orange-500' 

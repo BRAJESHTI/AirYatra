@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ShieldCheck, IndianRupee, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -64,7 +64,7 @@ export default function RefundApprovals() {
   if (loading) return <div className="p-6"><Loader2 className="h-6 w-6 animate-spin text-orange-400" /></div>;
 
   return (
-    <div className="max-w-4xl" data-testid="refund-approvals-panel">
+    <div className="max-w-6xl" data-testid="refund-approvals-panel">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
@@ -77,71 +77,89 @@ export default function RefundApprovals() {
         </Button>
       </div>
 
-      {requests.length === 0 && (
+      {requests.length === 0 ? (
         <p className="text-slate-500 text-sm text-center py-10" data-testid="no-pending-refunds">No pending refund requests. 🎉</p>
-      )}
-
-      <div className="space-y-4">
-        {requests.map((r) => (
-          <div key={r.id} className="glass rounded-xl p-4" data-testid={`refund-request-${r.id}`}>
-            <div className="flex items-start justify-between flex-wrap gap-3">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-white font-semibold">{r.booking_ref}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${r.initiated_by === 'operator_cancel' ? 'bg-blue-500/20 text-blue-300' : r.initiated_by === 'customer_cancel' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-purple-500/20 text-purple-300'}`}>
-                    {r.initiated_by.replace('_', ' ')}
-                  </span>
-                  {r.requires_admin_only && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 uppercase" data-testid={`admin-only-badge-${r.id}`}>
-                      Admin/CEO Only
-                    </span>
-                  )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
-                    {(r.approvals || []).length}/2 approvals
-                  </span>
-                </div>
-                <p className="text-slate-400 text-xs mt-1">
-                  Paid {fmt(r.amount_paid)} • Deduction {r.deduction_pct}% ({fmt(r.deduction_amount)})
-                  {r.operator_reason ? ` • Reason: ${r.operator_reason}` : ''}{r.reason ? ` • ${r.reason}` : ''}
-                </p>
-                {(r.approvals || []).map((a, i) => (
-                  <p key={i} className="text-green-400 text-xs mt-0.5">✓ {a.name} ({a.role}): "{a.remark}"</p>
+      ) : (
+        <div className="glass rounded-xl overflow-x-auto">
+          <table className="w-full text-sm" data-testid="refund-approvals-table">
+            <thead>
+              <tr className="border-b border-slate-700 text-slate-400 text-left text-xs uppercase">
+                {['Booking Ref', 'Type', 'Paid', 'Deduction', 'Refundable', 'Approvals', 'Action'].map(h => (
+                  <th key={h} className="px-4 py-3 font-medium">{h}</th>
                 ))}
-              </div>
-              <div className="text-right">
-                <p className="text-slate-400 text-[10px] uppercase">Refundable</p>
-                <p className="text-green-400 font-bold text-xl flex items-center gap-1 justify-end">
-                  <IndianRupee className="h-4 w-4" />{Number(r.refundable_amount).toLocaleString('en-IN')}
-                </p>
-              </div>
-            </div>
-
-            {active === r.id ? (
-              <div className="mt-3 flex items-center gap-2 flex-wrap bg-slate-800/60 rounded-lg p-3" data-testid={`approval-form-${r.id}`}>
-                <Input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-digit OTP" className="bg-slate-900 border-slate-600 w-32 h-9 text-white tracking-widest"
-                  data-testid={`otp-input-${r.id}`} />
-                <Input value={remark} onChange={(e) => setRemark(e.target.value)}
-                  placeholder="Remark (required)" className="bg-slate-900 border-slate-600 flex-1 min-w-[180px] h-9 text-white"
-                  data-testid={`remark-input-${r.id}`} />
-                <Button size="sm" onClick={() => decide(r, 'approve')} disabled={!!busy}
-                  className="bg-green-600 hover:bg-green-500 h-9" data-testid={`approve-btn-${r.id}`}>
-                  {busy === `approve-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve'}
-                </Button>
-                <Button size="sm" onClick={() => decide(r, 'reject')} disabled={!!busy}
-                  className="bg-red-600 hover:bg-red-500 h-9" data-testid={`reject-btn-${r.id}`}>
-                  Reject
-                </Button>
-              </div>
-            ) : (
-              <Button size="sm" onClick={() => sendOtp(r)} disabled={!!busy}
-                className="mt-3 bg-orange-500 hover:bg-orange-600 h-9" data-testid={`send-otp-btn-${r.id}`}>
-                {busy === `otp-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : '🔐 Send OTP & Review'}
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((r) => (
+                <React.Fragment key={r.id}>
+                  <tr className="border-b border-slate-800 hover:bg-slate-800/40" data-testid={`refund-request-${r.id}`}>
+                    <td className="px-4 py-3">
+                      <p className="text-white font-semibold whitespace-nowrap">{r.booking_ref}</p>
+                      {r.requires_admin_only && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 uppercase" data-testid={`admin-only-badge-${r.id}`}>
+                          Admin/CEO Only
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase whitespace-nowrap ${r.initiated_by === 'operator_cancel' ? 'bg-blue-500/20 text-blue-300' : r.initiated_by === 'customer_cancel' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                        {r.initiated_by.replace('_', ' ')}
+                      </span>
+                      {(r.operator_reason || r.reason) && (
+                        <p className="text-slate-500 text-[11px] mt-1 max-w-[180px]">{r.operator_reason || r.reason}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{fmt(r.amount_paid)}</td>
+                    <td className="px-4 py-3 text-red-400 whitespace-nowrap">{r.deduction_pct}% ({fmt(r.deduction_amount)})</td>
+                    <td className="px-4 py-3 text-green-400 font-bold whitespace-nowrap">{fmt(r.refundable_amount)}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 whitespace-nowrap">
+                        {(r.approvals || []).length}/2
+                      </span>
+                      {(r.approvals || []).map((a, i) => (
+                        <p key={i} className="text-green-400 text-[11px] mt-0.5">✓ {a.name} ({a.role})</p>
+                      ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      {active !== r.id && (
+                        <Button size="sm" onClick={() => sendOtp(r)} disabled={!!busy}
+                          className="bg-orange-500 hover:bg-orange-600 h-8 whitespace-nowrap" data-testid={`send-otp-btn-${r.id}`}>
+                          {busy === `otp-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : '🔐 Send OTP'}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                  {active === r.id && (
+                    <tr className="border-b border-slate-800 bg-slate-800/40">
+                      <td colSpan={7} className="px-4 py-3">
+                        <div className="flex items-center gap-2 flex-wrap" data-testid={`approval-form-${r.id}`}>
+                          <Input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="6-digit OTP" className="bg-slate-900 border-slate-600 w-32 h-9 text-white tracking-widest"
+                            data-testid={`otp-input-${r.id}`} />
+                          <Input value={remark} onChange={(e) => setRemark(e.target.value)}
+                            placeholder="Remark (required)" className="bg-slate-900 border-slate-600 flex-1 min-w-[180px] h-9 text-white"
+                            data-testid={`remark-input-${r.id}`} />
+                          <Button size="sm" onClick={() => decide(r, 'approve')} disabled={!!busy}
+                            className="bg-green-600 hover:bg-green-500 h-9" data-testid={`approve-btn-${r.id}`}>
+                            {busy === `approve-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve'}
+                          </Button>
+                          <Button size="sm" onClick={() => decide(r, 'reject')} disabled={!!busy}
+                            className="bg-red-600 hover:bg-red-500 h-9" data-testid={`reject-btn-${r.id}`}>
+                            Reject
+                          </Button>
+                          <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 h-9" onClick={() => setActive(null)}>
+                            Close
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <FailedRefundsPanel />
     </div>

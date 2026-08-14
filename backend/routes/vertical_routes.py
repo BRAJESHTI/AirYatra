@@ -3,7 +3,7 @@ Assets, availability, bookings, payments, invoices, payouts, revenue reports."""
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, timedelta
 import uuid
 import logging
 
@@ -31,15 +31,18 @@ def _is_owner_or_staff(user):
     return (OWNER_ROLES | STAFF_ROLES) & set(user.get("roles", []))
 
 
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
 async def _todays_deal_id(db):
-    """Deterministic daily deal pick among top-6 photographed active vertical assets"""
+    """Deterministic daily deal pick among top-6 photographed active vertical assets (IST day)"""
     assets = await db.vertical_assets.find(
         {"status": "active"}, {"_id": 0, "id": 1, "images": 1}).to_list(200)
     assets.sort(key=lambda a: (-len(a.get("images", [])), a["id"]))
     pool = assets[:6]
     if not pool:
         return None
-    return pool[date.today().toordinal() % len(pool)]["id"]
+    return pool[datetime.now(IST).date().toordinal() % len(pool)]["id"]
 
 
 class AssetCreate(BaseModel):

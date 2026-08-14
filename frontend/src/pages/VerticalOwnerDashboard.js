@@ -183,35 +183,55 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
             )}
 
             {tab === 'bookings' && (
-              <div className="space-y-3">
-                {bookings.length === 0 ? (
-                  <div className="glass p-10 rounded-xl text-center text-slate-400">No bookings yet</div>
-                ) : bookings.map(b => (
-                  <div key={b.id} className="glass p-4 rounded-xl flex flex-wrap items-center justify-between gap-3" data-testid={`owner-booking-${b.id}`}>
-                    <div>
-                      <p className="font-semibold">{b.booking_number} <span className="text-slate-500 text-xs">• {b.asset_name}</span></p>
-                      <p className="text-slate-400 text-sm flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {b.start_date} → {b.end_date} • {b.quantity} {b.unit}(s) • {b.customer_name}</p>
-                      <p className="text-slate-500 text-xs">Manifest: {(b.passengers || []).length} passenger(s){b.seasonal_rule_applied ? ` • Season: ${b.seasonal_rule_applied}` : ''}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <p className="font-bold text-orange-400">{fmt(b.amount)}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${b.status === 'paid' ? 'bg-green-500/20 text-green-400' : b.status === 'confirmed' ? 'bg-blue-500/20 text-blue-300' : b.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{b.status}</span>
-                      {b.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8" disabled={!!busy} onClick={() => decide(b, 'confirm')} data-testid={`confirm-booking-${b.id}`}><Check className="h-3 w-3" /></Button>
-                          <Button size="sm" variant="destructive" className="h-8" disabled={!!busy} onClick={() => decide(b, 'reject')} data-testid={`reject-booking-${b.id}`}><X className="h-3 w-3" /></Button>
-                        </div>
-                      )}
-                      {['confirmed', 'paid'].includes(b.status) && (
-                        <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-8"
-                          onClick={() => openCancel(b)} data-testid={`owner-cancel-booking-${b.id}`}>
-                          Cancel
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              bookings.length === 0 ? (
+                <div className="glass p-10 rounded-xl text-center text-slate-400">No bookings yet</div>
+              ) : (
+                <div className="glass rounded-xl overflow-x-auto">
+                  <table className="w-full text-sm" data-testid="owner-bookings-table">
+                    <thead>
+                      <tr className="border-b border-slate-700 text-slate-400 text-left text-xs uppercase">
+                        {['Booking #', 'Asset', 'Customer', 'Dates', 'Qty', 'Amount', 'Status', 'Actions'].map(h => (
+                          <th key={h} className="px-4 py-3 font-medium">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.map(b => (
+                        <tr key={b.id} className="border-b border-slate-800 hover:bg-slate-800/40" data-testid={`owner-booking-${b.id}`}>
+                          <td className="px-4 py-3 font-semibold whitespace-nowrap">{b.booking_number}</td>
+                          <td className="px-4 py-3">
+                            <p>{b.asset_name}</p>
+                            <p className="text-slate-500 text-xs">{(b.passengers || []).length} pax manifest{b.seasonal_rule_applied ? ` • ${b.seasonal_rule_applied}` : ''}</p>
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{b.customer_name}</td>
+                          <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{b.start_date} → {b.end_date}</td>
+                          <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{b.quantity} {b.unit}(s)</td>
+                          <td className="px-4 py-3 font-bold text-orange-400 whitespace-nowrap">{fmt(b.amount)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase whitespace-nowrap ${b.status === 'paid' ? 'bg-green-500/20 text-green-400' : b.status === 'confirmed' ? 'bg-blue-500/20 text-blue-300' : b.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{b.status}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {b.status === 'pending' && (
+                                <>
+                                  <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8" disabled={!!busy} onClick={() => decide(b, 'confirm')} data-testid={`confirm-booking-${b.id}`}><Check className="h-3 w-3" /></Button>
+                                  <Button size="sm" variant="destructive" className="h-8" disabled={!!busy} onClick={() => decide(b, 'reject')} data-testid={`reject-booking-${b.id}`}><X className="h-3 w-3" /></Button>
+                                </>
+                              )}
+                              {['confirmed', 'paid'].includes(b.status) && (
+                                <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-8"
+                                  onClick={() => openCancel(b)} data-testid={`owner-cancel-booking-${b.id}`}>
+                                  Cancel
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
 
             {tab === 'payouts' && (

@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 65 — Frontend-only verification of the 4 new tables (Customer Marine bookings, Yacht Owner bookings, Admin Refund Approvals, Failed Gateway Refunds) plus Featured Assets/Deal of the Day, Auction countdown bar, and Ctrl+K search. All 7 requested feature areas pass. No console/pageerror JS errors observed on any dashboard; only a handful of 404s for static asset preload warnings (non-blocking). Approval OTP flow deliberately NOT completed as instructed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Ctrl+K search — result rows selector",
+        "issue": "Search results after typing 'yatch' render (page body contains yacht results and typo is tolerated — 'yatch' also appears as a trending chip) but individual result rows did NOT expose a stable data-testid matching [data-testid^=\"search-result-\"]. Non-blocking for users; test automation had to fall back to text scan. Recommend adding data-testid=\"search-result-{id or index}\" to each row in shared/GlobalSearch.js for future regression tests.",
+        "affected_selectors": ["[data-testid^=\"search-result-\"]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional: add data-testid=\"search-result-{idx}\" to each row inside GlobalSearch results list so Recent Searches persistence test can be exercised by automation (currently we could not click a specific result to seed a Recent Search chip).",
+    "Optional: expose data-testid=\"countdown-time-left\" as the inner ticking span of every auction-countdown-bar (three bars were rendered on /customer/auctions but no element carried this testid, so ticking verification had to be visual)."
+  ],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% of requested checks (14/14 assertions passed)"},
+  "seed_data_creation": "None. Only read-only verification + opening dialogs (all closed via Escape).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "customer@airyatra.co.in / Customer@123, yachtowner@airyatra.co.in / Yacht@123456, admin@airyatra.co.in / Admin123!, finance@airyatra.co.in / Finance@123",
+  "context_for_next_testing_agent": "Verified live on preview URL:\n- Customer /customer dashboard: featured-assets-row (1) + deal-of-the-day-card (1) present.\n- Customer /customer/marine?v=yacht: marine-bookings-page + my-vbookings-table render. Table headers exactly ['Booking #','Asset','Dates','Qty','Amount','Status','Actions']. 11 rows. 1 pay-vbooking-* button (Confirmed—Pay Now row), 6 manifest-btn-*, 6 cancel-vbooking-*, 2 embedded RefundTracker rows for cancelled bookings. Manifest & Cancel dialogs open from table rows.\n- /customer/auctions renders the auctions view (not overview) with 3 auction-countdown-bar elements. (countdown-time-left inner span not exposed by testid — cosmetic gap.)\n- Ctrl+K on customer AND finance dashboards opens global-search-input with trending-section chips (mumbai, yacht goa, helipad, delhi, cruise, juhu, ocean pearl, yatch). Typo 'yatch' still returns yacht content (typo tolerance ✓).\n- Yacht Owner /yacht-owner Bookings tab: owner-bookings-table with 8 columns including 'Customer', 7 rows. 2 confirm-booking-*, 2 reject-booking-*, 2 owner-cancel-* buttons. Owner-cancel dialog opens with a mandatory reason combobox.\n- Admin /admin?tab=refund_approvals: refund-approvals-table renders with exact headers ['Booking Ref','Type','Paid','Deduction','Refundable','Approvals','Action']. 2 send-otp-btn-*. Clicking Send OTP expands approval-form-* row with 2 inputs (OTP + remark) and Approve/Reject/Close buttons. Also failed-refunds-table renders below (has entries).\n- No JS console errors or pageerrors on any dashboard. Only benign 404s for a static preload asset and a css-preload warning.",
+  "rca_of_the_issue": "N/A — no failing behavior in the requested scope."
+}

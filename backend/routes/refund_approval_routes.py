@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 import uuid, random, logging
+from pymongo import ReturnDocument
 
 from database import get_database
 from middleware import get_current_user
@@ -442,7 +443,11 @@ async def request_approval_otp(request_id: str, user: dict = Depends(get_current
 
 
 async def _trigger_gateway_refund(db, req):
-    """2nd approval milte hi Razorpay refund API auto-trigger"""
+    """2nd approval milte hi Razorpay refund API auto-trigger (idempotent)"""
+    fresh = await db.refund_requests.find_one({"id": req["id"]}, {"_id": 0, "gateway_refund_id": 1})
+    if (fresh or {}).get("gateway_refund_id"):
+        return {"triggered": False, "reason": "already_refunded",
+                "refund_id": fresh["gateway_refund_id"]}
     booking = await _get_booking(db, req["booking_id"])
     payment_id = (booking or {}).get("razorpay_payment_id")
     order = None
@@ -535,11 +540,21 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
 
     approval = {"user_id": user["id"], "role": role, "name": user.get("full_name") or user["email"],
                 "remark": remark, "otp_verified": True, "at": _now().isoformat()}
-    approvals = req.get("approvals", []) + [approval]
+    updated = await db.refund_requests.find_one_and_update(
+        {"id": request_id, "status": "pending_approval", "approvals.user_id": {"$ne": user["id"]}},
+        {"$push": {"approvals": approval}},
+        projection={"_id": 0}, return_document=ReturnDocument.AFTER)
+    if not updated:
+        raise HTTPException(status_code=409, detail="Request already finalized or you already approved it")
+    approvals = updated.get("approvals", [])
     if len(approvals) >= REQUIRED_APPROVALS:
-        await db.refund_requests.update_one(
-            {"id": request_id},
-            {"$set": {"approvals": approvals, "status": "approved", "approved_at": _now().isoformat()}})
+        # Atomic transition: only ONE concurrent approver wins and triggers the gateway refund
+        won = await db.refund_requests.update_one(
+            {"id": request_id, "status": "pending_approval"},
+            {"$set": {"status": "approved", "approved_at": _now().isoformat()}})
+        if won.modified_count == 0:
+            return {"message": "Approval recorded. Refund was already finalized by another approver.",
+                    "status": "approved", "approvals": approvals}
         for coll in (db.inquiries, db.bookings, db.vertical_bookings):
             await coll.update_one({"id": req["booking_id"]},
                                   {"$set": {"status": "cancelled", "refund_status": "approved",
@@ -552,6 +567,5 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
             msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} approved, "
                    f"but auto gateway refund pending ({gw.get('reason')}). Manual processing required.")
         return {"message": msg, "status": "approved", "approvals": approvals, "gateway_refund": gw}
-    await db.refund_requests.update_one({"id": request_id}, {"$set": {"approvals": approvals}})
     return {"message": f"Approval 1/{REQUIRED_APPROVALS} recorded. One more approver is required.",
             "status": "pending_approval", "approvals": approvals}

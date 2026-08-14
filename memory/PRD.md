@@ -3724,3 +3724,18 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend GlobalSearch.js: "Trending Now" section (orange TrendingUp chips + counts) empty-query state me, tap → setQuery → instant search. Fetched once per mount on modal open
 - SEEDED: 58 demo search logs (mumbai/yacht goa/helipad/delhi/cruise/juhu/ocean pearl) — real searches bhi live increment karti hain (verified mumbai 14→15)
 - TESTED: curl (trending list + live logging) + UI screenshot (7 chips render, "yacht goa" tap → 2 yacht results)
+
+##### 24. UI Verification + Table Format + Code Quality Hardening 🟢 DONE (June 2026)
+**Table conversions (user request):**
+- MarineBookings.js: My Bookings → table (Booking#/Asset/Dates/Qty/Amount/Status/Actions) + embedded RefundTracker rows
+- VerticalOwnerDashboard.js: owner bookings → table (with Customer column)
+- admin/RefundApprovals.js: pending refunds → table with inline expandable OTP approval row (max-w-6xl)
+- admin/FailedRefundsPanel.js: failed refunds → table with inline mark-processed row
+- (BookingManagement + GSTReports already tables — regression verified)
+**Testing:** testing_agent iteration_65 — frontend 14/14 PASS (all 4 tables, dialogs from rows, featured/deal, countdown, Ctrl+K/trending, no console errors)
+**Code review (code_review_agent) findings FIXED:**
+- HIGH: double-refund race — approve now atomic ($push with approvals.user_id $ne guard via find_one_and_update + atomic pending→approved transition, only winner triggers gateway; _trigger_gateway_refund idempotent guard on existing gateway_refund_id). Regression: dup approver 400, post-final 404, exactly 1 refund_transaction ✓
+- MEDIUM: search recency window missed old bookings — direct indexed identifier lookup (booking_number/inquiry_number/asset_code regex) merged with recent-window fuzzy scan ✓
+- MEDIUM: CountdownBar interval not cleared on expiry / onExpire refired every second — clearInterval + once-only ref guard ✓
+- LOW: GlobalSearch arrow-key NaN on 0 results (guard added); deal rotation now IST-midnight (timezone(timedelta(hours=5,minutes=30)))
+**Warnings audit:** benign only (CRA webpack dev-server deprecation, passlib bcrypt version probe, scheduler "no sales users" info)

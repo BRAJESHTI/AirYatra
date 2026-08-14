@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertOctagon, RefreshCw, IndianRupee, Loader2, CheckCircle2 } from 'lucide-react';
+import { AlertOctagon, RefreshCw, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api from '@/services/api';
@@ -87,62 +87,67 @@ export default function FailedRefundsPanel() {
           No failed gateway refunds — all clear! ✅
         </p>
       ) : (
-        <div className="space-y-3">
-          {requests.map((r) => (
-            <div key={r.id} className="glass rounded-xl p-4 border border-red-500/20" data-testid={`failed-refund-${r.id}`}>
-              <div className="flex items-start justify-between flex-wrap gap-3">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white font-semibold">{r.booking_ref}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 uppercase">
-                      {r.gateway_refund_status === 'failed' ? 'Gateway Failed' : 'No Payment ID'}
-                    </span>
-                  </div>
-                  <p className="text-slate-400 text-xs mt-1">
-                    Approved: {r.approved_at ? new Date(r.approved_at).toLocaleString('en-IN') : '—'}
-                    {r.gateway_refund_error ? ` • Error: ${r.gateway_refund_error}` : ''}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-slate-400 text-[10px] uppercase">Refund Due</p>
-                  <p className="text-red-400 font-bold text-lg flex items-center gap-1 justify-end">
-                    <IndianRupee className="h-4 w-4" />{Number(r.refundable_amount).toLocaleString('en-IN')}
-                  </p>
-                </div>
-              </div>
-
-              {markId === r.id ? (
-                <div className="mt-3 flex items-center gap-2 flex-wrap bg-slate-800/60 rounded-lg p-3">
-                  <Input
-                    value={remark}
-                    onChange={(e) => setRemark(e.target.value)}
-                    placeholder="Manual refund details (UTR/reference)..."
-                    className="bg-slate-900 border-slate-700 text-white flex-1 min-w-[220px]"
-                    data-testid={`mark-remark-input-${r.id}`}
-                  />
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={busy === `mark-${r.id}` || !remark.trim()}
-                    onClick={() => markProcessed(r)} data-testid={`confirm-mark-btn-${r.id}`}>
-                    {busy === `mark-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />} Confirm
-                  </Button>
-                  <Button size="sm" variant="outline" className="border-slate-600 text-slate-300" onClick={() => { setMarkId(null); setRemark(''); }}>
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600" disabled={busy === `retry-${r.id}`}
-                    onClick={() => retry(r)} data-testid={`retry-refund-btn-${r.id}`}>
-                    {busy === `retry-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                    Retry Razorpay Refund
-                  </Button>
-                  <Button size="sm" variant="outline" className="border-green-500/50 text-green-400 hover:bg-green-500/10"
-                    onClick={() => { setMarkId(r.id); setRemark(''); }} data-testid={`mark-processed-btn-${r.id}`}>
-                    <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Manually Processed
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="glass rounded-xl overflow-x-auto border border-red-500/20">
+          <table className="w-full text-sm" data-testid="failed-refunds-table">
+            <thead>
+              <tr className="border-b border-slate-700 text-slate-400 text-left text-xs uppercase">
+                {['Booking Ref', 'Failure', 'Approved At', 'Refund Due', 'Actions'].map(h => (
+                  <th key={h} className="px-4 py-3 font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((r) => (
+                <React.Fragment key={r.id}>
+                  <tr className="border-b border-slate-800 hover:bg-slate-800/40" data-testid={`failed-refund-${r.id}`}>
+                    <td className="px-4 py-3 text-white font-semibold whitespace-nowrap">{r.booking_ref}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 uppercase whitespace-nowrap">
+                        {r.gateway_refund_status === 'failed' ? 'Gateway Failed' : 'No Payment ID'}
+                      </span>
+                      {r.gateway_refund_error && <p className="text-slate-500 text-[11px] mt-1 max-w-[220px] truncate">{r.gateway_refund_error}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{r.approved_at ? new Date(r.approved_at).toLocaleString('en-IN') : '—'}</td>
+                    <td className="px-4 py-3 text-red-400 font-bold whitespace-nowrap">{fmt(r.refundable_amount)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 h-8 whitespace-nowrap" disabled={busy === `retry-${r.id}`}
+                          onClick={() => retry(r)} data-testid={`retry-refund-btn-${r.id}`}>
+                          {busy === `retry-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <><RefreshCw className="h-4 w-4 mr-1" /> Retry</>}
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-green-500/50 text-green-400 hover:bg-green-500/10 h-8 whitespace-nowrap"
+                          onClick={() => { setMarkId(markId === r.id ? null : r.id); setRemark(''); }} data-testid={`mark-processed-btn-${r.id}`}>
+                          <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Processed
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                  {markId === r.id && (
+                    <tr className="border-b border-slate-800 bg-slate-800/40">
+                      <td colSpan={5} className="px-4 py-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Input
+                            value={remark}
+                            onChange={(e) => setRemark(e.target.value)}
+                            placeholder="Manual refund details (UTR/reference)..."
+                            className="bg-slate-900 border-slate-700 text-white flex-1 min-w-[220px] h-9"
+                            data-testid={`mark-remark-input-${r.id}`}
+                          />
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 h-9" disabled={busy === `mark-${r.id}` || !remark.trim()}
+                            onClick={() => markProcessed(r)} data-testid={`confirm-mark-btn-${r.id}`}>
+                            {busy === `mark-${r.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />} Confirm
+                          </Button>
+                          <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 h-9" onClick={() => { setMarkId(null); setRemark(''); }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

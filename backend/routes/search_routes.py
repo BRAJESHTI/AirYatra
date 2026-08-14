@@ -95,11 +95,19 @@ async def global_search(
 
     async def add_aviation(extra, path):
         for coll in (db.bookings, db.inquiries):
-            cur = coll.find(extra,
-                {"_id": 0, "id": 1, "booking_number": 1, "inquiry_number": 1, "status": 1,
-                 "customer_name": 1, "from_location": 1, "to_location": 1}).sort("created_at", -1).limit(150)
+            proj = {"_id": 0, "id": 1, "booking_number": 1, "inquiry_number": 1, "status": 1,
+                    "customer_name": 1, "from_location": 1, "to_location": 1}
+            docs, ids = [], set()
+            # Direct indexed identifier lookup (finds OLD bookings beyond recency window)
+            async for b in coll.find({"$and": [extra, {"$or": [
+                    {"booking_number": _rx(q)}, {"inquiry_number": _rx(q)}]}]}, proj).limit(4):
+                docs.append(b)
+                ids.add(b["id"])
+            async for b in coll.find(extra, proj).sort("created_at", -1).limit(150):
+                if b["id"] not in ids:
+                    docs.append(b)
             count = 0
-            async for b in cur:
+            for b in docs:
                 if count >= 4:
                     break
                 if not _fuzzy(q, b.get("booking_number"), b.get("inquiry_number"),
@@ -112,11 +120,18 @@ async def global_search(
                                 "path": path, "id": b["id"]})
 
     async def add_vertical_bookings(extra, path):
-        cur = db.vertical_bookings.find(extra,
-            {"_id": 0, "id": 1, "booking_number": 1, "vertical": 1, "asset_name": 1,
-             "asset_code": 1, "customer_name": 1, "status": 1, "amount": 1, "city": 1}).sort("created_at", -1).limit(200)
+        proj = {"_id": 0, "id": 1, "booking_number": 1, "vertical": 1, "asset_name": 1,
+                "asset_code": 1, "customer_name": 1, "status": 1, "amount": 1, "city": 1}
+        docs, ids = [], set()
+        async for b in db.vertical_bookings.find({"$and": [extra, {"$or": [
+                {"booking_number": _rx(q)}, {"asset_code": _rx(q)}]}]}, proj).limit(6):
+            docs.append(b)
+            ids.add(b["id"])
+        async for b in db.vertical_bookings.find(extra, proj).sort("created_at", -1).limit(200):
+            if b["id"] not in ids:
+                docs.append(b)
         count = 0
-        async for b in cur:
+        for b in docs:
             if count >= 6:
                 break
             if not _fuzzy(q, b.get("booking_number"), b.get("asset_name"), b.get("asset_code"),

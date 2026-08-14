@@ -89,8 +89,11 @@ const CountdownTimer = ({ endTime, onExpire }) => {
 // Live Countdown Progress Bar — urgency to pick a quote
 const CountdownBar = ({ startTime, endTime, onExpire }) => {
   const [state, setState] = useState({ pct: 100, minutes: 0, seconds: 0, expired: false });
+  const expiredRef = useRef(false);
 
   useEffect(() => {
+    expiredRef.current = false;
+    let interval = null;
     const tick = () => {
       const now = Date.now();
       const end = new Date(endTime).getTime();
@@ -99,7 +102,11 @@ const CountdownBar = ({ startTime, endTime, onExpire }) => {
       const diff = end - now;
       if (diff <= 0) {
         setState({ pct: 0, minutes: 0, seconds: 0, expired: true });
-        if (onExpire) onExpire();
+        if (interval) clearInterval(interval);
+        if (!expiredRef.current) {
+          expiredRef.current = true;
+          if (onExpire) onExpire();
+        }
         return;
       }
       setState({
@@ -110,7 +117,7 @@ const CountdownBar = ({ startTime, endTime, onExpire }) => {
       });
     };
     tick();
-    const interval = setInterval(tick, 1000);
+    interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [startTime, endTime, onExpire]);
 
