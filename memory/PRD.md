@@ -3697,3 +3697,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Backend: GET /api/refunds/my — customer ke saare refund requests with 3-step progress (requested → team approval x/2 → credited), current_step, rejected state, gateway refund_id, deduction %
 - Frontend: components/customer/RefundTracker.js (shared) — horizontal progress bar (green done circles w/ dates, connectors, amount header, ref id, rejected red banner). Integrated in MarineBookings.js (below cancelled/refund bookings) + MyTrips.js (inside trip cards). Cancel actions refresh trackers
 - TESTED: curl (/refunds/my returns 6 refunds — credited/approved/pending states for both AIR + YB refs) + UI screenshots (marine: full green tracker w/ rfnd_mock ref; My Trips cancelled tab: ₹1,03,500 tracker with 10% deduction note)
+
+##### 19. Auction Push Alerts 🟢 DONE (June 2026)
+- Backend (auction_routes.py): _notify_customer_auction_quote() — inserts in_app_notifications (type auction_quote) on operator quote submit AND revise (only if price changed). Smart titles: 🔥 New LOWEST Bid (beats best competing quote, shows previous best), 📉 Quote Revised, ⚡ New Auction Quote. Fixed operator_name lookup (full_name fallback, was Unknown)
+- Frontend (NotificationBell.js): auction_quote type wired into 15s polling quote-alert banner (sound + top banner via existing playAlertSound path), bell dropdown icon/color/booking tab, click navigates to /customer/auctions. Banner title now dynamic per notification
+- BUGFIX during build: NotificationBell.js file tail corrupted during edit (duplicate export lines) — syntax error fixed
+- TESTED: python E2E (create auction → operator quote → ⚡ notif; revise lower → 📉 notif; competitor seeded → revise → 🔥 LOWEST w/ previous best ₹1,50,000) + UI screenshot (bell dropdown shows all 3 alert types). Test auction/quotes/notifs cleaned

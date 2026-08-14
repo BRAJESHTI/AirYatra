@@ -20,6 +20,9 @@ from typing import Optional, List
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 from database import get_database
 from middleware import get_current_user, require_roles
@@ -612,6 +615,43 @@ async def get_pending_auctions_for_operator(
     }
 
 
+async def _notify_customer_auction_quote(db, auction, operator_name, quote_id, total, is_update=False):
+    """Auction customer ko live quote push alert (in-app, bell polls every 15s)"""
+    try:
+        others = await db.auction_quotes.find(
+            {"auction_id": auction["id"], "id": {"$ne": quote_id}, "status": "pending"},
+            {"_id": 0, "total_amount": 1}).to_list(100)
+        best_other = min((q["total_amount"] for q in others), default=None)
+        is_lowest = best_other is None or total < best_other
+        if is_lowest and best_other is not None:
+            title = f"🔥 New LOWEST Bid — ₹{total:,.0f}"
+            message = (f"{operator_name} just beat the best price on auction "
+                       f"{auction.get('auction_number', auction['id'][:8])} "
+                       f"(previous best ₹{best_other:,.0f}). Review before it expires!")
+        elif is_update:
+            title = f"📉 Quote Revised — ₹{total:,.0f}"
+            message = (f"{operator_name} revised their quote on auction "
+                       f"{auction.get('auction_number', auction['id'][:8])}. Check the new price!")
+        else:
+            title = f"⚡ New Auction Quote — ₹{total:,.0f}"
+            message = (f"{operator_name} submitted a quote on your auction "
+                       f"{auction.get('auction_number', auction['id'][:8])}. Compare and pick the best!")
+        await db.in_app_notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": auction["customer_id"],
+            "type": "auction_quote",
+            "title": title,
+            "message": message,
+            "reference_id": auction["id"],
+            "data": {"quote_id": quote_id, "total_amount": total,
+                     "operator_name": operator_name, "is_lowest": is_lowest},
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Auction quote notification failed: {e}")
+
+
 @router.post("/{auction_id}/quote")
 async def submit_operator_quote(
     auction_id: str,
@@ -677,7 +717,7 @@ async def submit_operator_quote(
     # Get operator details
     operator = await db.users.find_one(
         {"id": current_user["id"]},
-        {"_id": 0, "name": 1, "company_name": 1}
+        {"_id": 0, "name": 1, "full_name": 1, "company_name": 1}
     )
     
     now = datetime.now(timezone.utc)
@@ -689,7 +729,7 @@ async def submit_operator_quote(
         
         # Operator Info
         "operator_id": current_user["id"],
-        "operator_name": operator.get("company_name") or operator.get("name", "Unknown"),
+        "operator_name": operator.get("company_name") or operator.get("full_name") or operator.get("name") or "Operator",
         "operator_email": current_user.get("email"),
         
         # Aircraft Details
@@ -739,6 +779,9 @@ async def submit_operator_quote(
         {"id": auction_id},
         {"$inc": {"quotes_count": 1}}
     )
+    
+    await _notify_customer_auction_quote(
+        db, auction, quote_doc["operator_name"], quote_doc["id"], total)
     
     return {
         "success": True,
@@ -845,6 +888,11 @@ async def update_operator_quote(
         {"id": existing_quote["id"]},
         {"$set": update_data}
     )
+    
+    if total != existing_quote.get("total_amount"):
+        await _notify_customer_auction_quote(
+            db, auction, existing_quote.get("operator_name", "Operator"),
+            existing_quote["id"], total, is_update=True)
     
     return {
         "success": True,

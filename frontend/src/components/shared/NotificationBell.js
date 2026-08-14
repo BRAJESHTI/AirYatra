@@ -150,7 +150,7 @@ function NotificationBell({ user }) {
       // Quote Alert: play sound + banner when a NEW unread quote arrives (skip first load)
       if (prevNotifIdsRef.current) {
         const freshQuotes = list.filter(
-          n => n.type === 'quote_received' && !n.read && !prevNotifIdsRef.current.has(n.id)
+          n => ['quote_received', 'auction_quote'].includes(n.type) && !n.read && !prevNotifIdsRef.current.has(n.id)
         );
         if (freshQuotes.length > 0) {
           playAlertSound();
@@ -202,6 +202,9 @@ function NotificationBell({ user }) {
         case 'quote_received':
           navigate(`/customer/inquiry/${notification.reference_id}`);
           break;
+        case 'auction_quote':
+          navigate('/customer/auctions');
+          break;
         case 'new_inquiry':
           if (user?.roles?.includes('operator')) {
             navigate(`/operator/inquiries`);
@@ -226,6 +229,7 @@ function NotificationBell({ user }) {
       case 'booking_confirmed':
       case 'booking_reminder': return Plane;
       case 'quote_received':
+      case 'auction_quote':
       case 'new_inquiry': return FileText;
       case 'document_expiry':
       case 'alert': return AlertTriangle;
@@ -246,6 +250,7 @@ function NotificationBell({ user }) {
       case 'document_expiry': return 'text-red-400 bg-red-500/20';
       case 'booking_confirmed': return 'text-green-400 bg-green-500/20';
       case 'new_inquiry':
+      case 'auction_quote':
       case 'quote_received': return 'text-blue-400 bg-blue-500/20';
       case 'system': return 'text-purple-400 bg-purple-500/20';
       default: return 'text-orange-400 bg-orange-500/20';
@@ -253,7 +258,7 @@ function NotificationBell({ user }) {
   };
 
   const getTabCategory = (type) => {
-    if (['booking_update', 'booking_confirmed', 'booking_reminder', 'quote_received', 'new_inquiry'].includes(type)) {
+    if (['booking_update', 'booking_confirmed', 'booking_reminder', 'quote_received', 'auction_quote', 'new_inquiry'].includes(type)) {
       return 'booking';
     }
     if (['alert', 'document_expiry', 'compliance'].includes(type)) {
