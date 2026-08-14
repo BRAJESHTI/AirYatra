@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Plane, Home, Users, Phone, Target, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, DollarSign, MessageSquare, Calendar, Gift, Bell, Award, FileText, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
+import GlobalSearch from '@/components/shared/GlobalSearch';
 
 // Import Sales Components
 import CRMDashboard from '@/components/admin/CRMDashboard';
@@ -200,6 +201,7 @@ function SalesDashboard({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="sales-dashboard">
+      <GlobalSearch user={user} />
       {/* Top Navigation */}
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">

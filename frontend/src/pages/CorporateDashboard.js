@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+import GlobalSearch from '../components/shared/GlobalSearch';
 import {
   Building2, Users, CreditCard, TrendingUp, Plus, Search,
   CheckCircle, Clock, XCircle, BarChart3, Wallet, FileText,
@@ -477,6 +478,7 @@ const CorporateDashboard = ({ user }) => {
   // Main Dashboard
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-8 px-4">
+      <GlobalSearch user={user} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

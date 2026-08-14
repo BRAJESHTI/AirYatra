@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Plane, Home, DollarSign, FileText, CreditCard, TrendingUp, ChevronDown, ChevronRight, BarChart3, Settings, Calculator, Receipt, Wallet, PieChart, Building2, RefreshCw, Users, BanknoteIcon, Percent, CheckCircle, Shield, Clock, Activity, Landmark, CircleDollarSign, Target, Bot, Bell, Archive, History, Globe, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
+import GlobalSearch from '@/components/shared/GlobalSearch';
 import api from '@/services/apiClient';
 
 // Import Finance Components
@@ -527,6 +528,7 @@ function FinanceDashboard({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="finance-dashboard">
+      <GlobalSearch user={user} />
       {/* Top Navigation */}
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">

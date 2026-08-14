@@ -3708,3 +3708,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - AuctionDashboard.js: new CountdownBar component — 1s ticking progress bar (start_time→end_time %), color urgency: green >50%, amber <50%, red+pulse <20% or <60s, labels ("Auction live" / "closing — compare quotes now" / "Hurry! ending soon"), mm:ss left, expired state "Auction ended". Rendered on every active customer auction card, onExpire refreshes list
 - BUGFIX (dead tab): CustomerDashboard.js URL-sync effect me /auctions case missing tha — /customer/auctions ya sidebar Live Auctions click hamesha overview pe reset ho jata tha. Fixed
 - TESTED: screenshot verified (bar renders, ticks 13:12→13:10, green fill, expired auction shows ended state)
+
+##### 21. Smart Search Upgrade (Ctrl+K everywhere + typo tolerance) 🟢 DONE (June 2026)
+- Backend (search_routes.py): _fuzzy() matcher — substring + difflib word-level (>0.72) + whole-text (>0.6) + multi-word token matching ("Sea Brese"→Sea Breeze). Applied to aviation bookings, vertical bookings, assets (in-python filter over recent 150-200 docs). Finance role ab vertical bookings+assets bhi search karta hai; sales ko assets; corporate NAV quick actions added
+- Frontend: GlobalSearch mounted on 5 more dashboards — Finance, Sales, HR, Support, Corporate (pehle sirf Customer/Admin/Operator/VerticalOwner pe tha). Ab har user ke paas Ctrl+K
+- TESTED: curl (customer: yatch→yachts, Aravali→helipad, crusie→cruises, Sea Brese→bookings; finance: STL→payouts, yatch→assets) + UI screenshot (Finance dashboard Ctrl+K modal, typo search 2 results)

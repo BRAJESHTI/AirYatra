@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { LogOut, Plane, Home, Users, Calendar, DollarSign, Clock, MapPin, ChevronDown, ChevronRight, BarChart3, Settings, User, Wallet, CreditCard, Navigation, Target, Award, FileText, CheckSquare, Receipt, Upload, BanknoteIcon, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/shared/NotificationBell';
+import GlobalSearch from '@/components/shared/GlobalSearch';
 
 // Import HR Components
 import IncentiveConfig from '@/components/admin/IncentiveConfig';
@@ -239,6 +240,7 @@ function HRDashboard({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-slate-950" data-testid="hr-dashboard">
+      <GlobalSearch user={user} />
       {/* Top Navigation */}
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">

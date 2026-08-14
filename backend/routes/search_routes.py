@@ -29,6 +29,8 @@ NAV = {
     "admin": [("Refund Approvals", "/admin?tab=refund_approvals"), ("GST/TDS Reports", "/admin?tab=gst_reports"),
               ("Platform Fees", "/admin?tab=platform_fees"), ("Cancellation Reasons", "/admin?tab=cancellation_reasons"),
               ("Vertical Revenue", "/finance?tab=vertical_revenue"), ("Global Settings", "/admin?tab=settings")],
+    "corporate": [("Corporate Dashboard", "/corporate"), ("New Booking", "/booking"),
+                  ("My Trips", "/customer/trips"), ("Book Yacht", "/customer/marine?v=yacht")],
 }
 
 GSTIN_RE = re.compile(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]{3}$', re.I)
@@ -39,6 +41,29 @@ EMAIL_RE = re.compile(r'@')
 
 def _rx(q):
     return {"$regex": re.escape(q), "$options": "i"}
+
+
+def _fuzzy(q, *texts):
+    """Typo-tolerant match: substring OR difflib similarity on words/whole text"""
+    ql = q.lower()
+    qws = ql.split()
+    for t in texts:
+        if not t:
+            continue
+        tl = str(t).lower()
+        if ql in tl:
+            return True
+        tws = tl.replace("-", " ").split()
+        for w in tws:
+            if len(ql) >= 3 and difflib.SequenceMatcher(None, ql, w).ratio() > 0.72:
+                return True
+        if len(ql) >= 4 and difflib.SequenceMatcher(None, ql, tl).ratio() > 0.6:
+            return True
+        if len(qws) > 1 and all(
+                any(qw in tw or (len(qw) >= 3 and difflib.SequenceMatcher(None, qw, tw).ratio() > 0.72)
+                    for tw in tws) for qw in qws):
+            return True
+    return False
 
 
 @router.get("/global")
@@ -60,7 +85,8 @@ async def global_search(
 
     # Quick actions (typo tolerant)
     nav_key = ("admin" if is_staff else "finance" if is_finance else "sales" if is_sales
-               else "operator" if "operator" in roles else "customer")
+               else "operator" if "operator" in roles else
+               "corporate" if {"corporate", "corporate_admin"} & roles else "customer")
     for label, path in NAV.get(nav_key, []):
         if q.lower() in label.lower() or difflib.SequenceMatcher(None, q.lower(), label.lower()).ratio() > 0.55:
             results.append({"category": "Quick Actions", "title": label, "subtitle": "Go to page",
@@ -68,34 +94,49 @@ async def global_search(
 
     async def add_aviation(extra, path):
         for coll in (db.bookings, db.inquiries):
-            cur = coll.find({"$and": [extra, {"$or": [
-                {"booking_number": _rx(q)}, {"inquiry_number": _rx(q)},
-                {"customer_name": _rx(q)}, {"from_location": _rx(q)}, {"to_location": _rx(q)}]}]},
+            cur = coll.find(extra,
                 {"_id": 0, "id": 1, "booking_number": 1, "inquiry_number": 1, "status": 1,
-                 "customer_name": 1, "from_location": 1, "to_location": 1}).limit(4)
+                 "customer_name": 1, "from_location": 1, "to_location": 1}).sort("created_at", -1).limit(150)
+            count = 0
             async for b in cur:
+                if count >= 4:
+                    break
+                if not _fuzzy(q, b.get("booking_number"), b.get("inquiry_number"),
+                              b.get("customer_name"), b.get("from_location"), b.get("to_location")):
+                    continue
+                count += 1
                 ref = b.get("booking_number") or b.get("inquiry_number") or b["id"][:8]
                 results.append({"category": "Aviation Bookings", "title": ref,
                                 "subtitle": f"{b.get('from_location') or ''} → {b.get('to_location') or ''} • {b.get('status')}",
                                 "path": path, "id": b["id"]})
 
     async def add_vertical_bookings(extra, path):
-        cur = db.vertical_bookings.find({"$and": [extra, {"$or": [
-            {"booking_number": _rx(q)}, {"asset_name": _rx(q)}, {"asset_code": _rx(q)},
-            {"customer_name": _rx(q)}, {"city": _rx(q)}]}]},
+        cur = db.vertical_bookings.find(extra,
             {"_id": 0, "id": 1, "booking_number": 1, "vertical": 1, "asset_name": 1,
-             "status": 1, "amount": 1, "city": 1}).limit(6)
+             "asset_code": 1, "customer_name": 1, "status": 1, "amount": 1, "city": 1}).sort("created_at", -1).limit(200)
+        count = 0
         async for b in cur:
+            if count >= 6:
+                break
+            if not _fuzzy(q, b.get("booking_number"), b.get("asset_name"), b.get("asset_code"),
+                          b.get("customer_name"), b.get("city")):
+                continue
+            count += 1
             results.append({"category": f"{b['vertical'].title()} Bookings", "title": b["booking_number"],
                             "subtitle": f"{b['asset_name']} • {b['city']} • {b['status']} • ₹{b['amount']:,.0f}",
                             "path": path, "id": b["id"]})
 
     async def add_assets(extra, path):
-        cur = db.vertical_assets.find({"$and": [extra, {"$or": [
-            {"name": _rx(q)}, {"asset_code": _rx(q)}, {"city": _rx(q)}]}]},
+        cur = db.vertical_assets.find(extra,
             {"_id": 0, "id": 1, "vertical": 1, "name": 1, "asset_code": 1, "city": 1,
-             "base_price": 1, "status": 1}).limit(6)
+             "base_price": 1, "status": 1}).limit(200)
+        count = 0
         async for a in cur:
+            if count >= 6:
+                break
+            if not _fuzzy(q, a.get("name"), a.get("asset_code"), a.get("city"), a.get("vertical")):
+                continue
+            count += 1
             cat = {"helipad": "Helipads", "yacht": "Yachts", "cruise": "Cruise Ships"}[a["vertical"]]
             results.append({"category": cat, "title": f"{a['name']} ({a['asset_code']})",
                             "subtitle": f"{a['city']} • ₹{a['base_price']:,.0f}/{a.get('status')}",
@@ -138,6 +179,7 @@ async def global_search(
     if is_sales and not is_staff:
         await add_aviation({}, "/sales?tab=crm_dashboard")
         await add_vertical_bookings({}, "/sales?tab=crm_dashboard")
+        await add_assets({}, "/sales?tab=crm_dashboard")
         async for u in db.users.find({"roles": "customer", "$or": [
                 {"full_name": _rx(q)}, {"email": _rx(q)}, {"phone": _rx(q)}]},
                 {"_id": 0, "id": 1, "full_name": 1, "email": 1}).limit(4):
@@ -146,6 +188,9 @@ async def global_search(
 
     if is_finance or is_staff:
         base = "/finance" if is_finance and not is_staff else "/admin"
+        if not is_staff:
+            await add_vertical_bookings({}, "/finance?tab=vertical_revenue")
+            await add_assets({}, "/finance?tab=vertical_revenue")
         async for t in db.payment_orders.find({"$or": [{"order_id": _rx(q)}, {"payment_id": _rx(q)}]},
                 {"_id": 0, "id": 1, "order_id": 1, "amount": 1, "status": 1}).limit(4):
             results.append({"category": "Payments", "title": t.get("order_id", ""),
