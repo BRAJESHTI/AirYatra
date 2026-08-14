@@ -138,7 +138,26 @@ async def update_user(
     
     update_data = {}
     allowed_fields = ["full_name", "phone", "roles", "region", "regions_access", "department", "designation"]
-    
+
+    # --- Role assignment authorization (prevent privilege escalation) ---
+    if "roles" in data:
+        new_roles = data.get("roles") or []
+        if not isinstance(new_roles, list):
+            raise HTTPException(status_code=400, detail="roles must be a list")
+        valid_roles = {r.value for r in UserRole}
+        for r in new_roles:
+            if r not in valid_roles:
+                raise HTTPException(status_code=400, detail=f"Invalid role: {r}")
+        PRIVILEGED = {"admin", "super_admin"}
+        is_super = "super_admin" in current_user.get("roles", [])
+        existing_roles = set(target_user.get("roles", []))
+        # Only Super Admin can GRANT or REVOKE admin/super_admin roles
+        if not is_super and (PRIVILEGED & (set(new_roles) ^ existing_roles)):
+            raise HTTPException(status_code=403, detail="Only Super Admin can assign or remove Admin/Super Admin roles")
+        # An admin cannot change their own roles (self-escalation guard)
+        if user_id == current_user["id"] and set(new_roles) != existing_roles and not is_super:
+            raise HTTPException(status_code=403, detail="You cannot change your own roles")
+
     for field in allowed_fields:
         if field in data:
             update_data[field] = data[field]

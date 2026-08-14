@@ -3739,3 +3739,11 @@ PAYPAL_MODE=sandbox  # or 'live'
 - MEDIUM: CountdownBar interval not cleared on expiry / onExpire refired every second — clearInterval + once-only ref guard ✓
 - LOW: GlobalSearch arrow-key NaN on 0 results (guard added); deal rotation now IST-midnight (timezone(timedelta(hours=5,minutes=30)))
 **Warnings audit:** benign only (CRA webpack dev-server deprecation, passlib bcrypt version probe, scheduler "no sales users" info)
+
+##### 25. Security Audit + SEC-002 Fix (June 2026)
+- security_audit_agent run: FAIL (launch blocker). Findings:
+  - SEC-001 HIGH: vertical (marine/yacht/cruise/helipad) payments MOCKED — /verticals/bookings/{id}/pay marks paid + creates owner payout without real charge (INTENTIONAL demo mock, pending decision)
+  - SEC-002 MEDIUM: admin self-escalation to super_admin via role mass-assignment — 🟢 FIXED
+  - SEC-003 MEDIUM: LOGIN_OTP_ENABLED=false in prod (known P0 task, pending)
+  - P3: refund OTP random.randint + no lockout; Razorpay read BOLA; admin dangerouslySetInnerHTML; JWT in localStorage
+- SEC-002 FIX (admin_user_routes.py update_user): role allowlist from UserRole enum; only super_admin can grant/revoke admin|super_admin (symmetric-diff check); admin cannot change own roles. TESTED: grant-to-other 403, self-escalate 403, invalid role 400, legit phone update 200, non-privileged role change 200
