@@ -528,7 +528,9 @@ api_router.include_router(report_export_routes.router)
 
 # ASRE - AI Smart Repositioning Engine
 from routes import asre_routes
+from routes import launch_checklist_routes
 api_router.include_router(asre_routes.router)
+api_router.include_router(launch_checklist_routes.router)
 
 # Include API router in main app
 app.include_router(api_router)

@@ -30,6 +30,7 @@ import ReferralSettings from '@/components/admin/ReferralSettings';
 import AdminDiscountCodes from '@/components/admin/AdminDiscountCodes';
 import CRMDashboard from '@/components/admin/CRMDashboard';
 import APIKeysSettings from '@/components/admin/APIKeysSettings';
+import LaunchChecklist from '@/components/admin/LaunchChecklist';
 import SchedulerStatus from '@/components/admin/SchedulerStatus';
 import WebhookIntegration from '@/components/admin/WebhookIntegration';
 import CallRecordingSettings from '@/components/admin/CallRecordingSettings';
@@ -195,6 +196,7 @@ const navGroups = [
       { id: 'route_pricing', label: 'Route Pricing & Own Fleet', icon: SlidersHorizontal, highlight: true },
       { id: 'revenue_reports', label: 'Revenue Reports', icon: SlidersHorizontal, highlight: true },
       { id: 'refund_approvals', label: 'Refund Approvals', icon: SlidersHorizontal, highlight: true },
+      { id: 'launch_checklist', label: 'Launch Checklist', icon: SlidersHorizontal, highlight: true },
       { id: 'commission_settings', label: 'Commission Settings', icon: Percent, highlight: true },
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
@@ -395,6 +397,8 @@ function AdminDashboard({ user, onLogout }) {
         return <CancellationReasonsManager />;
       case 'gst_reports':
         return <GSTReports />;
+      case 'launch_checklist':
+        return <LaunchChecklist />;
       case 'commission_settings':
         return <AdminCommissionSettings />;
       case 'flight_calendar':
