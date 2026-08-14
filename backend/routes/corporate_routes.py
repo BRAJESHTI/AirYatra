@@ -33,6 +33,26 @@ def generate_employee_code(corporate_id: str) -> str:
 
 # ============ MY CORPORATE ACCOUNT (Auth) ============
 
+@router.put("/credit-alert-settings")
+async def set_credit_alert_threshold(
+    threshold_amount: float = Body(..., embed=True),
+    current_user: dict = Depends(get_current_user),
+):
+    """Corporate admin sets the low-credit alert threshold (₹)"""
+    db = get_database()
+    if threshold_amount < 0:
+        raise HTTPException(status_code=400, detail="Threshold cannot be negative")
+    corporate = await db.corporates.find_one({"admin_email": current_user.get("email")}, {"_id": 0, "corporate_id": 1})
+    if not corporate:
+        raise HTTPException(status_code=404, detail="Corporate account not found for this admin")
+    await db.corporates.update_one(
+        {"corporate_id": corporate["corporate_id"]},
+        {"$set": {"credit_alert_threshold": threshold_amount, "credit_alert_active": False}})
+    from services.credit_alert_service import schedule_credit_alert
+    schedule_credit_alert(db, corporate["corporate_id"])
+    return {"success": True, "message": f"Credit alert threshold set to ₹{threshold_amount:,.0f}", "corporate_id": corporate["corporate_id"]}
+
+
 @router.get("/my-account")
 async def get_my_corporate_account(current_user: dict = Depends(get_current_user)):
     """Resolve corporate account for the logged-in user (corp admin or employee)"""
@@ -558,6 +578,8 @@ async def _apply_corporate_booking_spend(db, booking: dict):
         {"corporate_id": booking["corporate_id"], "department": booking.get("department")},
         {"$inc": {"budget_used": amount}},
     )
+    from services.credit_alert_service import schedule_credit_alert
+    schedule_credit_alert(db, booking["corporate_id"])
 
 
 @router.post("/booking/create")

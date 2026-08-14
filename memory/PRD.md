@@ -7,6 +7,12 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ CORPORATE CREDIT ALERTS (June 2026 - live SMTP E2E verified)
+- NEW services/credit_alert_service.py: check_credit_alert (available = credit_limit - credit_used; threshold = corp.credit_alert_threshold or 20% of limit; red-branded warning email to admin_email; 24h cooldown via credit_alert_active + credit_alert_last_sent; flag auto-resets when credit back above threshold; log in db.credit_alert_log)
+- Hook: _apply_corporate_booking_spend (corporate_routes) → schedule_credit_alert fires on every corporate booking spend
+- NEW PUT /api/corporate/credit-alert-settings {threshold_amount} (corp admin) — sets threshold + immediately re-checks
+- Verified: threshold ₹50L > available ₹17.35L → real email sent to corporate@airyatra.co.in; cooldown skip; sane threshold ₹4L → flag reset. Current TechVista threshold: ₹4,00,000
+
 ### ✅ CORPORATE GST INVOICE AUTO-EMAIL (June 2026 - live SMTP E2E verified)
 - invoice_email_service.py: new `_send_corporate_gst_email` — payment success par corporate booking detect hota hai (booking.corporate_id OR corporates.admin_email == customer email OR corporate_employees email) → GST invoice PDF (reuses corporate_routes._generate_gst_invoice_pdf) blue corporate-branded email me admin_email par attach hokar jata hai
 - Guards: corp must have gst_number + admin_email; idempotent via invoice_email_log key `{booking_id}:{stage}:corp` — admin audit endpoint /api/admin/pricing/invoice-email-log me type=corporate_gst entries dikhti hain
