@@ -3601,3 +3601,11 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Frontend: FailedRefundsPanel.js embedded below RefundApprovals list — Retry Razorpay Refund + Mark Manually Processed (UTR remark)
 - Wiring: Admin/CEO dashboard (existing refund_approvals tab) + FinanceDashboard Billing -> "Refunds / वापसी" tab now renders RefundApprovals (was previously dead nav item)
 - TESTED: curl (list 3 -> mark processed -> 2, retry graceful fail on mock payment, 403 operator) + finance dashboard screenshot verified
+
+##### 7. GST/TDS Monthly Reports 🟢 DONE (June 2026)
+- Backend: /app/backend/routes/gst_report_routes.py — GET /api/gst-reports/monthly?month=YYYY-MM (JSON preview) + /monthly/export?format=xlsx|pdf
+- Columns: Client Name, Booking ID, Booking Date, Travel Date, Route, Amount, Taxable Value, GST @5% (CGST/SGST split), TDS @1%, Invoice No (INV-GST-{ref} from invoice_email_log), Invoice Date, Refund ID, Refund Date, Refund Amount, Payment/Booking Status
+- Second section/sheet: Refunds approved in month (refund id, type, initiated_by, deduction%, gateway status)
+- Roles: accounts/finance/admin/super_admin/ceo (403 others - tested)
+- Frontend: GSTReports.js (month picker, 6 summary cards, 2 preview tables, Excel/PDF blob download) — wired in AdminDashboard (Finance & Billing group) + FinanceDashboard (GST Compliance group)
+- TESTED: curl JSON (365 bookings, ₹1.34Cr, GST ₹6.39L, TDS ₹1.28L, 3 refunds), valid .xlsx (2 sheets) + 13-page PDF, 403 check, finance UI screenshot verified

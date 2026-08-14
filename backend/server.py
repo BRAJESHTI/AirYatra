@@ -164,6 +164,7 @@ from routes import finance_scheduled_routes
 from routes import fixed_route_pricing_routes
 from routes import platform_fee_routes
 from routes import admin_pricing_routes
+from routes import gst_report_routes
 from routes import refund_approval_routes
 from routes import legal_routes
 # AI Reverse Auction - Phase 2
@@ -449,6 +450,7 @@ api_router.include_router(finance_scheduled_routes.router)
 api_router.include_router(fixed_route_pricing_routes.router)
 api_router.include_router(platform_fee_routes.router)
 api_router.include_router(admin_pricing_routes.router)
+api_router.include_router(gst_report_routes.router)
 api_router.include_router(refund_approval_routes.router)
 api_router.include_router(legal_routes.router)
 

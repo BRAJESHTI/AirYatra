@@ -11,6 +11,7 @@ import DynamicPricing from '@/components/admin/DynamicPricing';
 import AccountingIntegration from '@/components/admin/AccountingIntegration';
 import CurrencyConverter from '@/components/admin/CurrencyConverter';
 import RefundApprovals from '@/components/admin/RefundApprovals';
+import GSTReports from '@/components/admin/GSTReports';
 
 // Lazy load new Finance components
 const BulkSalaryPayment = React.lazy(() => import('@/components/finance/BulkSalaryPayment'));
@@ -144,6 +145,7 @@ const navGroups = [
     icon: FileText,
     items: [
       { id: 'gst_dashboard', label: 'GST Dashboard', icon: BarChart3, highlight: true },
+      { id: 'gst_reports', label: 'GST/TDS Reports / जीएसटी रिपोर्ट', icon: FileDown, highlight: true },
       { id: 'gst_returns', label: 'File GST Returns', icon: FileText },
       { id: 'gst_payments', label: 'GST Payments', icon: CreditCard },
       { id: 'itc_management', label: 'Input/Output ITC', icon: TrendingUp },
@@ -292,6 +294,8 @@ function FinanceDashboard({ user, onLogout }) {
         return <InvoiceManagement />;
       case 'refunds':
         return <RefundApprovals />;
+      case 'gst_reports':
+        return <GSTReports />;
       case 'dynamic_pricing':
         return <DynamicPricing />;
       case 'accounting_integration':

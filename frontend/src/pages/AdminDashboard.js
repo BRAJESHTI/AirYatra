@@ -91,6 +91,7 @@ import AdminPricingPanel from '@/components/admin/AdminPricingPanel';
 import RevenueReports from '@/components/admin/RevenueReports';
 import RefundApprovals from '@/components/admin/RefundApprovals';
 import CancellationReasonsManager from '@/components/admin/CancellationReasonsManager';
+import GSTReports from '@/components/admin/GSTReports';
 import OperatorScorecards from '@/components/admin/OperatorScorecards';
 import AdminCommissionSettings from '@/components/admin/AdminCommissionSettings';
 import DocumentTypeMaster from '@/components/admin/DocumentTypeMaster';
@@ -197,6 +198,7 @@ const navGroups = [
       { id: 'commission_settings', label: 'Commission Settings / कमीशन', icon: Percent, highlight: true },
       { id: 'settlements', label: 'Settlements', icon: DollarSign },
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText },
+      { id: 'gst_reports', label: 'GST/TDS Reports / जीएसटी रिपोर्ट', icon: FileText, highlight: true },
       { id: 'pricing_engine', label: 'Pricing Engine / मूल्य इंजन', icon: Calculator, highlight: true },
       { id: 'dynamic_pricing', label: 'Dynamic Pricing', icon: Calculator },
       { id: 'currency', label: 'Currency Converter', icon: DollarSign },
@@ -391,6 +393,8 @@ function AdminDashboard({ user, onLogout }) {
         return <RefundApprovals />;
       case 'cancellation_reasons':
         return <CancellationReasonsManager />;
+      case 'gst_reports':
+        return <GSTReports />;
       case 'commission_settings':
         return <AdminCommissionSettings />;
       case 'flight_calendar':
