@@ -7,6 +7,11 @@
 
 ## Latest Updates (Feb 2026 - Session 7)
 
+### ✅ CORPORATE GST INVOICE AUTO-EMAIL (June 2026 - live SMTP E2E verified)
+- invoice_email_service.py: new `_send_corporate_gst_email` — payment success par corporate booking detect hota hai (booking.corporate_id OR corporates.admin_email == customer email OR corporate_employees email) → GST invoice PDF (reuses corporate_routes._generate_gst_invoice_pdf) blue corporate-branded email me admin_email par attach hokar jata hai
+- Guards: corp must have gst_number + admin_email; idempotent via invoice_email_log key `{booking_id}:{stage}:corp` — admin audit endpoint /api/admin/pricing/invoice-email-log me type=corporate_gst entries dikhti hain
+- Fires automatically on ALL gateways (existing schedule_invoice_email hooks). Verified: real GST PDF email sent to corporate@airyatra.co.in (TechVista, GSTIN 27AATCV1234F1Z5), 2nd call skipped
+
 ### ✅ CORPORATE PORTAL ROUTING FIX (June 2026 - screenshot verified)
 - ROLE_HOME_PATH me `corporate: '/corporate'` added (LoginPage.js + GoogleLogin.js)
 - corporate@airyatra.co.in user roles = ['corporate','customer'] (roles[0] decides redirect); linked as admin_email to CORP-DEMO26 (TechVista Solutions Pvt Ltd)
