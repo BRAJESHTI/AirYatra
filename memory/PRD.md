@@ -3675,3 +3675,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Backend: /api/verticals/featured picks daily-rotating Deal of the Day (date.toordinal() % list) — flagged deal_of_the_day + deal_price (10% off), moved to front of list
 - Frontend: FeaturedAssets.js — auto-scroll every 3.5s (240px steps, loops back, pauses on hover); deal card gets orange ring, pulsing "DEAL OF THE DAY" flame badge, deal price with strikethrough original
 - TESTED: curl (deal flag + 13,500 from 15,000 verified) + screenshot (badge, ring, strikethrough visible; auto-scroll 240->480 confirmed)
+
+##### 16. Deal Booking Discount at Checkout 🟢 DONE (June 2026)
+- Backend: _todays_deal_id(db) helper — deterministic daily pick (date.toordinal % top-6 photographed active vertical assets, sorted -photos,id). Deal restricted to bookable vertical assets (aircraft excluded since air charter is quote-based). create_booking applies 10% off after seasonal rules; booking stores deal_discount_applied/original_amount/deal_discount_amount. /featured uses same helper (flag stays consistent)
+- Frontend MarineBookings.js: deal card gets orange ring + "DEAL OF THE DAY — 10% OFF TODAY" banner, strikethrough pricing; booking dialog shows Deal Total with strikethrough; My Bookings rows show "🔥 Deal -10% (saved ₹X)"
+- BUGFIX: MarineBookings used Users/Trash2/Plus icons without importing (latent crash on bookings list) — imports fixed
+- TESTED: curl (deal booking 30,000→27,000 saved 3,000; non-deal booking no discount) + UI E2E screenshot (banner, ₹16,200 deal total w/ strikethrough ₹18,000 in dialog). Test artifacts (TEST_Yacht_QA, test bookings) cleaned from DB

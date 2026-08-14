@@ -31,6 +31,17 @@ def _is_owner_or_staff(user):
     return (OWNER_ROLES | STAFF_ROLES) & set(user.get("roles", []))
 
 
+async def _todays_deal_id(db):
+    """Deterministic daily deal pick among top-6 photographed active vertical assets"""
+    assets = await db.vertical_assets.find(
+        {"status": "active"}, {"_id": 0, "id": 1, "images": 1}).to_list(200)
+    assets.sort(key=lambda a: (-len(a.get("images", [])), a["id"]))
+    pool = assets[:6]
+    if not pool:
+        return None
+    return pool[date.today().toordinal() % len(pool)]["id"]
+
+
 class AssetCreate(BaseModel):
     vertical: str
     name: str
@@ -150,6 +161,11 @@ async def create_booking(data: BookingCreate, user: dict = Depends(get_current_u
             amount = round(amount * (1 + float(rule.get("multiplier_pct", 0)) / 100), 2)
             applied_rule = rule.get("name")
             break
+    deal_applied = False
+    original_amount = amount
+    if asset["id"] == await _todays_deal_id(db):
+        deal_applied = True
+        amount = round(amount * 0.9, 2)
     prefix = {"helipad": "HB", "yacht": "YB", "cruise": "CB"}[asset["vertical"]]
     count = await db.vertical_bookings.count_documents({"vertical": asset["vertical"]})
     booking = {
@@ -170,6 +186,9 @@ async def create_booking(data: BookingCreate, user: dict = Depends(get_current_u
         "unit": asset["price_unit"],
         "amount": amount,
         "seasonal_rule_applied": applied_rule,
+        "deal_discount_applied": deal_applied,
+        "original_amount": original_amount if deal_applied else None,
+        "deal_discount_amount": round(original_amount - amount, 2) if deal_applied else None,
         "notes": data.notes,
         "passengers": data.passengers,
         "status": "pending",
@@ -415,7 +434,8 @@ async def featured_assets(user: dict = Depends(get_current_user)):
     assets = await db.vertical_assets.find(
         {"status": "active"}, {"_id": 0, "id": 1, "vertical": 1, "name": 1, "city": 1,
                                "base_price": 1, "price_unit": 1, "images": 1}).to_list(200)
-    assets.sort(key=lambda a: len(a.get("images", [])), reverse=True)
+    assets.sort(key=lambda a: (-len(a.get("images", [])), a["id"]))
+    deal_id = await _todays_deal_id(db)
     featured = []
     for a in assets[:6]:
         featured.append({"id": a["id"], "type": a["vertical"], "name": a["name"], "city": a["city"],
@@ -431,12 +451,12 @@ async def featured_assets(user: dict = Depends(get_current_user)):
                          "name": a.get("aircraft_type") or a.get("registration_number"),
                          "city": a.get("base_location") or f"{a.get('capacity') or '—'} seats",
                          "price": a.get("hourly_rate") or 0, "unit": "hour", "cover": None, "photo_count": 0})
-    if featured:
-        idx = date.today().toordinal() % len(featured)
-        deal = featured[idx]
-        deal["deal_of_the_day"] = True
-        deal["deal_price"] = round(float(deal["price"]) * 0.9)
-        featured.insert(0, featured.pop(idx))
+    for i, item in enumerate(featured):
+        if item["id"] == deal_id:
+            item["deal_of_the_day"] = True
+            item["deal_price"] = round(float(item["price"]) * 0.9)
+            featured.insert(0, featured.pop(i))
+            break
     return {"featured": featured}
 
 

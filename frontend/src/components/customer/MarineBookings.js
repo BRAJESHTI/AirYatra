@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Anchor, Ship, Plane, Loader2, IndianRupee, CalendarDays, CreditCard } from 'lucide-react';
+import { Anchor, Ship, Plane, Loader2, IndianRupee, CalendarDays, CreditCard, Users, Trash2, Plus, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -25,6 +25,14 @@ export default function MarineBookings() {
   const [busy, setBusy] = useState('');
   const [manifestFor, setManifestFor] = useState(null);
   const [passengers, setPassengers] = useState([]);
+  const [dealId, setDealId] = useState(null);
+
+  useEffect(() => {
+    api.get('/verticals/featured').then(r => {
+      const d = (r.data.featured || []).find(x => x.deal_of_the_day);
+      if (d) setDealId(d.id);
+    }).catch(() => {});
+  }, []);
 
   const load = async (v = vertical) => {
     setLoading(true);
@@ -113,7 +121,12 @@ export default function MarineBookings() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {assets.map(a => (
-                <div key={a.id} className="glass rounded-xl flex flex-col overflow-hidden" data-testid={`browse-asset-${a.id}`}>
+                <div key={a.id} className={`glass rounded-xl flex flex-col overflow-hidden ${a.id === dealId ? 'ring-2 ring-orange-500/60' : ''}`} data-testid={`browse-asset-${a.id}`}>
+                  {a.id === dealId && (
+                    <div className="bg-orange-500 text-white text-[11px] font-bold px-3 py-1 flex items-center gap-1" data-testid={`deal-banner-${a.id}`}>
+                      <Flame className="h-3.5 w-3.5" /> DEAL OF THE DAY — 10% OFF TODAY
+                    </div>
+                  )}
                   {a.images?.length > 0 && (
                     <div className="relative h-40">
                       <img src={a.images[0]} alt={a.name} className="w-full h-full object-cover" />
@@ -132,7 +145,15 @@ export default function MarineBookings() {
                   <p className="text-slate-400 text-sm">{a.city}{a.location ? ` • ${a.location}` : ''} • {a.asset_code}</p>
                   {a.description && <p className="text-slate-500 text-sm mt-1 flex-1">{a.description}</p>}
                   <div className="flex items-center justify-between mt-3">
-                    <p className="text-orange-400 font-bold flex items-center gap-0.5"><IndianRupee className="h-4 w-4" />{Number(a.base_price).toLocaleString('en-IN')}<span className="text-slate-500 text-xs font-normal ml-1">/ {V.unit}</span></p>
+                    {a.id === dealId ? (
+                      <p className="text-orange-400 font-bold flex items-center gap-1">
+                        <IndianRupee className="h-4 w-4" />{Number(a.base_price * 0.9).toLocaleString('en-IN')}
+                        <span className="text-slate-500 text-xs font-normal line-through">₹{Number(a.base_price).toLocaleString('en-IN')}</span>
+                        <span className="text-slate-500 text-xs font-normal">/ {V.unit}</span>
+                      </p>
+                    ) : (
+                      <p className="text-orange-400 font-bold flex items-center gap-0.5"><IndianRupee className="h-4 w-4" />{Number(a.base_price).toLocaleString('en-IN')}<span className="text-slate-500 text-xs font-normal ml-1">/ {V.unit}</span></p>
+                    )}
                     <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => setSelected(a)} data-testid={`book-asset-${a.id}`}>Book Now</Button>
                   </div>
                   </div>
@@ -152,6 +173,7 @@ export default function MarineBookings() {
                   <p className="text-slate-400 text-sm flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {b.start_date} → {b.end_date} • {b.quantity} {b.unit}(s)</p>
                   <p className="text-slate-500 text-xs">
                     {(b.passengers || []).length} passenger(s) in manifest{b.seasonal_rule_applied ? ` • ${b.seasonal_rule_applied} pricing` : ''}
+                    {b.deal_discount_applied ? <span className="text-orange-400"> • 🔥 Deal -10% (saved {fmt(b.deal_discount_amount)})</span> : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -256,7 +278,17 @@ export default function MarineBookings() {
                 className="bg-slate-800 border-slate-700 text-white" data-testid="booking-quantity" />
             </div>
             {form.quantity > 0 && selected && (
-              <p className="text-orange-400 font-semibold">Total: {fmt(selected.base_price * (parseInt(form.quantity) || 1))}</p>
+              selected.id === dealId ? (
+                <div data-testid="deal-total">
+                  <p className="text-orange-400 font-semibold flex items-center gap-2">
+                    <Flame className="h-4 w-4" /> Deal Total: {fmt(selected.base_price * (parseInt(form.quantity) || 1) * 0.9)}
+                    <span className="text-slate-500 text-sm font-normal line-through">{fmt(selected.base_price * (parseInt(form.quantity) || 1))}</span>
+                  </p>
+                  <p className="text-slate-500 text-xs">Deal of the Day — 10% off applied automatically at checkout today</p>
+                </div>
+              ) : (
+                <p className="text-orange-400 font-semibold">Total: {fmt(selected.base_price * (parseInt(form.quantity) || 1))}</p>
+              )
             )}
           </div>
           <DialogFooter>
