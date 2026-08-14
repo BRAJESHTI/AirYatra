@@ -3792,3 +3792,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Wired into /feed (location field per log) + all 3 exports (CSV/Excel/PDF me Location column)
 - Frontend AuditLogs.js: IP cell ke neeche 📍 city, country (cyan, data-testid geo-{i})
 - TESTED (curl): internal 10.81.x → "Internal Network", public 8.8.8.8 → "Ashburn, United States", CSV header me location column ✓, cache verified
+
+##### 33. New Country Alert + Security Alerts Feed + CEO Alert Emails 🟢 DONE (June 2026)
+- New Country Alert (audit_trail_routes /suspicious detector #7): login IPs geo-resolved (cache), per-user baseline in db.user_login_countries ($addToSet); new country → HIGH alert with previous countries listed. TESTED: seeded Honduras→US logins → alert fired
+- GET /admin/audit-trail/alerts (staff): stored security_alerts fast-read for dashboard
+- CEO Alert Emails: on NEW high-severity alert upsert → HTML email to user with role ceo (fallback ceo@airyatra.co.in) via email_service; self-audited as security_alert_email_sent. TESTED: SMTP log "Email sent successfully to ceo@airyatra.co.in — 2 high-severity event(s)"
+- Frontend admin/SecurityAlertsFeed.js on AdminOverview top: triggers fresh detection then shows last 6 alerts w/ severity dots, count badge, "View all" → audit tab. Screenshot verified (6 multi-IP alerts visible on admin home)

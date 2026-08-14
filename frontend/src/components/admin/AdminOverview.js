@@ -6,6 +6,7 @@ import PilotDutyWidget from './PilotDutyWidget';
 import BookingPurposeChart from './BookingPurposeChart';
 import { ContextMenu } from '@/components/shared/ContextMenu';
 import SwipeableCard from '@/components/shared/SwipeableCard';
+import SecurityAlertsFeed from './SecurityAlertsFeed';
 import { toast } from 'sonner';
 
 function AdminOverview({ data, onRefresh, loading, onNavigate }) {
@@ -57,6 +58,7 @@ function AdminOverview({ data, onRefresh, loading, onNavigate }) {
 
   return (
     <div className="space-y-6">
+      <SecurityAlertsFeed onNavigate={onNavigate} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="text-center sm:text-left w-full sm:w-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Admin Dashboard</h1>

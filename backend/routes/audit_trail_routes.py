@@ -282,15 +282,75 @@ async def suspicious_activity(days: int = Query(7, le=90), user: dict = Depends(
         except Exception:
             pass
 
-    # persist new alerts (dedupe by summary/day)
+    # 7. New country login (country user ne pehle kabhi use nahi kiya)
+    login_docs = [d for d in docs if d.get("action") in ("login", "google_oauth_login")]
+    ips_needed = set()
+    for d in login_docs:
+        dip = d.get("ip_address") or (d.get("client") or {}).get("ip_address")
+        if dip and not _is_private_ip(dip):
+            ips_needed.add(dip)
+    geo = await _geoip_resolve(db, ips_needed) if ips_needed else {}
+    for d in sorted(login_docs, key=lambda x: str(x.get("created_at") or x.get("timestamp"))):
+        dip = d.get("ip_address") or (d.get("client") or {}).get("ip_address")
+        if not dip or _is_private_ip(dip):
+            continue
+        country = (geo.get(dip) or "").split(",")[-1].strip()
+        if not country or country in ("Unknown", "Internal Network"):
+            continue
+        uid = d.get("user_id") or (d.get("user") or {}).get("id")
+        uname = d.get("user_email") or (d.get("user") or {}).get("email") or d.get("user_name")
+        if not uid:
+            continue
+        base = await db.user_login_countries.find_one({"user_id": uid}, {"_id": 0})
+        known = set((base or {}).get("countries", []))
+        if known and country not in known:
+            alerts.append({"type": "new_country_login", "severity": "high",
+                           "summary": f"{uname} logged in from NEW country: {country} (IP {dip}); previously: {', '.join(sorted(known))}"})
+        await db.user_login_countries.update_one(
+            {"user_id": uid}, {"$addToSet": {"countries": country},
+                               "$set": {"last_seen": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+
+    # persist new alerts (dedupe by summary/day) + email CEO on new HIGH severity
     day = datetime.now(IST).date().isoformat()
+    new_high = []
     for a in alerts:
-        await db.security_alerts.update_one(
+        res = await db.security_alerts.update_one(
             {"summary": a["summary"], "day": day},
             {"$setOnInsert": {**a, "day": day, "id": str(uuid.uuid4()),
                               "created_at": datetime.now(timezone.utc).isoformat(), "acknowledged": False}},
             upsert=True)
+        if res.upserted_id is not None and a["severity"] == "high":
+            new_high.append(a)
+    if new_high:
+        try:
+            from services.email_service import email_service
+            ceo = await db.users.find_one({"roles": "ceo"}, {"_id": 0, "email": 1})
+            to = (ceo or {}).get("email") or "ceo@airyatra.co.in"
+            rows_html = "".join(
+                f"<tr><td style='padding:6px 10px;border:1px solid #e2e8f0'><b>{x['type'].replace('_',' ').upper()}</b></td>"
+                f"<td style='padding:6px 10px;border:1px solid #e2e8f0'>{x['summary']}</td></tr>" for x in new_high[:10])
+            await email_service.send_email(
+                to_email=to,
+                subject=f"🚨 AirYatra Security Alert — {len(new_high)} high-severity event(s) detected",
+                html_body=f"""<div style='font-family:Arial,sans-serif'>
+                <h2 style='color:#dc2626'>High-Severity Security Alerts</h2>
+                <p>The audit system flagged the following suspicious activity:</p>
+                <table style='border-collapse:collapse'>{rows_html}</table>
+                <p style='color:#64748b;font-size:12px'>Review the full feed: Admin Dashboard → Audit Logs → Suspicious.<br/>— AirYatra LoginShield</p></div>""")
+            await audit_event(db, "security_alert_email_sent", None,
+                              details={"to": to, "alerts": len(new_high)}, risk_level="medium")
+        except Exception:
+            pass
     return {"alerts": alerts, "count": len(alerts), "window_days": days}
+
+
+@router.get("/alerts")
+async def recent_alerts(limit: int = Query(10, le=50), user: dict = Depends(get_current_user)):
+    """Stored security alerts (fast read for dashboard feed)"""
+    _require_staff(user)
+    db = get_database()
+    docs = await db.security_alerts.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return {"alerts": docs}
 
 
 @router.get("/export")
