@@ -3650,3 +3650,11 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Audit: /app/memory/VERTICALS_AUDIT_REPORT.md — 92% Phase 1 score, all 3 verticals LIVE
 - TESTED: iteration_64 backend 19/19 + UI E2E (book->confirm->pay->finance sync) verified via screenshots
 - Phase 2 backlog: crew mgmt, passenger manifest, seasonal pricing, availability calendar UI, compliance doc uploads, real Razorpay checkout for verticals, vertical refund chain
+
+##### 12. Verticals Phase 2 🟢 DONE (June 2026)
+- Backend (vertical_routes.py): PUT /assets/{id}/crew, PUT /assets/{id}/seasonal-rules, PUT /bookings/{id}/manifest (customer/owner/staff, 403 tested); create_booking applies seasonal multiplier (tested: peak +25% -> ₹40k base became ₹50k) & rejects blocked dates
+- Frontend: components/verticals/AssetManagePanel.js — per-asset Manage dialog with 3 tabs: visual availability Calendar (shadcn multi-select, red=blocked/green=booked), Crew editor (name/role/license/phone), Seasonal Pricing rules (name/dates/multiplier%)
+- MarineBookings.js: Passengers manifest dialog (name/age/gender/id_proof) on every booking + seasonal rule label shown
+- Owner dashboard asset cards: Crew/Seasons/Blocked counts + Manage button; bookings show manifest count
+- TESTED: curl E2E (crew save, rules save, seasonal pricing math, blocked-date 400, manifest save, cross-role 403) + UI screenshot verified (calendar/crew/pricing tabs load saved data)
+- FIXED during build: manageAsset state missing (runtime crash caught in screenshot)

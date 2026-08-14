@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import GlobalSearch from '@/components/shared/GlobalSearch';
+import AssetManagePanel from '@/components/verticals/AssetManagePanel';
 import api from '@/services/api';
 import { toast } from 'sonner';
 
@@ -24,6 +25,7 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', city: '', location: '', description: '', base_price: '' });
   const [busy, setBusy] = useState('');
+  const [manageAsset, setManageAsset] = useState(null);
   const M = META[vertical];
 
   const load = async () => {
@@ -135,6 +137,15 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
                         </div>
                         <p className="text-orange-400 font-bold mt-2 flex items-center gap-1"><IndianRupee className="h-4 w-4" />{Number(a.base_price).toLocaleString('en-IN')} <span className="text-slate-500 text-xs font-normal">{M.unit}</span></p>
                         {a.description && <p className="text-slate-500 text-sm mt-1">{a.description}</p>}
+                        <div className="flex items-center justify-between mt-3">
+                          <p className="text-slate-500 text-xs">
+                            Crew: {(a.crew || []).length} • Seasons: {(a.seasonal_rules || []).length} • Blocked: {(a.blocked_dates || []).length}
+                          </p>
+                          <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 h-8"
+                            onClick={() => setManageAsset(a)} data-testid={`manage-asset-${a.id}`}>
+                            <CalendarDays className="h-3.5 w-3.5 mr-1" /> Manage
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -151,6 +162,7 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
                     <div>
                       <p className="font-semibold">{b.booking_number} <span className="text-slate-500 text-xs">• {b.asset_name}</span></p>
                       <p className="text-slate-400 text-sm flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {b.start_date} → {b.end_date} • {b.quantity} {b.unit}(s) • {b.customer_name}</p>
+                      <p className="text-slate-500 text-xs">Manifest: {(b.passengers || []).length} passenger(s){b.seasonal_rule_applied ? ` • Season: ${b.seasonal_rule_applied}` : ''}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="font-bold text-orange-400">{fmt(b.amount)}</p>
@@ -192,6 +204,9 @@ export default function VerticalOwnerDashboard({ vertical, user, onLogout }) {
           </>
         )}
       </div>
+
+      <AssetManagePanel asset={manageAsset} open={!!manageAsset}
+        onClose={() => setManageAsset(null)} onSaved={() => { setManageAsset(null); load(); }} />
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">

@@ -23,6 +23,8 @@ export default function MarineBookings() {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ start_date: '', end_date: '', quantity: 1 });
   const [busy, setBusy] = useState('');
+  const [manifestFor, setManifestFor] = useState(null);
+  const [passengers, setPassengers] = useState([]);
 
   const load = async (v = vertical) => {
     setLoading(true);
@@ -65,6 +67,25 @@ export default function MarineBookings() {
       load();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Payment failed');
+    } finally { setBusy(''); }
+  };
+
+  const openManifest = (b) => {
+    setManifestFor(b);
+    setPassengers(b.passengers?.length ? b.passengers : [{ name: '', age: '', gender: '', id_proof: '' }]);
+  };
+
+  const saveManifest = async () => {
+    const valid = passengers.filter(p => p.name?.trim());
+    if (valid.length === 0) { toast.error('Add at least one passenger name'); return; }
+    setBusy('manifest');
+    try {
+      const res = await api.put(`/verticals/bookings/${manifestFor.id}/manifest`, { passengers: valid });
+      toast.success(res.data.message);
+      setManifestFor(null);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to save manifest');
     } finally { setBusy(''); }
   };
 
@@ -117,9 +138,18 @@ export default function MarineBookings() {
                 <div>
                   <p className="font-semibold text-white">{b.booking_number} <span className="text-slate-500 text-xs">• {b.asset_name} ({b.vertical})</span></p>
                   <p className="text-slate-400 text-sm flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {b.start_date} → {b.end_date} • {b.quantity} {b.unit}(s)</p>
+                  <p className="text-slate-500 text-xs">
+                    {(b.passengers || []).length} passenger(s) in manifest{b.seasonal_rule_applied ? ` • ${b.seasonal_rule_applied} pricing` : ''}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="font-bold text-orange-400">{fmt(b.amount)}</p>
+                  {['pending', 'confirmed', 'paid'].includes(b.status) && (
+                    <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 h-8"
+                      onClick={() => openManifest(b)} data-testid={`manifest-btn-${b.id}`}>
+                      <Users className="h-3.5 w-3.5 mr-1" /> Passengers
+                    </Button>
+                  )}
                   <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${b.status === 'paid' ? 'bg-green-500/20 text-green-400' : b.status === 'confirmed' ? 'bg-blue-500/20 text-blue-300' : b.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
                     {b.status === 'confirmed' ? 'Confirmed — Pay Now' : b.status}
                   </span>
@@ -135,6 +165,49 @@ export default function MarineBookings() {
           </div>
         </>
       )}
+
+      <Dialog open={!!manifestFor} onOpenChange={(o) => !o && setManifestFor(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Passenger Manifest — {manifestFor?.booking_number}</DialogTitle>
+            <DialogDescription className="text-slate-400">Add passenger details for boarding & compliance.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2" data-testid="manifest-dialog">
+            {passengers.map((p, i) => (
+              <div key={i} className="grid grid-cols-[1.3fr_0.5fr_0.8fr_1fr_auto] gap-2 items-center">
+                <Input value={p.name || ''} placeholder="Full name *"
+                  onChange={(e) => setPassengers(ps => ps.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`pax-name-${i}`} />
+                <Input value={p.age || ''} placeholder="Age" type="number"
+                  onChange={(e) => setPassengers(ps => ps.map((x, j) => j === i ? { ...x, age: e.target.value } : x))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`pax-age-${i}`} />
+                <select value={p.gender || ''}
+                  onChange={(e) => setPassengers(ps => ps.map((x, j) => j === i ? { ...x, gender: e.target.value } : x))}
+                  className="bg-slate-800 border border-slate-700 text-white h-9 rounded-md px-2 text-sm" data-testid={`pax-gender-${i}`}>
+                  <option value="">Gender</option><option>Male</option><option>Female</option><option>Other</option>
+                </select>
+                <Input value={p.id_proof || ''} placeholder="ID proof no."
+                  onChange={(e) => setPassengers(ps => ps.map((x, j) => j === i ? { ...x, id_proof: e.target.value } : x))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`pax-id-${i}`} />
+                <button onClick={() => setPassengers(ps => ps.filter((_, j) => j !== i))}
+                  className="text-slate-500 hover:text-red-400" data-testid={`pax-remove-${i}`}>
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300"
+              onClick={() => setPassengers(ps => [...ps, { name: '', age: '', gender: '', id_proof: '' }])} data-testid="add-passenger-btn">
+              <Plus className="h-4 w-4 mr-1" /> Add Passenger
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManifestFor(null)} className="border-slate-600 text-slate-300">Cancel</Button>
+            <Button onClick={saveManifest} disabled={busy === 'manifest'} className="bg-orange-500 hover:bg-orange-600" data-testid="save-manifest-btn">
+              {busy === 'manifest' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null} Save Manifest
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">

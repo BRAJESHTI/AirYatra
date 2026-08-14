@@ -113,7 +113,7 @@ async def update_asset(asset_id: str, updates: Dict[str, Any] = Body(...),
         raise HTTPException(status_code=404, detail="Asset not found")
     if asset["owner_user_id"] != user["id"] and not STAFF_ROLES & set(user.get("roles", [])):
         raise HTTPException(status_code=403, detail="Not your asset")
-    allowed = {"name", "city", "location", "description", "base_price", "details", "images", "status", "blocked_dates"}
+    allowed = {"name", "city", "location", "description", "base_price", "details", "images", "status", "blocked_dates", "crew", "seasonal_rules"}
     updates = {k: v for k, v in updates.items() if k in allowed}
     await db.vertical_assets.update_one({"id": asset_id}, {"$set": updates})
     return {"message": "Asset updated"}
@@ -143,6 +143,12 @@ async def create_booking(data: BookingCreate, user: dict = Depends(get_current_u
         raise HTTPException(status_code=400, detail="Selected date is not available")
     qty = max(1, data.quantity)
     amount = round(asset["base_price"] * qty, 2)
+    applied_rule = None
+    for rule in asset.get("seasonal_rules", []):
+        if rule.get("start_date") <= data.start_date <= rule.get("end_date"):
+            amount = round(amount * (1 + float(rule.get("multiplier_pct", 0)) / 100), 2)
+            applied_rule = rule.get("name")
+            break
     prefix = {"helipad": "HB", "yacht": "YB", "cruise": "CB"}[asset["vertical"]]
     count = await db.vertical_bookings.count_documents({"vertical": asset["vertical"]})
     booking = {
@@ -162,6 +168,7 @@ async def create_booking(data: BookingCreate, user: dict = Depends(get_current_u
         "quantity": qty,
         "unit": asset["price_unit"],
         "amount": amount,
+        "seasonal_rule_applied": applied_rule,
         "notes": data.notes,
         "passengers": data.passengers,
         "status": "pending",
@@ -300,6 +307,66 @@ async def _send_vertical_invoice(db, booking, order_id):
         "id": str(uuid.uuid4()), "booking_id": booking["id"], "stage": "vertical_payment",
         "invoice_number": f"INV-{booking['booking_number']}", "status": "sent",
         "sent_at": _now().isoformat(), "to_email": booking["customer_email"]})
+
+
+# ==================== CREW / MANIFEST / SEASONAL ====================
+
+async def _own_asset(db, asset_id, user):
+    asset = await db.vertical_assets.find_one({"id": asset_id}, {"_id": 0})
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset["owner_user_id"] != user["id"] and not STAFF_ROLES & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Not your asset")
+    return asset
+
+
+@router.put("/assets/{asset_id}/crew")
+async def set_crew(asset_id: str, crew: List[Dict[str, Any]] = Body(..., embed=True),
+                   user: dict = Depends(get_current_user)):
+    """Crew management: [{name, role, license_no, phone}]"""
+    db = get_database()
+    await _own_asset(db, asset_id, user)
+    for c in crew:
+        if not c.get("name") or not c.get("role"):
+            raise HTTPException(status_code=400, detail="Each crew member needs name and role")
+        c.setdefault("id", str(uuid.uuid4()))
+    await db.vertical_assets.update_one({"id": asset_id}, {"$set": {"crew": crew}})
+    return {"message": f"Crew updated ({len(crew)} members)", "crew": crew}
+
+
+@router.put("/assets/{asset_id}/seasonal-rules")
+async def set_seasonal_rules(asset_id: str, rules: List[Dict[str, Any]] = Body(..., embed=True),
+                             user: dict = Depends(get_current_user)):
+    """Seasonal pricing: [{name, start_date, end_date, multiplier_pct}]"""
+    db = get_database()
+    await _own_asset(db, asset_id, user)
+    for r in rules:
+        if not all(r.get(k) for k in ("name", "start_date", "end_date")) or r.get("multiplier_pct") is None:
+            raise HTTPException(status_code=400, detail="Each rule needs name, start_date, end_date, multiplier_pct")
+        r.setdefault("id", str(uuid.uuid4()))
+    await db.vertical_assets.update_one({"id": asset_id}, {"$set": {"seasonal_rules": rules}})
+    return {"message": f"{len(rules)} seasonal rule(s) saved", "rules": rules}
+
+
+@router.put("/bookings/{booking_id}/manifest")
+async def set_manifest(booking_id: str, passengers: List[Dict[str, Any]] = Body(..., embed=True),
+                       user: dict = Depends(get_current_user)):
+    """Passenger manifest: [{name, age, gender, id_proof}]"""
+    db = get_database()
+    booking = await db.vertical_bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    allowed = booking["customer_id"] == user["id"] or booking["owner_user_id"] == user["id"] \
+        or STAFF_ROLES & set(user.get("roles", []))
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+    for p in passengers:
+        if not p.get("name"):
+            raise HTTPException(status_code=400, detail="Each passenger needs a name")
+    await db.vertical_bookings.update_one(
+        {"id": booking_id},
+        {"$set": {"passengers": passengers, "manifest_updated_at": _now().isoformat()}})
+    return {"message": f"Manifest saved ({len(passengers)} passengers)"}
 
 
 # ==================== REPORTS ====================
