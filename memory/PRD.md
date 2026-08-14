@@ -3581,3 +3581,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 ### P1 - Razorpay Auto-Refund API trigger on 2nd approval (refund_approval_routes.py approve step: method still 'pending_gateway')
 ### P2 - GST/TDS CSV reports, Auction push alerts (WebSocket), Live flight tracking map
 ### Backlog - Vendor Portal, Insurance workflow, EMI module, DigiLocker
+
+##### 4. Instant Cancellation Emails 🟢 DONE (June 2026)
+- _send_cancellation_email() in refund_approval_routes.py — fired on both customer-cancel & operator-cancel
+- Email includes: route, cancelled-by, amount paid, deduction %, refund amount, timeline (approval 24-48h, credit 5-7 business days)
+- Logged in db.cancellation_email_log; verified live via SMTP (customer@airyatra.co.in, ₹4,32,000 refund email sent)

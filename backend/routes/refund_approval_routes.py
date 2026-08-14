@@ -141,6 +141,60 @@ async def remove_reason(reason_id: str, user: dict = Depends(get_current_user)):
     return {"message": "Reason removed"}
 
 
+async def _send_cancellation_email(db, booking, req):
+    """Customer ko instant cancellation email: refund amount + timeline"""
+    try:
+        customer = await db.users.find_one({"id": req.get("customer_id")}, {"_id": 0, "email": 1, "full_name": 1})
+        if not customer or not customer.get("email"):
+            return
+        route = f"{booking.get('from_location') or booking.get('pickup_location') or 'N/A'} → {booking.get('to_location') or booking.get('drop_location') or 'N/A'}"
+        by = "Operator" if req["initiated_by"] == "operator_cancel" else "You"
+        deduction_row = "" if req["deduction_pct"] == 0 else (
+            f"<div style='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;'>"
+            f"<span style='color:#94a3b8;'>Cancellation Deduction ({req['deduction_pct']:.0f}%)</span>"
+            f"<span style='color:#f87171;font-weight:600;'>- ₹{req['deduction_amount']:,.0f}</span></div>")
+        html = f"""
+<div style="font-family:'Segoe UI',Arial,sans-serif;background:#1a1a2e;color:#fff;padding:20px;">
+  <div style="max-width:600px;margin:0 auto;background:#16213e;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:26px;text-align:center;">
+      <h1 style="margin:0;font-size:24px;">Booking Cancellation Received</h1>
+      <p style="margin:8px 0 0;opacity:.9;">Booking {req['booking_ref']}</p>
+    </div>
+    <div style="padding:26px;">
+      <p>Dear {customer.get('full_name') or 'Customer'},</p>
+      <p>{'Aapki booking operator dwara cancel ki gayi hai.' if by == 'Operator' else 'Aapki cancellation request receive ho gayi hai.'} Details neeche hain:</p>
+      <div style="background:#1a1a2e;border-radius:12px;padding:18px;margin:16px 0;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;"><span style="color:#94a3b8;">Route</span><span style="font-weight:600;">{route}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;"><span style="color:#94a3b8;">Cancelled By</span><span style="font-weight:600;">{by}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;"><span style="color:#94a3b8;">Amount Paid</span><span style="font-weight:600;">₹{req['amount_paid']:,.0f}</span></div>
+        {deduction_row}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:#94a3b8;">Refund Amount</span><span style="color:#4ade80;font-weight:700;font-size:18px;">₹{req['refundable_amount']:,.0f}</span></div>
+      </div>
+      <div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);border-radius:12px;padding:16px;margin:16px 0;">
+        <p style="margin:0;color:#fdba74;font-weight:600;">⏱️ Refund Timeline</p>
+        <p style="margin:8px 0 0;color:#cbd5e1;font-size:14px;">
+          • Refund team approval: within <b>24–48 hours</b><br/>
+          • Amount credit to original payment method: <b>5–7 business days</b> after approval<br/>
+          • Status updates milte rahenge email par
+        </p>
+      </div>
+      <p style="color:#94a3b8;font-size:13px;">Koi sawaal ho to support@airyatra.co.in par likhein.</p>
+      <p style="margin-top:18px;">Team AirYatra ✈️</p>
+    </div>
+  </div>
+</div>"""
+        from services.email_service import email_service
+        await email_service.send_email(
+            to_email=customer["email"],
+            subject=f"❌ Booking {req['booking_ref']} Cancelled — Refund ₹{req['refundable_amount']:,.0f} Initiated | AirYatra",
+            html_body=html)
+        await db.cancellation_email_log.insert_one({
+            "id": str(uuid.uuid4()), "booking_id": booking["id"], "refund_request_id": req["id"],
+            "to_email": customer["email"], "status": "sent", "sent_at": _now().isoformat()})
+    except Exception as e:
+        logger.error(f"Cancellation email failed for {booking.get('id')}: {e}")
+
+
 # ==================== CANCEL FLOWS ====================
 
 @router.post("/customer-cancel")
@@ -160,6 +214,7 @@ async def customer_cancel(booking_id: str = Body(...), reason: Optional[str] = B
     for coll in (db.inquiries, db.bookings):
         await coll.update_one({"id": booking_id}, {"$set": {"status": "cancellation_requested",
                                                             "cancelled_by": "customer"}})
+    await _send_cancellation_email(db, booking, req)
     return {"message": f"Cancellation submitted. Policy deduction {pct}% applied. Refund team approval pending.",
             "refund_request": req}
 
@@ -211,6 +266,7 @@ async def operator_cancel(booking_id: str = Body(...), reason_id: str = Body(...
         await coll.update_one({"id": booking_id}, {"$set": {"status": "cancellation_requested",
                                                             "cancelled_by": "operator",
                                                             "operator_cancel_reason": reason_doc["label"]}})
+    await _send_cancellation_email(db, booking, req)
     return {"message": "Operator cancellation logged. Full refund pending team approval.", "refund_request": req}
 
 
