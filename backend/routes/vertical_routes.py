@@ -19,6 +19,7 @@ OWNER_ROLES = set(OWNER_ROLE_MAP.values()) | {"operator"}
 STAFF_ROLES = {"admin", "super_admin", "ceo"}
 FINANCE_ROLES = {"finance", "accounts"} | STAFF_ROLES
 PLATFORM_FEE_PCT = 10.0
+PHOTO_ROLES = STAFF_ROLES | {"sales", "support"}
 UNIT_LABEL = {"helipad": "landing", "yacht": "hour", "cruise": "cabin/night"}
 
 
@@ -86,7 +87,7 @@ async def register_asset(data: AssetCreate, user: dict = Depends(get_current_use
 @router.get("/assets/my")
 async def my_assets(user: dict = Depends(get_current_user)):
     db = get_database()
-    q = {} if STAFF_ROLES & set(user.get("roles", [])) else {"owner_user_id": user["id"]}
+    q = {} if PHOTO_ROLES & set(user.get("roles", [])) else {"owner_user_id": user["id"]}
     assets = await db.vertical_assets.find(q, {"_id": 0}).sort("created_at", -1).to_list(200)
     return {"assets": assets}
 
@@ -367,6 +368,44 @@ async def set_manifest(booking_id: str, passengers: List[Dict[str, Any]] = Body(
         {"id": booking_id},
         {"$set": {"passengers": passengers, "manifest_updated_at": _now().isoformat()}})
     return {"message": f"Manifest saved ({len(passengers)} passengers)"}
+
+
+@router.post("/assets/{asset_id}/photos")
+async def add_photos(asset_id: str, images: List[str] = Body(..., embed=True),
+                     user: dict = Depends(get_current_user)):
+    """Upload photos (base64 data URLs) — owner / Admin / CEO / Sales / Support"""
+    db = get_database()
+    asset = await db.vertical_assets.find_one({"id": asset_id}, {"_id": 0, "images": 1, "owner_user_id": 1})
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset["owner_user_id"] != user["id"] and not PHOTO_ROLES & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Owner/Admin/Sales/Support access required")
+    for img in images:
+        if not img.startswith("data:image/"):
+            raise HTTPException(status_code=400, detail="Only image data URLs allowed")
+        if len(img) > 2_000_000:
+            raise HTTPException(status_code=400, detail="Image too large (max ~1.5MB each)")
+    existing = asset.get("images", [])
+    if len(existing) + len(images) > 6:
+        raise HTTPException(status_code=400, detail="Maximum 6 photos per asset")
+    await db.vertical_assets.update_one({"id": asset_id}, {"$push": {"images": {"$each": images}}})
+    return {"message": f"{len(images)} photo(s) uploaded", "total": len(existing) + len(images)}
+
+
+@router.delete("/assets/{asset_id}/photos/{index}")
+async def delete_photo(asset_id: str, index: int, user: dict = Depends(get_current_user)):
+    db = get_database()
+    asset = await db.vertical_assets.find_one({"id": asset_id}, {"_id": 0, "images": 1, "owner_user_id": 1})
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset["owner_user_id"] != user["id"] and not PHOTO_ROLES & set(user.get("roles", [])):
+        raise HTTPException(status_code=403, detail="Access denied")
+    images = asset.get("images", [])
+    if index < 0 or index >= len(images):
+        raise HTTPException(status_code=404, detail="Photo not found")
+    images.pop(index)
+    await db.vertical_assets.update_one({"id": asset_id}, {"$set": {"images": images}})
+    return {"message": "Photo deleted", "total": len(images)}
 
 
 # ==================== REPORTS ====================

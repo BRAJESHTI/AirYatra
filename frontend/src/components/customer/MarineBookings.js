@@ -113,7 +113,18 @@ export default function MarineBookings() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {assets.map(a => (
-                <div key={a.id} className="glass p-5 rounded-xl flex flex-col" data-testid={`browse-asset-${a.id}`}>
+                <div key={a.id} className="glass rounded-xl flex flex-col overflow-hidden" data-testid={`browse-asset-${a.id}`}>
+                  {a.images?.length > 0 && (
+                    <div className="relative h-40">
+                      <img src={a.images[0]} alt={a.name} className="w-full h-full object-cover" />
+                      {a.images.length > 1 && (
+                        <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">
+                          📷 {a.images.length} photos
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="p-5 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <V.icon className="h-5 w-5 text-cyan-400" />
                     <p className="font-semibold text-white">{a.name}</p>
@@ -123,6 +134,7 @@ export default function MarineBookings() {
                   <div className="flex items-center justify-between mt-3">
                     <p className="text-orange-400 font-bold flex items-center gap-0.5"><IndianRupee className="h-4 w-4" />{Number(a.base_price).toLocaleString('en-IN')}<span className="text-slate-500 text-xs font-normal ml-1">/ {V.unit}</span></p>
                     <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => setSelected(a)} data-testid={`book-asset-${a.id}`}>Book Now</Button>
+                  </div>
                   </div>
                 </div>
               ))}
@@ -218,6 +230,13 @@ export default function MarineBookings() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            {selected?.images?.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1" data-testid="booking-gallery">
+                {selected.images.map((img, i) => (
+                  <img key={i} src={img} alt={`${selected.name} ${i + 1}`} className="h-24 w-36 object-cover rounded-lg flex-shrink-0 border border-slate-700" />
+                ))}
+              </div>
+            )}
             <div>
               <label className="block text-sm text-slate-400 mb-1">Start Date *</label>
               <Input type="date" value={form.start_date} min={new Date().toISOString().slice(0, 10)}

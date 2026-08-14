@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays, Users, TrendingUp, Plus, Trash2, Loader2, Save } from 'lucide-react';
+import { CalendarDays, Users, TrendingUp, Plus, Trash2, Loader2, Save, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,12 +18,54 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
   const [bookedRanges, setBookedRanges] = useState([]);
   const [crew, setCrew] = useState([]);
   const [rules, setRules] = useState([]);
+  const [images, setImages] = useState([]);
   const [busy, setBusy] = useState(false);
+
+  const resizeImage = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 900;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const uploadPhotos = async (files) => {
+    if (!files?.length) return;
+    if (images.length + files.length > 6) { toast.error('Maximum 6 photos per asset'); return; }
+    setBusy(true);
+    try {
+      const dataUrls = await Promise.all([...files].map(resizeImage));
+      await api.post(`/verticals/assets/${asset.id}/photos`, { images: dataUrls });
+      setImages(prev => [...prev, ...dataUrls]);
+      toast.success(`${dataUrls.length} photo(s) uploaded`);
+      onSaved();
+    } catch (e) { toast.error(e.response?.data?.detail || 'Upload failed'); } finally { setBusy(false); }
+  };
+
+  const removePhoto = async (i) => {
+    try {
+      await api.delete(`/verticals/assets/${asset.id}/photos/${i}`);
+      setImages(prev => prev.filter((_, j) => j !== i));
+      toast.success('Photo deleted');
+      onSaved();
+    } catch (e) { toast.error('Delete failed'); }
+  };
 
   useEffect(() => {
     if (!asset || !open) return;
     setBlocked(asset.blocked_dates || []);
     setCrew(asset.crew || []);
+    setImages(asset.images || []);
     setRules(asset.seasonal_rules || []);
     setTab('calendar');
     api.get(`/verticals/assets/${asset.id}/availability`)
@@ -75,7 +117,7 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
         </DialogHeader>
 
         <div className="flex gap-2 mb-2">
-          {[['calendar', 'Calendar', CalendarDays], ['crew', 'Crew', Users], ['pricing', 'Seasonal Pricing', TrendingUp]].map(([id, label, Icon]) => (
+          {[['calendar', 'Calendar', CalendarDays], ['crew', 'Crew', Users], ['pricing', 'Seasonal Pricing', TrendingUp], ['photos', 'Photos', ImagePlus]].map(([id, label, Icon]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 ${tab === id ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}
               data-testid={`manage-tab-${id}`}>
@@ -168,7 +210,33 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
             </div>
           </div>
         )}
+        {tab === 'photos' && (
+          <div data-testid="photos-panel">
+            <p className="text-slate-400 text-sm mb-3">Upload up to 6 photos — customers will see these before booking. ({images.length}/6)</p>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {images.map((img, i) => (
+                <div key={i} className="relative group rounded-lg overflow-hidden border border-slate-700" data-testid={`photo-item-${i}`}>
+                  <img src={img} alt={`Photo ${i + 1}`} className="w-full h-28 object-cover" />
+                  <button onClick={() => removePhoto(i)}
+                    className="absolute top-1.5 right-1.5 bg-red-600/90 hover:bg-red-600 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    data-testid={`delete-photo-${i}`}>
+                    <Trash2 className="h-3.5 w-3.5 text-white" />
+                  </button>
+                </div>
+              ))}
+              {images.length < 6 && (
+                <label className="h-28 rounded-lg border-2 border-dashed border-slate-600 hover:border-orange-500 flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-orange-400 transition-colors" data-testid="upload-photo-label">
+                  {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <><ImagePlus className="h-6 w-6 mb-1" /><span className="text-xs">Add Photos</span></>}
+                  <input type="file" accept="image/*" multiple className="hidden" disabled={busy}
+                    onChange={(e) => { uploadPhotos(e.target.files); e.target.value = ''; }} data-testid="photo-file-input" />
+                </label>
+              )}
+            </div>
+            {images.length === 0 && <p className="text-slate-500 text-sm text-center">No photos yet — first photo becomes the cover image</p>}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+

@@ -3658,3 +3658,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Owner dashboard asset cards: Crew/Seasons/Blocked counts + Manage button; bookings show manifest count
 - TESTED: curl E2E (crew save, rules save, seasonal pricing math, blocked-date 400, manifest save, cross-role 403) + UI screenshot verified (calendar/crew/pricing tabs load saved data)
 - FIXED during build: manageAsset state missing (runtime crash caught in screenshot)
+
+##### 13. Asset Photo Gallery 🟢 DONE (June 2026)
+- Backend: POST /api/verticals/assets/{id}/photos (base64 data URLs, max 6, ~1.5MB each) + DELETE /photos/{index}. Roles: owner OR admin/super_admin/ceo/sales/support (customer 403 tested). /assets/my now visible to sales/support too
+- Frontend: AssetManagePanel 4th tab "Photos" — client-side resize (900px JPEG 0.7) upload, thumbnail grid, hover-delete; MarineBookings customer cards show cover image + photo count badge + gallery strip in booking dialog
+- TESTED: curl (owner upload, sales upload, customer 403, browse images, delete) + UI screenshot (photo renders 1/6)
+- Bugfix during build: missing setImages in panel useEffect + duplicated JSX tail (parse error) fixed
