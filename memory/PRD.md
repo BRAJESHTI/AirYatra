@@ -3718,3 +3718,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - GlobalSearch.js: per-user localStorage (airyatra_recent_queries_{userId} + airyatra_recent_searches_{userId} — pehle global key thi, cross-user leak). Typed query term saved on result selection (max 6)
 - UI: empty state me "Recent Searches" chip row (Clock icon pills, tap → setQuery → re-search), "Recently Viewed" section (clicked results, direct navigate), Clear button (dono wipe)
 - TESTED: single-session E2E screenshot — search "yatch" → select → reopen → chip visible → tap → 2 yacht results re-loaded ✓; localStorage keys verified per-user
+
+##### 23. Trending Searches 🟢 DONE (June 2026)
+- Backend: search_logs collection — har successful global search (len>=3, results>0) log hota hai. GET /api/search/trending — last 30 days top-8 terms (aggregate group+count)
+- Frontend GlobalSearch.js: "Trending Now" section (orange TrendingUp chips + counts) empty-query state me, tap → setQuery → instant search. Fetched once per mount on modal open
+- SEEDED: 58 demo search logs (mumbai/yacht goa/helipad/delhi/cruise/juhu/ocean pearl) — real searches bhi live increment karti hain (verified mumbai 14→15)
+- TESTED: curl (trending list + live logging) + UI screenshot (7 chips render, "yacht goa" tap → 2 yacht results)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Command, X, Plane, Users, Building2, FileText, DollarSign, 
-  ChevronRight, Clock, ArrowRight, Hash, Star, Loader2, Shield, Key } from 'lucide-react';
+  ChevronRight, Clock, ArrowRight, Hash, Star, Loader2, Shield, Key, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -39,6 +39,8 @@ function GlobalSearch({ user }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState([]);
   const [recentQueries, setRecentQueries] = useState([]);
+  const [trending, setTrending] = useState([]);
+  const trendingFetchedRef = useRef(false);
   const inputRef = useRef(null);
   const navigate = useNavigate();
   const storageId = user?.id || 'anon';
@@ -96,10 +98,18 @@ function GlobalSearch({ user }) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Focus input when modal opens
+  // Focus input when modal opens + fetch trending once
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
+    }
+    if (isOpen && !trendingFetchedRef.current) {
+      trendingFetchedRef.current = true;
+      const token = localStorage.getItem('token');
+      fetch(`${API_URL}/api/search/trending`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : { trending: [] })
+        .then(d => setTrending(d.trending || []))
+        .catch(() => {});
     }
   }, [isOpen]);
 
@@ -373,6 +383,25 @@ function GlobalSearch({ user }) {
                             data-testid={`recent-query-${term.replace(/\s+/g, '-').toLowerCase()}`}>
                             <Clock className="h-3.5 w-3.5 text-slate-500" />
                             {term}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {trending.length > 0 && (
+                    <div className="py-2 border-t border-slate-800" data-testid="trending-section">
+                      <div className="px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <TrendingUp className="h-3.5 w-3.5 text-orange-400" /> Trending Now
+                      </div>
+                      <div className="px-4 pb-1 flex flex-wrap gap-2">
+                        {trending.map((t) => (
+                          <button key={t.term} onClick={() => setQuery(t.term)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-sm text-orange-300 hover:bg-orange-500/20 hover:text-white transition-colors"
+                            data-testid={`trending-term-${t.term.replace(/\s+/g, '-').toLowerCase()}`}>
+                            <TrendingUp className="h-3.5 w-3.5" />
+                            {t.term}
+                            <span className="text-[10px] text-orange-500/70">{t.count}</span>
                           </button>
                         ))}
                       </div>

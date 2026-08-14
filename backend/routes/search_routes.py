@@ -4,6 +4,7 @@ from database import get_database
 from middleware import get_current_user
 import re
 import difflib
+from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/search", tags=["Global Search"])
 
@@ -237,4 +238,29 @@ async def global_search(
         if key not in seen:
             seen.add(key)
             deduped.append(r)
+    try:
+        term = q.lower().strip()
+        if len(term) >= 3 and deduped:
+            await db.search_logs.insert_one({
+                "query": term, "user_id": user["id"], "results": len(deduped),
+                "at": datetime.now(timezone.utc).isoformat()})
+    except Exception:
+        pass
     return {"results": deduped[:limit], "query": q}
+
+
+@router.get("/trending")
+async def trending_searches(user: dict = Depends(get_current_user)):
+    """Top searched terms across the platform (last 30 days)"""
+    db = get_database()
+    since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    pipeline = [
+        {"$match": {"at": {"$gte": since}, "results": {"$gt": 0}}},
+        {"$group": {"_id": "$query", "count": {"$sum": 1},
+                    "users": {"$addToSet": "$user_id"}}},
+        {"$project": {"count": 1, "user_count": {"$size": "$users"}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 8},
+    ]
+    rows = await db.search_logs.aggregate(pipeline).to_list(8)
+    return {"trending": [{"term": r["_id"], "count": r["count"]} for r in rows]}
