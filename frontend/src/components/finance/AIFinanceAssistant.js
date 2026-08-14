@@ -13,18 +13,18 @@ const suggestedQueries = [
   "Show me pending payments over ₹1L",
   "What's my current bank balance?",
   "List overdue challans",
-  "Today ka collection kitna hai?",
+  "What is today's total collection?",
   "Pending vendor bills dikhao",
   "This month ka profit margin?",
   "Which vendors are due for payment?",
-  "GST payment kab due hai?"
+  "When is the GST payment due?"
 ];
 
 export default function AIFinanceAssistant() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Namaste! 🙏 Main AirYatra ka AI Finance Assistant hoon. Aap mujhse kuch bhi pooch sakte hain - bank balance, pending payments, challans, ya koi bhi finance related query. Kaise madad kar sakta hoon?'
+      content: 'Hello! 🙏 I am the AirYatra AI Finance Assistant. Ask me anything — bank balance, pending payments, challans, or any finance-related query. How can I help?'
     }
   ]);
   const [input, setInput] = useState('');
@@ -147,8 +147,7 @@ export default function AIFinanceAssistant() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Bot className="h-7 w-7 text-purple-400" />
-            AI Finance Assistant / वित्त सहायक
-          </h1>
+            AI Finance Assistant</h1>
           <p className="text-slate-400 mt-1">Ask anything about your finances in natural language</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 rounded-full border border-purple-500/50">

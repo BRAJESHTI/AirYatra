@@ -84,8 +84,7 @@ function ReviewsManagement() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Star className="h-6 w-6 text-yellow-400" />
-            Reviews & Ratings / रिव्यूज़
-          </h2>
+            Reviews & Ratings</h2>
           <p className="text-slate-400 mt-1">Manage customer reviews and operator ratings</p>
         </div>
         <Button onClick={loadReviews} variant="outline" size="sm">

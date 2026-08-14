@@ -58,7 +58,7 @@ const FeaturedStrip = ({ featured, onView }) => (
   <div className="max-w-7xl mx-auto px-6 pb-8" data-testid="featured-strip">
     <div className="flex items-center gap-2 mb-3">
       <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
-      <h2 className="text-lg font-bold text-white">Featured Aircraft / विशेष विमान</h2>
+      <h2 className="text-lg font-bold text-white">Featured Aircraft</h2>
     </div>
     <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
       {featured.map(l => (
@@ -111,7 +111,7 @@ export default function AviationExchangePage({ user }) {
 
   const openSell = () => {
     if (!user) {
-      toast.error('Please login to sell your aircraft / विमान बेचने के लिए लॉगिन करें');
+      toast.error('Please login to sell your aircraft');
       return;
     }
     setSellOpen(true);
@@ -119,7 +119,7 @@ export default function AviationExchangePage({ user }) {
 
   const openInspection = () => {
     if (!user) {
-      toast.error('Please login to book an inspection / निरीक्षण बुक करने के लिए लॉगिन करें');
+      toast.error('Please login to book an inspection');
       return;
     }
     setInspectionFor(selected);
@@ -148,7 +148,7 @@ export default function AviationExchangePage({ user }) {
 
   const sendInquiry = async () => {
     if (!user) {
-      toast.error('Please login to send an inquiry / पूछताछ के लिए लॉगिन करें');
+      toast.error('Please login to send an inquiry');
       return;
     }
     if (!inquiryMsg.trim()) return;
@@ -206,11 +206,9 @@ export default function AviationExchangePage({ user }) {
           Buy & Sell Aircraft,<br /><span className="text-orange-500">The Smart Way</span>
         </h1>
         <p className="text-slate-400 mt-3 max-w-2xl">
-          Pre-owned helicopters, private jets and turboprops — verified sellers, transparent pricing, DGCA documentation support. / सत्यापित विक्रेता, पारदर्शी कीमतें।
-        </p>
+          Pre-owned helicopters, private jets and turboprops — verified sellers, transparent pricing, DGCA documentation support.</p>
         <Button onClick={openSell} variant="outline" className="mt-4 border-orange-500/50 text-orange-400 hover:bg-orange-500/10" data-testid="sell-aircraft-hero-btn">
-          <PlusCircle className="h-4 w-4 mr-2" /> List Your Aircraft for Free / अपना विमान लिस्ट करें
-        </Button>
+          <PlusCircle className="h-4 w-4 mr-2" /> List Your Aircraft for Free</Button>
       </div>
 
       {/* Mode Toggle */}
@@ -328,21 +326,19 @@ export default function AviationExchangePage({ user }) {
                 className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
                 data-testid="book-inspection-btn"
               >
-                <ClipboardCheck className="h-4 w-4 mr-2" /> Book Pre-Purchase Inspection / निरीक्षण बुक करें
-              </Button>
+                <ClipboardCheck className="h-4 w-4 mr-2" /> Book Pre-Purchase Inspection</Button>
               <Button
                 onClick={() => {
                   navigator.clipboard.writeText(`${window.location.origin}/exchange/listing/${selected.id}`)
-                    .then(() => toast.success('Public link copied — share it anywhere! / लिंक कॉपी हो गया'));
+                    .then(() => toast.success('Public link copied — share it anywhere!'));
                 }}
                 variant="outline"
                 className="w-full border-slate-700 text-slate-300 hover:border-orange-500/50 hover:text-orange-400"
                 data-testid="share-listing-btn"
               >
-                <Share2 className="h-4 w-4 mr-2" /> Share This Listing / लिस्टिंग शेयर करें
-              </Button>
+                <Share2 className="h-4 w-4 mr-2" /> Share This Listing</Button>
               <div className="border-t border-slate-700 pt-4">
-                <p className="text-white font-medium mb-2">Interested? Send an inquiry / पूछताछ भेजें</p>
+                <p className="text-white font-medium mb-2">Interested? Send an inquiry</p>
                 <textarea
                   value={inquiryMsg}
                   onChange={(e) => setInquiryMsg(e.target.value)}

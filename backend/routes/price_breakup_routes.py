@@ -119,45 +119,45 @@ def calculate_customer_breakup(
     return {
         "breakdown": {
             "base_fare": {
-                "label": "Base Fare / आधार किराया",
+                "label": "Base Fare",
                 "amount": base_price,
                 "description": "Aircraft charter base price"
             },
             "landing_charges": {
-                "label": "Landing Charges / लैंडिंग शुल्क",
+                "label": "Landing Charges",
                 "amount": landing_charges,
                 "description": "Airport/helipad landing fees"
             },
             "handling_charges": {
-                "label": "Handling Charges / हैंडलिंग शुल्क",
+                "label": "Handling Charges",
                 "amount": handling_charges,
                 "description": "Ground handling and parking"
             },
             "crew_charges": {
-                "label": "Crew Charges / क्रू शुल्क",
+                "label": "Crew Charges",
                 "amount": crew_charges,
                 "description": "Pilot and crew costs"
             },
             "fuel_surcharge": {
-                "label": "Fuel Surcharge / ईंधन अधिभार",
+                "label": "Fuel Surcharge",
                 "amount": fuel_surcharge,
                 "description": "Fuel cost adjustment"
             },
             "other_charges": {
-                "label": "Other Charges / अन्य शुल्क",
+                "label": "Other Charges",
                 "amount": other_charges,
                 "description": "Miscellaneous charges"
             }
         },
         "subtotal": subtotal,
         "discount": {
-            "label": "Discount / छूट",
+            "label": "Discount",
             "amount": discount,
             "description": "Applied discount"
         },
         "discounted_subtotal": discounted_subtotal,
         "platform_fee": {
-            "label": "AirYatra Platform Fee / प्लेटफ़ॉर्म शुल्क",
+            "label": "AirYatra Platform Fee",
             "amount": total_platform_fee,
             "commission": platform_commission,
             "fixed_fee": platform_fixed_fee,
@@ -219,7 +219,7 @@ def calculate_operator_settlement(
                 "calculated_on": "Base fare"
             },
             "platform_fixed_fee": {
-                "label": "Platform Fee / प्लेटफ़ॉर्म शुल्क",
+                "label": "Platform Fee",
                 "amount": platform_fixed_fee
             },
             "tds": {
@@ -231,7 +231,7 @@ def calculate_operator_settlement(
             "total_deductions": total_platform_deduction + tds_amount
         },
         "net_payout": {
-            "label": "Net Payout / शुद्ध भुगतान",
+            "label": "Net Payout",
             "amount": net_payout,
             "formatted": f"₹ {net_payout:,.2f}"
         },

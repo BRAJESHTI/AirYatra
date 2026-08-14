@@ -58,14 +58,14 @@ export const PriceLockTimer = ({
       // Show warning at 2 minutes
       if (remaining <= 120 && remaining > 0 && !showWarning) {
         setShowWarning(true);
-        toast.warning('⚠️ Price lock expiring in 2 minutes! / मूल्य लॉक 2 मिनट में समाप्त हो रहा है!');
+        toast.warning('⚠️ Price lock expiring in 2 minutes!');
       }
       
       // Handle expiry
       if (remaining <= 0 && !isExpired) {
         setIsExpired(true);
         clearInterval(interval);
-        toast.error('❌ Price lock expired! / मूल्य लॉक समाप्त हो गया!');
+        toast.error('❌ Price lock expired!');
         
         if (onExpire) {
           onExpire();
@@ -92,7 +92,7 @@ export const PriceLockTimer = ({
       await onExtend();
       setShowWarning(false);
       setIsExpired(false);
-      toast.success('✅ Price lock extended by 5 minutes! / मूल्य लॉक 5 मिनट बढ़ाया गया!');
+      toast.success('✅ Price lock extended by 5 minutes!');
     } catch (error) {
       toast.error('Failed to extend price lock');
     } finally {
@@ -137,9 +137,9 @@ export const PriceLockTimer = ({
               {isExpired ? 'Price Lock Expired' : 'Price Locked'}
             </h4>
             <p className="text-xs text-slate-400">
-              {isExpired 
-                ? 'मूल्य लॉक समाप्त हो गया' 
-                : 'आपका मूल्य लॉक है'}
+              {isExpired
+                ? 'Price lock expired'
+                : 'Your price is locked'}
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export const PriceLockTimer = ({
             {formatTime(timeRemaining)}
           </div>
           <p className="text-xs text-slate-400">
-            {isExpired ? 'Expired' : 'Remaining / शेष समय'}
+            {isExpired ? 'Expired' : 'Remaining'}
           </p>
         </div>
       </div>
@@ -173,7 +173,7 @@ export const PriceLockTimer = ({
       {/* Locked Amount */}
       {totalAmount && (
         <div className="flex items-center justify-between py-2 border-t border-slate-700/50 mt-2">
-          <span className="text-slate-400 text-sm">Locked Amount / लॉक्ड राशि</span>
+          <span className="text-slate-400 text-sm">Locked Amount</span>
           <span className="text-white font-bold text-lg">
             ₹{totalAmount.toLocaleString('en-IN')}
           </span>
@@ -189,7 +189,7 @@ export const PriceLockTimer = ({
               Complete payment soon!
             </p>
             <p className="text-orange-400/70 text-xs">
-              जल्द ही भुगतान पूरा करें! Price may change after expiry.
+Price may change after expiry.
             </p>
           </div>
         </div>
@@ -203,7 +203,6 @@ export const PriceLockTimer = ({
             Price lock has expired. Redirecting to booking page...
           </p>
           <p className="text-red-400/70 text-xs mt-1">
-            मूल्य लॉक समाप्त हो गया। बुकिंग पेज पर रीडायरेक्ट हो रहा है...
           </p>
         </div>
       )}
@@ -219,7 +218,7 @@ export const PriceLockTimer = ({
           {isExtending ? (
             <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Extending...</>
           ) : (
-            <><Clock className="h-4 w-4 mr-2" /> Extend by 5 min / 5 मिनट बढ़ाएं</>
+            <><Clock className="h-4 w-4 mr-2" /> Extend by 5 min</>
           )}
         </Button>
       )}

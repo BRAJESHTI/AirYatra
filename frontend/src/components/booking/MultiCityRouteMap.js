@@ -164,7 +164,7 @@ const MultiCityRouteMap = ({
         <div className="flex items-center justify-between p-3 border-b border-slate-700">
           <div className="flex items-center gap-2">
             <Navigation className="h-5 w-5 text-orange-400" />
-            <span className="text-white font-medium">Route Map / रूट मैप</span>
+            <span className="text-white font-medium">Route Map</span>
             <Badge className="bg-slate-600 text-slate-300 ml-2">
               Select destinations
             </Badge>
@@ -192,7 +192,7 @@ const MultiCityRouteMap = ({
             <div className="text-center">
               <MapPin className="h-10 w-10 mx-auto mb-2 text-orange-400 opacity-70" />
               <p className="text-white font-medium">Add destinations to see route</p>
-              <p className="text-slate-400 text-sm mt-1">रूट देखने के लिए गंतव्य जोड़ें</p>
+              <p className="text-slate-400 text-sm mt-1"></p>
             </div>
           </div>
         </div>
@@ -206,7 +206,7 @@ const MultiCityRouteMap = ({
       <div className="flex items-center justify-between p-3 border-b border-slate-700">
         <div className="flex items-center gap-2">
           <Navigation className="h-5 w-5 text-orange-400" />
-          <span className="text-white font-medium">Route Map / रूट मैप</span>
+          <span className="text-white font-medium">Route Map</span>
           <Badge className="bg-blue-500/20 text-blue-400 ml-2">
             {legs.length} Legs
           </Badge>

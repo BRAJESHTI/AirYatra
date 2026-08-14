@@ -8,16 +8,16 @@ import { toast } from 'sonner';
 
 // Booking Purpose Options with default payment percentages
 const DEFAULT_PAYMENT_RULES = [
-  { purpose: 'wedding', label: 'Wedding / शादी', icon: '💒', advance_percent: 50, can_pay_later: true },
-  { purpose: 'temple_yatra', label: 'Temple Yatra / मंदिर यात्रा', icon: '🛕', advance_percent: 50, can_pay_later: true },
-  { purpose: 'company_tour', label: 'Corporate Tour / कॉर्पोरेट टूर', icon: '🏢', advance_percent: 50, can_pay_later: true },
-  { purpose: 'election_tour', label: 'Election Campaign / चुनाव प्रचार', icon: '🗳️', advance_percent: 100, can_pay_later: false },
-  { purpose: 'medical_emergency', label: 'Medical Emergency / मेडिकल', icon: '🏥', advance_percent: 100, can_pay_later: false },
-  { purpose: 'film_shooting', label: 'Film Shooting / फिल्म शूटिंग', icon: '🎬', advance_percent: 50, can_pay_later: true },
-  { purpose: 'general_tour', label: 'General Tour / सामान्य यात्रा', icon: '✈️', advance_percent: 50, can_pay_later: true },
-  { purpose: 'pilgrimage', label: 'Pilgrimage / तीर्थ यात्रा', icon: '🙏', advance_percent: 50, can_pay_later: true },
-  { purpose: 'business', label: 'Business Meeting / बिज़नेस', icon: '💼', advance_percent: 50, can_pay_later: true },
-  { purpose: 'other', label: 'Other / अन्य', icon: '📝', advance_percent: 100, can_pay_later: false },
+  { purpose: 'wedding', label: 'Wedding', icon: '💒', advance_percent: 50, can_pay_later: true },
+  { purpose: 'temple_yatra', label: 'Temple Yatra', icon: '🛕', advance_percent: 50, can_pay_later: true },
+  { purpose: 'company_tour', label: 'Corporate Tour', icon: '🏢', advance_percent: 50, can_pay_later: true },
+  { purpose: 'election_tour', label: 'Election Campaign', icon: '🗳️', advance_percent: 100, can_pay_later: false },
+  { purpose: 'medical_emergency', label: 'Medical Emergency', icon: '🏥', advance_percent: 100, can_pay_later: false },
+  { purpose: 'film_shooting', label: 'Film Shooting', icon: '🎬', advance_percent: 50, can_pay_later: true },
+  { purpose: 'general_tour', label: 'General Tour', icon: '✈️', advance_percent: 50, can_pay_later: true },
+  { purpose: 'pilgrimage', label: 'Pilgrimage', icon: '🙏', advance_percent: 50, can_pay_later: true },
+  { purpose: 'business', label: 'Business Meeting', icon: '💼', advance_percent: 50, can_pay_later: true },
+  { purpose: 'other', label: 'Other', icon: '📝', advance_percent: 100, can_pay_later: false },
 ];
 
 function PaymentSettings() {
@@ -74,7 +74,7 @@ function PaymentSettings() {
         payment_rules: paymentRules,
         global_settings: globalSettings,
       });
-      toast.success('✅ Payment settings saved! / भुगतान सेटिंग्स सहेजी गईं!');
+      toast.success('✅ Payment settings saved!');
     } catch (error) {
       toast.error('Failed to save settings');
     } finally {
@@ -97,8 +97,7 @@ function PaymentSettings() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <CreditCard className="h-6 w-6 text-orange-400" />
-            Payment Settings / भुगतान सेटिंग्स
-          </h2>
+            Payment Settings</h2>
           <p className="text-slate-400 text-sm mt-1">
             Configure advance payment percentages by booking purpose
           </p>
@@ -111,7 +110,7 @@ function PaymentSettings() {
 
       {/* Global Settings */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-lg font-semibold text-white mb-4">Global Settings / सामान्य सेटिंग्स</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Global Settings</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label className="text-slate-300">Default Advance %</Label>
@@ -165,8 +164,7 @@ function PaymentSettings() {
           Set advance payment % for each booking purpose. 100% means full payment required, 50% means half advance.
         </p>
         <p className="text-blue-300 text-sm mt-1">
-          प्रत्येक बुकिंग उद्देश्य के लिए अग्रिम भुगतान % सेट करें। 100% = पूरा भुगतान, 50% = आधा अग्रिम।
-        </p>
+==        </p>
       </div>
 
       {/* Payment Rules by Purpose */}
@@ -174,8 +172,7 @@ function PaymentSettings() {
         <div className="p-4 border-b border-slate-700">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <Plane className="h-5 w-5 text-orange-400" />
-            Payment Rules by Booking Purpose / बुकिंग उद्देश्य के अनुसार
-          </h3>
+            Payment Rules by Booking Purpose</h3>
         </div>
         
         <div className="divide-y divide-slate-700">
@@ -233,8 +230,7 @@ function PaymentSettings() {
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
           {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Save All Settings / सभी सेटिंग्स सहेजें
-        </Button>
+          Save All Settings</Button>
       </div>
     </div>
   );

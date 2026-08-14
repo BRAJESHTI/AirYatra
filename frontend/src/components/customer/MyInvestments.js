@@ -16,10 +16,10 @@ const STATUS_STYLES = {
 };
 
 const STATUS_LABELS = {
-  new: 'Under Review / समीक्षा में',
-  contacted: 'In Discussion / चर्चा में',
-  approved: 'Allocated ✅ / आवंटित',
-  rejected: 'Not Allocated / अस्वीकृत',
+  new: 'Under Review',
+  contacted: 'In Discussion',
+  approved: 'Allocated ✅',
+  rejected: 'Not Allocated',
 };
 
 export const MyInvestments = ({ user }) => {
@@ -47,7 +47,7 @@ export const MyInvestments = ({ user }) => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success('Certificate downloaded! / प्रमाणपत्र डाउनलोड हो गया');
+      toast.success('Certificate downloaded!');
     } catch (e) {
       toast.error('Failed to download certificate');
     } finally {
@@ -63,8 +63,7 @@ export const MyInvestments = ({ user }) => {
     <div className="max-w-5xl mx-auto space-y-6" data-testid="my-investments">
       <div>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <PieChart className="h-6 w-6 text-orange-500" /> My Investments / मेरा निवेश
-        </h1>
+          <PieChart className="h-6 w-6 text-orange-500" /> My Investments</h1>
         <p className="text-slate-400 text-sm">Your fractional aircraft ownership portfolio</p>
       </div>
 

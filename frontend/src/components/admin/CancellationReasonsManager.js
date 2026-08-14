@@ -60,7 +60,7 @@ function ReasonList({ audience, title, icon: Icon, color }) {
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addReason()}
-          placeholder="New reason add karein..."
+          placeholder="Add a new reason..."
           className="bg-slate-800 border-slate-700 text-white"
           data-testid={`add-reason-input-${audience}`}
         />
@@ -97,10 +97,9 @@ export default function CancellationReasonsManager() {
     <div data-testid="cancellation-reasons-manager">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-          <Ban className="h-7 w-7 text-red-400" /> Cancellation Reasons / रद्दीकरण कारण
-        </h1>
+          <Ban className="h-7 w-7 text-red-400" /> Cancellation Reasons</h1>
         <p className="text-slate-400 mt-1">
-          Customer aur Operator cancellation dropdowns ke reasons yahan manage karein (Admin/CEO only).
+          Manage the reasons shown in Customer and Operator cancellation dropdowns (Admin/CEO only).
         </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

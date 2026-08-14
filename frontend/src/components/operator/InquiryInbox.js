@@ -254,7 +254,6 @@ function InquiryInbox({ operator }) {
                             Flight only after all documents approved.
                           </p>
                           <p className="text-yellow-400/70 text-xs">
-                            ग्राहक को दस्तावेज़ अपलोड करने होंगे। सभी दस्तावेज़ स्वीकृत होने के बाद ही उड़ान।
                           </p>
                         </div>
                       </div>
@@ -362,7 +361,7 @@ function InquiryInbox({ operator }) {
                 <div className="bg-slate-800/80 border border-orange-500/30 rounded-lg p-4 space-y-1.5" data-testid="fee-breakdown">
                   <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Payout Breakdown (auto platform fee)</p>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-300">Aapka Payout (Your Earning)</span>
+                    <span className="text-slate-300">Your Payout (Earning)</span>
                     <span className="text-green-400 font-semibold" data-testid="fee-operator-payout">₹{feePreview.operator_payout.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">

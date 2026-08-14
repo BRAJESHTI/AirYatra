@@ -690,17 +690,17 @@ async def get_bookings_by_purpose(
     
     # Purpose labels mapping
     purpose_labels = {
-        "wedding": "💒 Wedding / शादी",
-        "temple_yatra": "🛕 Temple Yatra / मंदिर यात्रा",
-        "company_tour": "🏢 Company Tour / कंपनी टूर",
-        "election_tour": "🗳️ Election Tour / चुनाव टूर",
-        "general_tour": "✈️ General Tour / सामान्य यात्रा",
-        "medical_emergency": "🏥 Medical Emergency / मेडिकल इमरजेंसी",
-        "business_meeting": "💼 Business Meeting / बिज़नेस मीटिंग",
-        "pilgrimage": "🙏 Pilgrimage / तीर्थ यात्रा",
+        "wedding": "💒 Wedding",
+        "temple_yatra": "🛕 Temple Yatra",
+        "company_tour": "🏢 Company Tour",
+        "election_tour": "🗳️ Election Tour",
+        "general_tour": "✈️ General Tour",
+        "medical_emergency": "🏥 Medical Emergency",
+        "business_meeting": "💼 Business Meeting",
+        "pilgrimage": "🙏 Pilgrimage",
         "film_shooting": "🎬 Film/Media Shooting",
         "survey_inspection": "📋 Survey/Inspection",
-        "other": "📝 Other / अन्य",
+        "other": "📝 Other",
         None: "📝 Not Specified"
     }
     

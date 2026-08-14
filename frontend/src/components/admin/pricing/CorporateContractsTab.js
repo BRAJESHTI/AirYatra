@@ -22,13 +22,12 @@ export const CorporateContractsTab = ({
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Building2 className="h-5 w-5 text-purple-500" />
-          Corporate Contracts / कॉर्पोरेट अनुबंध
-        </CardTitle>
+          Corporate Contracts</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add New Contract */}
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <h4 className="text-white font-medium mb-3">Add New Contract / नया अनुबंध जोड़ें</h4>
+          <h4 className="text-white font-medium mb-3">Add New Contract</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <Label className="text-slate-400 text-sm">Contract ID</Label>

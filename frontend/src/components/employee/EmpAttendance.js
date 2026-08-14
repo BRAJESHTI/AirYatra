@@ -62,7 +62,7 @@ export const EmpAttendance = ({ onChanged }) => {
   };
 
   const checkInWithSelfie = async () => {
-    if (!selfieFile) return toast.error('Selfie zaroori hai / सेल्फी आवश्यक है');
+    if (!selfieFile) return toast.error('A selfie is required');
     setActing(true);
     try {
       const loc = await getLocation();
@@ -70,7 +70,7 @@ export const EmpAttendance = ({ onChanged }) => {
       const fd = new FormData();
       fd.append('file', selfieFile);
       await api.post(`/hr/attendance/${res.data.attendance_id}/selfie`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Check-in successful with selfie / सेल्फी के साथ चेक-इन सफल');
+      toast.success('Check-in successful with selfie');
       setSelfieOpen(false);
       setSelfieFile(null);
       await load();
@@ -89,31 +89,29 @@ export const EmpAttendance = ({ onChanged }) => {
 
   return (
     <div className="space-y-6" data-testid="emp-attendance">
-      <h1 className="text-2xl font-bold text-white">Attendance / उपस्थिति</h1>
+      <h1 className="text-2xl font-bold text-white">Attendance</h1>
 
       {todayHoliday && (
         <div className="bg-purple-500/15 border border-purple-500/40 rounded-xl p-4 text-white" data-testid="emp-holiday-banner">
-          🎉 Aaj company holiday hai: <b>{todayHoliday.name}</b> — check-in optional hai, yeh paid day hai
+          🎉 Today is a company holiday: <b>{todayHoliday.name}</b> — check-in is optional, this is a paid day
         </div>
       )}
 
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-slate-400 text-sm">Today / आज • {today}</p>
+          <p className="text-slate-400 text-sm">Today• {today}</p>
           <p className="text-white text-lg font-semibold">
-            {done ? `Done — ${todayRec.total_hours}h worked` : checkedIn ? `Checked in at ${new Date(todayRec.check_in_time).toLocaleTimeString()}` : 'Not checked in yet / अभी चेक-इन नहीं हुआ'}
+            {done ? `Done — ${todayRec.total_hours}h worked` : checkedIn ? `Checked in at ${new Date(todayRec.check_in_time).toLocaleTimeString()}` : 'Not checked in yet'}
           </p>
         </div>
         <div className="flex gap-3">
           {!todayRec && (
             <Button onClick={() => setSelfieOpen(true)} disabled={acting} className="bg-green-500 hover:bg-green-600" data-testid="check-in-btn">
-              <LogIn className="h-4 w-4 mr-2" /> Check In / चेक-इन
-            </Button>
+              <LogIn className="h-4 w-4 mr-2" /> Check In</Button>
           )}
           {checkedIn && (
             <Button onClick={() => mark('check-out')} disabled={acting} className="bg-orange-500 hover:bg-orange-600" data-testid="check-out-btn">
-              {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />} Check Out / चेक-आउट
-            </Button>
+              {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />} Check Out</Button>
           )}
           {done && <span className="px-3 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm">✓ Completed for today</span>}
         </div>
@@ -121,9 +119,9 @@ export const EmpAttendance = ({ onChanged }) => {
 
       <Dialog open={selfieOpen} onOpenChange={(v) => { setSelfieOpen(v); if (!v) setSelfieFile(null); }}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Camera className="h-5 w-5 text-green-400" />Check-in Selfie / चेक-इन सेल्फी</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Camera className="h-5 w-5 text-green-400" />Check-in Selfie</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-slate-400 text-sm">Verification ke liye ek quick selfie lein / सत्यापन के लिए सेल्फी लें</p>
+            <p className="text-slate-400 text-sm">Take a quick selfie for verification</p>
             <div>
               <Label className="text-slate-300">Selfie (camera) *</Label>
               <Input type="file" accept="image/*" capture="user" onChange={(e) => setSelfieFile(e.target.files[0])} className="bg-slate-800 border-slate-700 mt-1 file:text-slate-300" data-testid="selfie-input" />
@@ -132,8 +130,7 @@ export const EmpAttendance = ({ onChanged }) => {
               <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="h-32 w-32 object-cover rounded-lg border border-slate-700 mx-auto" data-testid="selfie-preview" />
             )}
             <Button onClick={checkInWithSelfie} disabled={acting || !selfieFile} className="w-full bg-green-500 hover:bg-green-600" data-testid="confirm-check-in-btn">
-              {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />}Confirm Check In / चेक-इन करें
-            </Button>
+              {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />}Confirm Check In</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -154,7 +151,7 @@ export const EmpAttendance = ({ onChanged }) => {
 
       {upcoming.length > 0 && (
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700" data-testid="upcoming-holidays-card">
-          <p className="text-purple-400 font-semibold text-sm mb-2">Upcoming Holidays / आने वाली छुट्टियां</p>
+          <p className="text-purple-400 font-semibold text-sm mb-2">Upcoming Holidays</p>
           <div className="flex flex-wrap gap-3">
             {upcoming.map((h) => (
               <span key={h.id} className="bg-purple-500/15 border border-purple-500/30 rounded-lg px-3 py-1.5 text-sm text-white">

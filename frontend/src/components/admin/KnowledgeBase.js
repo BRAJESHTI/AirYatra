@@ -267,7 +267,6 @@ function KnowledgeBase() {
                 </div>
                 <div>
                   <h3 className="text-white font-medium">{cat.name}</h3>
-                  <p className="text-slate-400 text-sm">{cat.name_hi}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-500" />

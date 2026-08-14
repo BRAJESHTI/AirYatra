@@ -76,7 +76,7 @@ function AdminDiscountCodes() {
         valid_from: new Date(formData.valid_from).toISOString(),
         valid_until: new Date(formData.valid_until).toISOString()
       });
-      toast.success('Discount code created! / डिस्काउंट कोड बना दिया!');
+      toast.success('Discount code created!');
       setShowCreate(false);
       resetForm();
       loadCodes();
@@ -102,7 +102,7 @@ function AdminDiscountCodes() {
   };
 
   const handleDelete = async (codeId) => {
-    if (!window.confirm('Delete this discount code? / यह कोड डिलीट करें?')) return;
+    if (!window.confirm('Delete this discount code?')) return;
     
     try {
       await referralAPI.deleteDiscountCode(codeId);
@@ -180,8 +180,7 @@ function AdminDiscountCodes() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Tag className="h-6 w-6 text-purple-400" />
-            Discount Codes / डिस्काउंट कोड
-          </h2>
+            Discount Codes</h2>
           <p className="text-slate-400 mt-1">Create and manage promo codes for customers</p>
         </div>
         <Button
@@ -270,7 +269,7 @@ function AdminDiscountCodes() {
             <div className="space-y-4">
               {/* Code */}
               <div>
-                <Label className="text-white">Code / कोड *</Label>
+                <Label className="text-white">Code*</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     value={formData.code}
@@ -290,7 +289,7 @@ function AdminDiscountCodes() {
               {/* Discount Type & Value */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Type / प्रकार</Label>
+                  <Label className="text-white">Type</Label>
                   <select
                     value={formData.discount_type}
                     onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value }))}
@@ -301,7 +300,7 @@ function AdminDiscountCodes() {
                   </select>
                 </div>
                 <div>
-                  <Label className="text-white">Value / मूल्य *</Label>
+                  <Label className="text-white">Value*</Label>
                   <div className="relative mt-1">
                     <Input
                       type="number"
@@ -319,7 +318,7 @@ function AdminDiscountCodes() {
               {/* Max Discount (for percent) */}
               {formData.discount_type === 'percent' && (
                 <div>
-                  <Label className="text-white">Max Discount Amount / अधिकतम छूट (₹)</Label>
+                  <Label className="text-white">Max Discount Amount</Label>
                   <Input
                     type="number"
                     value={formData.max_discount_amount}
@@ -333,7 +332,7 @@ function AdminDiscountCodes() {
               {/* Usage & Min Booking */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Max Uses / अधिकतम उपयोग</Label>
+                  <Label className="text-white">Max Uses</Label>
                   <Input
                     type="number"
                     value={formData.max_uses}
@@ -355,7 +354,7 @@ function AdminDiscountCodes() {
               {/* Validity Dates */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Valid From / से</Label>
+                  <Label className="text-white">Valid From</Label>
                   <Input
                     type="date"
                     value={formData.valid_from}
@@ -364,7 +363,7 @@ function AdminDiscountCodes() {
                   />
                 </div>
                 <div>
-                  <Label className="text-white">Valid Until / तक</Label>
+                  <Label className="text-white">Valid Until</Label>
                   <Input
                     type="date"
                     value={formData.valid_until}
@@ -376,7 +375,7 @@ function AdminDiscountCodes() {
 
               {/* Description */}
               <div>
-                <Label className="text-white">Description / विवरण</Label>
+                <Label className="text-white">Description</Label>
                 <Input
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -387,7 +386,7 @@ function AdminDiscountCodes() {
 
               {/* Active Toggle */}
               <div className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
-                <span className="text-white">Active / सक्रिय</span>
+                <span className="text-white">Active</span>
                 <button
                   onClick={() => setFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
                   className={`p-1 rounded-full ${formData.is_active ? 'bg-green-500' : 'bg-slate-600'}`}
@@ -402,7 +401,7 @@ function AdminDiscountCodes() {
 
               {/* Preview */}
               <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                <p className="text-purple-400 text-sm font-semibold mb-2">Preview / पूर्वावलोकन</p>
+                <p className="text-purple-400 text-sm font-semibold mb-2">Preview</p>
                 <p className="text-white">
                   Code: <span className="font-mono font-bold">{formData.code || 'XXXXXX'}</span>
                 </p>

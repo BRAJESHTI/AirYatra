@@ -224,8 +224,7 @@ function VerificationAPISettings() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-green-400" />
-            Verification API Settings / सत्यापन API सेटिंग्स
-          </h2>
+            Verification API Settings</h2>
           <p className="text-slate-400 mt-1">Configure government & third-party verification APIs</p>
         </div>
         <div className="flex gap-2">
@@ -275,7 +274,7 @@ function VerificationAPISettings() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-blue-400 mt-0.5" />
           <div>
-            <h4 className="text-blue-400 font-medium">API Integration Guide / API इंटीग्रेशन गाइड</h4>
+            <h4 className="text-blue-400 font-medium">API Integration Guide / API</h4>
             <p className="text-slate-300 text-sm mt-1">
               To enable real verification, you need API keys from providers like:
             </p>

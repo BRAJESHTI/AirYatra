@@ -23,13 +23,12 @@ export const RoutePricingTab = ({
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <MapPin className="h-5 w-5 text-blue-500" />
-          Route-Based Pricing / रूट-आधारित मूल्य
-        </CardTitle>
+          Route-Based Pricing</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add New Route */}
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <h4 className="text-white font-medium mb-3">Add New Route / नया रूट जोड़ें</h4>
+          <h4 className="text-white font-medium mb-3">Add New Route</h4>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div>
               <Label className="text-slate-400 text-sm">From City</Label>

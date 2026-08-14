@@ -59,8 +59,7 @@ export default function OperatorCancelBookings() {
     <div data-testid="operator-cancel-bookings">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-          <Ban className="h-7 w-7 text-red-400" /> Cancel Booking / बुकिंग रद्द करें
-        </h1>
+          <Ban className="h-7 w-7 text-red-400" /> Cancel Booking</h1>
         <p className="text-slate-400 mt-1">
           Operator cancellation requires a valid reason. Customer gets FULL refund after team approval.
         </p>
@@ -111,12 +110,12 @@ export default function OperatorCancelBookings() {
               Cancel Booking {selected?.booking_number || selected?.inquiry_number}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Valid reason select karna zaroori hai. Customer ko full refund team approval ke baad milega.
+              Selecting a valid reason is mandatory. The customer receives a full refund after team approval.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">
-              Operator cancellation par customer ko <b>100% FULL refund</b> milega (team approval ke baad). Valid reason dena zaroori hai.
+              On operator cancellation the customer gets a <b>100% FULL refund</b> (after team approval). A valid reason is mandatory.
             </div>
             <div>
               <label className="block text-sm text-slate-400 mb-2">Cancellation Reason * (mandatory)</label>

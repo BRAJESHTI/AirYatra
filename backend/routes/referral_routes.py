@@ -171,7 +171,7 @@ async def apply_referral_code(
         settings = ReferralSettings().dict()
     
     return {
-        "message": "Referral code applied successfully! / रेफरल कोड लागू हो गया!",
+        "message": "Referral code applied successfully!",
         "first_booking_discount": settings.get("first_booking_discount_percent", 10),
         "referrer_name": referral.get("user_name", "A friend")
     }
@@ -307,7 +307,7 @@ async def _send_referral_bonus_email(email_service, referrer_email: str, referre
                 <p>Great news! Your friend <strong>{referred_name}</strong> just completed their first booking on AirYatra!</p>
                 
                 <div class="bonus-card">
-                    <p style="margin:0; color: #94a3b8;">Bonus Earned / बोनस</p>
+                    <p style="margin:0; color: #94a3b8;">Bonus Earned</p>
                     <div class="bonus-amount">+₹{int(bonus_amount)}</div>
                     <p class="balance">Wallet Balance: ₹{int(new_balance)}</p>
                 </div>
@@ -556,29 +556,29 @@ async def validate_discount_code(
     )
     
     if not discount:
-        raise HTTPException(status_code=404, detail="Invalid discount code / अमान्य डिस्काउंट कोड")
+        raise HTTPException(status_code=404, detail="Invalid discount code")
     
     # Check if active
     if not discount.get("is_active"):
-        raise HTTPException(status_code=400, detail="Discount code is inactive / डिस्काउंट कोड निष्क्रिय है")
+        raise HTTPException(status_code=400, detail="Discount code is inactive")
     
     # Check validity dates
     now = datetime.now(timezone.utc).isoformat()
     if discount.get("valid_from") and now < discount["valid_from"]:
-        raise HTTPException(status_code=400, detail="Discount code not yet valid / डिस्काउंट कोड अभी मान्य नहीं है")
+        raise HTTPException(status_code=400, detail="Discount code not yet valid")
     
     if discount.get("valid_until") and now > discount["valid_until"]:
-        raise HTTPException(status_code=400, detail="Discount code has expired / डिस्काउंट कोड समाप्त हो गया")
+        raise HTTPException(status_code=400, detail="Discount code has expired")
     
     # Check usage limit
     if discount.get("times_used", 0) >= discount.get("max_uses", 100):
-        raise HTTPException(status_code=400, detail="Discount code usage limit reached / उपयोग सीमा पूरी हो गई")
+        raise HTTPException(status_code=400, detail="Discount code usage limit reached")
     
     # Check minimum booking amount
     if booking_amount < discount.get("min_booking_amount", 0):
         raise HTTPException(
             status_code=400, 
-            detail=f"Minimum booking amount is ₹{discount.get('min_booking_amount')} / न्यूनतम बुकिंग राशि ₹{discount.get('min_booking_amount')}"
+            detail=f"Minimum booking amount is ₹{discount.get('min_booking_amount')}{discount.get('min_booking_amount')}"
         )
     
     # Check applicable purposes
@@ -600,7 +600,7 @@ async def validate_discount_code(
         "discount_value": discount["discount_value"],
         "discount_amount": round(discount_amount, 2),
         "description": discount.get("description", ""),
-        "message": f"Discount of ₹{round(discount_amount, 2)} applied! / ₹{round(discount_amount, 2)} की छूट लागू!"
+        "message": f"Discount of ₹{round(discount_amount, 2)} applied!"
     }
 
 
@@ -640,7 +640,7 @@ async def update_referral_settings(
         upsert=True
     )
     
-    return {"message": "Referral settings updated / रेफरल सेटिंग्स अपडेट हो गईं"}
+    return {"message": "Referral settings updated"}
 
 
 @router.get("/settings/public")
@@ -774,9 +774,9 @@ async def get_referral_leaderboard(
         "total_participants": len(leaderboard),
         "current_user": current_user_rank,
         "rewards_info": {
-            "gold": {"rank": 1, "bonus": 1000, "label": "Gold / स्वर्ण"},
-            "silver": {"rank": 2, "bonus": 500, "label": "Silver / रजत"},
-            "bronze": {"rank": 3, "bonus": 250, "label": "Bronze / कांस्य"}
+            "gold": {"rank": 1, "bonus": 1000, "label": "Gold"},
+            "silver": {"rank": 2, "bonus": 500, "label": "Silver"},
+            "bronze": {"rank": 3, "bonus": 250, "label": "Bronze"}
         }
     }
 

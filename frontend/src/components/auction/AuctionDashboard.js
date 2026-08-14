@@ -137,7 +137,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
       {/* Route */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">From / कहाँ से *</Label>
+          <Label className="text-white">From*</Label>
           <Input
             value={formData.origin}
             onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
@@ -147,7 +147,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
           />
         </div>
         <div>
-          <Label className="text-white">To / कहाँ तक *</Label>
+          <Label className="text-white">To*</Label>
           <Input
             value={formData.destination}
             onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
@@ -161,7 +161,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
       {/* Date & Time */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Travel Date / यात्रा तिथि *</Label>
+          <Label className="text-white">Travel Date*</Label>
           <Input
             type="date"
             value={formData.travel_date}
@@ -172,7 +172,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
           />
         </div>
         <div>
-          <Label className="text-white">Preferred Time / समय</Label>
+          <Label className="text-white">Preferred Time</Label>
           <Input
             type="time"
             value={formData.travel_time}
@@ -185,7 +185,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
       {/* Passengers & Aircraft */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Passengers / यात्री *</Label>
+          <Label className="text-white">Passengers*</Label>
           <Input
             type="number"
             min="1"
@@ -197,16 +197,16 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
           />
         </div>
         <div>
-          <Label className="text-white">Aircraft Type / विमान प्रकार</Label>
+          <Label className="text-white">Aircraft Type</Label>
           <select
             value={formData.aircraft_category}
             onChange={(e) => setFormData({ ...formData, aircraft_category: e.target.value })}
             className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
           >
-            <option value="helicopter">Helicopter / हेलीकॉप्टर</option>
-            <option value="light_jet">Light Jet / लाइट जेट</option>
-            <option value="mid_jet">Mid Jet / मिड जेट</option>
-            <option value="heavy_jet">Heavy Jet / हैवी जेट</option>
+            <option value="helicopter">Helicopter</option>
+            <option value="light_jet">Light Jet</option>
+            <option value="mid_jet">Mid Jet</option>
+            <option value="heavy_jet">Heavy Jet</option>
           </select>
         </div>
       </div>
@@ -214,7 +214,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
       {/* Contact */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Contact Name / नाम *</Label>
+          <Label className="text-white">Contact Name*</Label>
           <Input
             value={formData.contact_name}
             onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
@@ -223,7 +223,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
           />
         </div>
         <div>
-          <Label className="text-white">Phone / फ़ोन *</Label>
+          <Label className="text-white">Phone*</Label>
           <Input
             value={formData.contact_phone}
             onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
@@ -237,7 +237,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
       {/* Auction Settings */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Auction Duration / समय सीमा</Label>
+          <Label className="text-white">Auction Duration</Label>
           <select
             value={formData.auction_duration_minutes}
             onChange={(e) => setFormData({ ...formData, auction_duration_minutes: e.target.value })}
@@ -251,7 +251,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
           </select>
         </div>
         <div>
-          <Label className="text-white">Max Budget / बजट (Optional)</Label>
+          <Label className="text-white">Max BudgetOptional)</Label>
           <Input
             type="number"
             value={formData.max_budget}
@@ -273,7 +273,7 @@ export const CreateAuctionForm = ({ onSuccess, onCancel }) => {
           {loading ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>
           ) : (
-            <><Gavel className="h-4 w-4 mr-2" /> Start Auction / नीलामी शुरू करें</>
+            <><Gavel className="h-4 w-4 mr-2" /> Start Auction</>
           )}
         </Button>
         {onCancel && (
@@ -344,8 +344,7 @@ export const CustomerAuctions = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Gavel className="h-6 w-6 text-orange-400" />
-            My Auctions / मेरी नीलामियाँ
-          </h2>
+            My Auctions</h2>
           <p className="text-slate-400 text-sm mt-1">
             Live reverse auctions for custom routes
           </p>
@@ -370,8 +369,7 @@ export const CustomerAuctions = () => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Gavel className="h-5 w-5 text-orange-400" />
-              Create New Auction / नई नीलामी बनाएं
-            </CardTitle>
+              Create New Auction</CardTitle>
             <CardDescription>
               Get competitive quotes from multiple operators
             </CardDescription>
@@ -812,8 +810,7 @@ export const OperatorAuctions = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Gavel className="h-6 w-6 text-orange-400" />
-            Live Auctions / लाइव नीलामियाँ
-          </h2>
+            Live Auctions</h2>
           <p className="text-slate-400 text-sm mt-1">
             Submit competitive quotes to win bookings
           </p>

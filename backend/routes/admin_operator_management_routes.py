@@ -136,7 +136,7 @@ async def suspend_operator(
         "id": str(uuid4()),
         "user_id": operator["user_id"],
         "type": "operator_suspended",
-        "title": "Account Suspended / खाता निलंबित",
+        "title": "Account Suspended",
         "message": f"Your operator account has been suspended. Reason: {reason}",
         "data": {"suspension_type": suspension_type, "end_date": suspension_end},
         "read": False,
@@ -216,7 +216,7 @@ async def activate_operator(
         "id": str(uuid4()),
         "user_id": operator["user_id"],
         "type": "operator_activated",
-        "title": "Account Reactivated / खाता पुनः सक्रिय",
+        "title": "Account Reactivated",
         "message": "Your operator account has been reactivated. You can now accept bookings.",
         "read": False,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -366,7 +366,7 @@ async def approve_operator_onboarding(
         "id": str(uuid4()),
         "user_id": operator["user_id"],
         "type": "onboarding_approved",
-        "title": "Welcome to AirYatra! / AirYatra में आपका स्वागत है!",
+        "title": "Welcome to AirYatra!",
         "message": "Your operator account has been approved. Start adding your fleet!",
         "read": False,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -408,7 +408,7 @@ async def reject_operator_onboarding(
         "id": str(uuid4()),
         "user_id": operator["user_id"],
         "type": "onboarding_rejected",
-        "title": "Application Rejected / आवेदन अस्वीकृत",
+        "title": "Application Rejected",
         "message": f"Your operator application was rejected. Reason: {reason}",
         "read": False,
         "created_at": datetime.now(timezone.utc).isoformat()

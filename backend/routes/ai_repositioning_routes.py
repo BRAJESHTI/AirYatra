@@ -329,7 +329,7 @@ async def book_fixed_route(
     
     return {
         "success": True,
-        "message": "Booking confirmed! / बुकिंग कन्फर्म!",
+        "message": "Booking confirmed!",
         "booking": booking,
         "payment_required": True,
         "payment_amount": total_price
@@ -903,7 +903,7 @@ async def update_notification_settings(
         upsert=True
     )
     
-    return {"success": True, "message": "Notification settings updated / सूचना सेटिंग अपडेट"}
+    return {"success": True, "message": "Notification settings updated"}
 
 
 @router.get("/notifications/logs")

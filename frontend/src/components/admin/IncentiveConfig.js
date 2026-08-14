@@ -70,7 +70,7 @@ function IncentiveConfig() {
     setSaving(true);
     try {
       await api.post('/hr/incentive-config', config);
-      toast.success('Incentive configuration saved! / इंसेंटिव कॉन्फ़िगरेशन सेव हो गया!');
+      toast.success('Incentive configuration saved!');
     } catch (error) {
       toast.error('Failed to save configuration');
     } finally {
@@ -123,8 +123,7 @@ function IncentiveConfig() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Gift className="h-6 w-6 text-green-400" />
-            Incentive Management / इंसेंटिव प्रबंधन
-          </h2>
+            Incentive Management</h2>
           <p className="text-slate-400 mt-1">
             Configure sales team incentives and bonuses
           </p>
@@ -184,7 +183,7 @@ function IncentiveConfig() {
                   <Users className="h-5 w-5 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Per Lead Incentive / लीड पर इंसेंटिव</h3>
+                  <h3 className="text-white font-semibold">Per Lead Incentive</h3>
                   <p className="text-slate-400 text-sm">Bonus for each new lead captured</p>
                 </div>
               </div>
@@ -232,7 +231,7 @@ function IncentiveConfig() {
                   <TrendingUp className="h-5 w-5 text-green-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Per Conversion Incentive / कन्वर्ज़न पर इंसेंटिव</h3>
+                  <h3 className="text-white font-semibold">Per Conversion Incentive</h3>
                   <p className="text-slate-400 text-sm">Bonus for each lead converted to booking</p>
                 </div>
               </div>
@@ -279,7 +278,7 @@ function IncentiveConfig() {
                   <Percent className="h-5 w-5 text-purple-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Revenue Percentage / रेवेन्यू परसेंटेज</h3>
+                  <h3 className="text-white font-semibold">Revenue Percentage</h3>
                   <p className="text-slate-400 text-sm">Percentage of monthly revenue as incentive</p>
                 </div>
               </div>
@@ -327,7 +326,7 @@ function IncentiveConfig() {
                   <Target className="h-5 w-5 text-orange-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Target Achievement Bonus / टारगेट अचीवमेंट बोनस</h3>
+                  <h3 className="text-white font-semibold">Target Achievement Bonus</h3>
                   <p className="text-slate-400 text-sm">Slab-based bonus on target achievement</p>
                 </div>
               </div>

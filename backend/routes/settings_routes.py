@@ -34,28 +34,24 @@ class PricingSettings(BaseModel):
     insurance_percentage_rate: float = 0.00001  # 0.00001% of coverage
 
 class FlightTypePricingSettings(BaseModel):
-    """Flight Type Pricing / उड़ान प्रकार मूल्य निर्धारण"""
+    """Flight Type Pricing"""
     # 1 Hour Flight / 1 घंटे की उड़ान
     one_hour_flight_price: float = 75000.0
     one_hour_flight_enabled: bool = True
     # 2 Hour Flight / 2 घंटे की उड़ान
     two_hour_flight_price: float = 140000.0
     two_hour_flight_enabled: bool = True
-    # Half Day Booking / आधे दिन की बुकिंग
-    half_day_price: float = 250000.0
+    # Half Day Booking    half_day_price: float = 250000.0
     half_day_duration_hours: int = 4
     half_day_enabled: bool = True
-    # Full Day Single City / पूरे दिन - एक शहर से दूसरे शहर
-    full_day_single_price: float = 450000.0
+    # Full Day Single City    full_day_single_price: float = 450000.0
     full_day_single_duration_hours: int = 8
     full_day_single_enabled: bool = True
-    # Full Day Multiple Locations / पूरे दिन - मल्टीपल लोकेशन
-    full_day_multi_base_price: float = 500000.0
+    # Full Day Multiple Locations    full_day_multi_base_price: float = 500000.0
     full_day_multi_per_stop_price: float = 50000.0
     full_day_multi_max_stops: int = 5
     full_day_multi_enabled: bool = True
-    # Point to Point / पॉइंट टू पॉइंट
-    point_to_point_base_price: float = 50000.0
+    # Point to Point    point_to_point_base_price: float = 50000.0
     point_to_point_rate_per_km: float = 800.0
     point_to_point_enabled: bool = True
 
@@ -488,7 +484,7 @@ async def get_flight_type_pricing(
     if pricing.get("one_hour_flight_enabled", True):
         flight_types.append({
             "id": "one_hour",
-            "name": "1 घंटे की उड़ान",
+            "name": "1 Hour Flight",
             "name_en": "1 Hour Flight",
             "description": "1 hour helicopter ride within city limits",
             "description_hi": "शहर की सीमा के भीतर 1 घंटे की हेलीकॉप्टर सवारी",
@@ -501,7 +497,7 @@ async def get_flight_type_pricing(
     if pricing.get("two_hour_flight_enabled", True):
         flight_types.append({
             "id": "two_hour",
-            "name": "2 घंटे की उड़ान",
+            "name": "2 Hour Flight",
             "name_en": "2 Hour Flight",
             "description": "2 hour helicopter ride for extended tours",
             "description_hi": "विस्तारित टूर के लिए 2 घंटे की हेलीकॉप्टर सवारी",
@@ -514,7 +510,7 @@ async def get_flight_type_pricing(
     if pricing.get("half_day_enabled", True):
         flight_types.append({
             "id": "half_day",
-            "name": "Half-Day बुकिंग",
+            "name": "Half-Day Booking",
             "name_en": "Half Day Booking",
             "description": f"{pricing.get('half_day_duration_hours', 4)} hours - Multiple short trips",
             "description_hi": f"{pricing.get('half_day_duration_hours', 4)} घंटे - कई छोटी यात्राएं",
@@ -527,7 +523,7 @@ async def get_flight_type_pricing(
     if pricing.get("full_day_single_enabled", True):
         flight_types.append({
             "id": "full_day_single",
-            "name": "Full-Day उड़ान (Single City)",
+            "name": "Full-Day Flight (Single City)",
             "name_en": "Full Day Flight - Single City to City",
             "description": f"{pricing.get('full_day_single_duration_hours', 8)} hours - One city to another city",
             "description_hi": f"{pricing.get('full_day_single_duration_hours', 8)} घंटे - एक शहर से दूसरे शहर",
@@ -540,7 +536,7 @@ async def get_flight_type_pricing(
     if pricing.get("full_day_multi_enabled", True):
         flight_types.append({
             "id": "full_day_multi",
-            "name": "Full-Day मल्टीपल लोकेशन",
+            "name": "Full-Day Multiple Locations",
             "name_en": "Full Day - Multiple Locations",
             "description": f"Visit up to {pricing.get('full_day_multi_max_stops', 5)} locations in one day",
             "description_hi": f"एक दिन में {pricing.get('full_day_multi_max_stops', 5)} स्थानों तक जाएं",
@@ -554,7 +550,7 @@ async def get_flight_type_pricing(
     if pricing.get("point_to_point_enabled", True):
         flight_types.append({
             "id": "point_to_point",
-            "name": "Point-to-Point उड़ान",
+            "name": "Point-to-Point Flight",
             "name_en": "Point to Point Flight",
             "description": "Direct flight from pickup to drop location",
             "description_hi": "पिकअप से ड्रॉप लोकेशन तक सीधी उड़ान",
@@ -617,16 +613,16 @@ async def update_flight_type_pricing(
 # ============== PAYMENT RULES BY PURPOSE ==============
 
 DEFAULT_PAYMENT_RULES = [
-    {"purpose": "wedding", "label": "Wedding / शादी", "icon": "💒", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "temple_yatra", "label": "Temple Yatra / मंदिर यात्रा", "icon": "🛕", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "company_tour", "label": "Corporate Tour / कॉर्पोरेट टूर", "icon": "🏢", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "election_tour", "label": "Election Campaign / चुनाव प्रचार", "icon": "🗳️", "advance_percent": 100, "can_pay_later": False},
-    {"purpose": "medical_emergency", "label": "Medical Emergency / मेडिकल", "icon": "🏥", "advance_percent": 100, "can_pay_later": False},
-    {"purpose": "film_shooting", "label": "Film Shooting / फिल्म शूटिंग", "icon": "🎬", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "general_tour", "label": "General Tour / सामान्य यात्रा", "icon": "✈️", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "pilgrimage", "label": "Pilgrimage / तीर्थ यात्रा", "icon": "🙏", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "business", "label": "Business Meeting / बिज़नेस", "icon": "💼", "advance_percent": 50, "can_pay_later": True},
-    {"purpose": "other", "label": "Other / अन्य", "icon": "📝", "advance_percent": 100, "can_pay_later": False},
+    {"purpose": "wedding", "label": "Wedding", "icon": "💒", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "temple_yatra", "label": "Temple Yatra", "icon": "🛕", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "company_tour", "label": "Corporate Tour", "icon": "🏢", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "election_tour", "label": "Election Campaign", "icon": "🗳️", "advance_percent": 100, "can_pay_later": False},
+    {"purpose": "medical_emergency", "label": "Medical Emergency", "icon": "🏥", "advance_percent": 100, "can_pay_later": False},
+    {"purpose": "film_shooting", "label": "Film Shooting", "icon": "🎬", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "general_tour", "label": "General Tour", "icon": "✈️", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "pilgrimage", "label": "Pilgrimage", "icon": "🙏", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "business", "label": "Business Meeting", "icon": "💼", "advance_percent": 50, "can_pay_later": True},
+    {"purpose": "other", "label": "Other", "icon": "📝", "advance_percent": 100, "can_pay_later": False},
 ]
 
 DEFAULT_GLOBAL_PAYMENT_SETTINGS = {
@@ -704,7 +700,7 @@ async def update_payment_rules(
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    return {"message": "Payment rules updated successfully / भुगतान नियम अपडेट हो गए", "settings": settings_data}
+    return {"message": "Payment rules updated successfully", "settings": settings_data}
 # ==================== CALL RECORDING SETTINGS ====================
 
 @router.get("/call-recording")
@@ -790,4 +786,4 @@ async def update_call_recording_settings(
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    return {"message": "Call recording settings saved / कॉल रिकॉर्डिंग सेटिंग्स सेव हो गईं"}
+    return {"message": "Call recording settings saved"}

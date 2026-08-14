@@ -7,13 +7,13 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 
 const STATUS_BADGES = {
-  open: { label: 'Open / खुला', color: 'bg-blue-500/20 text-blue-400 border-blue-500/40', icon: AlertCircle },
+  open: { label: 'Open', color: 'bg-blue-500/20 text-blue-400 border-blue-500/40', icon: AlertCircle },
   operator_response_pending: { label: 'Awaiting Operator', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', icon: Clock },
   under_investigation: { label: 'Under Investigation', color: 'bg-purple-500/20 text-purple-400 border-purple-500/40', icon: Scale },
-  resolved_upheld: { label: 'Upheld / मान्य', color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: CheckCircle2 },
-  resolved_dismissed: { label: 'Dismissed / खारिज', color: 'bg-slate-500/20 text-slate-400 border-slate-500/40', icon: XCircle },
-  resolved_partial: { label: 'Partial / आंशिक', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40', icon: AlertTriangle },
-  closed: { label: 'Closed / बंद', color: 'bg-slate-500/20 text-slate-400 border-slate-500/40', icon: CheckCircle2 },
+  resolved_upheld: { label: 'Upheld', color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: CheckCircle2 },
+  resolved_dismissed: { label: 'Dismissed', color: 'bg-slate-500/20 text-slate-400 border-slate-500/40', icon: XCircle },
+  resolved_partial: { label: 'Partial', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40', icon: AlertTriangle },
+  closed: { label: 'Closed', color: 'bg-slate-500/20 text-slate-400 border-slate-500/40', icon: CheckCircle2 },
 };
 
 const SEVERITY_BADGES = {
@@ -117,8 +117,7 @@ export default function MyComplaints({ user }) {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Flag className="h-6 w-6 text-orange-400" />
-            My Complaints / मेरी शिकायतें
-          </h1>
+            My Complaints</h1>
           <p className="text-slate-400 text-sm mt-1">Track your filed complaints and their status</p>
         </div>
         <Button onClick={loadComplaints} variant="outline" className="border-slate-600 text-slate-300">
@@ -300,8 +299,7 @@ export default function MyComplaints({ user }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Flag className="h-5 w-5 text-orange-400" />
-              Complaint Details / शिकायत विवरण
-            </DialogTitle>
+              Complaint Details</DialogTitle>
           </DialogHeader>
           
           {selectedComplaint && (
@@ -320,17 +318,17 @@ export default function MyComplaints({ user }) {
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-slate-400">Category / श्रेणी</p>
+                  <p className="text-xs text-slate-400">Category</p>
                   <p className="text-white">{CATEGORY_LABELS[selectedComplaint.category] || selectedComplaint.category}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">Severity / गंभीरता</p>
+                  <p className="text-xs text-slate-400">Severity</p>
                   <p className={SEVERITY_BADGES[selectedComplaint.severity]?.color || 'text-white'}>
                     {selectedComplaint.severity?.charAt(0).toUpperCase() + selectedComplaint.severity?.slice(1)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">Filed On / दर्ज तारीख</p>
+                  <p className="text-xs text-slate-400">Filed On</p>
                   <p className="text-white">{formatDate(selectedComplaint.created_at)}</p>
                 </div>
                 <div>
@@ -341,18 +339,18 @@ export default function MyComplaints({ user }) {
               
               {/* Subject & Description */}
               <div>
-                <p className="text-xs text-slate-400 mb-1">Subject / विषय</p>
+                <p className="text-xs text-slate-400 mb-1">Subject</p>
                 <p className="text-white font-medium">{selectedComplaint.subject}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400 mb-1">Description / विवरण</p>
+                <p className="text-xs text-slate-400 mb-1">Description</p>
                 <p className="text-slate-300 text-sm whitespace-pre-wrap">{selectedComplaint.description}</p>
               </div>
               
               {/* Evidence */}
               {selectedComplaint.evidence_files?.length > 0 && (
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">Evidence Attached / सबूत</p>
+                  <p className="text-xs text-slate-400 mb-2">Evidence Attached</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedComplaint.evidence_files.map((file, idx) => (
                       <span key={idx} className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300">
@@ -366,7 +364,7 @@ export default function MyComplaints({ user }) {
               
               {/* Timeline */}
               <div className="pt-4 border-t border-slate-700">
-                <p className="text-xs text-slate-400 mb-3">Timeline / समयरेखा</p>
+                <p className="text-xs text-slate-400 mb-3">Timeline</p>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5" />
@@ -431,7 +429,7 @@ export default function MyComplaints({ user }) {
               
               {/* Help Section */}
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <p className="text-sm text-blue-400 font-medium mb-1">Need Help? / मदद चाहिए?</p>
+                <p className="text-sm text-blue-400 font-medium mb-1">Need Help?</p>
                 <p className="text-xs text-slate-400">
                   AirYatra investigates all complaints independently. Decisions are final with no appeal.
                 </p>

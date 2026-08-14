@@ -78,8 +78,7 @@ export default function GSTReports() {
       <div className="mb-6 flex items-end justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <Receipt className="h-7 w-7 text-orange-400" /> GST/TDS Reports / जीएसटी रिपोर्ट
-          </h1>
+            <Receipt className="h-7 w-7 text-orange-400" /> GST/TDS Reports</h1>
           <p className="text-slate-400 mt-1">Monthly bookings & refunds with invoice, GST @{s?.gst_rate ?? 5}% and TDS @{s?.tds_rate ?? 1}% — Excel/PDF download.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -165,7 +164,7 @@ export default function GSTReports() {
                 </thead>
                 <tbody>
                   {data.monthly_breakdown.length === 0 ? (
-                    <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">Is FY me koi data nahi</td></tr>
+                    <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No data for this financial year</td></tr>
                   ) : data.monthly_breakdown.map((b) => (
                     <tr key={b.month} className="border-b border-slate-800 text-slate-200">
                       <td className="px-3 py-2 text-orange-300">{b.month}</td>
@@ -194,7 +193,7 @@ export default function GSTReports() {
               </thead>
               <tbody>
                 {data.bookings.length === 0 ? (
-                  <tr><td colSpan={11} className="px-3 py-8 text-center text-slate-500">Is month me koi booking nahi</td></tr>
+                  <tr><td colSpan={11} className="px-3 py-8 text-center text-slate-500">No bookings for this month</td></tr>
                 ) : data.bookings.map((r, i) => (
                   <tr key={i} className="border-b border-slate-800 text-slate-200">
                     <td className="px-3 py-2 whitespace-nowrap">{r.client_name}</td>
@@ -232,7 +231,7 @@ export default function GSTReports() {
               </thead>
               <tbody>
                 {data.refunds.length === 0 ? (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500">Is month me koi approved refund nahi</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500">No approved refunds for this month</td></tr>
                 ) : data.refunds.map((r, i) => (
                   <tr key={i} className="border-b border-slate-800 text-slate-200">
                     <td className="px-3 py-2 whitespace-nowrap">{r.refund_id}</td>

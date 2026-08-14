@@ -454,7 +454,7 @@ async def respond_to_quote(
         
         return {
             "status": "success",
-            "message": "Quote accepted! / कोट स्वीकार! Now fill passenger details.",
+            "message": "Quote accepted!Now fill passenger details.",
             "amount": quote["amount"],
             "operator_name": quote.get("operator_name"),
             "next_step": "fill_passenger_details"
@@ -475,7 +475,7 @@ async def respond_to_quote(
         
         return {
             "status": "success",
-            "message": "Quote rejected / कोट अस्वीकार"
+            "message": "Quote rejected"
         }
     
     else:
@@ -591,7 +591,7 @@ async def submit_passenger_details(
     
     return {
         "success": True,
-        "message": "Passenger details saved! / यात्री विवरण सहेजा गया!",
+        "message": "Passenger details saved!",
         "next_step": "payment",
         "advance_percent": advance_percent,
         "total_amount": inquiry.get("estimated_price", 0),
@@ -773,56 +773,56 @@ async def get_route_suggestions(
         {
             "from": "Mumbai", "to": "Shirdi", "price_range": "₹75,000 - ₹95,000",
             "duration": "45 mins", "purpose": "pilgrimage", "popularity": 95,
-            "description": "Most popular religious route / सबसे लोकप्रिय धार्मिक मार्ग",
+            "description": "Most popular religious route",
             "best_time": "Morning",
             "aircraft": "Helicopter"
         },
         {
             "from": "Mumbai", "to": "Pune", "price_range": "₹55,000 - ₹75,000",
             "duration": "25 mins", "purpose": "business", "popularity": 88,
-            "description": "Corporate shuttle route / कॉर्पोरेट शटल मार्ग",
+            "description": "Corporate shuttle route",
             "best_time": "Weekday Morning",
             "aircraft": "Helicopter"
         },
         {
             "from": "Delhi", "to": "Agra", "price_range": "₹85,000 - ₹1,10,000",
             "duration": "35 mins", "purpose": "tourism", "popularity": 85,
-            "description": "Taj Mahal aerial view / ताजमहल हवाई दृश्य",
+            "description": "Taj Mahal aerial view",
             "best_time": "Sunrise",
             "aircraft": "Helicopter"
         },
         {
             "from": "Bangalore", "to": "Coorg", "price_range": "₹65,000 - ₹85,000",
             "duration": "40 mins", "purpose": "leisure", "popularity": 78,
-            "description": "Weekend getaway / सप्ताहांत यात्रा",
+            "description": "Weekend getaway",
             "best_time": "Morning",
             "aircraft": "Helicopter"
         },
         {
             "from": "Chennai", "to": "Tirupati", "price_range": "₹60,000 - ₹80,000",
             "duration": "35 mins", "purpose": "pilgrimage", "popularity": 82,
-            "description": "Temple visit / मंदिर दर्शन",
+            "description": "Temple visit",
             "best_time": "Early Morning",
             "aircraft": "Helicopter"
         },
         {
             "from": "Ahmedabad", "to": "Statue of Unity", "price_range": "₹70,000 - ₹90,000",
             "duration": "30 mins", "purpose": "tourism", "popularity": 75,
-            "description": "Iconic landmark / प्रतिष्ठित स्थल",
+            "description": "Iconic landmark",
             "best_time": "Afternoon",
             "aircraft": "Helicopter"
         },
         {
             "from": "Mumbai", "to": "Lonavala", "price_range": "₹45,000 - ₹60,000",
             "duration": "15 mins", "purpose": "leisure", "popularity": 72,
-            "description": "Hill station escape / हिल स्टेशन",
+            "description": "Hill station escape",
             "best_time": "Monsoon/Winter",
             "aircraft": "Helicopter"
         },
         {
             "from": "Hyderabad", "to": "Warangal", "price_range": "₹55,000 - ₹70,000",
             "duration": "30 mins", "purpose": "heritage", "popularity": 65,
-            "description": "Heritage tour / विरासत यात्रा",
+            "description": "Heritage tour",
             "best_time": "Morning",
             "aircraft": "Helicopter"
         }
@@ -875,21 +875,21 @@ async def get_route_suggestions(
     
     if current_month in [10, 11]:  # Diwali season
         seasonal_suggestion = {
-            "title": "Diwali Special / दिवाली स्पेशल",
+            "title": "Diwali Special",
             "description": "Book helicopter for Shirdi darshan during Diwali",
             "route": {"from": "Mumbai", "to": "Shirdi"},
             "discount": "10% off with code DIWALI10"
         }
     elif current_month in [12, 1, 2]:  # Wedding season
         seasonal_suggestion = {
-            "title": "Wedding Season / शादी सीजन",
+            "title": "Wedding Season",
             "description": "Grand entry by helicopter for your special day",
             "type": "wedding",
             "discount": "Special wedding packages available"
         }
     elif current_month in [4, 5, 6]:  # Summer holidays
         seasonal_suggestion = {
-            "title": "Summer Escape / गर्मी की छुट्टी",
+            "title": "Summer Escape",
             "description": "Escape to hill stations by helicopter",
             "route": {"from": "Any City", "to": "Hill Stations"},
             "discount": "Family packages available"
@@ -905,7 +905,7 @@ async def get_route_suggestions(
             "visited_cities": list(user_cities)[:5],
             "total_bookings": len(user_bookings)
         },
-        "booking_tip": "Book 7+ days in advance for best prices / बेहतर कीमत के लिए 7+ दिन पहले बुक करें"
+        "booking_tip": "Book 7+ days in advance for best prices"
     }
 
 

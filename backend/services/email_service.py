@@ -69,7 +69,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ customer_name }}</strong>,</p>
-            <p>Aapki helicopter booking inquiry successfully submit ho gayi hai. Humare operators jald hi aapse contact karenge.</p>
+            <p>Your helicopter booking inquiry has been submitted successfully. Our operators will contact you shortly.</p>
             
             <div class="info-box">
                 <h3 style="margin-top:0; color:#f97316;">📋 Inquiry Details</h3>
@@ -112,9 +112,9 @@ EMAIL_TEMPLATES = {
             </div>
             
             <div class="price-box">
-                <p style="margin:0 0 5px; opacity:0.9;">Estimated Price / अनुमानित मूल्य</p>
+                <p style="margin:0 0 5px; opacity:0.9;">Estimated Price</p>
                 <div class="price">₹{{ estimated_price }}</div>
-                <p style="margin:5px 0 0; font-size:12px; opacity:0.8;">*Final price operator द्वारा confirm होगी</p>
+                <p style="margin:5px 0 0; font-size:12px; opacity:0.8;">*Final price will be confirmed by the operator</p>
             </div>
             
             <p style="text-align:center;">
@@ -172,7 +172,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Dear <strong>{{ operator_name }}</strong>,</p>
-            <p>Ek naya booking inquiry aaya hai jo aapke service area mein hai. Jaldi quote bhejein!</p>
+            <p>A new booking inquiry has arrived in your service area. Send your quote quickly!</p>
             
             <div class="info-box">
                 <h3 style="margin-top:0; color:#22c55e;">📋 Lead Details</h3>
@@ -343,10 +343,10 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ customer_name }}</strong>,</p>
-            <p>Aapki inquiry ke liye ek operator ne quote bheja hai. Details neeche dekhen:</p>
+            <p>An operator has sent a quote for your inquiry. See the details below:</p>
             
             <div class="quote-box">
-                <p style="margin:0 0 10px; opacity:0.9;">Quoted Price / उद्धृत मूल्य</p>
+                <p style="margin:0 0 10px; opacity:0.9;">Quoted Price</p>
                 <div class="price">₹{{ quoted_price }}</div>
                 <p style="margin:10px 0 0; font-size:14px;">by {{ operator_name }}</p>
             </div>
@@ -437,7 +437,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ customer_name }}</strong>,</p>
-            <p>🎉 Congratulations! Aapki helicopter booking confirm ho gayi hai. Neeche saari details hain:</p>
+            <p>🎉 Congratulations! Your helicopter booking is confirmed. All details are below:</p>
             
             <div class="booking-card">
                 <h3 style="margin-top:0; color:#22c55e;">🎫 Booking Details</h3>
@@ -553,10 +553,10 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Dear <strong>{{ operator_name }}</strong>,</p>
-            <p>Congratulations! Ek naya booking aapko assign ho gaya hai. Customer ne payment complete kar diya hai.</p>
+            <p>Congratulations! A new booking has been assigned to you. The customer has completed the payment.</p>
             
             <div class="payout-box">
-                <p style="margin:0 0 10px; opacity:0.9;">Your Payout / आपका भुगतान</p>
+                <p style="margin:0 0 10px; opacity:0.9;">Your Payout</p>
                 <div style="font-size:36px; font-weight:bold;">₹{{ operator_payout }}</div>
                 <p style="margin:10px 0 0; font-size:14px;">After platform commission</p>
             </div>
@@ -718,7 +718,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ customer_name }}</strong>,</p>
-            <p>Aapka payment successfully receive ho gaya hai. Receipt details neeche hain:</p>
+            <p>Your payment has been received successfully. Receipt details are below:</p>
             
             <div class="receipt-box">
                 <h3 style="margin-top:0; color:#22c55e; text-align:center;">🧾 Payment Receipt</h3>
@@ -787,7 +787,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ customer_name }}</strong>,</p>
-            <p>Aapki booking cancel ho gayi hai. Refund details neeche hain:</p>
+            <p>Your booking has been cancelled. Refund details are below:</p>
             
             <div class="refund-box">
                 <h3 style="margin-top:0; color:#22c55e;">💰 Refund Details</h3>
@@ -850,7 +850,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ customer_name }}</strong>,</p>
-            <p>Hum umeed karte hain ki aapka helicopter experience accha raha! Please apna feedback share karein:</p>
+            <p>We hope you had a great helicopter experience! Please share your feedback:</p>
             
             <div class="rating-box">
                 <p style="margin-bottom:15px; color:#94a3b8;">How was your flight?</p>
@@ -896,7 +896,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Dear <strong>{{ operator_name }}</strong>,</p>
-            <p>Booking #{{ booking_id }} ka flight successfully complete ho gaya hai.</p>
+            <p>The flight for booking #{{ booking_id }} has been completed successfully.</p>
             
             <div class="payout-box">
                 <p style="margin:0 0 10px; color:#16a34a;">Your Payout</p>
@@ -947,7 +947,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ user_name }}</strong>,</p>
-            <p>Aapke AirYatra account mein login ke liye OTP hai:</p>
+            <p>Here is the OTP to log in to your AirYatra account:</p>
             
             <div class="otp-box">
                 <div class="otp-code">{{ otp_code }}</div>
@@ -1010,7 +1010,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ user_name }}</strong>,</p>
-            <p>Aapke AirYatra account mein ek <strong>naye device</strong> se login hua hai:</p>
+            <p>Your AirYatra account was logged in from a <strong>new device</strong>:</p>
             
             <div class="device-box">
                 <h4 style="margin:0 0 15px; color:#fbbf24;">📱 Device Details</h4>
@@ -1078,7 +1078,7 @@ EMAIL_TEMPLATES = {
         </div>
         <div class="content">
             <p>Namaste <strong>{{ user_name }}</strong>,</p>
-            <p>Aapne ye device trust kar diya hai. Ab is device se login karne pe OTP nahi maanga jayega.</p>
+            <p>You have trusted this device. OTP will no longer be required when logging in from it.</p>
             
             <div class="device-box">
                 <h4 style="margin:0 0 10px; color:#22c55e;">📱 {{ device_name }}</h4>
@@ -1828,7 +1828,7 @@ class EmailService:
         </div>
         <div class="content">
             <p>Namaste <strong>{customer_name}</strong>,</p>
-            <p>Aapka payment successfully receive ho gaya hai. PDF Receipt attached hai, download karke apne records mein rakhein.</p>
+            <p>Your payment has been received successfully. The PDF receipt is attached — download it for your records.</p>
             
             <div class="receipt-box">
                 <h3 style="margin-top:0; color:#22c55e; text-align:center;">🧾 Payment Summary</h3>
@@ -2053,7 +2053,7 @@ class EmailService:
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 28px;">🔐 Password Reset</h1>
-                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">पासवर्ड रीसेट</p>
+                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">Password Reset</p>
                 </div>
                 
                 <!-- Content -->
@@ -2127,7 +2127,7 @@ class EmailService:
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 30px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 28px;">✅ Password Changed</h1>
-                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">पासवर्ड बदल गया</p>
+                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">Password Changed</p>
                 </div>
                 
                 <!-- Content -->

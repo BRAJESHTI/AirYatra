@@ -19,9 +19,9 @@ const SEV = {
 };
 
 const DOC_TYPES = [
-  { value: 'insurance', label: 'Insurance / बीमा' },
+  { value: 'insurance', label: 'Insurance' },
   { value: 'c_of_a', label: 'C of A (Airworthiness)' },
-  { value: 'permit', label: 'Permit / परमिट' },
+  { value: 'permit', label: 'Permit' },
   { value: 'arc', label: 'ARC' },
   { value: 'radio_license', label: 'Radio License' },
   { value: 'other', label: 'Other' },
@@ -87,11 +87,11 @@ function OperatorERP() {
   useEffect(() => { loadLogbook(aircraftFilter); }, [aircraftFilter, loadLogbook]);
 
   const addDoc = async () => {
-    if (!docForm.aircraft_id || !docForm.expiry_date) return toast.error('Aircraft aur expiry date required hai');
+    if (!docForm.aircraft_id || !docForm.expiry_date) return toast.error('Aircraft and expiry date are required');
     setSaving(true);
     try {
       await api.post('/erp/operator/documents', docForm);
-      toast.success('Document registered / दस्तावेज़ दर्ज हो गया');
+      toast.success('Document registered');
       setDocOpen(false);
       setDocForm(EMPTY_DOC);
       await Promise.all([loadDocsAndFuel(), loadAll()]);
@@ -110,7 +110,7 @@ function OperatorERP() {
 
   const addFuel = async () => {
     if (!fuelForm.aircraft_id || !fuelForm.location || !fuelForm.fuel_amount_liters || !fuelForm.cost_per_liter) {
-      return toast.error('Aircraft, location, liters aur rate required hai');
+      return toast.error('Aircraft, location, liters and rate are required');
     }
     setSaving(true);
     try {
@@ -120,7 +120,7 @@ function OperatorERP() {
         cost_per_liter: Number(fuelForm.cost_per_liter),
         refill_date: fuelForm.refill_date || undefined,
       });
-      toast.success('Fuel purchase logged / ईंधन खरीद दर्ज');
+      toast.success('Fuel purchase logged');
       setFuelOpen(false);
       setFuelForm(EMPTY_FUEL);
       await loadDocsAndFuel();
@@ -131,7 +131,7 @@ function OperatorERP() {
 
   const addLog = async () => {
     if (!logForm.aircraft_id || !logForm.pilot_id || !logForm.departure_location || !logForm.arrival_location || !logForm.departure_time || !logForm.distance_km) {
-      return toast.error('Aircraft, pilot, route, time aur distance required hai');
+      return toast.error('Aircraft, pilot, route, time and distance are required');
     }
     setSaving(true);
     try {
@@ -141,7 +141,7 @@ function OperatorERP() {
         flight_duration_minutes: Number(logForm.flight_duration_minutes || 0),
         fuel_used_liters: Number(logForm.fuel_used_liters || 0),
       });
-      toast.success('Flight log entry added / लॉग एंट्री जुड़ गई');
+      toast.success('Flight log entry added');
       setLogOpen(false);
       setLogForm(EMPTY_LOG);
       await Promise.all([loadAll(), loadLogbook(aircraftFilter)]);
@@ -152,12 +152,12 @@ function OperatorERP() {
 
   const scheduleMaint = async () => {
     if (!maintForm.aircraft_id || !maintForm.description || !maintForm.scheduled_date) {
-      return toast.error('Aircraft, description aur date required hai');
+      return toast.error('Aircraft, description and date are required');
     }
     setSaving(true);
     try {
       await api.post('/maintenance/schedule', { ...maintForm, estimated_cost: Number(maintForm.estimated_cost || 0), estimated_hours: 0, assigned_technician: '', parts_required: [] });
-      toast.success('Maintenance scheduled / रखरखाव निर्धारित');
+      toast.success('Maintenance scheduled');
       setMaintOpen(false);
       setMaintForm(EMPTY_MAINT);
       await loadAll();
@@ -179,7 +179,7 @@ function OperatorERP() {
   const { kpis, alerts, fleet } = overview;
 
   const kpiCards = [
-    { label: 'Fleet / फ्लीट', value: kpis.fleet_size, icon: Plane, color: 'text-sky-400' },
+    { label: 'Fleet', value: kpis.fleet_size, icon: Plane, color: 'text-sky-400' },
     { label: 'Flights (month)', value: kpis.flights_this_month, icon: BookOpen, color: 'text-green-400' },
     { label: 'Hours (month)', value: `${kpis.hours_this_month}h`, icon: Gauge, color: 'text-orange-400' },
     { label: 'Revenue (month)', value: analytics ? `₹${(analytics.revenue_this_month || 0).toLocaleString()}` : '—', icon: TrendingUp, color: 'text-emerald-400' },
@@ -191,7 +191,7 @@ function OperatorERP() {
     <div className="space-y-6" data-testid="operator-erp">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">ERP Command Center / ईआरपी</h1>
+          <h1 className="text-2xl font-bold text-white">ERP Command Center</h1>
           <p className="text-slate-400 text-sm">Digital Flight Logbook + Maintenance Alerts — ek jagah</p>
         </div>
         <div className="flex gap-2">
@@ -223,8 +223,7 @@ function OperatorERP() {
           <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
             <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-blue-400" />
-              Quick Tips / त्वरित सुझाव
-            </h3>
+              Quick Tips</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
@@ -323,16 +322,16 @@ function OperatorERP() {
                 <p className="text-slate-400 text-xs mt-1">Upcoming estimate ({analytics.maintenance_costs.upcoming_count} scheduled)</p>
               </div>
             </div>
-            <p className="text-slate-500 text-xs mt-3">Maintenance complete karte waqt actual cost log hota hai — budget tracking ke liye.</p>
+            <p className="text-slate-500 text-xs mt-3">Actual cost is logged when maintenance is completed — for budget tracking.</p>
           </div>
         </div>
       )}
 
       {/* Maintenance Alerts */}
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="maintenance-alerts-panel">
-        <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-400" />Maintenance Alerts / रखरखाव अलर्ट ({alerts.length})</h2>
+        <h2 className="text-white font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-400" />Maintenance Alerts{alerts.length})</h2>
         {alerts.length === 0 ? (
-          <p className="text-green-400 text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />All clear — koi maintenance alert nahi 🎉</p>
+          <p className="text-green-400 text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />All clear — no maintenance alerts 🎉</p>
         ) : (
           <div className="space-y-2">
             {alerts.map((a, i) => (
@@ -350,7 +349,7 @@ function OperatorERP() {
                       <CheckCircle2 className="h-3 w-3 mr-1" />Mark Complete
                     </Button>
                   ) : a.severity.startsWith('doc') ? (
-                    <span className="text-slate-500 text-xs">Compliance Docs section mein renew karein ↓</span>
+                    <span className="text-slate-500 text-xs">Renew in the Compliance Docs section ↓</span>
                   ) : (
                     <Button size="sm" variant="outline" onClick={() => { setMaintForm({ ...EMPTY_MAINT, aircraft_id: a.aircraft_id, description: a.title, priority: 'high' }); setMaintOpen(true); }}
                       className="border-slate-600 text-yellow-400 h-7 text-xs" data-testid={`schedule-from-alert-${i}`}>
@@ -385,13 +384,13 @@ function OperatorERP() {
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="compliance-docs-panel">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-semibold flex items-center gap-2"><FileCheck className="h-4 w-4 text-purple-400" />Compliance Docs / अनुपालन दस्तावेज़</h2>
+            <h2 className="text-white font-semibold flex items-center gap-2"><FileCheck className="h-4 w-4 text-purple-400" />Compliance Docs</h2>
             <Button size="sm" onClick={() => setDocOpen(true)} className="bg-purple-500 hover:bg-purple-600 h-8" data-testid="add-doc-btn">
               <Plus className="h-3.5 w-3.5 mr-1" />Add
             </Button>
           </div>
           {docs.length === 0 ? (
-            <p className="text-slate-400 text-sm">Insurance, C of A, permits register karein — expiry se pehle alert milega</p>
+            <p className="text-slate-400 text-sm">Register insurance, C of A and permits — get alerts before expiry</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {docs.map((d) => (
@@ -418,7 +417,7 @@ function OperatorERP() {
 
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5" data-testid="fuel-tracking-panel">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-semibold flex items-center gap-2"><Fuel className="h-4 w-4 text-orange-400" />Fuel Purchases / ईंधन खरीद</h2>
+            <h2 className="text-white font-semibold flex items-center gap-2"><Fuel className="h-4 w-4 text-orange-400" />Fuel Purchases</h2>
             <Button size="sm" onClick={() => setFuelOpen(true)} className="bg-orange-500 hover:bg-orange-600 h-8" data-testid="log-fuel-btn">
               <Plus className="h-3.5 w-3.5 mr-1" />Log Purchase
             </Button>
@@ -440,7 +439,7 @@ function OperatorERP() {
             </div>
           )}
           {!fuel?.recent?.length ? (
-            <p className="text-slate-400 text-sm">Koi fuel purchase logged nahi — "Log Purchase" se rate track karein</p>
+            <p className="text-slate-400 text-sm">No fuel purchases logged — use "Log Purchase" to track rates</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {fuel.recent.slice(0, 8).map((r) => (
@@ -460,7 +459,7 @@ function OperatorERP() {
       {/* Digital Logbook */}
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden" data-testid="flight-logbook-panel">
         <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700">
-          <h2 className="text-white font-semibold flex items-center gap-2"><BookOpen className="h-4 w-4 text-sky-400" />Digital Flight Logbook / डिजिटल लॉगबुक</h2>
+          <h2 className="text-white font-semibold flex items-center gap-2"><BookOpen className="h-4 w-4 text-sky-400" />Digital Flight Logbook</h2>
           <div className="flex items-center gap-3">
             {logbook?.totals && (
               <span className="text-slate-400 text-xs">{logbook.totals.flights} flights • {logbook.totals.hours}h • {logbook.totals.distance_km} km • <Fuel className="h-3 w-3 inline" /> {logbook.totals.fuel_liters}L</span>
@@ -487,7 +486,7 @@ function OperatorERP() {
           </div>
         </div>
         {!logbook?.records?.length ? (
-          <div className="p-8 text-center text-slate-400">No flight log entries yet — "Add Flight Log" se pehli entry karein</div>
+          <div className="p-8 text-center text-slate-400">No flight log entries yet — use "Add Flight Log" to create the first entry</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -523,7 +522,7 @@ function OperatorERP() {
       {/* Add Flight Log Dialog */}
       <Dialog open={logOpen} onOpenChange={setLogOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Add Flight Log Entry / लॉग एंट्री</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add Flight Log Entry</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <Label className="text-slate-300">Aircraft *</Label>
@@ -556,7 +555,7 @@ function OperatorERP() {
       {/* Schedule Maintenance Dialog */}
       <Dialog open={maintOpen} onOpenChange={setMaintOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
-          <DialogHeader><DialogTitle>Schedule Maintenance / रखरखाव निर्धारित करें</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Schedule Maintenance</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label className="text-slate-300">Aircraft *</Label>
@@ -621,7 +620,7 @@ function OperatorERP() {
       {/* Log Fuel Purchase Dialog */}
       <Dialog open={fuelOpen} onOpenChange={setFuelOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
-          <DialogHeader><DialogTitle>Log Fuel Purchase / ईंधन खरीद दर्ज करें</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Log Fuel Purchase</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label className="text-slate-300">Aircraft *</Label>

@@ -15,8 +15,7 @@ export const CancellationPolicyTab = ({ controls, setControls, updateCancellatio
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-500" />
-          Cancellation Policy / रद्दीकरण नीति
-        </CardTitle>
+          Cancellation Policy</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Cancellation Slabs */}
@@ -107,7 +106,7 @@ export const CancellationPolicyTab = ({ controls, setControls, updateCancellatio
 
         {/* Cancellation Policy Preview */}
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-          <h4 className="text-blue-400 font-medium mb-3">Policy Preview / नीति पूर्वावलोकन</h4>
+          <h4 className="text-blue-400 font-medium mb-3">Policy Preview</h4>
           <div className="space-y-2 text-sm">
             {(controls.cancellation_slabs || []).map((slab, index) => (
               <div key={index} className="flex justify-between text-slate-300">

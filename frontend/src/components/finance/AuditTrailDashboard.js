@@ -105,8 +105,7 @@ export default function AuditTrailDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <History className="h-7 w-7 text-cyan-400" />
-            Audit Trail Dashboard / ऑडिट ट्रेल
-          </h1>
+            Audit Trail Dashboard</h1>
           <p className="text-slate-400 mt-1">Complete log of all finance transactions and actions</p>
         </div>
         <Button 
@@ -324,8 +323,7 @@ export default function AuditTrailDashboard() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Eye className="h-5 w-5 text-cyan-400" />
-              Audit Log Detail / ऑडिट लॉग विवरण
-            </DialogTitle>
+              Audit Log Detail</DialogTitle>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-4 py-4">

@@ -254,7 +254,7 @@ async def get_pricing_suggestion(request: PricingRequest):
         "factors": factors,
         "confidence": min(confidence, 0.95),
         "recommendations": recommendations,
-        "ai_message": f"इस Route पर ₹{suggested_price/100000:.2f} लाख Quote करें। {demand_level.replace('_', ' ').title()} demand है।"
+        "ai_message": f"Quote ₹{suggested_price/100000:.2f} lakh on this route. Demand is {demand_level.replace('_', ' ').title()}."
     }
 
 # Get route analytics

@@ -20,10 +20,10 @@ const POPULAR_ROUTES = [
 ];
 
 const AIRCRAFT_TYPES = [
-  { value: 'helicopter', label: 'Helicopter / हेलीकॉप्टर', icon: '🚁' },
-  { value: 'small_aircraft', label: 'Small Aircraft / छोटा विमान', icon: '✈️' },
-  { value: 'turboprop', label: 'Turboprop / टर्बोप्रॉप', icon: '🛩️' },
-  { value: 'light_jet', label: 'Light Jet / लाइट जेट', icon: '🛫' },
+  { value: 'helicopter', label: 'Helicopter', icon: '🚁' },
+  { value: 'small_aircraft', label: 'Small Aircraft', icon: '✈️' },
+  { value: 'turboprop', label: 'Turboprop', icon: '🛩️' },
+  { value: 'light_jet', label: 'Light Jet', icon: '🛫' },
 ];
 
 function CarbonCalculator() {
@@ -106,8 +106,7 @@ function CarbonCalculator() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Leaf className="h-6 w-6 text-green-400" />
-            Carbon Calculator / कार्बन कैलकुलेटर
-          </h2>
+            Carbon Calculator</h2>
           <p className="text-slate-400 mt-1">Check your flight&apos;s environmental impact</p>
         </div>
       </div>
@@ -130,8 +129,7 @@ function CarbonCalculator() {
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
           <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
             <Calculator className="h-5 w-5 text-orange-400" />
-            Calculate Emissions / उत्सर्जन गणना
-          </h3>
+            Calculate Emissions</h3>
 
           {/* Mode Toggle */}
           <div className="flex gap-2 mb-4">
@@ -143,8 +141,7 @@ function CarbonCalculator() {
                   : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
               }`}
             >
-              By Distance / दूरी से
-            </button>
+              By Distance</button>
             <button
               onClick={() => setCalcMode('route')}
               className={`px-4 py-2 rounded-lg text-sm transition ${
@@ -153,14 +150,13 @@ function CarbonCalculator() {
                   : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
               }`}
             >
-              By Route / रूट से
-            </button>
+              By Route</button>
           </div>
 
           {calcMode === 'distance' ? (
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Distance (km) / दूरी</Label>
+                <Label className="text-slate-300">Distance (km)</Label>
                 <Input
                   type="number"
                   value={distance}
@@ -174,7 +170,7 @@ function CarbonCalculator() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Origin / उड़ान</Label>
+                  <Label className="text-slate-300">Origin</Label>
                   <Input
                     type="text"
                     value={origin}
@@ -184,7 +180,7 @@ function CarbonCalculator() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Destination / गंतव्य</Label>
+                  <Label className="text-slate-300">Destination</Label>
                   <Input
                     type="text"
                     value={destination}
@@ -199,7 +195,7 @@ function CarbonCalculator() {
 
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-slate-300">Aircraft Type / विमान प्रकार</Label>
+              <Label className="text-slate-300">Aircraft Type</Label>
               <select
                 value={aircraftType}
                 onChange={(e) => setAircraftType(e.target.value)}
@@ -214,7 +210,7 @@ function CarbonCalculator() {
             </div>
 
             <div>
-              <Label className="text-slate-300">Passengers / यात्री</Label>
+              <Label className="text-slate-300">Passengers</Label>
               <Input
                 type="number"
                 min="1"
@@ -234,8 +230,7 @@ function CarbonCalculator() {
                 className="rounded border-slate-600"
               />
               <Label htmlFor="roundTrip" className="text-slate-300 cursor-pointer">
-                Round Trip / वापसी यात्रा
-              </Label>
+                Round Trip</Label>
             </div>
           </div>
 
@@ -254,7 +249,7 @@ function CarbonCalculator() {
 
           {/* Quick Routes */}
           <div className="mt-6">
-            <p className="text-slate-400 text-sm mb-2">Popular Routes / लोकप्रिय रूट:</p>
+            <p className="text-slate-400 text-sm mb-2">Popular Routes</p>
             <div className="flex flex-wrap gap-2">
               {POPULAR_ROUTES.slice(0, 4).map((route, idx) => (
                 <button
@@ -352,8 +347,7 @@ function CarbonCalculator() {
               <div className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-xl p-6 border border-emerald-500/30">
                 <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                   <TreePine className="h-4 w-4 text-emerald-400" />
-                  Carbon Offset / कार्बन ऑफसेट
-                </h4>
+                  Carbon Offset</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-slate-900/50 rounded-lg">
                     <div className="text-3xl font-bold text-emerald-400">{result.offset?.trees_equivalent}</div>
@@ -371,8 +365,7 @@ function CarbonCalculator() {
               <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                   <Info className="h-4 w-4 text-blue-400" />
-                  Eco Tips / पर्यावरण टिप्स
-                </h4>
+                  Eco Tips</h4>
                 <ul className="space-y-2">
                   {result.tips?.map((tip, idx) => (
                     <li key={idx} className="text-slate-400 text-sm">{tip}</li>

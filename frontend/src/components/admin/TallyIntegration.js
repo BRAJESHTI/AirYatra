@@ -104,7 +104,7 @@ export default function TallyIntegration() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white">Tally Integration / टैली इंटीग्रेशन</h2>
+          <h2 className="text-2xl font-bold text-white">Tally Integration</h2>
           <p className="text-slate-400">Accounting & Voucher Sync with Tally Prime</p>
         </div>
         <div className="flex gap-2">
@@ -145,7 +145,7 @@ export default function TallyIntegration() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{dashboard?.stats?.pending_vouchers || 0}</p>
-                <p className="text-slate-400 text-sm">Pending Vouchers / बाकी वाउचर</p>
+                <p className="text-slate-400 text-sm">Pending Vouchers</p>
               </div>
             </div>
           </CardContent>
@@ -159,7 +159,7 @@ export default function TallyIntegration() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{dashboard?.stats?.synced_today || 0}</p>
-                <p className="text-slate-400 text-sm">Synced Today / आज सिंक</p>
+                <p className="text-slate-400 text-sm">Synced Today</p>
               </div>
             </div>
           </CardContent>
@@ -175,7 +175,7 @@ export default function TallyIntegration() {
                 <p className="text-sm font-bold text-white">
                   {dashboard?.stats?.last_sync ? new Date(dashboard.stats.last_sync).toLocaleString() : 'Never'}
                 </p>
-                <p className="text-slate-400 text-sm">Last Sync / आखिरी सिंक</p>
+                <p className="text-slate-400 text-sm">Last Sync</p>
               </div>
             </div>
           </CardContent>
@@ -284,7 +284,7 @@ export default function TallyIntegration() {
       {/* Sync Actions */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Sync Actions / सिंक एक्शन</CardTitle>
+          <CardTitle className="text-white">Sync Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -312,7 +312,7 @@ export default function TallyIntegration() {
       {/* Recent Vouchers */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Recent Vouchers / हाल के वाउचर</CardTitle>
+          <CardTitle className="text-white">Recent Vouchers</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -343,7 +343,7 @@ export default function TallyIntegration() {
       {/* Sync Logs */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Sync History / सिंक हिस्ट्री</CardTitle>
+          <CardTitle className="text-white">Sync History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">

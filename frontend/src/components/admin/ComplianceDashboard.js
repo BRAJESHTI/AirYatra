@@ -164,8 +164,7 @@ const ComplianceDashboard = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-orange-400" />
-            AI Compliance Monitor / अनुपालन मॉनिटर
-          </h2>
+            AI Compliance Monitor</h2>
           <p className="text-slate-400 text-sm mt-1">
             Enterprise-level aircraft verification and document compliance tracking
           </p>
@@ -200,42 +199,42 @@ const ComplianceDashboard = () => {
             <CardContent className="p-4 text-center">
               <Plane className="h-6 w-6 text-blue-400 mx-auto mb-2" />
               <div className="text-3xl font-bold text-white">{dashboardData.aircraft.total}</div>
-              <div className="text-slate-400 text-sm">Total Aircraft / कुल विमान</div>
+              <div className="text-slate-400 text-sm">Total Aircraft</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-slate-700">
             <CardContent className="p-4 text-center">
               <CheckCircle className="h-6 w-6 text-green-400 mx-auto mb-2" />
               <div className="text-3xl font-bold text-green-400">{dashboardData.aircraft.verified}</div>
-              <div className="text-slate-400 text-sm">Verified / सत्यापित</div>
+              <div className="text-slate-400 text-sm">Verified</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-slate-700">
             <CardContent className="p-4 text-center">
               <Clock className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
               <div className="text-3xl font-bold text-yellow-400">{dashboardData.aircraft.pending}</div>
-              <div className="text-slate-400 text-sm">Pending / लंबित</div>
+              <div className="text-slate-400 text-sm">Pending</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-slate-700">
             <CardContent className="p-4 text-center">
               <XCircle className="h-6 w-6 text-red-400 mx-auto mb-2" />
               <div className="text-3xl font-bold text-red-400">{dashboardData.aircraft.suspended}</div>
-              <div className="text-slate-400 text-sm">Suspended / निलंबित</div>
+              <div className="text-slate-400 text-sm">Suspended</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-orange-500/50 border-2">
             <CardContent className="p-4 text-center">
               <AlertTriangle className="h-6 w-6 text-orange-400 mx-auto mb-2" />
               <div className="text-3xl font-bold text-orange-400">{dashboardData.compliance_alerts.insurance_expiring_30d}</div>
-              <div className="text-slate-400 text-sm">Insurance Expiring / बीमा समाप्त</div>
+              <div className="text-slate-400 text-sm">Insurance Expiring</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-red-500/50 border-2">
             <CardContent className="p-4 text-center">
               <AlertTriangle className="h-6 w-6 text-red-400 mx-auto mb-2" />
               <div className="text-3xl font-bold text-red-400">{dashboardData.compliance_alerts.maintenance_due_30d}</div>
-              <div className="text-slate-400 text-sm">Maintenance Due / रखरखाव</div>
+              <div className="text-slate-400 text-sm">Maintenance Due</div>
             </CardContent>
           </Card>
         </div>
@@ -249,7 +248,7 @@ const ComplianceDashboard = () => {
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-slate-400" />
                 <div>
-                  <p className="text-white font-medium">Last Compliance Check / अंतिम जांच</p>
+                  <p className="text-white font-medium">Last Compliance Check</p>
                   <p className="text-slate-400 text-sm">
                     {new Date(dashboardData.last_check.run_at).toLocaleString('en-IN')}
                   </p>
@@ -383,7 +382,7 @@ const ComplianceDashboard = () => {
           {categories?.photo_categories && (
             <Card className="bg-slate-900 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Required Aircraft Photos / विमान फोटो</CardTitle>
+                <CardTitle className="text-white">Required Aircraft Photos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

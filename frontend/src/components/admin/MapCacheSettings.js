@@ -49,10 +49,10 @@ const MapCacheSettings = () => {
   }, []);
 
   const handleClearCache = async () => {
-    if (window.confirm('Clear all cached map tiles? / सभी कैश्ड मैप टाइल्स हटाएं?')) {
+    if (window.confirm('Clear all cached map tiles?')) {
       const result = await clearCache();
       if (result) {
-        toast.success('Map cache cleared! / मैप कैश क्लियर!');
+        toast.success('Map cache cleared!');
       } else {
         toast.error('Failed to clear cache');
       }
@@ -61,19 +61,19 @@ const MapCacheSettings = () => {
 
   const handlePreCacheSelected = async () => {
     if (selectedRegions.length === 0) {
-      toast.error('Select at least one region / कम से कम एक क्षेत्र चुनें');
+      toast.error('Select at least one region');
       return;
     }
     
-    toast.info(`Caching ${selectedRegions.length} regions... / ${selectedRegions.length} क्षेत्र कैश हो रहे हैं...`);
+    toast.info(`Caching ${selectedRegions.length} regions... / ${selectedRegions.length}`);
     const result = await preCacheMultipleRegions(selectedRegions);
     if (result) {
-      toast.success(`Cached ${result.totalCached} tiles! / ${result.totalCached} टाइल्स कैश!`);
+      toast.success(`Cached ${result.totalCached} tiles! / ${result.totalCached}`);
     }
   };
 
   const handlePreCacheAll = async () => {
-    toast.info('Caching all major Indian cities... / सभी प्रमुख शहर कैश हो रहे हैं...');
+    toast.info('Caching all major Indian cities...');
     const allRegions = Object.keys(INDIA_REGIONS).filter(k => k !== 'all_india');
     const result = await preCacheMultipleRegions(allRegions, [8, 10]);
     if (result) {
@@ -110,8 +110,7 @@ const MapCacheSettings = () => {
             <div>
               <CardTitle className="text-white flex items-center gap-2">
                 <Map className="h-5 w-5 text-blue-500" />
-                Offline Map Cache / ऑफलाइन मैप कैश
-              </CardTitle>
+                Offline Map Cache</CardTitle>
               <CardDescription className="text-slate-400">
                 Cache map tiles for helicopter tracking in low-connectivity areas
               </CardDescription>
@@ -214,8 +213,7 @@ const MapCacheSettings = () => {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <MapPin className="h-5 w-5 text-orange-500" />
-            Pre-Cache Regions / क्षेत्र प्री-कैश करें
-          </CardTitle>
+            Pre-Cache Regions</CardTitle>
           <CardDescription className="text-slate-400">
             Download map tiles for specific regions to use offline
           </CardDescription>
@@ -223,7 +221,7 @@ const MapCacheSettings = () => {
         <CardContent>
           {/* Major Cities */}
           <div className="mb-4">
-            <h4 className="text-white font-medium mb-2">Major Cities / प्रमुख शहर</h4>
+            <h4 className="text-white font-medium mb-2">Major Cities</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {['mumbai', 'delhi', 'bangalore', 'chennai', 'hyderabad', 'kolkata', 'pune', 'ahmedabad', 'jaipur', 'goa'].map(regionKey => (
                 <label 
@@ -248,8 +246,7 @@ const MapCacheSettings = () => {
           <div className="mb-4">
             <h4 className="text-white font-medium mb-2 flex items-center gap-2">
               <Plane className="h-4 w-4 text-orange-400" />
-              Pilgrimage Routes / तीर्थ मार्ग
-            </h4>
+              Pilgrimage Routes</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {['shirdi', 'tirupati', 'vaishno_devi', 'kedarnath'].map(regionKey => (
                 <label 

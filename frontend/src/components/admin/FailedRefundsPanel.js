@@ -75,7 +75,7 @@ export default function FailedRefundsPanel() {
               </span>
             )}
           </h2>
-          <p className="text-slate-400 text-sm">Approved refunds jahan Razorpay auto-refund fail hua ya payment ID nahi mila — yahan se retry ya manual mark karein.</p>
+          <p className="text-slate-400 text-sm">Approved refunds where the Razorpay auto-refund failed or no payment ID was found — retry or mark as manually processed here.</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} className="border-slate-600 text-slate-300" data-testid="refresh-failed-refunds-btn">
           <RefreshCw className="h-4 w-4" />
@@ -84,7 +84,7 @@ export default function FailedRefundsPanel() {
 
       {requests.length === 0 ? (
         <p className="text-slate-500 text-sm text-center py-6 glass rounded-xl" data-testid="no-failed-refunds">
-          Koi failed gateway refund nahi — sab clear! ✅
+          No failed gateway refunds — all clear! ✅
         </p>
       ) : (
         <div className="space-y-3">

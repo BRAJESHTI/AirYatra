@@ -88,7 +88,7 @@ export default function CSSWidget({ operatorId, compact = false }) {
       <div className={`glass rounded-xl ${compact ? 'p-4' : 'p-6'}`}>
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="h-5 w-5 text-blue-400" />
-          <h3 className="font-semibold text-white">CSS Score / ग्राहक संतुष्टि</h3>
+          <h3 className="font-semibold text-white">CSS Score</h3>
         </div>
         <div className="text-center py-4 text-slate-400">
           <p className="text-sm">No CSS data available yet</p>
@@ -131,7 +131,7 @@ export default function CSSWidget({ operatorId, compact = false }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-blue-400" />
-          <h3 className="font-semibold text-white">Customer Satisfaction Score / ग्राहक संतुष्टि</h3>
+          <h3 className="font-semibold text-white">Customer Satisfaction Score</h3>
         </div>
         <Button size="sm" variant="ghost" onClick={loadCSSData} className="text-slate-400 hover:text-white">
           <RefreshCw className="h-4 w-4" />
@@ -213,9 +213,9 @@ export default function CSSWidget({ operatorId, compact = false }) {
              latestScore.css_score < 60 ? '⚠️ SUSPENSION RISK' : '⚠️ Rating Drop Warning'}
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            {latestScore.css_score < 50 ? 'Score below 50 triggers automatic delisting / 50 से नीचे स्कोर स्वचालित डीलिस्टिंग' :
-             latestScore.css_score < 60 ? 'Score below 60 triggers 7-14 day suspension / 60 से नीचे 7-14 दिन निलंबन' :
-             'Improve score to avoid penalties / दंड से बचने के लिए स्कोर सुधारें'}
+            {latestScore.css_score < 50 ? 'Score below 50 triggers automatic delisting' :
+             latestScore.css_score < 60 ? 'Score below 60 triggers 7-14 day suspension' :
+             'Improve score to avoid penalties'}
           </p>
         </div>
       )}
@@ -223,7 +223,7 @@ export default function CSSWidget({ operatorId, compact = false }) {
       {/* Score History */}
       {cssData.history.length > 1 && (
         <div>
-          <p className="text-sm text-slate-400 mb-2">Score History / स्कोर इतिहास</p>
+          <p className="text-sm text-slate-400 mb-2">Score History</p>
           <div className="space-y-2">
             {cssData.history.slice(0, 6).map((record, idx) => {
               const colors = getScoreColor(record.css_score);
@@ -255,9 +255,9 @@ export default function CSSWidget({ operatorId, compact = false }) {
       <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
         <p className="text-sm text-blue-400 font-medium">Tips to Improve CSS:</p>
         <ul className="text-xs text-slate-400 mt-1 space-y-1">
-          <li>• Respond to complaints within 2 hours / 2 घंटे में शिकायतों का जवाब दें</li>
-          <li>• Minimize cancellations & delays / रद्दीकरण और देरी कम करें</li>
-          <li>• Request reviews from satisfied customers / संतुष्ट ग्राहकों से समीक्षा मांगें</li>
+          <li>• Respond to complaints within 2 hours</li>
+          <li>• Minimize cancellations & delays</li>
+          <li>• Request reviews from satisfied customers</li>
         </ul>
       </div>
     </div>

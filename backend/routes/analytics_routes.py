@@ -280,17 +280,17 @@ async def get_booking_purpose_analytics(
     ]).to_list(15)
     
     purpose_labels = {
-        "wedding": "Wedding / शादी",
-        "temple_yatra": "Temple Yatra / मंदिर यात्रा",
-        "company_tour": "Company Tour / कंपनी टूर",
-        "election_tour": "Election Tour / चुनाव टूर",
-        "general_tour": "General Tour / सामान्य यात्रा",
-        "medical_emergency": "Medical Emergency / मेडिकल इमरजेंसी",
-        "business_meeting": "Business Meeting / बिज़नेस मीटिंग",
-        "pilgrimage": "Pilgrimage / तीर्थ यात्रा",
-        "film_shooting": "Film/Media Shooting / फिल्म शूटिंग",
-        "survey_inspection": "Survey/Inspection / सर्वे/निरीक्षण",
-        "other": "Other / अन्य"
+        "wedding": "Wedding",
+        "temple_yatra": "Temple Yatra",
+        "company_tour": "Company Tour",
+        "election_tour": "Election Tour",
+        "general_tour": "General Tour",
+        "medical_emergency": "Medical Emergency",
+        "business_meeting": "Business Meeting",
+        "pilgrimage": "Pilgrimage",
+        "film_shooting": "Film/Media Shooting",
+        "survey_inspection": "Survey/Inspection",
+        "other": "Other"
     }
     
     result = []

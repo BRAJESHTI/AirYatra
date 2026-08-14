@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional
 from database import get_database
 from models import Quote
 from middleware import get_current_user
@@ -88,8 +89,8 @@ async def create_quote(quote_data: dict, user: dict = Depends(get_current_user))
     return {"message": "Quote created", "quote": quote}
 
 @router.get("/operator/inquiries")
-async def get_operator_inquiries(user: dict = Depends(get_current_user)):
-    """Get booking inquiries for operator"""
+async def get_operator_inquiries(status: Optional[str] = None, user: dict = Depends(get_current_user)):
+    """Get booking inquiries for operator (optional comma-separated status filter)"""
     db = get_database()
     
     if "operator" not in user["roles"]:
@@ -99,8 +100,11 @@ async def get_operator_inquiries(user: dict = Depends(get_current_user)):
     if not operator:
         raise HTTPException(status_code=404, detail="Operator profile not found")
     
+    query = {"operator_id": operator["id"]}
+    if status:
+        query["status"] = {"$in": [s.strip() for s in status.split(",") if s.strip()]}
     inquiries = await db.inquiries.find(
-        {"operator_id": operator["id"]},
+        query,
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     

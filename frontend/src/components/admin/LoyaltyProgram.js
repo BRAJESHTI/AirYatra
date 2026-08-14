@@ -113,8 +113,7 @@ function LoyaltyProgram() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Crown className="h-6 w-6 text-yellow-400" />
-            VIP & Loyalty Program / लॉयल्टी प्रोग्राम
-          </h2>
+            VIP & Loyalty Program</h2>
           <p className="text-slate-400 mt-1">Manage customer tiers, points, and corporate accounts</p>
         </div>
         <Button onClick={() => { loadDashboard(); loadMembers(); }} variant="outline" size="sm">
@@ -418,7 +417,6 @@ function LoyaltyProgram() {
                   {tierIcons[tier.id]}
                   <div>
                     <h3 className="text-xl font-bold">{tier.name}</h3>
-                    <p className="text-sm opacity-80">{tier.name_hi}</p>
                   </div>
                 </div>
                 <span className="text-2xl font-bold">{tier.min_points?.toLocaleString()} pts</span>

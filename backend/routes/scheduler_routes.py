@@ -40,7 +40,7 @@ async def trigger_auto_reassign(current_user: dict = Depends(require_admin)):
         await auto_reassign_stale_leads()
         return {
             "success": True,
-            "message": "Auto-reassignment triggered successfully / ऑटो-रीअसाइनमेंट सफल"
+            "message": "Auto-reassignment triggered successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

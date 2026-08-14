@@ -18,35 +18,35 @@ const HERO_SLIDES = [
     image: "https://images.unsplash.com/photo-1619659085985-f51a00f0160a?w=1200&q=75&auto=format",
     title: "Premium Charter Flights",
     subtitle: "Experience luxury in the skies with our world-class fleet",
-    titleHi: "प्रीमियम चार्टर फ्लाइट्स"
+    titleHi: ""
   },
   {
     id: 2,
     image: "https://images.unsplash.com/photo-1474302770737-173ee21bab63?w=1200&q=75&auto=format",
     title: "Private Jet Excellence",
     subtitle: "Your personal aircraft awaits for seamless journeys",
-    titleHi: "प्राइवेट जेट एक्सीलेंस"
+    titleHi: ""
   },
   {
     id: 3,
     image: "https://images.unsplash.com/photo-1782865423531-27f6fab92fe8?w=1200&q=75&auto=format",
     title: "Helicopter Services",
     subtitle: "City tours, transfers & emergency medical services",
-    titleHi: "हेलीकॉप्टर सेवाएं"
+    titleHi: ""
   },
   {
     id: 4,
     image: "https://images.unsplash.com/photo-1625513123245-fcb02d69ad12?w=1200&q=75&auto=format",
     title: "Luxury Interiors",
     subtitle: "Travel in comfort with premium cabin amenities",
-    titleHi: "लग्जरी इंटीरियर्स"
+    titleHi: ""
   },
   {
     id: 5,
     image: "https://images.unsplash.com/photo-1661954864180-e61dea14208a?w=1200&q=75&auto=format",
     title: "In-Flight Dining",
     subtitle: "Gourmet cuisine served at 40,000 feet",
-    titleHi: "इन-फ्लाइट डाइनिंग"
+    titleHi: ""
   }
 ];
 
@@ -727,11 +727,11 @@ function LandingPage({ user }) {
 
             {/* Legal */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Legal / कानूनी</h4>
+              <h4 className="text-white font-semibold mb-4">Legal</h4>
               <ul className="space-y-2">
-                <li><Link to="/legal/terms" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Terms & Conditions / नियम एवं शर्तें</Link></li>
-                <li><Link to="/legal/privacy" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Privacy Policy / गोपनीयता नीति</Link></li>
-                <li><Link to="/legal/cancellation" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Refund & Cancellation / धनवापसी और रद्दीकरण</Link></li>
+                <li><Link to="/legal/terms" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Terms & Conditions</Link></li>
+                <li><Link to="/legal/privacy" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/legal/cancellation" className="text-slate-400 hover:text-orange-500 text-sm transition-colors">Refund & Cancellation</Link></li>
               </ul>
             </div>
 

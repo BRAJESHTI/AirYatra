@@ -217,16 +217,16 @@ async def get_required_verifications(
 def get_hindi_description(verifications: list) -> str:
     """Get Hindi description for required verifications"""
     hindi_map = {
-        "email": "ईमेल",
-        "otp": "OTP सत्यापन",
-        "phone": "फोन नंबर",
-        "pan": "पैन कार्ड",
-        "aadhaar": "आधार कार्ड",
-        "gst": "GST प्रमाणपत्र",
-        "bank": "बैंक खाता"
+        "email": "Email",
+        "otp": "OTP Verification",
+        "phone": "Phone Number",
+        "pan": "PAN Card",
+        "aadhaar": "Aadhaar Card",
+        "gst": "GST Certificate",
+        "bank": "Bank Account"
     }
     items = [hindi_map.get(v, v) for v in verifications]
-    return " + ".join(items) + " आवश्यक"
+    return " + ".join(items) + " required"
 
 
 # ============ ADMIN ENDPOINTS ============

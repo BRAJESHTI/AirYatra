@@ -492,7 +492,7 @@ function MyTrips({ user }) {
               Cancel Booking
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Cancellation policy ke anusaar deduction lagega aur refund team approval ke baad process hoga.
+              Deduction applies as per the cancellation policy; the refund is processed after team approval.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">

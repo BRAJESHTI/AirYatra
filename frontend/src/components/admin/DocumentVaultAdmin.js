@@ -8,12 +8,12 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 
 const DOC_CATEGORIES = [
-  { value: 'operator', label: 'Operator Documents / ऑपरेटर दस्तावेज़', icon: Building2 },
-  { value: 'customer', label: 'Customer KYC / ग्राहक KYC', icon: User },
-  { value: 'aircraft', label: 'Aircraft Documents / विमान दस्तावेज़', icon: FileText },
-  { value: 'pilot', label: 'Pilot Documents / पायलट दस्तावेज़', icon: Shield },
-  { value: 'compliance', label: 'Compliance / अनुपालन', icon: CheckCircle2 },
-  { value: 'legal', label: 'Legal / कानूनी', icon: Lock },
+  { value: 'operator', label: 'Operator Documents', icon: Building2 },
+  { value: 'customer', label: 'Customer KYCKYC', icon: User },
+  { value: 'aircraft', label: 'Aircraft Documents', icon: FileText },
+  { value: 'pilot', label: 'Pilot Documents', icon: Shield },
+  { value: 'compliance', label: 'Compliance', icon: CheckCircle2 },
+  { value: 'legal', label: 'Legal', icon: Lock },
 ];
 
 const DOC_STATUS_BADGES = {
@@ -133,7 +133,7 @@ export default function DocumentVaultAdmin() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      toast.success('Document uploaded successfully / दस्तावेज़ अपलोड हो गया');
+      toast.success('Document uploaded successfully');
       setShowUploadDialog(false);
       setUploadForm({
         owner_type: 'operator',
@@ -165,8 +165,8 @@ export default function DocumentVaultAdmin() {
 
       toast.success(
         verifyForm.action === 'verify' 
-          ? 'Document verified! / दस्तावेज़ सत्यापित!' 
-          : 'Document rejected / दस्तावेज़ अस्वीकृत'
+          ? 'Document verified!' 
+          : 'Document rejected'
       );
       setShowVerifyDialog(false);
       setVerifyForm({ action: 'verify', notes: '' });
@@ -181,13 +181,13 @@ export default function DocumentVaultAdmin() {
   };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm('Are you sure you want to delete this document? / क्या आप वाकई इस दस्तावेज़ को हटाना चाहते हैं?')) {
+    if (!window.confirm('Are you sure you want to delete this document?')) {
       return;
     }
 
     try {
       await api.delete(`/vault/document/${doc.document_id}`);
-      toast.success('Document deleted / दस्तावेज़ हटाया गया');
+      toast.success('Document deleted');
       loadDocuments();
       loadStats();
     } catch (err) {
@@ -222,8 +222,7 @@ export default function DocumentVaultAdmin() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-400" />
-            Document Vault / दस्तावेज़ वॉल्ट
-          </h1>
+            Document Vault</h1>
           <p className="text-slate-400 text-sm mt-1">Manage all operator & customer documents with 5-year retention</p>
         </div>
         <div className="flex gap-2">
@@ -453,8 +452,7 @@ export default function DocumentVaultAdmin() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-blue-400" />
-              Upload Document / दस्तावेज़ अपलोड करें
-            </DialogTitle>
+              Upload Document</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
@@ -545,8 +543,7 @@ export default function DocumentVaultAdmin() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-400" />
-              Verify Document / दस्तावेज़ सत्यापित करें
-            </DialogTitle>
+              Verify Document</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {selectedDoc && (
@@ -606,8 +603,7 @@ export default function DocumentVaultAdmin() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-blue-400" />
-              Document Details / दस्तावेज़ विवरण
-            </DialogTitle>
+              Document Details</DialogTitle>
           </DialogHeader>
           {selectedDoc && (
             <div className="space-y-4">

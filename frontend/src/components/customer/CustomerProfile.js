@@ -43,7 +43,7 @@ function CustomerProfile({ user, onUserUpdate }) {
     
     try {
       const response = await authAPI.updateProfile(formData);
-      toast.success('Profile updated successfully! / प्रोफाइल अपडेट हुई!');
+      toast.success('Profile updated successfully!');
       if (onUserUpdate) {
         onUserUpdate(response.data.user);
       }
@@ -57,7 +57,7 @@ function CustomerProfile({ user, onUserUpdate }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">My Profile / मेरी प्रोफाइल</h1>
+        <h1 className="text-3xl font-bold text-white">My Profile</h1>
         <p className="text-slate-400 mt-1">Manage your account details</p>
       </div>
 
@@ -86,15 +86,14 @@ function CustomerProfile({ user, onUserUpdate }) {
 
       {/* Edit Form */}
       <form onSubmit={handleSubmit} className="glass p-6 rounded-xl space-y-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Personal Information / व्यक्तिगत जानकारी</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Personal Information</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Full Name */}
           <div className="space-y-2">
             <Label className="text-slate-300">
               <User className="h-4 w-4 inline mr-2" />
-              Full Name / पूरा नाम
-            </Label>
+              Full Name</Label>
             <Input
               value={formData.full_name}
               onChange={(e) => handleChange('full_name', e.target.value)}
@@ -122,8 +121,7 @@ function CustomerProfile({ user, onUserUpdate }) {
           <div className="space-y-2">
             <Label className="text-slate-300">
               <Phone className="h-4 w-4 inline mr-2" />
-              Phone / फोन नंबर
-            </Label>
+              Phone</Label>
             <Input
               value={formData.phone}
               onChange={(e) => handleChange('phone', e.target.value)}
@@ -136,8 +134,7 @@ function CustomerProfile({ user, onUserUpdate }) {
           <div className="space-y-2">
             <Label className="text-slate-300">
               <MapPin className="h-4 w-4 inline mr-2" />
-              PIN Code / पिन कोड
-            </Label>
+              PIN Code</Label>
             <Input
               value={formData.pincode}
               onChange={(e) => handleChange('pincode', e.target.value)}
@@ -152,8 +149,7 @@ function CustomerProfile({ user, onUserUpdate }) {
         <div className="space-y-2">
           <Label className="text-slate-300">
             <MapPin className="h-4 w-4 inline mr-2" />
-            Address / पता
-          </Label>
+            Address</Label>
           <Input
             value={formData.address}
             onChange={(e) => handleChange('address', e.target.value)}
@@ -165,7 +161,7 @@ function CustomerProfile({ user, onUserUpdate }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* City */}
           <div className="space-y-2">
-            <Label className="text-slate-300">City / शहर</Label>
+            <Label className="text-slate-300">City</Label>
             <Input
               value={formData.city}
               onChange={(e) => handleChange('city', e.target.value)}
@@ -176,7 +172,7 @@ function CustomerProfile({ user, onUserUpdate }) {
 
           {/* State */}
           <div className="space-y-2">
-            <Label className="text-slate-300">State / राज्य</Label>
+            <Label className="text-slate-300">State</Label>
             <Input
               value={formData.state}
               onChange={(e) => handleChange('state', e.target.value)}
@@ -201,8 +197,7 @@ function CustomerProfile({ user, onUserUpdate }) {
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes / बदलाव सहेजें
-              </>
+                Save Changes</>
             )}
           </Button>
         </div>

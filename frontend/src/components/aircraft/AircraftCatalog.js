@@ -300,8 +300,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Plane className="h-5 w-5 text-orange-400" />
-            Basic Information / मूल जानकारी
-          </h3>
+            Basic Information</h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
@@ -312,11 +311,11 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
                 className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
                 required
               >
-                <option value="helicopter">Helicopter / हेलीकॉप्टर</option>
-                <option value="light_jet">Light Jet / लाइट जेट</option>
-                <option value="mid_jet">Mid Jet / मिड जेट</option>
-                <option value="heavy_jet">Heavy Jet / हैवी जेट</option>
-                <option value="turboprop">Turboprop / टर्बोप्रॉप</option>
+                <option value="helicopter">Helicopter</option>
+                <option value="light_jet">Light Jet</option>
+                <option value="mid_jet">Mid Jet</option>
+                <option value="heavy_jet">Heavy Jet</option>
+                <option value="turboprop">Turboprop</option>
               </select>
             </div>
             <div>
@@ -378,8 +377,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Settings className="h-5 w-5 text-orange-400" />
-            Technical Specifications / तकनीकी विवरण
-          </h3>
+            Technical Specifications</h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
@@ -389,9 +387,9 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
                 onChange={(e) => setFormData({ ...formData, engine_type: e.target.value })}
                 className="w-full h-10 bg-slate-800 border border-slate-600 rounded-md text-white px-3"
               >
-                <option value="turbine">Turbine / टर्बाइन</option>
-                <option value="twin_turbine">Twin Turbine / ट्विन टर्बाइन</option>
-                <option value="piston">Piston / पिस्टन</option>
+                <option value="turbine">Turbine</option>
+                <option value="twin_turbine">Twin Turbine</option>
+                <option value="piston">Piston</option>
               </select>
             </div>
             <div>
@@ -446,7 +444,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           </div>
           
           {/* Capacity */}
-          <h4 className="text-white font-medium mt-4">Capacity / क्षमता</h4>
+          <h4 className="text-white font-medium mt-4">Capacity</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label className="text-white">Total Seats *</Label>
@@ -500,11 +498,10 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Star className="h-5 w-5 text-orange-400" />
-            Amenities & Comfort / सुविधाएं
-          </h3>
+            Amenities & Comfort</h3>
           
           {/* Connectivity */}
-          <h4 className="text-slate-300 text-sm font-medium">Connectivity / कनेक्टिविटी</h4>
+          <h4 className="text-slate-300 text-sm font-medium">Connectivity</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { key: 'wifi', label: 'WiFi', icon: Wifi },
@@ -527,7 +524,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           </div>
           
           {/* Comfort */}
-          <h4 className="text-slate-300 text-sm font-medium mt-4">Comfort / आराम</h4>
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Comfort</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { key: 'air_conditioning', label: 'AC', icon: Wind },
@@ -550,7 +547,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           </div>
           
           {/* Food & Beverages */}
-          <h4 className="text-slate-300 text-sm font-medium mt-4">Food & Beverages / भोजन</h4>
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Food & Beverages</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { key: 'refreshments', label: 'Refreshments', icon: Coffee },
@@ -573,7 +570,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           </div>
           
           {/* Facilities */}
-          <h4 className="text-slate-300 text-sm font-medium mt-4">Facilities / सुविधाएं</h4>
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Facilities</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { key: 'lavatory', label: 'Lavatory', icon: Coffee },
@@ -601,8 +598,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Shield className="h-5 w-5 text-orange-400" />
-            Safety Equipment / सुरक्षा उपकरण
-          </h3>
+            Safety Equipment</h3>
           
           <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-sm text-orange-200">
             <AlertTriangle className="h-4 w-4 inline mr-2" />
@@ -610,7 +606,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           </div>
           
           {/* Core Safety */}
-          <h4 className="text-slate-300 text-sm font-medium">Core Safety / मूल सुरक्षा</h4>
+          <h4 className="text-slate-300 text-sm font-medium">Core Safety</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { key: 'first_aid_kit', label: 'First Aid Kit' },
@@ -633,7 +629,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           </div>
           
           {/* Advanced Safety Systems */}
-          <h4 className="text-slate-300 text-sm font-medium mt-4">Advanced Systems / उन्नत प्रणाली</h4>
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Advanced Systems</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { key: 'tcas', label: 'TCAS (Collision Avoidance)' },
@@ -677,7 +673,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           )}
           
           {/* Medical Equipment */}
-          <h4 className="text-slate-300 text-sm font-medium mt-4">Medical (Air Ambulance) / चिकित्सा</h4>
+          <h4 className="text-slate-300 text-sm font-medium mt-4">Medical (Air Ambulance)</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { key: 'medical_equipment', label: 'Medical Equipment' },
@@ -705,8 +701,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           {/* Crew Configuration */}
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Users className="h-5 w-5 text-orange-400" />
-            Crew Configuration / क्रू विन्यास
-          </h3>
+            Crew Configuration</h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
@@ -743,8 +738,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           {/* Pricing */}
           <h3 className="text-white font-semibold flex items-center gap-2 mt-6">
             <IndianRupee className="h-5 w-5 text-orange-400" />
-            Pricing / मूल्य निर्धारण
-          </h3>
+            Pricing</h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
@@ -812,8 +806,7 @@ const CreateAircraftForm = ({ onSuccess, onCancel }) => {
           {/* Description */}
           <h3 className="text-white font-semibold flex items-center gap-2 mt-6">
             <FileText className="h-5 w-5 text-orange-400" />
-            Description / विवरण
-          </h3>
+            Description</h3>
           
           <div>
             <Label className="text-white">Aircraft Description</Label>
@@ -1056,7 +1049,7 @@ export const OperatorFleetDashboard = () => {
       await axios.delete(`${API_URL}/api/aircraft/${aircraft.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Aircraft archived successfully / विमान संग्रहीत हो गया');
+      toast.success('Aircraft archived successfully');
       fetchFleet();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to archive');
@@ -1070,7 +1063,7 @@ export const OperatorFleetDashboard = () => {
       await axios.post(`${API_URL}/api/aircraft/${aircraft.id}/restore`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Aircraft restored successfully / विमान पुनर्स्थापित हो गया');
+      toast.success('Aircraft restored successfully');
       fetchFleet();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to restore');
@@ -1092,8 +1085,7 @@ export const OperatorFleetDashboard = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Plane className="h-6 w-6 text-orange-400" />
-            My Fleet / मेरा बेड़ा
-          </h2>
+            My Fleet</h2>
           <p className="text-slate-400 text-sm mt-1">
             Manage your aircraft catalog and verification
           </p>
@@ -1160,8 +1152,7 @@ export const OperatorFleetDashboard = () => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-orange-400" />
-              Add New Aircraft / नया विमान जोड़ें
-            </CardTitle>
+              Add New Aircraft</CardTitle>
             <CardDescription>
               Fill in aircraft details for AirYatra verification
             </CardDescription>
@@ -1210,8 +1201,7 @@ export const OperatorFleetDashboard = () => {
           <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
             <h3 className="text-white font-semibold flex items-center gap-2 mb-2">
               <Archive className="h-5 w-5 text-slate-400" />
-              Archived Aircraft / संग्रहीत विमान
-            </h3>
+              Archived Aircraft</h3>
             <p className="text-slate-400 text-sm">
               These aircraft are hidden from customers but can be restored anytime.
             </p>

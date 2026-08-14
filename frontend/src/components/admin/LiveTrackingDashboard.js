@@ -107,8 +107,7 @@ function LiveTrackingDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Navigation className="h-6 w-6 text-blue-400" />
-            Live Field Tracking / लाइव ट्रैकिंग
-          </h2>
+            Live Field Tracking</h2>
           <p className="text-slate-400 mt-1">
             Track sales team locations and client visits in real-time
           </p>
@@ -190,7 +189,7 @@ function LiveTrackingDashboard() {
         {/* Employee List */}
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
           <div className="p-4 border-b border-slate-700">
-            <h3 className="text-white font-semibold">Field Employees / फ़ील्ड कर्मचारी</h3>
+            <h3 className="text-white font-semibold">Field Employees</h3>
           </div>
           <div className="divide-y divide-slate-700 max-h-[500px] overflow-y-auto">
             {dashboard?.employees?.map((emp, idx) => (
@@ -308,8 +307,7 @@ function LiveTrackingDashboard() {
             <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
               <div className="p-4 border-b border-slate-700">
                 <h3 className="text-white font-semibold">
-                  Today's Visits / आज की विज़िट्स
-                </h3>
+                  Today's Visits</h3>
               </div>
               <div className="divide-y divide-slate-700 max-h-[300px] overflow-y-auto">
                 {visits.map((visit, idx) => (

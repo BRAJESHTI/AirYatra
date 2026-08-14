@@ -212,13 +212,13 @@ async def get_state_recommendations():
         
         # Generate recommendation text
         if penetration < 20 and data["potential"] in ["very_high", "high"]:
-            recommendation["recommendation"] = f"🔥 HIGH PRIORITY: {state.replace('_', ' ').title()} में {data['growth_rate']}% growth है। यहाँ Marketing Campaign शुरू करें!"
+            recommendation["recommendation"] = f"🔥 HIGH PRIORITY: {state.replace('_', ' ').title()} has {data['growth_rate']}% growth. Launch a marketing campaign here!"
             recommendation["priority"] = "high"
         elif penetration < 40:
-            recommendation["recommendation"] = f"📈 EXPAND: {state.replace('_', ' ').title()} में scope है। {', '.join(data['key_sectors'][:2])} sectors target करें।"
+            recommendation["recommendation"] = f"📈 EXPAND: {state.replace('_', ' ').title()} has scope. Target the {', '.join(data['key_sectors'][:2])} sectors."
             recommendation["priority"] = "medium"
         else:
-            recommendation["recommendation"] = f"✅ MAINTAIN: {state.replace('_', ' ').title()} में अच्छी presence है। Customer retention पर focus करें।"
+            recommendation["recommendation"] = f"✅ MAINTAIN: Good presence in {state.replace('_', ' ').title()}. Focus on customer retention."
             recommendation["priority"] = "low"
         
         recommendations.append(recommendation)
@@ -260,13 +260,13 @@ async def get_corporate_recommendations():
         
         # Generate recommendation
         if data["conversion_rate"] >= 10:
-            recommendation["recommendation"] = f"🎯 HOT SEGMENT: {data['name']} में {data['conversion_rate']}% conversion rate है। Priority target करें!"
+            recommendation["recommendation"] = f"🎯 HOT SEGMENT: {data['name']} has a {data['conversion_rate']}% conversion rate. Target as priority!"
             recommendation["priority"] = "high"
         elif data["avg_deal_value"] >= 500000:
-            recommendation["recommendation"] = f"💰 HIGH VALUE: {data['name']} की avg deal ₹{data['avg_deal_value']/100000:.1f}L है। Quality leads पर focus करें।"
+            recommendation["recommendation"] = f"💰 HIGH VALUE: {data['name']} has an avg deal of ₹{data['avg_deal_value']/100000:.1f}L. Focus on quality leads."
             recommendation["priority"] = "medium"
         else:
-            recommendation["recommendation"] = f"📊 VOLUME PLAY: {data['name']} में {data['potential_clients']} potential clients हैं।"
+            recommendation["recommendation"] = f"📊 VOLUME PLAY: {data['name']} has {data['potential_clients']} potential clients."
             recommendation["priority"] = "low"
         
         recommendations.append(recommendation)
@@ -299,7 +299,7 @@ async def get_marketing_campaign_suggestions():
             "channels": ["Instagram", "Facebook", "Google Ads", "Wedding portals"],
             "budget_range": "₹2-5 Lakhs/month",
             "expected_roi": "3.5x",
-            "message": "🎊 Wedding Season में Helicopter Entry/Exit offer करें। Destination wedding market target करें।",
+            "message": "🎊 Offer Helicopter Entry/Exit packages this wedding season. Target the destination wedding market.",
             "priority": "high"
         })
     
@@ -311,7 +311,7 @@ async def get_marketing_campaign_suggestions():
             "channels": ["Travel portals", "Instagram", "YouTube"],
             "budget_range": "₹1-3 Lakhs/month",
             "expected_roi": "2.5x",
-            "message": "☀️ Summer में Hill Station helicopter tours promote करें।",
+            "message": "☀️ Promote hill station helicopter tours this summer.",
             "priority": "medium"
         })
     
@@ -324,7 +324,7 @@ async def get_marketing_campaign_suggestions():
             "channels": ["LinkedIn Ads", "Email marketing", "Industry events"],
             "budget_range": "₹3-7 Lakhs/month",
             "expected_roi": "4x",
-            "message": "💼 Corporate clients के लिए Time-saving messaging use करें। ROI calculator share करें।",
+            "message": "💼 Use time-saving messaging for corporate clients. Share the ROI calculator.",
             "priority": "high"
         },
         {
@@ -334,7 +334,7 @@ async def get_marketing_campaign_suggestions():
             "channels": ["Facebook", "WhatsApp", "Religious channels"],
             "budget_range": "₹1-2 Lakhs/month",
             "expected_roi": "3x",
-            "message": "🙏 Shirdi, Tirupati, Vaishno Devi routes पर focus करें। Senior-friendly messaging।",
+            "message": "🙏 Focus on Shirdi, Tirupati and Vaishno Devi routes. Use senior-friendly messaging.",
             "priority": "medium"
         },
         {
@@ -344,7 +344,7 @@ async def get_marketing_campaign_suggestions():
             "channels": ["Direct sales", "Healthcare conferences", "LinkedIn"],
             "budget_range": "₹2-4 Lakhs/month",
             "expected_roi": "5x",
-            "message": "🏥 Hospitals के साथ tie-up करें। Emergency evacuation contracts।",
+            "message": "🏥 Tie up with hospitals. Pursue emergency evacuation contracts.",
             "priority": "high"
         },
         {
@@ -354,7 +354,7 @@ async def get_marketing_campaign_suggestions():
             "channels": ["Instagram Reels", "YouTube", "Travel influencers"],
             "budget_range": "₹50K-2 Lakhs/month",
             "expected_roi": "2x",
-            "message": "📱 Travel influencers को complimentary rides offer करें। UGC generate करें।",
+            "message": "📱 Offer complimentary rides to travel influencers. Generate UGC.",
             "priority": "low"
         }
     ])
@@ -367,7 +367,7 @@ async def get_marketing_campaign_suggestions():
         "campaigns": campaigns,
         "total_campaigns": len(campaigns),
         "recommended_monthly_budget": "₹8-15 Lakhs",
-        "ai_summary": f"इस महीने {campaigns[0]['campaign_name']} पर focus करें। Expected ROI: {campaigns[0]['expected_roi']}।"
+        "ai_summary": f"Focus on {campaigns[0]['campaign_name']} this month. Expected ROI: {campaigns[0]['expected_roi']}."
     }
 
 @router.get("/competitor-analysis")
@@ -427,10 +427,10 @@ async def get_competitor_analysis():
         "competitors": competitors,
         "airyatra_positioning": airyatra_positioning,
         "strategic_recommendations": [
-            "🎯 Technology को USP बनाएं - AI features highlight करें",
-            "💪 Aggregator model का advantage communicate करें - More choices, Better prices",
-            "🔒 Security features से Corporate trust build करें",
-            "📱 Digital-first experience से young professionals target करें"
+            "🎯 Make technology the USP — highlight AI features",
+            "💪 Communicate the aggregator model advantage — more choices, better prices",
+            "🔒 Build corporate trust through security features",
+            "📱 Target young professionals with a digital-first experience"
         ]
     }
 
@@ -478,5 +478,5 @@ async def get_sales_forecast():
         },
         "forecast": forecasts,
         "total_projected_revenue": sum(f["projected_revenue"] for f in forecasts),
-        "ai_summary": f"पिछले 30 दिनों में {growth_rate:.1f}% growth। अगले 3 महीनों में ~₹{sum(f['projected_revenue'] for f in forecasts)/10000000:.1f}Cr revenue expected।"
+        "ai_summary": f"{growth_rate:.1f}% growth in the last 30 days. ~₹{sum(f['projected_revenue'] for f in forecasts)/10000000:.1f}Cr revenue expected over the next 3 months."
     }

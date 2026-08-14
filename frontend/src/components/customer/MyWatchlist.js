@@ -65,8 +65,7 @@ export const MyWatchlist = ({ user }) => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Bell className="h-6 w-6 text-orange-500" /> My Watchlist / मेरी वॉचलिस्ट
-          </h1>
+            <Bell className="h-6 w-6 text-orange-500" /> My Watchlist</h1>
           <p className="text-slate-400 text-sm">Auctions you're watching — we email you before they end</p>
         </div>
         <Button onClick={() => navigate('/exchange?mode=auctions')} className="bg-orange-500 hover:bg-orange-600" data-testid="explore-auctions-btn">

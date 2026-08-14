@@ -38,8 +38,8 @@ export const EmpExpenses = ({ onChanged }) => {
   useEffect(() => { load(); }, []);
 
   const create = async () => {
-    if (!form.title || !form.amount || !form.expense_date) return toast.error('Title, amount aur date required hai');
-    if (!receipt) return toast.error('Receipt attach karna zaroori hai / रसीद संलग्न करें');
+    if (!form.title || !form.amount || !form.expense_date) return toast.error('Title, amount and date are required');
+    if (!receipt) return toast.error('Attaching a receipt is mandatory');
     setSaving(true);
     try {
       const res = await api.post('/hr/expense/create', { ...form, amount: Number(form.amount) });
@@ -49,7 +49,7 @@ export const EmpExpenses = ({ onChanged }) => {
       fd.append('document_type', 'receipt');
       await api.post(`/hr/expense/${expenseId}/upload-document`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       await api.put(`/hr/expense/${expenseId}/submit`);
-      toast.success('Expense claim submitted for approval / क्लेम अनुमोदन के लिए भेजा गया');
+      toast.success('Expense claim submitted for approval');
       setOpen(false);
       setForm({ title: '', category: 'travel', amount: '', expense_date: '', description: '' });
       setReceipt(null);
@@ -76,16 +76,16 @@ export const EmpExpenses = ({ onChanged }) => {
   return (
     <div className="space-y-6" data-testid="emp-expenses">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Expenses / खर्च क्लेम</h1>
+        <h1 className="text-2xl font-bold text-white">Expenses</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-purple-500 hover:bg-purple-600" data-testid="new-expense-btn"><Plus className="h-4 w-4 mr-2" />New Claim / नया क्लेम</Button>
+            <Button className="bg-purple-500 hover:bg-purple-600" data-testid="new-expense-btn"><Plus className="h-4 w-4 mr-2" />New Claim</Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-900 border-slate-700 text-white">
-            <DialogHeader><DialogTitle>New Expense Claim / नया खर्च क्लेम</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>New Expense Claim</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Title / शीर्षक</Label>
+                <Label className="text-slate-300">Title</Label>
                 <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Client visit taxi fare" className="bg-slate-800 border-slate-700 mt-1" data-testid="expense-title-input" />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -109,12 +109,11 @@ export const EmpExpenses = ({ onChanged }) => {
                 <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="bg-slate-800 border-slate-700 mt-1" />
               </div>
               <div>
-                <Label className="text-slate-300">Receipt / रसीद (required)</Label>
+                <Label className="text-slate-300">Receiptrequired)</Label>
                 <Input type="file" accept="image/*,.pdf" onChange={(e) => setReceipt(e.target.files[0])} className="bg-slate-800 border-slate-700 mt-1 file:text-slate-300" data-testid="expense-receipt-input" />
               </div>
               <Button onClick={create} disabled={saving} className="w-full bg-purple-500 hover:bg-purple-600" data-testid="submit-expense-btn">
-                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Submit Claim / क्लेम जमा करें
-              </Button>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Submit Claim</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -123,21 +122,21 @@ export const EmpExpenses = ({ onChanged }) => {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 text-center">
           <p className="text-2xl font-bold text-yellow-400">₹{(summary.total_pending || 0).toLocaleString()}</p>
-          <p className="text-slate-400 text-xs">Pending / लंबित</p>
+          <p className="text-slate-400 text-xs">Pending</p>
         </div>
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 text-center">
           <p className="text-2xl font-bold text-green-400">₹{(summary.total_approved || 0).toLocaleString()}</p>
-          <p className="text-slate-400 text-xs">Approved / स्वीकृत</p>
+          <p className="text-slate-400 text-xs">Approved</p>
         </div>
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 text-center">
           <p className="text-2xl font-bold text-sky-400">₹{(summary.total_paid || 0).toLocaleString()}</p>
-          <p className="text-slate-400 text-xs">Reimbursed / भुगतान</p>
+          <p className="text-slate-400 text-xs">Reimbursed</p>
         </div>
       </div>
 
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
         {!data?.expenses?.length ? (
-          <div className="p-8 text-center text-slate-400"><Receipt className="h-10 w-10 mx-auto mb-2 text-slate-600" />No expense claims yet / अभी कोई क्लेम नहीं</div>
+          <div className="p-8 text-center text-slate-400"><Receipt className="h-10 w-10 mx-auto mb-2 text-slate-600" />No expense claims yet</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-900/50">

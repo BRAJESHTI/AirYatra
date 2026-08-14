@@ -379,7 +379,7 @@ async def submit_revised_quote(quote_data: dict, user: dict = Depends(get_curren
             "user_id": customer_user_id,
             "type": "quote_received",
             "title": f"✈️ New Quote Received - ₹{customer_total:,.0f}",
-            "message": f"{operator['company_name']} ne aapki booking {booking.get('booking_number', booking_id[:8])} ke liye quote bheja hai. Abhi review karein!",
+            "message": f"{operator['company_name']} has sent a quote for your booking {booking.get('booking_number', booking_id[:8])}. Review it now!",
             "reference_id": booking_id,
             "data": {"quote_id": quote_id, "amount": quote_data["amount"], "operator_name": operator["company_name"]},
             "read": False,

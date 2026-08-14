@@ -102,7 +102,7 @@ const CEODashboard = () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success('Board report downloaded! / बोर्ड रिपोर्ट डाउनलोड हो गई');
+      toast.success('Board report downloaded!');
     } catch (e) {
       toast.error('Failed to download report');
     } finally {
@@ -121,7 +121,7 @@ const CEODashboard = () => {
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Crown className="h-6 w-6 text-amber-400" /> Country CEO Dashboard
           </h1>
-          <p className="text-slate-400 text-sm">Executive view — revenue, fleet, marketplace & HR at a glance / एक नज़र में पूरा कारोबार</p>
+          <p className="text-slate-400 text-sm">Executive view — revenue, fleet, marketplace & HR at a glance</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={openInvestors} variant="outline" className="border-slate-700 text-slate-300 hover:border-orange-500/50" data-testid="investor-emails-btn">

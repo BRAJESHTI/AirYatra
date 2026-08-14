@@ -14,39 +14,39 @@ import HelipadOwnerProfile from '../components/helipad/HelipadOwnerProfile';
 const navGroups = [
   {
     id: 'main',
-    label: 'Dashboard / डैशबोर्ड',
+    label: 'Dashboard',
     icon: Home,
     items: [
-      { id: 'overview', label: 'Overview / ओवरव्यू', icon: BarChart3 },
-      { id: 'bookings', label: 'Bookings / बुकिंग', icon: Plane, highlight: true },
+      { id: 'overview', label: 'Overview', icon: BarChart3 },
+      { id: 'bookings', label: 'Bookings', icon: Plane, highlight: true },
     ]
   },
   {
     id: 'availability',
-    label: 'Availability / उपलब्धता',
+    label: 'Availability',
     icon: Calendar,
     items: [
-      { id: 'calendar', label: 'Calendar / कैलेंडर', icon: Calendar },
-      { id: 'pricing', label: 'Pricing / मूल्य निर्धारण', icon: DollarSign },
+      { id: 'calendar', label: 'Calendar', icon: Calendar },
+      { id: 'pricing', label: 'Pricing', icon: DollarSign },
     ]
   },
   {
     id: 'earnings',
-    label: 'Earnings / कमाई',
+    label: 'Earnings',
     icon: CreditCard,
     items: [
-      { id: 'revenue', label: 'Revenue / राजस्व', icon: TrendingUp },
-      { id: 'payouts', label: 'Payouts / भुगतान', icon: CreditCard },
+      { id: 'revenue', label: 'Revenue', icon: TrendingUp },
+      { id: 'payouts', label: 'Payouts', icon: CreditCard },
     ]
   },
   {
     id: 'account',
-    label: 'Account / खाता',
+    label: 'Account',
     icon: User,
     items: [
-      { id: 'profile', label: 'Profile / प्रोफाइल', icon: User },
-      { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings },
-      { id: 'help', label: 'Help / मदद', icon: HelpCircle },
+      { id: 'profile', label: 'Profile', icon: User },
+      { id: 'settings', label: 'Settings', icon: Settings },
+      { id: 'help', label: 'Help', icon: HelpCircle },
     ]
   },
 ];
@@ -155,7 +155,6 @@ function HelipadOwnerDashboard({ user, setUser }) {
             You do not have any registered helipad yet. Contact admin to register your helipad.
           </p>
           <p className="text-slate-500 text-sm">
-            आपका कोई पंजीकृत हेलीपैड नहीं है। अपना हेलीपैड पंजीकृत करने के लिए एडमिन से संपर्क करें।
           </p>
         </div>
       );
@@ -170,7 +169,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">Total Bookings / कुल बुकिंग</p>
+                    <p className="text-slate-400 text-sm">Total Bookings</p>
                     <p className="text-2xl font-bold text-white mt-1">{stats.total_bookings}</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
@@ -182,7 +181,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">Pending / लंबित</p>
+                    <p className="text-slate-400 text-sm">Pending</p>
                     <p className="text-2xl font-bold text-yellow-400 mt-1">{stats.pending_bookings}</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-yellow-500/20 flex items-center justify-center">
@@ -194,7 +193,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">Total Revenue / कुल राजस्व</p>
+                    <p className="text-slate-400 text-sm">Total Revenue</p>
                     <p className="text-2xl font-bold text-green-400 mt-1">₹{stats.total_revenue?.toLocaleString() || 0}</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
@@ -206,7 +205,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">This Month / इस महीने</p>
+                    <p className="text-slate-400 text-sm">This Month</p>
                     <p className="text-2xl font-bold text-purple-400 mt-1">₹{stats.this_month_revenue?.toLocaleString() || 0}</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -220,8 +219,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-purple-400" />
-                Your Helipad / आपका हेलीपैड
-              </h3>
+                Your Helipad</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <p className="text-slate-400 text-sm">Name</p>
@@ -248,7 +246,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
             {/* Recent Bookings */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Recent Bookings / हाल की बुकिंग</h3>
+                <h3 className="text-lg font-semibold text-white">Recent Bookings</h3>
                 <Button variant="ghost" className="text-purple-400" onClick={() => setActiveTab('bookings')}>
                   View All <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -287,13 +285,12 @@ function HelipadOwnerDashboard({ user, setUser }) {
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Plane className="h-5 w-5 text-blue-400" />
-              All Bookings / सभी बुकिंग
-            </h3>
+              All Bookings</h3>
             
             {recentBookings.length === 0 ? (
               <div className="text-center py-12">
                 <Plane className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">No bookings found / कोई बुकिंग नहीं मिली</p>
+                <p className="text-slate-400">No bookings found</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -339,8 +336,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-green-400" />
-              Manage Availability / उपलब्धता प्रबंधित करें
-            </h3>
+              Manage Availability</h3>
             <p className="text-slate-400 mb-6">Set your helipad availability dates. Block dates when not available.</p>
             
             <div className="bg-slate-900/50 rounded-lg p-8 text-center">
@@ -358,8 +354,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Settings className="h-5 w-5 text-slate-400" />
-              Settings / सेटिंग्स
-            </h3>
+              Settings</h3>
             
             <div className="space-y-4">
               {[
@@ -385,7 +380,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
       default:
         return (
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 text-center py-12">
-            <p className="text-slate-400">Coming soon / जल्द आ रहा है</p>
+            <p className="text-slate-400">Coming soon</p>
           </div>
         );
     }
@@ -402,7 +397,7 @@ function HelipadOwnerDashboard({ user, setUser }) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Helipad Owner Portal</h1>
-              <p className="text-slate-400 text-sm">हेलीपैड मालिक पोर्टल</p>
+              <p className="text-slate-400 text-sm"></p>
             </div>
           </div>
           

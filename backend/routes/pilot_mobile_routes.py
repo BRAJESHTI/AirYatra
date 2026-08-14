@@ -42,7 +42,7 @@ async def _send_duty_email(pilot_email: str, pilot_name: str, duty_type: str, du
                     </div>
                     <div class="content">
                         <p>Namaste <strong>{pilot_name}</strong>,</p>
-                        <p>Aapka duty period shuru ho gaya hai. Safe flying! 🚁</p>
+                        <p>Your duty period has started. Safe flying! 🚁</p>
                         
                         <div class="info-box">
                             <div class="info-row">
@@ -97,7 +97,7 @@ async def _send_duty_email(pilot_email: str, pilot_name: str, duty_type: str, du
                     </div>
                     <div class="content">
                         <p>Namaste <strong>{pilot_name}</strong>,</p>
-                        <p>Aapka duty period successfully complete ho gaya. Rest well! 😊</p>
+                        <p>Your duty period is complete. Rest well! 😊</p>
                         
                         <div class="summary-box">
                             <div class="big-number">{duty_data.get('duty_hours', '0')}h</div>

@@ -94,7 +94,7 @@ export default function ZohoIntegration() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white">Zoho Integration / ज़ोहो इंटीग्रेशन</h2>
+          <h2 className="text-2xl font-bold text-white">Zoho Integration</h2>
           <p className="text-slate-400">CRM & Books Sync with Zoho</p>
         </div>
         <div className="flex gap-2">
@@ -119,7 +119,7 @@ export default function ZohoIntegration() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{dashboard?.stats?.contacts_synced || 0}</p>
-                <p className="text-slate-400 text-sm">Contacts / संपर्क</p>
+                <p className="text-slate-400 text-sm">Contacts</p>
               </div>
             </div>
           </CardContent>
@@ -133,7 +133,7 @@ export default function ZohoIntegration() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{dashboard?.stats?.invoices_synced || 0}</p>
-                <p className="text-slate-400 text-sm">Invoices / चालान</p>
+                <p className="text-slate-400 text-sm">Invoices</p>
               </div>
             </div>
           </CardContent>
@@ -147,7 +147,7 @@ export default function ZohoIntegration() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{dashboard?.stats?.leads_synced || 0}</p>
-                <p className="text-slate-400 text-sm">CRM Leads / लीड्स</p>
+                <p className="text-slate-400 text-sm">CRM Leads</p>
               </div>
             </div>
           </CardContent>
@@ -163,7 +163,7 @@ export default function ZohoIntegration() {
                 <p className="text-sm font-bold text-white">
                   {dashboard?.stats?.last_sync ? new Date(dashboard.stats.last_sync).toLocaleString() : 'Never'}
                 </p>
-                <p className="text-slate-400 text-sm">Last Sync / आखिरी सिंक</p>
+                <p className="text-slate-400 text-sm">Last Sync</p>
               </div>
             </div>
           </CardContent>
@@ -268,7 +268,7 @@ export default function ZohoIntegration() {
       {/* Sync Actions */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Sync Actions / सिंक एक्शन</CardTitle>
+          <CardTitle className="text-white">Sync Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -292,9 +292,9 @@ export default function ZohoIntegration() {
 
       {/* Tabs */}
       <div className="flex space-x-2 border-b border-slate-700">
-        {[{id: 'contacts', label: 'Contacts / संपर्क', icon: Users},
-          {id: 'invoices', label: 'Invoices / चालान', icon: Receipt},
-          {id: 'leads', label: 'CRM Leads / लीड्स', icon: TrendingUp}].map(tab => (
+        {[{id: 'contacts', label: 'Contacts', icon: Users},
+          {id: 'invoices', label: 'Invoices', icon: Receipt},
+          {id: 'leads', label: 'CRM Leads', icon: TrendingUp}].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}

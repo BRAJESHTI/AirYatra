@@ -31,12 +31,12 @@ export default function MyRoutesQuotes() {
     <div className="space-y-8" data-testid="my-routes-quotes">
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">My Fixed Routes & Quotes</h2>
-        <p className="text-slate-400 text-sm">Aapke fixed route prices aur bheje gaye quotes — Admin/CEO dwara add kiye gaye bhi yahan dikhte hain.</p>
+        <p className="text-slate-400 text-sm">Your fixed route prices and sent quotes — including those added by Admin/CEO on your behalf.</p>
       </div>
 
       <div className="glass p-5 rounded-xl" data-testid="my-fixed-routes">
         <p className="text-white font-semibold mb-3 flex items-center gap-2"><MapPin className="h-4 w-4 text-orange-400" /> Fixed Routes ({routes.length})</p>
-        {routes.length === 0 && <p className="text-slate-500 text-sm">Koi fixed route nahi.</p>}
+        {routes.length === 0 && <p className="text-slate-500 text-sm">No fixed routes yet.</p>}
         <div className="space-y-2 max-h-72 overflow-y-auto">
           {routes.map((r) => (
             <div key={r.id} className="flex items-center justify-between bg-slate-800/60 rounded-lg px-3 py-2 text-sm" data-testid={`my-route-${r.id}`}>
@@ -62,7 +62,7 @@ export default function MyRoutesQuotes() {
 
       <div className="glass p-5 rounded-xl" data-testid="my-quotes-list">
         <p className="text-white font-semibold mb-3 flex items-center gap-2"><IndianRupee className="h-4 w-4 text-orange-400" /> My Quotes ({quotes.length})</p>
-        {quotes.length === 0 && <p className="text-slate-500 text-sm">Koi quote nahi bheja gaya.</p>}
+        {quotes.length === 0 && <p className="text-slate-500 text-sm">No quotes sent yet.</p>}
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {quotes.map((q) => (
             <div key={q.id} className="bg-slate-800/60 rounded-lg px-3 py-2 text-sm" data-testid={`my-quote-${q.id}`}>

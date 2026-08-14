@@ -81,8 +81,7 @@ function FleetPositioningSection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Navigation className="w-5 h-5 text-blue-500" />
-            Find Nearest Aircraft / सबसे नजदीकी विमान खोजें
-          </CardTitle>
+            Find Nearest Aircraft</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -270,12 +269,11 @@ function OperatorAuctionsSection() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gavel className="w-5 h-5 text-purple-500" />
-              Submit Bid / बोली लगाएं
-            </DialogTitle>
+              Submit Bid</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Aircraft Registration / पंजीकरण</Label>
+              <Label>Aircraft Registration</Label>
               <Input
                 placeholder="VT-XXX"
                 value={bidForm.aircraft_registration}
@@ -284,7 +282,7 @@ function OperatorAuctionsSection() {
               />
             </div>
             <div>
-              <Label>Aircraft Type / विमान प्रकार</Label>
+              <Label>Aircraft Type</Label>
               <Select
                 value={bidForm.aircraft_type}
                 onValueChange={(val) => setBidForm(prev => ({ ...prev, aircraft_type: val }))}
@@ -300,7 +298,7 @@ function OperatorAuctionsSection() {
               </Select>
             </div>
             <div>
-              <Label>Your Quote Price (₹) / आपकी कीमत</Label>
+              <Label>Your Quote Price (₹)</Label>
               <Input
                 type="number"
                 placeholder="150000"
@@ -310,7 +308,7 @@ function OperatorAuctionsSection() {
               />
             </div>
             <div>
-              <Label>Special Conditions / विशेष शर्तें</Label>
+              <Label>Special Conditions</Label>
               <Input
                 placeholder="Any terms or conditions..."
                 value={bidForm.special_conditions}
@@ -323,7 +321,7 @@ function OperatorAuctionsSection() {
                 checked={bidForm.includes_catering}
                 onCheckedChange={(checked) => setBidForm(prev => ({ ...prev, includes_catering: checked }))}
               />
-              <Label>Includes Catering / केटरिंग शामिल</Label>
+              <Label>Includes Catering</Label>
             </div>
           </div>
           <DialogFooter>
@@ -534,13 +532,12 @@ function FixedRoutePricingSection() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="w-5 h-5 text-green-500" />
-              Add Fixed Route Pricing / निश्चित मार्ग मूल्य जोड़ें
-            </DialogTitle>
+              Add Fixed Route Pricing</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>From City / शहर से</Label>
+                <Label>From City</Label>
                 <Input
                   placeholder="Mumbai"
                   value={newRoute.from_city}
@@ -558,7 +555,7 @@ function FixedRoutePricingSection() {
                 />
               </div>
               <div>
-                <Label>To City / शहर तक</Label>
+                <Label>To City</Label>
                 <Input
                   placeholder="Shirdi"
                   value={newRoute.to_city}
@@ -578,7 +575,7 @@ function FixedRoutePricingSection() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Base Price (₹) / मूल कीमत</Label>
+                <Label>Base Price (₹)</Label>
                 <Input
                   type="number"
                   placeholder="125000"
@@ -675,7 +672,7 @@ function FixedRoutePricingSection() {
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium">Your Fixed Routes / आपके निश्चित मार्ग</h3>
+          <h3 className="font-medium">Your Fixed Routes</h3>
           <p className="text-sm text-gray-500">Set fixed prices for popular routes</p>
         </div>
         <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
@@ -779,8 +776,7 @@ function DistanceCalculatorSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Navigation className="w-5 h-5 text-indigo-500" />
-          Distance Calculator / दूरी कैलकुलेटर
-        </CardTitle>
+          Distance Calculator</CardTitle>
         <CardDescription>Calculate aviation distance and flight time between airports</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -926,8 +922,7 @@ export default function ASREDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Gavel className="w-5 h-5 text-purple-500" />
-                Available Auction Opportunities / उपलब्ध नीलामी अवसर
-              </CardTitle>
+                Available Auction Opportunities</CardTitle>
               <CardDescription>
                 Customers are looking for quotes - submit your best price to win!
               </CardDescription>
@@ -943,8 +938,7 @@ export default function ASREDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-green-500" />
-                Fixed Route Pricing / निश्चित मार्ग मूल्य
-              </CardTitle>
+                Fixed Route Pricing</CardTitle>
               <CardDescription>
                 Set guaranteed prices for your popular routes - customers get instant quotes
               </CardDescription>

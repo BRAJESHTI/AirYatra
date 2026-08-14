@@ -125,11 +125,11 @@ export default function OperatorComplaintInbox({ user }) {
 
   const handleSubmitResponse = async () => {
     if (!responseForm.response_text.trim()) {
-      toast.error('Please provide a response / कृपया जवाब दें');
+      toast.error('Please provide a response');
       return;
     }
     if (responseForm.response_text.trim().length < 50) {
-      toast.error('Response must be at least 50 characters / जवाब कम से कम 50 अक्षर');
+      toast.error('Response must be at least 50 characters');
       return;
     }
 
@@ -153,7 +153,7 @@ export default function OperatorComplaintInbox({ user }) {
           </div>
         );
       } else {
-        toast.success('Response submitted successfully! / जवाब भेज दिया गया');
+        toast.success('Response submitted successfully!');
       }
       
       setShowResponseDialog(false);
@@ -190,11 +190,9 @@ export default function OperatorComplaintInbox({ user }) {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Flag className="h-6 w-6 text-red-400" />
-            Complaints Against Me / शिकायतें
-          </h1>
+            Complaints Against Me</h1>
           <p className="text-slate-400 text-sm mt-1">
-            Respond within 24 hours to avoid penalties / 24 घंटे में जवाब दें
-          </p>
+            Respond within 24 hours to avoid penalties / 24          </p>
         </div>
         <Button onClick={loadComplaints} variant="outline" className="border-slate-600 text-slate-300">
           <RefreshCw className="h-4 w-4 mr-2" /> Refresh
@@ -261,7 +259,7 @@ export default function OperatorComplaintInbox({ user }) {
         ) : complaints.length === 0 ? (
           <div className="glass rounded-xl p-8 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto text-green-400" />
-            <p className="text-green-400 mt-2 font-medium">No complaints! / कोई शिकायत नहीं</p>
+            <p className="text-green-400 mt-2 font-medium">No complaints!</p>
             <p className="text-slate-500 text-sm mt-1">Keep up the excellent service!</p>
           </div>
         ) : (
@@ -351,7 +349,7 @@ export default function OperatorComplaintInbox({ user }) {
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t border-slate-700/50 pt-4 space-y-4">
                     <div>
-                      <p className="text-xs text-slate-400 mb-1">Customer Complaint / ग्राहक की शिकायत</p>
+                      <p className="text-xs text-slate-400 mb-1">Customer Complaint</p>
                       <p className="text-slate-300 text-sm">{complaint.description}</p>
                     </div>
                     
@@ -364,7 +362,7 @@ export default function OperatorComplaintInbox({ user }) {
                     
                     {complaint.operator_response && (
                       <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                        <p className="text-xs text-green-400 mb-1">Your Response / आपका जवाब</p>
+                        <p className="text-xs text-green-400 mb-1">Your Response</p>
                         <p className="text-slate-300 text-sm">{complaint.operator_response}</p>
                         {complaint.operator_action_taken && (
                           <p className="text-slate-400 text-xs mt-2">Action: {complaint.operator_action_taken}</p>
@@ -378,7 +376,7 @@ export default function OperatorComplaintInbox({ user }) {
                         complaint.airyatra_decision === 'upheld' ? 'bg-red-500/10 border border-red-500/30' :
                         'bg-orange-500/10 border border-orange-500/30'
                       }`}>
-                        <p className="text-xs text-slate-400 mb-1">AirYatra Decision / निर्णय</p>
+                        <p className="text-xs text-slate-400 mb-1">AirYatra Decision</p>
                         <p className={`font-semibold ${
                           complaint.airyatra_decision === 'dismissed' ? 'text-green-400' :
                           complaint.airyatra_decision === 'upheld' ? 'text-red-400' : 'text-orange-400'
@@ -443,8 +441,7 @@ export default function OperatorComplaintInbox({ user }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5 text-blue-400" />
-              Respond to Complaint / जवाब दें
-            </DialogTitle>
+              Respond to Complaint</DialogTitle>
           </DialogHeader>
           
           {selectedComplaint && (
@@ -472,7 +469,7 @@ export default function OperatorComplaintInbox({ user }) {
               
               {/* Response Text */}
               <div>
-                <Label className="text-slate-300">Your Response / आपका जवाब *</Label>
+                <Label className="text-slate-300">Your Response*</Label>
                 <textarea
                   value={responseForm.response_text}
                   onChange={(e) => setResponseForm(prev => ({ ...prev, response_text: e.target.value }))}
@@ -504,13 +501,12 @@ export default function OperatorComplaintInbox({ user }) {
                   className="w-4 h-4 rounded border-slate-600 bg-slate-800"
                 />
                 <Label htmlFor="accepts-responsibility" className="text-slate-300 text-sm">
-                  I accept responsibility for this issue / मैं जिम्मेदारी स्वीकार करता/करती हूं
-                </Label>
+                  I accept responsibility for this issue</Label>
               </div>
               
               {/* Info Box */}
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <p className="text-sm text-blue-400 font-medium">Important / महत्वपूर्ण:</p>
+                <p className="text-sm text-blue-400 font-medium">Important</p>
                 <ul className="text-xs text-slate-400 mt-1 space-y-1">
                   <li>• AirYatra will investigate and make final decision</li>
                   <li>• Your response will be shared with the customer</li>

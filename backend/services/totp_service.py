@@ -33,7 +33,7 @@ class TOTPService:
             return {"error": "User not found", "success": False}
         
         if user.get("totp_enabled"):
-            return {"error": "2FA पहले से enabled है / 2FA is already enabled", "success": False}
+            return {"error": "2FA is already enabled", "success": False}
         
         # Generate a new secret
         secret = pyotp.random_base32()
@@ -77,7 +77,7 @@ class TOTPService:
             "provisioning_uri": provisioning_uri,
             "secret": secret,  # Show this only for manual entry option
             "recovery_codes": recovery_codes,
-            "message": "QR code scan करें Google Authenticator में / Scan QR code in Google Authenticator"
+            "message": "Scan the QR code in Google Authenticator"
         }
     
     async def verify_setup(self, user_id: str, code: str) -> Dict[str, Any]:
@@ -92,7 +92,7 @@ class TOTPService:
         
         pending_secret = user.get("totp_secret_pending")
         if not pending_secret:
-            return {"error": "2FA setup नहीं शुरू हुआ / 2FA setup not started", "success": False}
+            return {"error": "2FA setup not started", "success": False}
         
         # Decrypt and verify
         secret = self._decrypt_secret(pending_secret)
@@ -108,7 +108,7 @@ class TOTPService:
                 "status": "failed",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
-            return {"error": "Invalid code / गलत कोड", "success": False}
+            return {"error": "Invalid code", "success": False}
         
         # Enable 2FA
         await db.users.update_one(
@@ -142,7 +142,7 @@ class TOTPService:
         
         return {
             "success": True,
-            "message": "2FA successfully enabled / 2FA सफलतापूर्वक enable हुआ"
+            "message": "2FA successfully enabled"
         }
     
     async def verify_code(self, user_id: str, code: str) -> Dict[str, Any]:
@@ -168,12 +168,12 @@ class TOTPService:
             if recovery_result["success"]:
                 return recovery_result
             
-            return {"error": "Invalid or expired code / गलत या expired कोड", "success": False}
+            return {"error": "Invalid or expired code", "success": False}
         
         # Replay protection: same timecode cannot be used twice
         last_timecode = user.get("totp_last_used_timecode")
         if last_timecode and current_timecode <= last_timecode:
-            return {"error": "Code already used / कोड पहले ही इस्तेमाल हो चुका है", "success": False}
+            return {"error": "Code already used", "success": False}
         
         # Update last used timecode
         await db.users.update_one(
@@ -250,7 +250,7 @@ class TOTPService:
                 "status": "success",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
-            return {"success": True, "message": "2FA disabled / 2FA बंद कर दिया गया"}
+            return {"success": True, "message": "2FA disabled"}
         
         return {"error": "Failed to disable 2FA", "success": False}
     
@@ -300,7 +300,7 @@ class TOTPService:
         return {
             "success": True,
             "recovery_codes": recovery_codes,
-            "message": "नए recovery codes generate हुए / New recovery codes generated"
+            "message": "New recovery codes generated"
         }
     
     def _generate_recovery_codes(self, count: int = 8) -> list:

@@ -287,7 +287,7 @@ async def create_field_visit(
     
     await db.field_visits.insert_one(visit)
     
-    return {"message": "Field visit scheduled / फील्ड विजिट शेड्यूल हो गई", "visit_id": visit_id}
+    return {"message": "Field visit scheduled", "visit_id": visit_id}
 
 
 @router.get("/visits")
@@ -361,7 +361,7 @@ async def visit_check_in(
         within_geofence = False
     
     return {
-        "message": "Check-in successful / चेक-इन सफल",
+        "message": "Check-in successful",
         "arrival_time": datetime.now(timezone.utc).isoformat(),
         "distance_from_client_meters": round(distance_from_client, 2) if distance_from_client else None,
         "within_geofence": within_geofence,
@@ -408,7 +408,7 @@ async def visit_check_out(
     )
     
     return {
-        "message": "Check-out successful / चेक-आउट सफल",
+        "message": "Check-out successful",
         "departure_time": departure_time.isoformat(),
         "duration_minutes": round(duration_minutes, 2)
     }
@@ -587,7 +587,7 @@ async def create_geofence(
     
     await db.geofences.insert_one(geofence)
     
-    return {"message": "Geofence created / जियोफेंस बना", "geofence_id": geofence_id}
+    return {"message": "Geofence created", "geofence_id": geofence_id}
 
 
 @router.get("/geofences")

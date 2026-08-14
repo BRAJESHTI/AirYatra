@@ -3615,3 +3615,18 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Excel: 3 sheets (Month-wise Summary first, then Bookings GST-TDS, Refunds); PDF: month-wise table + full bookings + refunds
 - Frontend: GSTReports.js — Monthly/Financial Year toggle, FY dropdown (last 5 FYs), month-wise summary table in FY mode
 - TESTED: curl FY JSON/xlsx(3 sheets)/pdf(14pg), monthly regression OK, finance UI screenshot with FY toggle verified
+
+##### 9. English-Only UI Sweep (Hindi/Hinglish Removal) 🟢 DONE (June 2026)
+- Frontend: 146+ files — removed all hardcoded "English / हिंदी" bilingual labels, standalone Devanagari text, and Hinglish sentences (toasts, empty states, dialogs, AI greetings)
+- Backend: 38+ route/service files — bilingual message/detail/label strings, email templates (email_service, invoice_email, credit_alert, whatsapp, sms_otp, totp), AI sales/pricing recommendations now English
+- KEPT INTENTIONALLY (per user: Hindi only on language switch): /app/frontend/src/i18n/ locales, LanguageSwitcher native names, all `_hi`/`_hindi` language-specific data fields, email_multilang_service translation dicts, "hi" keys in language-keyed dicts
+- DB migration: cancellation_reasons operator labels -> English; payment_rules & settings collections scanned/cleaned
+- BONUS FIX: JourneyOTPManager was calling non-existent operatorAPI.getInquiries (console error) — added getInquiries to operatorService.js + status filter param on GET /api/quotes/operator/inquiries
+- Fixed regex artifacts: GlobalSettings flight-type headings, TwoFactorSetup steps, LoginActivityLog time-ago strings, PriceLockTimer, aircraft_catalog syntax breaks
+- TESTED: testing agent iteration_62 (7 role dashboards + sub-pages, ~95% -> then backend labels fixed), curl API responses CLEAN, admin dashboard innerText scan = zero Devanagari
+
+## Pending Work (as of June 2026)
+### P0 - LoginShield OTP bypass disable for production (security launch blocker)
+### P1 - Razorpay LIVE keys toggle for production payments
+### P2 - Refund status emails (approved/rejected), Report email scheduler (monthly GST auto-email), Auction push alerts (WebSocket), Live flight tracking map
+### Backlog - Vendor Portal, Insurance workflow, EMI module, DigiLocker

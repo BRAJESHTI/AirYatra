@@ -12,7 +12,7 @@ const MESSAGE_TEMPLATES = [
   {
     id: 'booking_confirmation',
     name: 'Booking Confirmation',
-    name_hi: 'बुकिंग पुष्टि',
+    name_hi: '',
     category: 'booking',
     template: `🛩️ *AirYatra Booking Confirmed*
 
@@ -34,7 +34,7 @@ Safe travels! 🙏`
   {
     id: 'complaint_filed',
     name: 'Complaint Filed',
-    name_hi: 'शिकायत दर्ज',
+    name_hi: '',
     category: 'complaint',
     template: `📋 *Complaint Registered*
 
@@ -52,7 +52,7 @@ Track: {{tracking_link}}`
   {
     id: 'complaint_decision',
     name: 'Complaint Decision',
-    name_hi: 'शिकायत निर्णय',
+    name_hi: '',
     category: 'complaint',
     template: `⚖️ *Complaint Decision*
 
@@ -70,7 +70,7 @@ Questions? Reply to this message.`
   {
     id: 'operator_complaint_alert',
     name: 'Operator Complaint Alert',
-    name_hi: 'ऑपरेटर शिकायत अलर्ट',
+    name_hi: '',
     category: 'complaint',
     template: `🚨 *URGENT: New Complaint*
 
@@ -87,7 +87,7 @@ View: {{complaint_link}}`
   {
     id: 'deadline_reminder',
     name: 'Deadline Reminder',
-    name_hi: 'समय सीमा स्मरण',
+    name_hi: '',
     category: 'reminder',
     template: `⏰ *Deadline Reminder*
 
@@ -104,7 +104,7 @@ Respond now: {{response_link}}`
   {
     id: 'payment_reminder',
     name: 'Payment Reminder',
-    name_hi: 'भुगतान स्मरण',
+    name_hi: '',
     category: 'payment',
     template: `💰 *Payment Reminder*
 
@@ -122,7 +122,7 @@ Need help? Reply to this message.`
   {
     id: 'custom',
     name: 'Custom Message',
-    name_hi: 'कस्टम संदेश',
+    name_hi: '',
     category: 'custom',
     template: ''
   }
@@ -604,7 +604,6 @@ export default function WhatsAppCRM() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-white font-medium">{template.name}</p>
-                      <p className="text-xs text-slate-400">{template.name_hi}</p>
                     </div>
                     <span className="text-xs px-2 py-1 rounded bg-slate-700 text-slate-300">
                       {template.category}

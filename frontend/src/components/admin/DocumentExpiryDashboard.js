@@ -12,9 +12,9 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Category config
 const categoryConfig = {
-  pilot: { icon: User, color: 'purple', label: 'Pilot / पायलट', bgColor: 'from-purple-900/30' },
-  aircraft: { icon: Plane, color: 'cyan', label: 'Aircraft / विमान', bgColor: 'from-cyan-900/30' },
-  employee: { icon: Briefcase, color: 'green', label: 'Employee / कर्मचारी', bgColor: 'from-green-900/30' }
+  pilot: { icon: User, color: 'purple', label: 'Pilot', bgColor: 'from-purple-900/30' },
+  aircraft: { icon: Plane, color: 'cyan', label: 'Aircraft', bgColor: 'from-cyan-900/30' },
+  employee: { icon: Briefcase, color: 'green', label: 'Employee', bgColor: 'from-green-900/30' }
 };
 
 function DocumentExpiryDashboard() {
@@ -198,8 +198,7 @@ function DocumentExpiryDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <AlertTriangle className="h-6 w-6 text-red-400" />
-            Document Expiry Dashboard / दस्तावेज़ समाप्ति डैशबोर्ड
-          </h2>
+            Document Expiry Dashboard</h2>
           <p className="text-slate-400 mt-1">Track expiring documents across pilots, aircraft, and employees</p>
         </div>
         <div className="flex gap-2">

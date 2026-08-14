@@ -46,7 +46,7 @@ async def check_credit_alert(db, corporate_id: str):
     </div>
     <div style="padding:28px;">
       <p>Dear Admin,</p>
-      <p>Aapki company ka available credit set limit se <strong>neeche</strong> chala gaya hai. Bookings block hone se pehle credit top-up karein.</p>
+      <p>Your company's available credit has dropped <strong>below</strong> the set limit. Please top up before bookings get blocked.</p>
       <table style="width:100%;border-collapse:collapse;margin:14px 0;">
         <tr><td style="padding:8px 0;color:#94a3b8;">Available Credit:</td><td style="text-align:right;color:#ef4444;font-size:20px;font-weight:bold;">₹{available:,.0f} ({pct}%)</td></tr>
         <tr><td style="padding:8px 0;color:#94a3b8;">Alert Threshold:</td><td style="text-align:right;font-weight:600;">₹{threshold:,.0f}</td></tr>

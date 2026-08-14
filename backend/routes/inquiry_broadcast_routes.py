@@ -425,7 +425,7 @@ async def operator_revise_quote(
     
     return {
         "success": True,
-        "message": "Revised quote sent to customer / संशोधित कोट ग्राहक को भेजा गया",
+        "message": "Revised quote sent to customer",
         "quote_id": quote_id,
         "amount": float(amount)
     }

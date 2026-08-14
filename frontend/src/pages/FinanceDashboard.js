@@ -58,7 +58,7 @@ const ScheduledReportsManager = React.lazy(() => import('@/components/finance/Sc
 const navGroups = [
   {
     id: 'treasury',
-    label: 'Treasury ERP / खजाना',
+    label: 'Treasury ERP',
     icon: Landmark,
     items: [
       { id: 'treasury_dashboard', label: 'Treasury Dashboard', icon: Wallet, highlight: true },
@@ -70,7 +70,7 @@ const navGroups = [
   },
   {
     id: 'compliance',
-    label: 'Compliance / अनुपालन',
+    label: 'Compliance',
     icon: Shield,
     items: [
       { id: 'compliance_dashboard', label: 'Compliance Dashboard', icon: Shield, highlight: true },
@@ -80,7 +80,7 @@ const navGroups = [
   },
   {
     id: 'analytics',
-    label: 'Analytics / विश्लेषण',
+    label: 'Analytics',
     icon: BarChart3,
     items: [
       { id: 'finance_analytics', label: 'Revenue & Recon', icon: TrendingUp, highlight: true },
@@ -93,7 +93,7 @@ const navGroups = [
   },
   {
     id: 'advanced',
-    label: 'Advanced / उन्नत',
+    label: 'Advanced',
     icon: Settings,
     items: [
       { id: 'scheduled_reports', label: 'Scheduled Reports', icon: Clock, highlight: true },
@@ -104,16 +104,16 @@ const navGroups = [
   },
   {
     id: 'main',
-    label: 'Dashboard / डैशबोर्ड',
+    label: 'Dashboard',
     icon: Home,
     items: [
-      { id: 'overview', label: 'Overview / ओवरव्यू', icon: BarChart3 },
+      { id: 'overview', label: 'Overview', icon: BarChart3 },
       { id: 'pending_approvals', label: 'Pending Approvals', icon: Clock, highlight: true },
     ]
   },
   {
     id: 'payroll',
-    label: 'Payroll / वेतन',
+    label: 'Payroll',
     icon: BanknoteIcon,
     items: [
       { id: 'bulk_salary', label: 'Bulk Salary Payment', icon: Users, highlight: true },
@@ -122,7 +122,7 @@ const navGroups = [
   },
   {
     id: 'vendors',
-    label: 'Vendors / वेंडर',
+    label: 'Vendors',
     icon: Building2,
     items: [
       { id: 'vendor_bills', label: 'Vendor Bill Payment', icon: Receipt, highlight: true },
@@ -131,12 +131,12 @@ const navGroups = [
   },
   {
     id: 'billing',
-    label: 'Billing / बिलिंग',
+    label: 'Billing',
     icon: Receipt,
     items: [
       { id: 'invoices', label: 'Invoice & GST Billing', icon: FileText, highlight: true },
-      { id: 'payments', label: 'Payments / भुगतान', icon: CreditCard },
-      { id: 'refunds', label: 'Refunds / वापसी', icon: RefreshCw },
+      { id: 'payments', label: 'Payments', icon: CreditCard },
+      { id: 'refunds', label: 'Refunds', icon: RefreshCw },
     ]
   },
   {
@@ -145,7 +145,7 @@ const navGroups = [
     icon: FileText,
     items: [
       { id: 'gst_dashboard', label: 'GST Dashboard', icon: BarChart3, highlight: true },
-      { id: 'gst_reports', label: 'GST/TDS Reports / जीएसटी रिपोर्ट', icon: FileDown, highlight: true },
+      { id: 'gst_reports', label: 'GST/TDS Reports', icon: FileDown, highlight: true },
       { id: 'gst_returns', label: 'File GST Returns', icon: FileText },
       { id: 'gst_payments', label: 'GST Payments', icon: CreditCard },
       { id: 'itc_management', label: 'Input/Output ITC', icon: TrendingUp },
@@ -154,17 +154,17 @@ const navGroups = [
   },
   {
     id: 'settlements',
-    label: 'Settlements / निपटान',
+    label: 'Settlements',
     icon: DollarSign,
     items: [
-      { id: 'all_settlements', label: 'All Settlements / सभी', icon: DollarSign },
+      { id: 'all_settlements', label: 'All Settlements', icon: DollarSign },
       { id: 'operator_payouts', label: 'Operator Payouts', icon: Building2 },
       { id: 'helipad_payouts', label: 'Helipad Payouts', icon: Building2 },
     ]
   },
   {
     id: 'accounting',
-    label: 'Accounting / लेखा',
+    label: 'Accounting',
     icon: FileText,
     items: [
       { id: 'accounting_integration', label: 'Tally/QuickBooks', icon: FileText },
@@ -405,7 +405,7 @@ function FinanceDashboard({ user, onLogout }) {
         return (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-white">Finance Dashboard / वित्त डैशबोर्ड</h1>
+              <h1 className="text-2xl font-bold text-white">Finance Dashboard</h1>
               <p className="text-slate-400">Revenue, settlements, payroll and vendor payments</p>
             </div>
 
@@ -414,7 +414,7 @@ function FinanceDashboard({ user, onLogout }) {
               <div className="bg-green-500/20 rounded-lg p-4 border border-green-500/50">
                 <TrendingUp className="h-5 w-5 text-green-400 mb-2" />
                 <p className="text-2xl font-bold text-white">₹{(stats.total_revenue / 100000).toFixed(1)}L</p>
-                <p className="text-slate-400 text-sm">Total Revenue / कुल राजस्व</p>
+                <p className="text-slate-400 text-sm">Total Revenue</p>
               </div>
               <div className="bg-yellow-500/20 rounded-lg p-4 border border-yellow-500/50">
                 <DollarSign className="h-5 w-5 text-yellow-400 mb-2" />
@@ -424,7 +424,7 @@ function FinanceDashboard({ user, onLogout }) {
               <div className="bg-blue-500/20 rounded-lg p-4 border border-blue-500/50">
                 <BarChart3 className="h-5 w-5 text-blue-400 mb-2" />
                 <p className="text-2xl font-bold text-white">₹{(stats.this_month / 100000).toFixed(1)}L</p>
-                <p className="text-slate-400 text-sm">This Month / इस महीने</p>
+                <p className="text-slate-400 text-sm">This Month</p>
               </div>
               <div className="bg-red-500/20 rounded-lg p-4 border border-red-500/50">
                 <FileText className="h-5 w-5 text-red-400 mb-2" />
@@ -443,22 +443,22 @@ function FinanceDashboard({ user, onLogout }) {
               <button onClick={() => setActiveTab('bulk_salary')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Users className="h-8 w-8 text-emerald-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Bulk Salary Payment</h3>
-                <p className="text-slate-400 text-sm">बल्क सैलरी भुगतान</p>
+                <p className="text-slate-400 text-sm">Process bulk salary payouts</p>
               </button>
               <button onClick={() => setActiveTab('vendor_bills')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Receipt className="h-8 w-8 text-orange-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Vendor Payments</h3>
-                <p className="text-slate-400 text-sm">TDS के साथ वेंडर भुगतान</p>
+                <p className="text-slate-400 text-sm">Vendor payments with TDS</p>
               </button>
               <button onClick={() => setActiveTab('invoices')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <FileText className="h-8 w-8 text-blue-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Manage Invoices</h3>
-                <p className="text-slate-400 text-sm">चालान प्रबंधित करें</p>
+                <p className="text-slate-400 text-sm">Manage invoices & challans</p>
               </button>
               <button onClick={() => setActiveTab('tds_config')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Percent className="h-8 w-8 text-yellow-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">TDS Configuration</h3>
-                <p className="text-slate-400 text-sm">टीडीएस सेटिंग्स</p>
+                <p className="text-slate-400 text-sm">Configure TDS settings</p>
               </button>
             </div>
 
@@ -466,8 +466,7 @@ function FinanceDashboard({ user, onLogout }) {
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
                 <Shield className="h-5 w-5 mr-2 text-purple-400" />
-                Approval Workflow / अनुमोदन वर्कफ़्लो
-              </h2>
+                Approval Workflow</h2>
               <div className="flex items-center justify-center space-x-4 py-4">
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto">
@@ -498,8 +497,7 @@ function FinanceDashboard({ user, onLogout }) {
                 </div>
               </div>
               <p className="text-center text-slate-400 text-sm mt-2">
-                Admin can override and approve directly / एडमिन सीधे अनुमोदित कर सकते हैं
-              </p>
+                Admin can override and approve directly</p>
             </div>
           </div>
         );

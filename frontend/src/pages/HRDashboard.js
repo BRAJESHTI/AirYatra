@@ -22,59 +22,59 @@ const AutoSalaryPayment = React.lazy(() => import('@/components/hr/AutoSalaryPay
 const navGroups = [
   {
     id: 'main',
-    label: 'Dashboard / डैशबोर्ड',
+    label: 'Dashboard',
     icon: Home,
     items: [
-      { id: 'overview', label: 'Overview / ओवरव्यू', icon: BarChart3 },
-      { id: 'attendance', label: 'Today Attendance / आज की उपस्थिति', icon: CheckSquare, highlight: true },
+      { id: 'overview', label: 'Overview', icon: BarChart3 },
+      { id: 'attendance', label: 'Today Attendance', icon: CheckSquare, highlight: true },
     ]
   },
   {
     id: 'employees',
-    label: 'Employees / कर्मचारी',
+    label: 'Employees',
     icon: Users,
     items: [
-      { id: 'all_employees', label: 'All Employees / सभी कर्मचारी', icon: Users },
-      { id: 'field_staff', label: 'Field Staff / फील्ड स्टाफ', icon: MapPin },
-      { id: 'field_tracking', label: 'Live Tracking / लाइव ट्रैकिंग', icon: Navigation, highlight: true },
+      { id: 'all_employees', label: 'All Employees', icon: Users },
+      { id: 'field_staff', label: 'Field Staff', icon: MapPin },
+      { id: 'field_tracking', label: 'Live Tracking', icon: Navigation, highlight: true },
     ]
   },
   {
     id: 'payroll',
-    label: 'Payroll / वेतन',
+    label: 'Payroll',
     icon: CreditCard,
     items: [
       { id: 'attendance_payroll', label: 'Attendance & Payroll', icon: Calendar },
-      { id: 'salary', label: 'Salary Processing / वेतन', icon: DollarSign },
-      { id: 'auto_salary', label: 'Auto Salary Payment / ऑटो वेतन', icon: BanknoteIcon, highlight: true },
-      { id: 'leaves', label: 'Leave Management / छुट्टी', icon: Calendar },
-      { id: 'holidays', label: 'Holiday Calendar / छुट्टी कैलेंडर', icon: Calendar, highlight: true },
+      { id: 'salary', label: 'Salary Processing', icon: DollarSign },
+      { id: 'auto_salary', label: 'Auto Salary Payment', icon: BanknoteIcon, highlight: true },
+      { id: 'leaves', label: 'Leave Management', icon: Calendar },
+      { id: 'holidays', label: 'Holiday Calendar', icon: Calendar, highlight: true },
     ]
   },
   {
     id: 'expenses',
-    label: 'Expenses / खर्च',
+    label: 'Expenses',
     icon: Receipt,
     items: [
-      { id: 'expense_claims', label: 'Expense Claims / खर्च क्लेम', icon: Receipt, highlight: true },
-      { id: 'pending_approvals', label: 'Pending Approvals / अनुमोदन', icon: CheckSquare },
+      { id: 'expense_claims', label: 'Expense Claims', icon: Receipt, highlight: true },
+      { id: 'pending_approvals', label: 'Pending Approvals', icon: CheckSquare },
       { id: 'reimbursement_history', label: 'Reimbursement History', icon: FileText },
     ]
   },
   {
     id: 'incentives',
-    label: 'Incentives / इंसेंटिव',
+    label: 'Incentives',
     icon: Award,
     items: [
-      { id: 'incentive_config', label: 'Incentive Config / सेटिंग्स', icon: Settings },
-      { id: 'sales_targets', label: 'Sales Targets / सेल्स टारगेट', icon: Target, highlight: true },
-      { id: 'achievements', label: 'Achievements / उपलब्धियां', icon: Award },
-      { id: 'leaderboard', label: 'Leaderboard / लीडरबोर्ड', icon: BarChart3 },
+      { id: 'incentive_config', label: 'Incentive Config', icon: Settings },
+      { id: 'sales_targets', label: 'Sales Targets', icon: Target, highlight: true },
+      { id: 'achievements', label: 'Achievements', icon: Award },
+      { id: 'leaderboard', label: 'Leaderboard', icon: BarChart3 },
     ]
   },
   {
     id: 'reports',
-    label: 'Reports / रिपोर्ट',
+    label: 'Reports',
     icon: FileText,
     items: [
       { id: 'attendance_report', label: 'Attendance Report', icon: FileText },
@@ -84,7 +84,7 @@ const navGroups = [
   },
   {
     id: 'security',
-    label: 'Security / सुरक्षा',
+    label: 'Security',
     icon: Shield,
     items: [
       { id: 'login_shield', label: 'Login Shield AI™', icon: Shield, highlight: true },
@@ -171,7 +171,7 @@ function HRDashboard({ user, onLogout }) {
         return (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-white">HR Dashboard / एचआर डैशबोर्ड</h1>
+              <h1 className="text-2xl font-bold text-white">HR Dashboard</h1>
               <p className="text-slate-400">Employee management and payroll</p>
             </div>
 
@@ -180,22 +180,22 @@ function HRDashboard({ user, onLogout }) {
               <div className="bg-blue-500/20 rounded-lg p-4 border border-blue-500/50">
                 <Users className="h-5 w-5 text-blue-400 mb-2" />
                 <p className="text-2xl font-bold text-white">{stats.total_employees}</p>
-                <p className="text-slate-400 text-sm">Total Employees / कुल कर्मचारी</p>
+                <p className="text-slate-400 text-sm">Total Employees</p>
               </div>
               <div className="bg-green-500/20 rounded-lg p-4 border border-green-500/50">
                 <CheckSquare className="h-5 w-5 text-green-400 mb-2" />
                 <p className="text-2xl font-bold text-white">{stats.present_today}</p>
-                <p className="text-slate-400 text-sm">Present Today / आज उपस्थित</p>
+                <p className="text-slate-400 text-sm">Present Today</p>
               </div>
               <div className="bg-yellow-500/20 rounded-lg p-4 border border-yellow-500/50">
                 <Calendar className="h-5 w-5 text-yellow-400 mb-2" />
                 <p className="text-2xl font-bold text-white">{stats.on_leave}</p>
-                <p className="text-slate-400 text-sm">On Leave / छुट्टी पर</p>
+                <p className="text-slate-400 text-sm">On Leave</p>
               </div>
               <div className="bg-purple-500/20 rounded-lg p-4 border border-purple-500/50">
                 <Navigation className="h-5 w-5 text-purple-400 mb-2" />
                 <p className="text-2xl font-bold text-white">{stats.field_active}</p>
-                <p className="text-slate-400 text-sm">Field Active / फील्ड में</p>
+                <p className="text-slate-400 text-sm">Field Active</p>
               </div>
             </div>
 
@@ -204,22 +204,22 @@ function HRDashboard({ user, onLogout }) {
               <button onClick={() => setActiveTab('attendance_payroll')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Calendar className="h-8 w-8 text-green-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Mark Attendance</h3>
-                <p className="text-slate-400 text-sm">उपस्थिति दर्ज करें</p>
+                <p className="text-slate-400 text-sm"></p>
               </button>
               <button onClick={() => setActiveTab('expense_claims')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Receipt className="h-8 w-8 text-orange-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Expense Claims</h3>
-                <p className="text-slate-400 text-sm">खर्च क्लेम प्रबंधित करें</p>
+                <p className="text-slate-400 text-sm"></p>
               </button>
               <button onClick={() => setActiveTab('auto_salary')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <BanknoteIcon className="h-8 w-8 text-blue-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Auto Salary</h3>
-                <p className="text-slate-400 text-sm">ऑटो सैलरी भुगतान</p>
+                <p className="text-slate-400 text-sm"></p>
               </button>
               <button onClick={() => setActiveTab('sales_targets')} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:bg-slate-700 text-left">
                 <Target className="h-8 w-8 text-yellow-400 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Sales Targets</h3>
-                <p className="text-slate-400 text-sm">सेल्स टारगेट देखें</p>
+                <p className="text-slate-400 text-sm"></p>
               </button>
             </div>
           </div>

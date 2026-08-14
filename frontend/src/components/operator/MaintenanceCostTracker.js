@@ -59,7 +59,7 @@ function MaintenanceCostTracker() {
       
       if (!res.ok) throw new Error('Update failed');
       
-      toast.success('Actual cost updated! / वास्तविक लागत अपडेट की गई!');
+      toast.success('Actual cost updated!');
       setEditingCost(null);
       setActualCost('');
       setActualHours('');
@@ -97,8 +97,7 @@ function MaintenanceCostTracker() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-green-400" />
-            Maintenance Cost Tracker / रखरखाव लागत ट्रैकर
-          </h2>
+            Maintenance Cost Tracker</h2>
           <p className="text-slate-400 mt-1">Track estimated vs actual costs with variance analysis</p>
         </div>
         <Button onClick={loadData} variant="outline" className="border-slate-600">
@@ -111,12 +110,12 @@ function MaintenanceCostTracker() {
         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-4 border border-blue-500/30">
           <DollarSign className="h-6 w-6 text-blue-400 mb-2" />
           <p className="text-2xl font-bold text-white">₹{(data?.summary?.total_estimated || 0).toLocaleString()}</p>
-          <p className="text-slate-400 text-sm">Total Estimated / अनुमानित</p>
+          <p className="text-slate-400 text-sm">Total Estimated</p>
         </div>
         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4 border border-green-500/30">
           <DollarSign className="h-6 w-6 text-green-400 mb-2" />
           <p className="text-2xl font-bold text-green-400">₹{(data?.summary?.total_actual || 0).toLocaleString()}</p>
-          <p className="text-slate-400 text-sm">Total Actual / वास्तविक</p>
+          <p className="text-slate-400 text-sm">Total Actual</p>
         </div>
         <div className={`bg-gradient-to-br rounded-xl p-4 border ${
           data?.summary?.total_variance > 0 
@@ -138,7 +137,7 @@ function MaintenanceCostTracker() {
         <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30">
           <BarChart3 className="h-6 w-6 text-purple-400 mb-2" />
           <p className="text-2xl font-bold text-purple-400">{data?.summary?.completed_count || 0}</p>
-          <p className="text-slate-400 text-sm">Completed / पूर्ण</p>
+          <p className="text-slate-400 text-sm">Completed</p>
         </div>
       </div>
 
@@ -176,8 +175,7 @@ function MaintenanceCostTracker() {
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-blue-400" />
-            Monthly Cost Trend / मासिक रुझान
-          </h3>
+            Monthly Cost Trend</h3>
           {data?.monthly_trend?.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={data.monthly_trend}>
@@ -202,8 +200,7 @@ function MaintenanceCostTracker() {
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <PieChart className="h-5 w-5 text-purple-400" />
-            Cost by Type / प्रकार अनुसार लागत
-          </h3>
+            Cost by Type</h3>
           {data?.by_type?.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={data.by_type} layout="vertical">
@@ -229,8 +226,7 @@ function MaintenanceCostTracker() {
         <div className="p-4 border-b border-slate-700">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Wrench className="h-5 w-5 text-orange-400" />
-            Cost Variance Details / लागत विचलन विवरण
-          </h3>
+            Cost Variance Details</h3>
         </div>
         
         {data?.variance_details?.length > 0 ? (

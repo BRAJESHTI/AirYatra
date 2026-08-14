@@ -45,7 +45,7 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
   const submit = async () => {
     const required = ['title', 'manufacturer', 'model', 'year', 'price_cr', 'flight_hours', 'seats', 'location'];
     const missing = required.filter(k => !String(form[k]).trim());
-    if (missing.length) { toast.error('Please fill all required fields / सभी फ़ील्ड भरें'); return; }
+    if (missing.length) { toast.error('Please fill all required fields'); return; }
     if (enableAuction && !String(form.auction_start_cr).trim()) {
       toast.error('Please enter an auction starting bid');
       return;
@@ -83,7 +83,7 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
         {done ? (
           <div className="text-center py-10" data-testid="sell-success-message">
             <CheckCircle2 className="h-16 w-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold">Listing Submitted! / लिस्टिंग जमा हो गई</h3>
+            <h3 className="text-2xl font-bold">Listing Submitted!</h3>
             <p className="text-slate-400 mt-2 max-w-md mx-auto">
               Our team will verify your aircraft details and publish it within 48 hours.
               {enableAuction ? ' Your auction will go live automatically once approved.' : " You'll receive an email once it's live."}
@@ -93,7 +93,7 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl">Sell Your Aircraft / अपना विमान बेचें</DialogTitle>
+              <DialogTitle className="text-2xl">Sell Your Aircraft</DialogTitle>
               <DialogDescription className="text-slate-400">
                 Submit details below — our team verifies every listing before it goes live.
               </DialogDescription>
@@ -153,7 +153,7 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
                 <label className="flex items-center gap-2 cursor-pointer" data-testid="sell-auction-toggle">
                   <input type="checkbox" checked={enableAuction} onChange={(e) => setEnableAuction(e.target.checked)} className="accent-orange-500 h-4 w-4" />
                   <Gavel className="h-4 w-4 text-orange-400" />
-                  <span className="text-sm text-white font-medium">Sell via Live Auction / नीलामी से बेचें</span>
+                  <span className="text-sm text-white font-medium">Sell via Live Auction</span>
                 </label>
                 <p className="text-slate-500 text-xs mt-1 ml-6">Auction goes live for 72 hours once approved. Get competitive bids from serious buyers.</p>
                 {enableAuction && (
@@ -185,8 +185,7 @@ export const SellAircraftForm = ({ open, onClose, user }) => {
 
             <Button onClick={submit} disabled={submitting || uploading} className="w-full bg-orange-500 hover:bg-orange-600 mt-2" data-testid="sell-submit-btn">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Submit for Review / समीक्षा के लिए भेजें
-            </Button>
+              Submit for Review</Button>
             <p className="text-slate-500 text-xs text-center">Listed as: {user?.full_name} • Verified within 48 hours</p>
           </>
         )}

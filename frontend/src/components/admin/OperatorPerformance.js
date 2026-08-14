@@ -48,10 +48,10 @@ function OperatorPerformance() {
   };
 
   const getPerformanceLabel = (score) => {
-    if (score >= 90) return 'Excellent / उत्कृष्ट';
-    if (score >= 70) return 'Good / अच्छा';
-    if (score >= 50) return 'Average / औसत';
-    return 'Needs Improvement / सुधार आवश्यक';
+    if (score >= 90) return 'Excellent';
+    if (score >= 70) return 'Good';
+    if (score >= 50) return 'Average';
+    return 'Needs Improvement';
   };
 
   if (loading) {
@@ -66,7 +66,7 @@ function OperatorPerformance() {
             <TrendingUp className="h-6 w-6 text-orange-400" />
             Operator Performance
           </h2>
-          <p className="text-slate-400 mt-1">ऑपरेटर प्रदर्शन - Track and manage operator metrics</p>
+          <p className="text-slate-400 mt-1">Track and manage operator metrics</p>
         </div>
         <div className="flex gap-2">
           {['7d', '30d', '90d'].map(period => (

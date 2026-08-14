@@ -123,7 +123,7 @@ export default function AdminPricingPanel() {
     <div className="max-w-6xl space-y-8" data-testid="admin-pricing-panel">
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">Route Pricing & Own Fleet</h2>
-        <p className="text-slate-400 text-sm">Operator ke behalf par fixed route price / custom quote add karein, aur AirYatra ke apne helicopters marketplace par list karein.</p>
+        <p className="text-slate-400 text-sm">Add fixed route prices / custom quotes on behalf of operators, and list AirYatra's own helicopters on the marketplace.</p>
       </div>
 
       {/* 1. Fixed Route on behalf */}
@@ -221,7 +221,7 @@ export default function AdminPricingPanel() {
           </Button>
         </form>
         <div className="mt-4 space-y-2" data-testid="own-fleet-list">
-          {ownFleet.length === 0 && <p className="text-slate-500 text-sm">Abhi koi AirYatra own aircraft listed nahi hai.</p>}
+          {ownFleet.length === 0 && <p className="text-slate-500 text-sm">No AirYatra own aircraft listed yet.</p>}
           {ownFleet.map((ac) => (
             <div key={ac.id} className="flex items-center justify-between bg-slate-800/60 rounded-lg px-3 py-2 text-sm" data-testid={`own-ac-${ac.id}`}>
               <div className="text-white flex items-center gap-2 flex-wrap">

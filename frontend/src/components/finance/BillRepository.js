@@ -147,8 +147,7 @@ export default function BillRepository() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Archive className="h-7 w-7 text-indigo-400" />
-            Bill Repository / बिल भंडार
-          </h1>
+            Bill Repository</h1>
           <p className="text-slate-400 mt-1">Searchable archive of all vendor invoices</p>
         </div>
         <div className="flex items-center gap-3">
@@ -342,8 +341,7 @@ export default function BillRepository() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-indigo-400" />
-              Add Bill / बिल जोड़ें
-            </DialogTitle>
+              Add Bill</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
@@ -468,8 +466,7 @@ export default function BillRepository() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Eye className="h-5 w-5 text-indigo-400" />
-              Bill Details / बिल विवरण
-            </DialogTitle>
+              Bill Details</DialogTitle>
           </DialogHeader>
           {selectedBill && (
             <div className="space-y-4 py-4">

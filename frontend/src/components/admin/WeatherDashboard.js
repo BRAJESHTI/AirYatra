@@ -232,8 +232,7 @@ function WeatherDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Cloud className="h-6 w-6 text-blue-400" />
-            Weather & Flight Safety / मौसम
-          </h2>
+            Weather & Flight Safety</h2>
           <p className="text-slate-400 mt-1">Check weather conditions and flight safety assessments</p>
         </div>
       </div>
@@ -256,8 +255,8 @@ function WeatherDashboard() {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-700 pb-2 flex-wrap">
         {[
-          { id: 'city', label: 'City Weather / शहर', icon: MapPin },
-          { id: 'route_city', label: 'Route by City / रूट', icon: Plane },
+          { id: 'city', label: 'City Weather', icon: MapPin },
+          { id: 'route_city', label: 'Route by City', icon: Plane },
           { id: 'current', label: 'By Coordinates', icon: Cloud },
           { id: 'route', label: 'Route (Lat/Lon)', icon: Navigation },
           { id: 'alerts', label: 'Booking Alerts', icon: AlertTriangle, badge: activeAlerts.length },
@@ -285,7 +284,7 @@ function WeatherDashboard() {
           <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Select City / शहर चुनें</Label>
+                <Label className="text-slate-300">Select City</Label>
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
@@ -301,8 +300,7 @@ function WeatherDashboard() {
               <div className="flex items-end">
                 <Button onClick={loadCityWeather} disabled={loading} className="bg-blue-500 hover:bg-blue-600 w-full">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                  Check Weather / मौसम देखें
-                </Button>
+                  Check Weather</Button>
               </div>
             </div>
 
@@ -371,7 +369,7 @@ function WeatherDashboard() {
 
               {/* Flight Safety */}
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-white font-semibold text-lg mb-4">Flight Safety / उड़ान सुरक्षा</h3>
+                <h3 className="text-white font-semibold text-lg mb-4">Flight Safety</h3>
                 
                 <div className="flex items-center gap-4 mb-6">
                   <div className={`w-16 h-16 rounded-full ${getSafetyColor(weather.flight_safety?.status)} flex items-center justify-center`}>
@@ -427,7 +425,7 @@ function WeatherDashboard() {
           <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-slate-300">Origin City / उड़ान का स्थान</Label>
+                <Label className="text-slate-300">Origin City</Label>
                 <select
                   value={originCity}
                   onChange={(e) => setOriginCity(e.target.value)}
@@ -441,7 +439,7 @@ function WeatherDashboard() {
                 </select>
               </div>
               <div>
-                <Label className="text-slate-300">Destination / गंतव्य</Label>
+                <Label className="text-slate-300">Destination</Label>
                 <select
                   value={destCity}
                   onChange={(e) => setDestCity(e.target.value)}
@@ -457,8 +455,7 @@ function WeatherDashboard() {
               <div className="flex items-end">
                 <Button onClick={loadRouteWeatherByCity} disabled={loading} className="bg-blue-500 hover:bg-blue-600 w-full">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plane className="h-4 w-4 mr-2" />}
-                  Check Route / रूट देखें
-                </Button>
+                  Check Route</Button>
               </div>
             </div>
           </div>
@@ -669,7 +666,7 @@ function WeatherDashboard() {
           <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="text-white font-medium mb-3">Origin / उड़ान का स्थान</h4>
+                <h4 className="text-white font-medium mb-3">Origin</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-slate-400 text-sm">Latitude</Label>
@@ -694,7 +691,7 @@ function WeatherDashboard() {
                 </div>
               </div>
               <div>
-                <h4 className="text-white font-medium mb-3">Destination / गंतव्य</h4>
+                <h4 className="text-white font-medium mb-3">Destination</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-slate-400 text-sm">Latitude</Label>

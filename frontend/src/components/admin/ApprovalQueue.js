@@ -34,7 +34,7 @@ function ApprovalQueue() {
 
   const handleAction = async () => {
     if (!remark.trim()) {
-      toast.error('Remark is required / टिप्पणी आवश्यक है');
+      toast.error('Remark is required');
       return;
     }
     
@@ -44,10 +44,10 @@ function ApprovalQueue() {
         toast.success(response.data.message);
       } else if (actionType === 'reject') {
         await approvalAPI.reject(selectedApproval.id, { remark });
-        toast.success('Request rejected / अनुरोध अस्वीकृत');
+        toast.success('Request rejected');
       } else if (actionType === 'escalate') {
         await approvalAPI.escalate(selectedApproval.id, { reason: remark, escalate_to: 'super_admin' });
-        toast.success('Request escalated / अनुरोध एस्केलेट किया गया');
+        toast.success('Request escalated');
       }
       
       setShowActionDialog(false);
@@ -77,9 +77,9 @@ function ApprovalQueue() {
 
   const getTypeLabel = (type) => {
     const labels = {
-      cancellation: 'Cancellation / रद्दीकरण',
-      settlement: 'Settlement / सेटलमेंट',
-      refund: 'Refund / वापसी',
+      cancellation: 'Cancellation',
+      settlement: 'Settlement',
+      refund: 'Refund',
       operator_onboarding: 'Operator Onboarding'
     };
     return labels[type] || type;
@@ -106,7 +106,7 @@ function ApprovalQueue() {
             <Clock className="h-6 w-6 text-orange-400" />
             Approval Queue
           </h2>
-          <p className="text-slate-400">अनुमोदन कतार - Manage pending approvals</p>
+          <p className="text-slate-400">Manage pending approvals</p>
         </div>
         <div className="flex gap-2">
           <select
@@ -171,7 +171,7 @@ function ApprovalQueue() {
         <div className="p-8 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
           <p className="text-white font-medium">No {activeTab} approvals</p>
-          <p className="text-slate-400 text-sm">कोई {activeTab} अनुमोदन नहीं</p>
+          <p className="text-slate-400 text-sm">{activeTab}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -220,13 +220,13 @@ function ApprovalQueue() {
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 mb-4">
                 {approval.reason && (
                   <div className="mb-2">
-                    <p className="text-slate-500 text-xs">Reason / कारण</p>
+                    <p className="text-slate-500 text-xs">Reason</p>
                     <p className="text-white">{approval.reason}</p>
                   </div>
                 )}
                 {approval.refund_amount > 0 && (
                   <div className="mb-2">
-                    <p className="text-slate-500 text-xs">Refund Amount / वापसी राशि</p>
+                    <p className="text-slate-500 text-xs">Refund Amount</p>
                     <p className="text-green-400 font-medium">₹{approval.refund_amount?.toLocaleString()}</p>
                   </div>
                 )}
@@ -318,9 +318,9 @@ function ApprovalQueue() {
               {actionType === 'approve' && <CheckCircle className="h-5 w-5 text-green-400" />}
               {actionType === 'reject' && <XCircle className="h-5 w-5 text-red-400" />}
               {actionType === 'escalate' && <ChevronUp className="h-5 w-5 text-yellow-400" />}
-              {actionType === 'approve' && 'Approve Request / अनुरोध स्वीकृत करें'}
-              {actionType === 'reject' && 'Reject Request / अनुरोध अस्वीकृत करें'}
-              {actionType === 'escalate' && 'Escalate Request / अनुरोध एस्केलेट करें'}
+              {actionType === 'approve' && 'Approve Request'}
+              {actionType === 'reject' && 'Reject Request'}
+              {actionType === 'escalate' && 'Escalate Request'}
             </DialogTitle>
           </DialogHeader>
           
@@ -338,7 +338,7 @@ function ApprovalQueue() {
             
             <div className="space-y-2">
               <Label className="text-white">
-                {actionType === 'reject' ? 'Rejection Reason *' : 'Remark *'} / टिप्पणी *
+                {actionType === 'reject' ? 'Rejection Reason *' : 'Remark *'}*
               </Label>
               <textarea
                 value={remark}

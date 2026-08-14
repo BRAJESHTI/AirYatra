@@ -70,10 +70,10 @@ export const bookingTypes = [
   { 
     value: 'one_way', 
     label: 'One Way', 
-    labelHi: 'एकतरफा',
+    labelHi: '',
     icon: '→',
     description: 'Single journey from A to B',
-    descriptionHi: 'A से B तक एक तरफ़ा यात्रा',
+    descriptionHi: 'AB',
     multiplier: 1.0,
     minHours: null,
     minDays: null,
@@ -82,10 +82,10 @@ export const bookingTypes = [
   { 
     value: 'round_trip', 
     label: 'Round Trip', 
-    labelHi: 'वापसी यात्रा',
+    labelHi: '',
     icon: '↔',
     description: 'Return journey A to B to A',
-    descriptionHi: 'A से B और वापस A तक',
+    descriptionHi: 'ABA',
     multiplier: 1.85, // 7.5% discount on 2x
     minHours: null,
     minDays: null,
@@ -94,10 +94,10 @@ export const bookingTypes = [
   { 
     value: 'multi_city', 
     label: 'Multi-City', 
-    labelHi: 'बहु-शहर',
+    labelHi: '',
     icon: '◇',
     description: 'Multiple destinations in one trip',
-    descriptionHi: 'एक यात्रा में कई गंतव्य',
+    descriptionHi: '',
     multiplier: 1.0, // Per leg pricing
     minHours: null,
     minDays: null,
@@ -106,10 +106,10 @@ export const bookingTypes = [
   { 
     value: 'hourly_charter', 
     label: 'Hourly Charter', 
-    labelHi: 'प्रति घंटा चार्टर',
+    labelHi: '',
     icon: '⏱',
     description: 'Book by the hour',
-    descriptionHi: 'घंटे के हिसाब से बुक करें',
+    descriptionHi: '',
     multiplier: 1.0,
     minHours: 1,
     minDays: null,
@@ -118,10 +118,10 @@ export const bookingTypes = [
   { 
     value: 'daily_charter', 
     label: 'Daily Charter', 
-    labelHi: 'दैनिक चार्टर',
+    labelHi: '',
     icon: '📅',
     description: 'Full day aircraft at your disposal',
-    descriptionHi: 'पूरे दिन के लिए विमान',
+    descriptionHi: '',
     multiplier: 0.9, // 10% discount for full day
     minHours: 8,
     minDays: 1,
@@ -130,10 +130,10 @@ export const bookingTypes = [
   { 
     value: 'multi_day', 
     label: 'Multi-Day', 
-    labelHi: 'बहु-दिवसीय',
+    labelHi: '',
     icon: '📆',
     description: '3+ days charter with discounts',
-    descriptionHi: '3+ दिन की चार्टर छूट के साथ',
+    descriptionHi: '3+',
     multiplier: 0.85, // 15% discount for 3+ days
     minHours: null,
     minDays: 3,
@@ -142,10 +142,10 @@ export const bookingTypes = [
   { 
     value: 'group_booking', 
     label: 'Group Booking', 
-    labelHi: 'समूह बुकिंग',
+    labelHi: '',
     icon: '👥',
     description: '5+ passengers, special rates',
-    descriptionHi: '5+ यात्री, विशेष दरें',
+    descriptionHi: '5+',
     multiplier: 0.92, // 8% group discount
     minHours: null,
     minDays: null,
@@ -155,10 +155,10 @@ export const bookingTypes = [
   { 
     value: 'emergency', 
     label: 'Emergency', 
-    labelHi: 'आपातकालीन',
+    labelHi: '',
     icon: '🚨',
     description: 'Urgent medical or time-critical',
-    descriptionHi: 'तत्काल चिकित्सा या समय-महत्वपूर्ण',
+    descriptionHi: '',
     multiplier: 1.25, // 25% priority surcharge
     minHours: null,
     minDays: null,
@@ -168,10 +168,10 @@ export const bookingTypes = [
   { 
     value: 'event_based', 
     label: 'Event Package', 
-    labelHi: 'इवेंट पैकेज',
+    labelHi: '',
     icon: '🎉',
     description: 'Weddings, Corporate events, Film shoots',
-    descriptionHi: 'शादी, कॉर्पोरेट इवेंट, फिल्म शूटिंग',
+    descriptionHi: '',
     multiplier: 1.0, // Custom quote
     minHours: null,
     minDays: null,
@@ -182,8 +182,8 @@ export const bookingTypes = [
 
 // Udan Ka Prakar (Flight Type) Options - Legacy support
 export const udanPrakarOptions = [
-  { value: 'one_hour', label: '1 Hour Flight / 1 घंटे की उड़ान', icon: '⏱️' },
-  { value: 'two_hour', label: '2 Hour Flight / 2 घंटे की उड़ान', icon: '⏰' },
+  { value: 'one_hour', label: '1 Hour Flight / 1', icon: '⏱️' },
+  { value: 'two_hour', label: '2 Hour Flight / 2', icon: '⏰' },
   { value: 'half_day', label: 'Half Day', icon: '🌤️' },
   { value: 'full_day', label: 'Full Day', icon: '☀️' },
   { value: 'multi_city', label: 'Multi-City', icon: '🗺️' },
@@ -246,7 +246,7 @@ export const villageLandingDocuments = [
   { key: 'collector_noc', label: 'Collector NOC' },
   { key: 'fire_dept', label: 'Fire Department Acknowledgment' },
   { key: 'police_station', label: 'Local Police Station Acknowledgment' },
-  { key: 'sp_dcp', label: 'SP/DCP Acknowledgment / SP/DCP की पावती' },
+  { key: 'sp_dcp', label: 'SP/DCP Acknowledgment / SP/DCP' },
 ];
 
 // Helper function to get label by value

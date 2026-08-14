@@ -145,8 +145,7 @@ export default function PaymentReconciliation() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <ArrowRightLeft className="h-7 w-7 text-purple-400" />
-            Payment Reconciliation / भुगतान मिलान
-          </h1>
+            Payment Reconciliation</h1>
           <p className="text-slate-400 mt-1">Auto-match gateway settlements with system transactions</p>
         </div>
         <div className="flex items-center gap-3">

@@ -79,8 +79,7 @@ export default function FinanceAnalyticsDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <BarChart3 className="h-7 w-7 text-indigo-400" />
-            Finance Analytics / वित्त विश्लेषण
-          </h1>
+            Finance Analytics</h1>
           <p className="text-slate-400 mt-1">Revenue trends, gateway reconciliation & collection insights</p>
         </div>
         <Button 
@@ -179,8 +178,7 @@ export default function FinanceAnalyticsDashboard() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-indigo-400" />
-                  Monthly Revenue Trend / मासिक राजस्व
-                </CardTitle>
+                  Monthly Revenue Trend</CardTitle>
                 <Select value={revenuePeriod} onValueChange={setRevenuePeriod}>
                   <SelectTrigger className="w-32 bg-slate-900 border-slate-700 text-white">
                     <SelectValue />
@@ -444,8 +442,7 @@ export default function FinanceAnalyticsDashboard() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5 text-emerald-400" />
-                Top Customers by Revenue / शीर्ष ग्राहक
-              </CardTitle>
+                Top Customers by Revenue</CardTitle>
             </CardHeader>
             <CardContent>
               {topCustomers.length > 0 ? (

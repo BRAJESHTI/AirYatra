@@ -37,14 +37,14 @@ function AIBusinessAdvisor({ isOpen, onToggle }) {
         role: 'assistant',
         content: `🙏 Namaste! Main hoon **AirYatra AI Business Advisor™**
 
-Main aapki madad kar sakta hoon:
+I can help you with:
 - 📊 Sales & Revenue Analysis
 - 💰 Profit Tracking & Cost Optimization
 - 📣 Marketing Campaign Ideas
 - 👥 HR & Team Insights
 - 🎯 Customer Analytics
 
-Neeche quick prompts use karein ya apna sawaal poochein!`,
+Use the quick prompts below or ask your own question!`,
         timestamp: new Date()
       }]);
     }
@@ -162,7 +162,7 @@ Neeche quick prompts use karein ya apna sawaal poochein!`,
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: '🔄 Chat cleared! Kaise madad kar sakta hoon?',
+      content: '🔄 Chat cleared! How can I help you?',
       timestamp: new Date()
     }]);
     setSessionId(null);

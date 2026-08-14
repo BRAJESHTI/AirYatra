@@ -34,8 +34,7 @@ export const AuditLogsTab = ({ auditLogs }) => {
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <FileText className="h-5 w-5 text-slate-400" />
-          Audit Logs / ऑडिट लॉग
-        </CardTitle>
+          Audit Logs</CardTitle>
       </CardHeader>
       <CardContent>
         {auditLogs.length === 0 ? (

@@ -172,8 +172,7 @@ function FleetMaintenanceCalendar() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Calendar className="h-6 w-6 text-blue-400" />
-            Maintenance Calendar / रखरखाव कैलेंडर
-          </h2>
+            Maintenance Calendar</h2>
           <p className="text-slate-400 mt-1">Fleet maintenance schedule overview</p>
         </div>
         <div className="flex items-center gap-2">
@@ -191,22 +190,22 @@ function FleetMaintenanceCalendar() {
         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-4 border border-blue-500/30">
           <Wrench className="h-6 w-6 text-blue-400 mb-2" />
           <p className="text-3xl font-bold text-white">{calendarData?.summary?.total || 0}</p>
-          <p className="text-slate-400 text-sm">Total Scheduled / कुल</p>
+          <p className="text-slate-400 text-sm">Total Scheduled</p>
         </div>
         <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-xl p-4 border border-yellow-500/30">
           <Clock className="h-6 w-6 text-yellow-400 mb-2" />
           <p className="text-3xl font-bold text-yellow-400">{calendarData?.summary?.by_status?.scheduled || 0}</p>
-          <p className="text-slate-400 text-sm">Pending / लंबित</p>
+          <p className="text-slate-400 text-sm">Pending</p>
         </div>
         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4 border border-green-500/30">
           <CheckCircle className="h-6 w-6 text-green-400 mb-2" />
           <p className="text-3xl font-bold text-green-400">{calendarData?.summary?.by_status?.completed || 0}</p>
-          <p className="text-slate-400 text-sm">Completed / पूर्ण</p>
+          <p className="text-slate-400 text-sm">Completed</p>
         </div>
         <div className="bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-xl p-4 border border-red-500/30">
           <AlertTriangle className="h-6 w-6 text-red-400 mb-2" />
           <p className="text-3xl font-bold text-red-400">{calendarData?.summary?.by_priority?.critical || 0}</p>
-          <p className="text-slate-400 text-sm">Critical / गंभीर</p>
+          <p className="text-slate-400 text-sm">Critical</p>
         </div>
       </div>
 
@@ -362,8 +361,7 @@ function FleetMaintenanceCalendar() {
         <div className="p-4 border-b border-slate-700">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Wrench className="h-5 w-5 text-orange-400" />
-            This Month&apos;s Maintenance / इस महीने का रखरखाव
-          </h3>
+            This Month&apos;s Maintenance</h3>
         </div>
         
         {calendarData?.schedules?.length > 0 ? (

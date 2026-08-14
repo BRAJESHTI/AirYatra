@@ -91,8 +91,7 @@ const PublicAircraftBrowse = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Scale className="h-6 w-6 text-orange-400" />
-            Aircraft Comparison / विमान तुलना
-          </h2>
+            Aircraft Comparison</h2>
           <Button variant="outline" onClick={() => setShowComparison(false)}>
             <ArrowRight className="h-4 w-4 mr-2 rotate-180" /> Back to Catalog
           </Button>
@@ -113,8 +112,7 @@ const PublicAircraftBrowse = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Plane className="h-6 w-6 text-orange-400" />
-            Aircraft Catalog / विमान कैटलॉग
-          </h2>
+            Aircraft Catalog</h2>
           <p className="text-slate-400 text-sm mt-1">
             Browse verified aircraft • Compare prices • Book instantly
           </p>

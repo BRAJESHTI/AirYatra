@@ -55,11 +55,11 @@ function LegalPage() {
   const getPageTitle = () => {
     switch (pageType) {
       case 'privacy':
-        return 'Privacy Policy / गोपनीयता नीति';
+        return 'Privacy Policy';
       case 'cancellation':
-        return 'Cancellation & Refund Policy / रद्दीकरण और धनवापसी नीति';
+        return 'Cancellation & Refund Policy';
       default:
-        return 'Terms & Conditions / नियम एवं शर्तें';
+        return 'Terms & Conditions';
     }
   };
 
@@ -165,8 +165,7 @@ function LegalPage() {
           <div className="flex items-center space-x-4">
             <Link to="/">
               <Button variant="ghost" className="text-slate-300 hover:text-white">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home / होम पर वापस
-              </Button>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</Button>
             </Link>
           </div>
         </div>

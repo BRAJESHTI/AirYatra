@@ -539,7 +539,7 @@ async def send_bulk_payment_reminders(
         </div>
         <div class="content">
             <p>Namaste <strong>{customer_name}</strong>,</p>
-            <p>Aapki helicopter booking ke liye remaining balance due hai. Kripya departure se pehle payment complete karein.</p>
+            <p>Your helicopter booking has a remaining balance due. Please complete the payment before departure.</p>
             
             <div class="amount-box">
                 <p style="margin:0 0 10px; color:#94a3b8;">Balance Amount Due</p>
@@ -683,14 +683,14 @@ async def generate_payment_link(
 
 Namaste {customer_name}! 🙏
 
-Aapki helicopter booking *#{inquiry_number}* ke liye remaining balance due hai:
+Your helicopter booking *#{inquiry_number}* has a remaining balance due:
 
 📍 Route: {route}
 💰 Amount Due: ₹{remaining:,.0f}
 
 👉 Pay securely: {payment_url}
 
-Payment link 7 days tak valid hai.
+The payment link is valid for 7 days.
 
 Questions? Reply to this message or call us.
 
@@ -811,7 +811,7 @@ async def _send_balance_reminder_email(db, booking: dict, remaining: float):
         </div>
         <div class="content">
             <p>Namaste <strong>{customer_name}</strong>,</p>
-            <p>Aapki helicopter booking ke liye remaining balance due hai. Please complete your payment to confirm your flight.</p>
+            <p>Your helicopter booking has a remaining balance due. Please complete your payment to confirm your flight.</p>
             
             <div class="amount-box">
                 <p style="margin:0 0 10px; color:#94a3b8;">Balance Amount Due</p>

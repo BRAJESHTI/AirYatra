@@ -8,10 +8,10 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 
 const LEAVE_TYPES = [
-  { value: 'casual', label: 'Casual / आकस्मिक' },
-  { value: 'sick', label: 'Sick / बीमारी' },
-  { value: 'earned', label: 'Earned / अर्जित' },
-  { value: 'unpaid', label: 'Unpaid / अवैतनिक' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'sick', label: 'Sick' },
+  { value: 'earned', label: 'Earned' },
+  { value: 'unpaid', label: 'Unpaid' },
 ];
 
 const STATUS_STYLES = {
@@ -37,7 +37,7 @@ export const EmpLeave = ({ onChanged }) => {
   useEffect(() => { load(); }, []);
 
   const apply = async () => {
-    if (!form.start_date || !form.end_date) return toast.error('Please select dates / तारीख चुनें');
+    if (!form.start_date || !form.end_date) return toast.error('Please select dates');
     if (form.end_date < form.start_date) return toast.error('End date must be after start date');
     setSaving(true);
     try {
@@ -62,13 +62,13 @@ export const EmpLeave = ({ onChanged }) => {
   return (
     <div className="space-y-6" data-testid="emp-leave">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Leave / छुट्टी</h1>
+        <h1 className="text-2xl font-bold text-white">Leave</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-sky-500 hover:bg-sky-600" data-testid="apply-leave-btn"><Plus className="h-4 w-4 mr-2" />Apply Leave / छुट्टी लें</Button>
+            <Button className="bg-sky-500 hover:bg-sky-600" data-testid="apply-leave-btn"><Plus className="h-4 w-4 mr-2" />Apply Leave</Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-900 border-slate-700 text-white">
-            <DialogHeader><DialogTitle>Apply for Leave / छुट्टी आवेदन</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Apply for Leave</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label className="text-slate-300">Leave Type</Label>
@@ -88,12 +88,11 @@ export const EmpLeave = ({ onChanged }) => {
                 </div>
               </div>
               <div>
-                <Label className="text-slate-300">Reason / कारण</Label>
+                <Label className="text-slate-300">Reason</Label>
                 <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Reason for leave" className="bg-slate-800 border-slate-700 mt-1" data-testid="leave-reason-input" />
               </div>
               <Button onClick={apply} disabled={saving} className="w-full bg-sky-500 hover:bg-sky-600" data-testid="submit-leave-btn">
-                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Submit Application / जमा करें
-              </Button>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Submit Application</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -110,7 +109,7 @@ export const EmpLeave = ({ onChanged }) => {
 
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
         {!data?.leaves?.length ? (
-          <div className="p-8 text-center text-slate-400"><CalendarDays className="h-10 w-10 mx-auto mb-2 text-slate-600" />No leave applications yet / अभी कोई आवेदन नहीं</div>
+          <div className="p-8 text-center text-slate-400"><CalendarDays className="h-10 w-10 mx-auto mb-2 text-slate-600" />No leave applications yet</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-900/50">

@@ -70,7 +70,7 @@ function ReferralSettings() {
     setSaving(true);
     try {
       await referralAPI.updateSettings(settings);
-      toast.success('Settings saved! / सेटिंग्स सेव हो गईं!');
+      toast.success('Settings saved!');
     } catch (error) {
       toast.error('Failed to save settings');
     } finally {
@@ -180,8 +180,7 @@ function ReferralSettings() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Gift className="h-6 w-6 text-green-400" />
-            Referral & Discount Settings / रेफरल और डिस्काउंट सेटिंग्स
-          </h2>
+            Referral & Discount Settings</h2>
           <p className="text-slate-400 mt-1">Manage referral program and discount codes</p>
         </div>
       </div>
@@ -194,16 +193,14 @@ function ReferralSettings() {
             activeTab === 'settings' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'
           }`}
         >
-          <Settings className="h-4 w-4" /> Settings / सेटिंग्स
-        </button>
+          <Settings className="h-4 w-4" /> Settings</button>
         <button
           onClick={() => setActiveTab('codes')}
           className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
             activeTab === 'codes' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'
           }`}
         >
-          <Tag className="h-4 w-4" /> Discount Codes / डिस्काउंट कोड
-        </button>
+          <Tag className="h-4 w-4" /> Discount Codes</button>
       </div>
 
       {/* Settings Tab */}
@@ -211,7 +208,7 @@ function ReferralSettings() {
         <div className="space-y-6">
           {/* Enable/Disable */}
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Program Status / प्रोग्राम स्थिति</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Program Status</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg">
                 <div>
@@ -250,18 +247,17 @@ function ReferralSettings() {
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-400" />
-              Referral Bonus / रेफरल बोनस
-            </h3>
+              Referral Bonus</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Bonus Type / बोनस प्रकार</Label>
+                <Label className="text-slate-300">Bonus Type</Label>
                 <select
                   value={settings.referral_bonus_type}
                   onChange={(e) => setSettings(prev => ({ ...prev, referral_bonus_type: e.target.value }))}
                   className="w-full mt-1 p-2 bg-slate-900 border border-slate-600 rounded-lg text-white"
                 >
-                  <option value="fixed">Fixed Amount / निश्चित राशि</option>
-                  <option value="percent">Percentage / प्रतिशत</option>
+                  <option value="fixed">Fixed Amount</option>
+                  <option value="percent">Percentage</option>
                 </select>
               </div>
               
@@ -304,11 +300,9 @@ function ReferralSettings() {
           <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-400" />
-              First Booking Discount / पहली बुकिंग छूट
-            </h3>
+              First Booking Discount</h3>
             <p className="text-slate-400 text-sm mb-4">
-              Discount given to new users who use a referral code / रेफरल कोड उपयोग करने वाले नए उपयोगकर्ताओं को छूट
-            </p>
+              Discount given to new users who use a referral code</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-300">Discount Percentage (%)</Label>
@@ -339,8 +333,7 @@ function ReferralSettings() {
               className="bg-purple-500 hover:bg-purple-600 px-8"
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              Save Settings / सेटिंग्स सेव करें
-            </Button>
+              Save Settings</Button>
           </div>
         </div>
       )}
@@ -359,8 +352,7 @@ function ReferralSettings() {
               className="bg-green-500 hover:bg-green-600"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Discount Code / नया कोड बनाएं
-            </Button>
+              Create Discount Code</Button>
           </div>
 
           {/* Codes List */}
@@ -381,8 +373,7 @@ function ReferralSettings() {
                   {discountCodes.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-4 py-8 text-center text-slate-400">
-                        No discount codes yet / अभी कोई डिस्काउंट कोड नहीं
-                      </td>
+                        No discount codes yet</td>
                     </tr>
                   ) : (
                     discountCodes.map((code) => (
@@ -453,14 +444,13 @@ function ReferralSettings() {
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingCode ? 'Edit Discount Code' : 'Create Discount Code'} / 
-              {editingCode ? 'कोड संपादित करें' : 'नया कोड बनाएं'}
+              {editingCode ? 'Edit Discount Code' : 'Create Discount Code'}
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Code / कोड</Label>
+              <Label className="text-slate-300">Code</Label>
               <div className="flex gap-2 mt-1">
                 <Input
                   value={newCode.code}

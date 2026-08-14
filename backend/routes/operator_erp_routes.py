@@ -377,7 +377,7 @@ async def add_compliance_document(data: dict, current_user: dict = Depends(get_c
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.aircraft_documents.insert_one(dict(doc))
-    return {"message": "Document registered / दस्तावेज़ दर्ज", "document": doc}
+    return {"message": "Document registered", "document": doc}
 
 
 @router.delete("/documents/{document_id}")
@@ -391,7 +391,7 @@ async def delete_compliance_document(document_id: str, current_user: dict = Depe
         if aircraft and aircraft.get("operator_id") != operator["id"]:
             raise HTTPException(status_code=403, detail="Not your aircraft")
     await db.aircraft_documents.update_one({"id": document_id}, {"$set": {"status": "deleted"}})
-    return {"message": "Document removed / दस्तावेज़ हटाया गया"}
+    return {"message": "Document removed"}
 
 
 # ==================== FUEL PRICE TRACKING ====================
@@ -482,4 +482,4 @@ async def complete_maintenance(
                 "updated_at": now_iso,
             }}
         )
-    return {"message": "Maintenance completed / रखरखाव पूर्ण — hours counter reset"}
+    return {"message": "Maintenance completedhours counter reset"}

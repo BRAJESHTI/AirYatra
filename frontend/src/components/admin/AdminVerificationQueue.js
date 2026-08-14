@@ -225,8 +225,7 @@ const AdminVerificationQueue = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-orange-400" />
-            Document Verification Queue / दस्तावेज़ सत्यापन
-          </h2>
+            Document Verification Queue</h2>
           <p className="text-slate-400 text-sm mt-1">
             Review and approve operator documents for verification
           </p>
@@ -242,21 +241,21 @@ const AdminVerificationQueue = () => {
           <CardContent className="p-4 text-center">
             <Clock className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
             <div className="text-3xl font-bold text-yellow-400">{pendingDocs.length}</div>
-            <div className="text-slate-400 text-sm">Pending Review / लंबित</div>
+            <div className="text-slate-400 text-sm">Pending Review</div>
           </CardContent>
         </Card>
         <Card className="bg-green-500/10 border-green-500/50">
           <CardContent className="p-4 text-center">
             <CheckCircle className="h-6 w-6 text-green-400 mx-auto mb-2" />
             <div className="text-3xl font-bold text-green-400">{verifiedDocs.length}</div>
-            <div className="text-slate-400 text-sm">Approved / स्वीकृत</div>
+            <div className="text-slate-400 text-sm">Approved</div>
           </CardContent>
         </Card>
         <Card className="bg-red-500/10 border-red-500/50">
           <CardContent className="p-4 text-center">
             <XCircle className="h-6 w-6 text-red-400 mx-auto mb-2" />
             <div className="text-3xl font-bold text-red-400">{rejectedDocs.length}</div>
-            <div className="text-slate-400 text-sm">Rejected / अस्वीकृत</div>
+            <div className="text-slate-400 text-sm">Rejected</div>
           </CardContent>
         </Card>
       </div>

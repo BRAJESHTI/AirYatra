@@ -231,8 +231,7 @@ function CommandCenter({ user }) {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-orange-400" />
-            Command Center / कमांड सेंटर
-          </h2>
+            Command Center</h2>
           <p className="text-slate-400 mt-1">Review and approve critical actions</p>
         </div>
         <Button onClick={loadApprovals} variant="outline" className="border-slate-600">

@@ -106,7 +106,7 @@ function AttendancePayroll() {
   const toggleAutoRun = async () => {
     try {
       await api.post('/hr/payroll-auto-run', { enabled: !autoRun?.enabled });
-      toast.success(!autoRun?.enabled ? 'Payroll auto-run enabled / ऑटो-रन चालू' : 'Payroll auto-run disabled / ऑटो-रन बंद');
+      toast.success(!autoRun?.enabled ? 'Payroll auto-run enabled' : 'Payroll auto-run disabled');
       loadAutoRun();
     } catch (error) {
       toast.error('Failed to update auto-run');
@@ -214,8 +214,7 @@ function AttendancePayroll() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-green-400" />
-            Attendance & Payroll / हाज़िरी और पेरोल
-          </h2>
+            Attendance & Payroll</h2>
           <p className="text-slate-400 mt-1">
             Manage employee attendance, leaves, and salary
           </p>
@@ -263,9 +262,9 @@ function AttendancePayroll() {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-700 pb-2 overflow-x-auto">
         {[
-          { id: 'attendance', label: 'Attendance / हाज़िरी', icon: Calendar },
+          { id: 'attendance', label: 'Attendance', icon: Calendar },
           { id: 'leaves', label: 'Leave Requests', icon: FileText, badge: pendingLeaves.length },
-          { id: 'payroll', label: 'Payroll / पेरोल', icon: CreditCard },
+          { id: 'payroll', label: 'Payroll', icon: CreditCard },
           { id: 'config', label: 'Settings', icon: Clock },
         ].map(tab => (
           <button
@@ -288,7 +287,7 @@ function AttendancePayroll() {
       {activeTab === 'attendance' && attendanceReport && (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-slate-500 text-xs">Showing employees with attendance activity this month / इस महीने उपस्थिति वाले कर्मचारी</p>
+            <p className="text-slate-500 text-xs">Showing employees with attendance activity this month</p>
             <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:text-white" data-testid="export-attendance-btn"
               onClick={async () => {
                 try {
@@ -299,7 +298,7 @@ function AttendancePayroll() {
                   a.download = `AirYatra_Attendance_${selectedMonth}_${selectedYear}.csv`;
                   a.click();
                   URL.revokeObjectURL(url);
-                  toast.success('Attendance CSV exported / CSV डाउनलोड हो गई');
+                  toast.success('Attendance CSV exported / CSV');
                 } catch (e) { toast.error('Export failed'); }
               }}>
               <Download className="h-4 w-4 mr-2" />Export CSV (Excel)
@@ -431,13 +430,12 @@ function AttendancePayroll() {
             <div>
               <p className="text-white font-medium flex items-center gap-2">
                 <RefreshCw className="h-4 w-4 text-orange-400" />
-                Payroll Auto-Run / ऑटो पेरोल
-                <span className={`px-2 py-0.5 rounded text-xs ${autoRun?.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                Payroll Auto-Run<span className={`px-2 py-0.5 rounded text-xs ${autoRun?.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                   {autoRun?.enabled ? 'ON' : 'OFF'}
                 </span>
               </p>
               <p className="text-slate-400 text-xs mt-1">
-                Har mahine ki 1 tareekh ko pichhle month ka payroll auto-generate hota hai + HR ko summary email.
+                Payroll for the previous month is auto-generated on the 1st of every month, with a summary email to HR.
                 {autoRun?.last_run_at && ` Last run: ${autoRun.last_run_period} (${autoRun.last_run_count} employees, ₹${(autoRun.last_run_net || 0).toLocaleString()})`}
               </p>
             </div>

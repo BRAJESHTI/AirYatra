@@ -16,10 +16,10 @@ const STATUS_STYLES = {
 };
 
 const STATUS_LABELS = {
-  pending_review: 'Pending Review / समीक्षा में',
-  active: 'Live / लाइव',
-  rejected: 'Rejected / अस्वीकृत',
-  sold: 'Sold / बिक गया',
+  pending_review: 'Pending Review',
+  active: 'Live',
+  rejected: 'Rejected',
+  sold: 'Sold',
 };
 
 export const MyAircraftListings = ({ user }) => {
@@ -44,8 +44,7 @@ export const MyAircraftListings = ({ user }) => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Plane className="h-6 w-6 text-orange-500" /> My Aircraft Listings / मेरे विमान
-          </h1>
+            <Plane className="h-6 w-6 text-orange-500" /> My Aircraft Listings</h1>
           <p className="text-slate-400 text-sm">Track your listings, views and buyer inquiries</p>
         </div>
         <Button onClick={() => navigate('/exchange')} className="bg-orange-500 hover:bg-orange-600" data-testid="list-new-aircraft-btn">
@@ -110,7 +109,7 @@ export const MyAircraftListings = ({ user }) => {
                     variant="outline"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/exchange/listing/${l.id}`)
-                        .then(() => toast.success('Public link copied — promote it anywhere! / लिंक कॉपी हो गया'));
+                        .then(() => toast.success('Public link copied — promote it anywhere!'));
                     }}
                     className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 shrink-0 self-start"
                     data-testid={`share-listing-${l.id}`}

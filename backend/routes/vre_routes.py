@@ -378,7 +378,7 @@ async def update_global_config(
     await log_audit(db, current_user, "global_config", old_config, update_data, 
                     updates.get("reason", "Config update"), request)
     
-    return {"success": True, "message": "Configuration updated / कॉन्फ़िगरेशन अपडेट हो गया"}
+    return {"success": True, "message": "Configuration updated"}
 
 
 # ============ SERVICE CONFIGURATION ============
@@ -525,7 +525,7 @@ async def update_booking_rule(
     await log_audit(db, current_user, f"booking_rule.{rule_id}", old_rule, update_data, 
                     updates.reason, request)
     
-    return {"success": True, "message": "Rule updated / नियम अपडेट"}
+    return {"success": True, "message": "Rule updated"}
 
 
 # ============ AUTO RULES ============
@@ -725,7 +725,7 @@ async def verify_pan(
     # Validate PAN format
     pan_pattern = r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$'
     if not re.match(pan_pattern, pan_number.upper()):
-        raise HTTPException(status_code=400, detail="Invalid PAN format / अमान्य PAN प्रारूप")
+        raise HTTPException(status_code=400, detail="Invalid PAN format")
     
     # Check if already verified
     existing = await db.user_verifications.find_one({
@@ -788,7 +788,7 @@ async def verify_gst(
     
     # Validate GSTIN format (15 characters)
     if len(gstin) != 15:
-        raise HTTPException(status_code=400, detail="Invalid GSTIN format / अमान्य GSTIN प्रारूप")
+        raise HTTPException(status_code=400, detail="Invalid GSTIN format")
     
     sandbox = get_sandbox_service()
     result = await sandbox.verify_gst(gstin)

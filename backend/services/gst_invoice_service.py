@@ -117,7 +117,7 @@ class GSTInvoiceGenerator:
         
         # ===== HEADER =====
         elements.append(Paragraph("✈ AirYatra", title_style))
-        elements.append(Paragraph("TAX INVOICE / कर चालान", subtitle_style))
+        elements.append(Paragraph("TAX INVOICE", subtitle_style))
         elements.append(Spacer(1, 10))
         
         # Invoice Details Table (Right aligned info)
@@ -172,7 +172,7 @@ class GSTInvoiceGenerator:
         elements.append(Spacer(1, 10))
         
         # ===== BILLING DETAILS =====
-        elements.append(Paragraph("BILL TO / बिल प्राप्तकर्ता:", header_style))
+        elements.append(Paragraph("BILL TO", header_style))
         
         customer_gstin = invoice_data.get("customer_gstin", "")
         gstin_line = f"GSTIN: {customer_gstin}" if customer_gstin else "GSTIN: N/A (Unregistered)"
@@ -197,7 +197,7 @@ class GSTInvoiceGenerator:
         elements.append(Spacer(1, 15))
         
         # ===== FLIGHT DETAILS =====
-        elements.append(Paragraph("FLIGHT DETAILS / उड़ान विवरण:", header_style))
+        elements.append(Paragraph("FLIGHT DETAILS", header_style))
         
         flight_data = [
             ["Route:", f"{invoice_data.get('from_city', '')} → {invoice_data.get('to_city', '')}"],
@@ -223,7 +223,7 @@ class GSTInvoiceGenerator:
         elements.append(Spacer(1, 15))
         
         # ===== ITEMIZED CHARGES =====
-        elements.append(Paragraph("CHARGES / शुल्क विवरण:", header_style))
+        elements.append(Paragraph("CHARGES", header_style))
         
         base_amount = float(invoice_data.get("base_amount", 0))
         gst_amount = float(invoice_data.get("gst_amount", 0))
@@ -312,7 +312,7 @@ class GSTInvoiceGenerator:
         elements.append(Spacer(1, 15))
         
         # ===== PAYMENT DETAILS =====
-        elements.append(Paragraph("PAYMENT DETAILS / भुगतान विवरण:", header_style))
+        elements.append(Paragraph("PAYMENT DETAILS", header_style))
         
         payment_data = [
             ["Payment Method:", invoice_data.get("payment_method", "Online")],

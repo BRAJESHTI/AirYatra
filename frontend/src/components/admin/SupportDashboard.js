@@ -141,8 +141,7 @@ function SupportDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Headphones className="h-6 w-6 text-purple-400" />
-            Support Helpdesk / सपोर्ट हेल्पडेस्क
-          </h2>
+            Support Helpdesk</h2>
           <p className="text-slate-400 mt-1">Manage customer support tickets and SLA</p>
         </div>
         <Button onClick={() => { loadDashboard(); loadTickets(); }} variant="outline" size="sm">
@@ -477,7 +476,7 @@ function SupportDashboard() {
       {/* SLA Settings Tab */}
       {activeTab === 'sla' && slaConfig && (
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <h3 className="text-white font-semibold mb-6">SLA Configuration / SLA सेटिंग्स</h3>
+          <h3 className="text-white font-semibold mb-6">SLA Configuration / SLA</h3>
           <p className="text-slate-400 text-sm mb-6">Define response and resolution time limits for each priority level</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

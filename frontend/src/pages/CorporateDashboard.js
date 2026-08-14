@@ -31,7 +31,7 @@ const CorporateDashboard = ({ user }) => {
   const saveAlertThreshold = async () => {
     const val = parseFloat(alertThreshold);
     if (isNaN(val) || val < 0) {
-      toast.error('Valid threshold amount daalein');
+      toast.error('Please enter a valid threshold amount');
       return;
     }
     setSavingThreshold(true);

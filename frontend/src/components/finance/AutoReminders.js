@@ -134,8 +134,7 @@ export default function AutoReminders() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Bell className="h-7 w-7 text-orange-400" />
-            Auto Reminders / स्वचालित रिमाइंडर
-          </h1>
+            Auto Reminders</h1>
           <p className="text-slate-400 mt-1">Configure automatic alerts for challan due dates</p>
         </div>
         <div className="flex items-center gap-3">
@@ -188,8 +187,7 @@ export default function AutoReminders() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-orange-400" />
-                Pending Reminders / लंबित रिमाइंडर
-              </CardTitle>
+                Pending Reminders</CardTitle>
             </CardHeader>
             <CardContent>
               {pendingReminders.length === 0 ? (
@@ -252,8 +250,7 @@ export default function AutoReminders() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Settings className="h-5 w-5 text-blue-400" />
-                Reminder Configurations / रिमाइंडर कॉन्फ़िगरेशन
-              </CardTitle>
+                Reminder Configurations</CardTitle>
             </CardHeader>
             <CardContent>
               {configs.length === 0 ? (
@@ -321,8 +318,7 @@ export default function AutoReminders() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-purple-400" />
-                Reminder History / रिमाइंडर इतिहास
-              </CardTitle>
+                Reminder History</CardTitle>
             </CardHeader>
             <CardContent>
               {reminderHistory.length === 0 ? (
@@ -370,8 +366,7 @@ export default function AutoReminders() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Settings className="h-5 w-5 text-blue-400" />
-              Configure Reminder / रिमाइंडर कॉन्फ़िगर करें
-            </DialogTitle>
+              Configure Reminder</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>

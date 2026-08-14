@@ -62,7 +62,7 @@ export const AuctionSection = ({ user }) => {
 
   const toggleWatch = async (auction) => {
     if (!user) {
-      toast.error('Please login to watch this auction / लॉगिन करें');
+      toast.error('Please login to watch this auction');
       return;
     }
     setTogglingWatch(auction.id);
@@ -80,7 +80,7 @@ export const AuctionSection = ({ user }) => {
 
   const openBid = async (auction) => {
     if (!user) {
-      toast.error('Please login to place a bid / बोली लगाने के लिए लॉगिन करें');
+      toast.error('Please login to place a bid');
       return;
     }
     setBidCr('');
@@ -118,7 +118,7 @@ export const AuctionSection = ({ user }) => {
       <div className="bg-gradient-to-r from-orange-500/10 to-transparent border border-orange-500/20 rounded-2xl p-5 mb-8 flex items-start gap-3">
         <Gavel className="h-6 w-6 text-orange-400 shrink-0 mt-0.5" />
         <div>
-          <h2 className="text-white font-bold">Live Aircraft Auctions / लाइव नीलामी</h2>
+          <h2 className="text-white font-bold">Live Aircraft Auctions</h2>
           <p className="text-slate-400 text-sm mt-1">
             Bid on high-demand aircraft with transparent countdowns. Watch an auction to get an email reminder before it ends. Highest bid above reserve wins — no payment today.
           </p>

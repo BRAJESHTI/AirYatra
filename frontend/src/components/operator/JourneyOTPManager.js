@@ -64,7 +64,7 @@ function JourneyOTPManager({ operator }) {
 
   const handleInitiatePickup = async (booking) => {
     if (!selectedPilot) {
-      toast.error('Please select a pilot first / पायलट चुनें');
+      toast.error('Please select a pilot first');
       return;
     }
 
@@ -93,7 +93,7 @@ function JourneyOTPManager({ operator }) {
 
   const handleVerifyOTP = async () => {
     if (!otpInput || otpInput.length !== 6) {
-      toast.error('Please enter valid 6-digit OTP / कृपया सही 6 अंकों का OTP दर्ज करें');
+      toast.error('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -157,16 +157,15 @@ function JourneyOTPManager({ operator }) {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white">Journey OTP Management</h2>
-          <p className="text-slate-400">यात्रा OTP प्रबंधन - Manage journey verifications for active bookings</p>
+          <p className="text-slate-400">Manage journey OTP verifications for active bookings</p>
         </div>
         <Button onClick={loadData} variant="outline" className="border-slate-700">
-          Refresh / रीफ्रेश
-        </Button>
+          Refresh</Button>
       </div>
 
       {/* Journey Flow Guide */}
       <div className="p-4 rounded-lg bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30">
-        <h3 className="text-white font-semibold mb-3">Journey OTP Flow / यात्रा OTP प्रक्रिया</h3>
+        <h3 className="text-white font-semibold mb-3">Journey OTP Flow</h3>
         <div className="flex items-center gap-2 text-sm flex-wrap">
           <span className="px-3 py-1 rounded bg-blue-500/20 text-blue-400">1. Assign Pilot</span>
           <span className="text-slate-500">→</span>
@@ -186,7 +185,7 @@ function JourneyOTPManager({ operator }) {
           <div className="p-8 rounded-lg bg-slate-900/50 border border-slate-800 text-center">
             <Plane className="h-12 w-12 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">No active bookings requiring journey management</p>
-            <p className="text-slate-500 text-sm">कोई सक्रिय बुकिंग नहीं</p>
+            <p className="text-slate-500 text-sm"></p>
           </div>
         ) : (
           activeBookings.map((booking) => (
@@ -240,7 +239,7 @@ function JourneyOTPManager({ operator }) {
                       onChange={(e) => setSelectedPilot(e.target.value)}
                       className="h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white flex-1 max-w-xs"
                     >
-                      <option value="">Select Pilot / पायलट चुनें</option>
+                      <option value="">Select Pilot</option>
                       {pilots.filter(p => !p.is_restricted).map((pilot) => (
                         <option key={pilot.id} value={pilot.id}>
                           {pilot.name} ({pilot.license_number})
@@ -307,7 +306,7 @@ function JourneyOTPManager({ operator }) {
                 {booking.journey_status === 'completed' && (
                   <div className="flex items-center gap-2 text-green-400">
                     <CheckCircle className="h-5 w-5" />
-                    <span>Journey Completed / यात्रा पूर्ण</span>
+                    <span>Journey Completed</span>
                   </div>
                 )}
               </div>
@@ -315,7 +314,7 @@ function JourneyOTPManager({ operator }) {
               {/* Journey Timeline */}
               {booking.journey_status && booking.journey_status !== 'confirmed' && (
                 <div className="mt-4 pt-4 border-t border-slate-700">
-                  <p className="text-xs text-slate-500 mb-2">Journey Timeline / यात्रा समयरेखा</p>
+                  <p className="text-xs text-slate-500 mb-2">Journey Timeline</p>
                   <div className="flex gap-2 text-xs">
                     {booking.pickup_initiated_at && (
                       <span className="px-2 py-1 rounded bg-slate-800 text-slate-400">
@@ -351,16 +350,15 @@ function JourneyOTPManager({ operator }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Key className="h-5 w-5 text-orange-400" />
-              Enter OTP / OTP दर्ज करें
-            </DialogTitle>
+              Enter OTP</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
               <p className="text-slate-400 text-sm">
-                {currentOTPType === 'pickup' && 'Customer से Pickup OTP लें'}
-                {currentOTPType === 'start_journey' && 'Customer से Start Journey OTP लें'}
-                {currentOTPType === 'complete_journey' && 'Customer से Completion OTP लें'}
+                {currentOTPType === 'pickup' && 'Collect the Pickup OTP from the customer'}
+                {currentOTPType === 'start_journey' && 'Collect the Start Journey OTP from the customer'}
+                {currentOTPType === 'complete_journey' && 'Collect the Completion OTP from the customer'}
               </p>
               <p className="text-white font-medium mt-1">
                 Booking: {selectedBooking?.booking_number || selectedBooking?.id?.slice(0, 8)}
@@ -380,8 +378,7 @@ function JourneyOTPManager({ operator }) {
             </div>
             
             <p className="text-xs text-slate-500">
-              OTP customer के phone पर SMS/WhatsApp से भेजा गया है
-            </p>
+              The OTP is sent to the customer's phone via SMS/WhatsApp.</p>
           </div>
           
           <DialogFooter>

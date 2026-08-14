@@ -81,8 +81,7 @@ export default function ExpenseAnalytics() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <BarChart3 className="h-7 w-7 text-rose-400" />
-            Expense Analytics / खर्च विश्लेषण
-          </h1>
+            Expense Analytics</h1>
           <p className="text-slate-400 mt-1">Spending trends by category with drill-down analysis</p>
         </div>
         <div className="flex items-center gap-3">
@@ -156,8 +155,7 @@ export default function ExpenseAnalytics() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-rose-400" />
-            Expense Trend / खर्च का रुझान
-          </CardTitle>
+            Expense Trend</CardTitle>
         </CardHeader>
         <CardContent>
           {analytics?.expense_by_period && Object.keys(analytics.expense_by_period).length > 0 ? (
@@ -196,8 +194,7 @@ export default function ExpenseAnalytics() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <PieChart className="h-5 w-5 text-purple-400" />
-              Top Categories / शीर्ष श्रेणियाँ
-            </CardTitle>
+              Top Categories</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {analytics?.top_categories?.slice(0, 8).map((category, idx) => {
@@ -233,8 +230,7 @@ export default function ExpenseAnalytics() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-green-400" />
-              Growth Trend / वृद्धि रुझान
-            </CardTitle>
+              Growth Trend</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {analytics?.growth_trend?.slice(-8).map((item, idx) => (

@@ -109,8 +109,7 @@ export default function PDFInvoiceExport() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <FileText className="h-7 w-7 text-amber-400" />
-            PDF Invoice Export / पीडीएफ इनवॉइस
-          </h1>
+            PDF Invoice Export</h1>
           <p className="text-slate-400 mt-1">Generate professional GST-compliant invoices with company letterhead</p>
         </div>
         <Button 
@@ -127,8 +126,7 @@ export default function PDFInvoiceExport() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Eye className="h-5 w-5 text-blue-400" />
-            Invoice Preview / इनवॉइस पूर्वावलोकन
-          </CardTitle>
+            Invoice Preview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="bg-white rounded-lg p-8 text-gray-900">
@@ -233,8 +231,7 @@ export default function PDFInvoiceExport() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <FileText className="h-5 w-5 text-amber-400" />
-              Generate Invoice / इनवॉइस बनाएं
-            </DialogTitle>
+              Generate Invoice</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Customer Details */}

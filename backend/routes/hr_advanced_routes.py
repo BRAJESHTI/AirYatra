@@ -151,7 +151,7 @@ async def create_sales_target(
     await db.sales_targets.insert_one(target)
     
     return {
-        "message": "Sales target created / सेल्स टारगेट बन गया",
+        "message": "Sales target created",
         "target_id": target_id
     }
 
@@ -234,7 +234,7 @@ async def update_target_achievement(
         {"$set": update_fields}
     )
     
-    return {"message": "Target achievement updated / टारगेट अचीवमेंट अपडेट हो गया"}
+    return {"message": "Target achievement updated"}
 
 
 @router.get("/targets/leaderboard")
@@ -349,7 +349,7 @@ async def create_expense_claim(
     await db.expense_claims.insert_one(expense)
     
     return {
-        "message": "Expense claim created / खर्च क्लेम बन गया",
+        "message": "Expense claim created",
         "expense_id": expense_id,
         "expense_number": expense["expense_number"]
     }
@@ -398,7 +398,7 @@ async def upload_expense_document(
     )
     
     return {
-        "message": "Document uploaded / दस्तावेज़ अपलोड हो गया",
+        "message": "Document uploaded",
         "document": document
     }
 
@@ -418,7 +418,7 @@ async def submit_expense_claim(
         raise HTTPException(status_code=400, detail="Expense already submitted")
     
     if not expense.get("documents") or len(expense["documents"]) == 0:
-        raise HTTPException(status_code=400, detail="Please attach at least one document / कृपया कम से कम एक दस्तावेज़ संलग्न करें")
+        raise HTTPException(status_code=400, detail="Please attach at least one document")
     
     await db.expense_claims.update_one(
         {"id": expense_id},
@@ -440,7 +440,7 @@ async def submit_expense_claim(
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    return {"message": "Expense submitted for approval / खर्च अनुमोदन के लिए जमा"}
+    return {"message": "Expense submitted for approval"}
 
 
 @router.get("/expense/my")
@@ -572,7 +572,7 @@ async def approve_expense(
             _send_expense_email,
             expense["employee_id"],
             f"✅ Expense Approved — {expense['expense_number']} (₹{expense['amount']:,.0f})",
-            "✅ Expense Claim Approved / खर्च क्लेम स्वीकृत",
+            "✅ Expense Claim Approved",
             "#22c55e",
             [
                 ("Claim", f"{expense['title']} ({expense['expense_number']})"),
@@ -584,7 +584,7 @@ async def approve_expense(
         )
     
     return {
-        "message": f"Expense approved by {role.upper()} / खर्च {role.upper()} द्वारा स्वीकृत",
+        "message": f"Expense approved by {role.upper()}",
         "next_status": next_status
     }
 
@@ -637,7 +637,7 @@ async def reject_expense(
         _send_expense_email,
         expense["employee_id"],
         f"❌ Expense Rejected — {expense['expense_number']}",
-        "❌ Expense Claim Rejected / खर्च क्लेम अस्वीकृत",
+        "❌ Expense Claim Rejected",
         "#ef4444",
         [
             ("Claim", f"{expense['title']} ({expense['expense_number']})"),
@@ -647,7 +647,7 @@ async def reject_expense(
         ],
         "Please contact HR for clarification or resubmit with correct details.",
     )
-    return {"message": "Expense rejected / खर्च अस्वीकृत"}
+    return {"message": "Expense rejected"}
 
 
 @router.post("/expense/add-to-salary")
@@ -713,7 +713,7 @@ async def add_expenses_to_salary(
             _send_expense_email,
             expense["employee_id"],
             f"💰 Expense Reimbursed — {expense['expense_number']} (₹{expense['amount']:,.0f})",
-            "💰 Expense Reimbursed / खर्च का भुगतान",
+            "💰 Expense Reimbursed",
             "#f97316",
             [
                 ("Claim", f"{expense['title']} ({expense['expense_number']})"),
@@ -725,7 +725,7 @@ async def add_expenses_to_salary(
         )
     
     return {
-        "message": f"Added {added_count} expenses to salary / {added_count} खर्च सैलरी में जोड़े गए",
+        "message": f"Added {added_count} expenses to salary",
         "total_amount": total_amount,
         "month": month,
         "year": year
@@ -784,7 +784,7 @@ async def save_employee_bank_details(
         upsert=True
     )
     
-    return {"message": "Bank details saved / बैंक विवरण सहेजे गए"}
+    return {"message": "Bank details saved"}
 
 
 @router.post("/salary/calculate-auto")
@@ -1050,7 +1050,7 @@ async def complete_salary_payment(
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    return {"message": "Payment marked as completed / भुगतान पूर्ण"}
+    return {"message": "Payment marked as completed"}
 
 
 @router.get("/salary/payment-history")

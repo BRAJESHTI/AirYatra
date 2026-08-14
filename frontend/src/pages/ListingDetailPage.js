@@ -51,12 +51,12 @@ export default function ListingDetailPage({ user }) {
   const shareText = listing ? `${listing.title} — ${formatCr(listing.price_inr)} on AirYatra Aviation Exchange ✈️` : '';
 
   const copyLink = () => {
-    navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied! Share it anywhere / लिंक कॉपी हो गया'));
+    navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied! Share it anywhere'));
   };
 
   const sendInquiry = async () => {
     if (!user) {
-      toast.error('Please login to send an inquiry / पूछताछ के लिए लॉगिन करें');
+      toast.error('Please login to send an inquiry');
       return;
     }
     if (!inquiryMsg.trim()) return;
@@ -74,7 +74,7 @@ export default function ListingDetailPage({ user }) {
 
   const openInspection = () => {
     if (!user) {
-      toast.error('Please login to book an inspection / लॉगिन करें');
+      toast.error('Please login to book an inspection');
       return;
     }
     setInspectionOpen(true);
@@ -190,7 +190,7 @@ export default function ListingDetailPage({ user }) {
         {/* CTAs */}
         {listing.status === 'active' && (
           <div className="mt-8 bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
-            <h2 className="text-white font-bold text-lg mb-1">Interested in this aircraft? / रुचि है?</h2>
+            <h2 className="text-white font-bold text-lg mb-1">Interested in this aircraft?</h2>
             <p className="text-slate-400 text-sm mb-4">Send an inquiry or book a free pre-purchase inspection — DGCA documentation support included.</p>
             <textarea
               value={inquiryMsg}

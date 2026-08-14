@@ -297,7 +297,6 @@ Only respond with valid JSON."""
     ) -> Dict[str, Any]:
         """
         AI-powered customer support chatbot
-        ग्राहक सहायता के लिए AI चैटबॉट
         """
         
         # Build context from user info
@@ -355,7 +354,7 @@ Respond helpfully and professionally. Keep response under 200 words."""
 
 For exact pricing, please use our booking page where prices are calculated automatically based on your route.
 
-हमारे हेलीकॉप्टर चार्टर की कीमतें आमतौर पर ₹50,000 से ₹3,00,000 के बीच होती हैं।"""
+"""
         
         elif any(word in message_lower for word in ["book", "booking", "reserve"]):
             response = """To book a helicopter charter:
@@ -367,7 +366,7 @@ For exact pricing, please use our booking page where prices are calculated autom
 
 Operators will send quotes within 2-4 hours!
 
-बुकिंग के लिए 'Book Now' पेज पर जाएं और अपना विवरण भरें। ऑपरेटर जल्द ही आपसे संपर्क करेंगे।"""
+'Book Now' """
         
         elif any(word in message_lower for word in ["cancel", "refund"]):
             response = """Our cancellation policy:
@@ -377,7 +376,7 @@ Operators will send quotes within 2-4 hours!
 
 Please contact support@airyatra.com for cancellation requests.
 
-रद्दीकरण के लिए कृपया support@airyatra.com पर संपर्क करें।"""
+"""
         
         elif any(word in message_lower for word in ["route", "destination", "where"]):
             response = """Popular helicopter routes include:
@@ -388,7 +387,7 @@ Please contact support@airyatra.com for cancellation requests.
 
 We operate across all major cities in India! Enter your PIN codes on booking page for exact route options.
 
-हम पूरे भारत में सेवाएं प्रदान करते हैं।"""
+"""
         
         elif any(word in message_lower for word in ["safe", "safety", "secure"]):
             response = """Safety is our top priority:
@@ -398,7 +397,7 @@ We operate across all major cities in India! Enter your PIN codes on booking pag
 ✓ Comprehensive travel insurance available
 ✓ Real-time flight tracking
 
-सुरक्षा हमारी सर्वोच्च प्राथमिकता है। सभी हेलीकॉप्टर DGCA प्रमाणित हैं।"""
+"""
         
         elif any(word in message_lower for word in ["help", "support", "contact"]):
             response = """Need help? Here's how to reach us:
@@ -408,7 +407,7 @@ We operate across all major cities in India! Enter your PIN codes on booking pag
 
 Our support team is available 9 AM - 9 PM IST.
 
-हमारी सहायता टीम सुबह 9 बजे से रात 9 बजे तक उपलब्ध है।"""
+"""
         
         else:
             response = """Thank you for reaching out! I'm AirYatra's AI assistant.
@@ -421,7 +420,7 @@ I can help you with:
 
 How can I assist you today?
 
-धन्यवाद! मैं AirYatra का AI सहायक हूं। आज मैं आपकी कैसे मदद कर सकता हूं?"""
+"""
         
         return {
             "response": response,
@@ -456,8 +455,7 @@ Keep it under 150 words total."""
                 print(f"AI summary error: {e}")
         
         # Fallback template
-        return f"""✈️ Booking Confirmed / बुकिंग की पुष्टि
-
+        return f"""✈️ Booking Confirmed
 Booking: {booking.get('booking_number', 'N/A')}
 Route: {booking.get('from_location', '')} → {booking.get('to_location', '')}
 Date: {booking.get('departure_date', 'TBD')} at {booking.get('pickup_time', 'TBD')}
@@ -465,7 +463,7 @@ Passengers: {booking.get('passengers', 1)}
 Amount: ₹{booking.get('total_amount', 0):,}
 
 Thank you for choosing AirYatra!
-AirYatra चुनने के लिए धन्यवाद!"""
+AirYatra """
 
 # Singleton instance
 ai_service = AIService()

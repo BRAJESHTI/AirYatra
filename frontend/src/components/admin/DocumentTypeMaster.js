@@ -14,10 +14,10 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Category icons and colors
 const categoryConfig = {
-  customer: { icon: Users, color: 'blue', label: 'Customer / ग्राहक' },
-  pilot: { icon: Shield, color: 'purple', label: 'Pilot / पायलट' },
-  aircraft: { icon: Plane, color: 'cyan', label: 'Aircraft / विमान' },
-  employee: { icon: Briefcase, color: 'green', label: 'Employee / कर्मचारी' }
+  customer: { icon: Users, color: 'blue', label: 'Customer' },
+  pilot: { icon: Shield, color: 'purple', label: 'Pilot' },
+  aircraft: { icon: Plane, color: 'cyan', label: 'Aircraft' },
+  employee: { icon: Briefcase, color: 'green', label: 'Employee' }
 };
 
 function DocumentTypeMaster() {
@@ -213,8 +213,7 @@ function DocumentTypeMaster() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <FileText className="h-6 w-6 text-orange-400" />
-            Document Type Master / दस्तावेज़ प्रकार मास्टर
-          </h2>
+            Document Type Master</h2>
           <p className="text-slate-400 mt-1">Manage document types for all categories</p>
         </div>
         <div className="flex gap-2">
@@ -334,7 +333,6 @@ function DocumentTypeMaster() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-white font-semibold">{type.name}</h3>
-                        {type.name_hi && <span className="text-slate-400 text-sm">/ {type.name_hi}</span>}
                         {type.is_mandatory && (
                           <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-xs">Required</span>
                         )}
@@ -453,7 +451,7 @@ function DocumentTypeMaster() {
                   <Input
                     value={formData.name_hi}
                     onChange={(e) => setFormData({...formData, name_hi: e.target.value})}
-                    placeholder="e.g., आधार कार्ड"
+                    placeholder="e.g., Aadhar Card"
                     className="mt-1 bg-slate-800 border-slate-600 text-white"
                   />
                 </div>

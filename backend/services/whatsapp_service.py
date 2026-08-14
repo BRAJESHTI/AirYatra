@@ -35,7 +35,7 @@ WHATSAPP_TEMPLATES = {
 
 Namaste {{customer_name}}! 🙏
 
-Aapki helicopter booking confirm ho gayi hai:
+Your helicopter booking is confirmed:
 
 📋 *Booking ID:* {{booking_id}}
 ✈️ *Route:* {{from_city}} → {{to_city}}
@@ -58,7 +58,7 @@ _Thank you for flying with AirYatra!_ 🛫""",
 
 Namaste {{customer_name}}! 🙏
 
-Aapke booking ke liye payment pending hai:
+Payment is pending for your booking:
 
 📋 *Booking ID:* {{booking_id}}
 ✈️ *Route:* {{from_city}} → {{to_city}}

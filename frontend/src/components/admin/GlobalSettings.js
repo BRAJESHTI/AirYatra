@@ -119,7 +119,7 @@ function GlobalSettings() {
     setSaving(true);
     try {
       await settingsAPI.updateFlightTypePricing(flightTypePricing);
-      toast.success('Flight type pricing saved successfully / उड़ान प्रकार मूल्य सहेजा गया');
+      toast.success('Flight type pricing saved successfully');
     } catch (error) {
       toast.error('Failed to save flight type pricing');
     } finally {
@@ -482,7 +482,7 @@ function GlobalSettings() {
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                   <Plane className="h-5 w-5 text-orange-400" />
-                  उड़ान प्रकार मूल्य निर्धारण (Flight Type Pricing)
+Flight Type Pricing
                 </h3>
                 <p className="text-slate-400 text-sm mt-1">
                   Set prices for different flight packages shown on customer booking page
@@ -495,7 +495,7 @@ function GlobalSettings() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🚁</span>
                     <div>
-                      <h4 className="text-white font-medium">1 घंटे की उड़ान (1 Hour Flight)</h4>
+                      <h4 className="text-white font-medium">1 Hour Flight</h4>
                       <p className="text-slate-400 text-sm">City tour / Short distance</p>
                     </div>
                   </div>
@@ -526,7 +526,7 @@ function GlobalSettings() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🚁</span>
                     <div>
-                      <h4 className="text-white font-medium">2 घंटे की उड़ान (2 Hour Flight)</h4>
+                      <h4 className="text-white font-medium">2 Hour Flight</h4>
                       <p className="text-slate-400 text-sm">Extended tour</p>
                     </div>
                   </div>
@@ -557,7 +557,7 @@ function GlobalSettings() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">⏰</span>
                     <div>
-                      <h4 className="text-white font-medium">Half-Day बुकिंग (Half Day Booking)</h4>
+                      <h4 className="text-white font-medium">Half-Day Booking</h4>
                       <p className="text-slate-400 text-sm">Multiple short trips</p>
                     </div>
                   </div>
@@ -599,7 +599,7 @@ function GlobalSettings() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🏙️</span>
                     <div>
-                      <h4 className="text-white font-medium">Full-Day उड़ान - Single City (Full Day - City to City)</h4>
+                      <h4 className="text-white font-medium">Full Day — Single City (City to City)</h4>
                       <p className="text-slate-400 text-sm">One city to another city</p>
                     </div>
                   </div>
@@ -641,7 +641,7 @@ function GlobalSettings() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📍</span>
                     <div>
-                      <h4 className="text-white font-medium">Full-Day मल्टीपल लोकेशन (Full Day - Multiple Locations)</h4>
+                      <h4 className="text-white font-medium">Full Day — Multiple Locations</h4>
                       <p className="text-slate-400 text-sm">Visit multiple locations in one day</p>
                     </div>
                   </div>
@@ -692,7 +692,7 @@ function GlobalSettings() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📍</span>
                     <div>
-                      <h4 className="text-white font-medium">Point-to-Point उड़ान (Point to Point Flight)</h4>
+                      <h4 className="text-white font-medium">Point-to-Point Flight</h4>
                       <p className="text-slate-400 text-sm">Direct flight, price based on distance</p>
                     </div>
                   </div>
@@ -729,7 +729,7 @@ function GlobalSettings() {
               </div>
 
               <Button onClick={handleSaveFlightTypePricing} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
-                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Flight Type Pricing / उड़ान प्रकार मूल्य सहेजें'}
+                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Flight Type Pricing'}
               </Button>
             </div>
           )}
@@ -762,7 +762,7 @@ function GlobalSettings() {
                             className="w-full h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white"
                           >
                             {field.options.map(opt => (
-                              <option key={opt} value={opt}>{opt === 'true' ? 'Yes / हाँ' : 'No / नहीं'}</option>
+                              <option key={opt} value={opt}>{opt === 'true' ? 'Yes' : 'No'}</option>
                             ))}
                           </select>
                         ) : (

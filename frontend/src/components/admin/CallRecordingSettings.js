@@ -45,7 +45,7 @@ function CallRecordingSettings() {
     setSaving(true);
     try {
       await api.post('/settings/call-recording', settings);
-      toast.success('Call recording settings saved! / कॉल रिकॉर्डिंग सेटिंग्स सेव हो गईं!');
+      toast.success('Call recording settings saved!');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to save settings');
     } finally {
@@ -72,8 +72,7 @@ function CallRecordingSettings() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Phone className="h-6 w-6 text-green-400" />
-            Call Recording Settings / कॉल रिकॉर्डिंग सेटिंग्स
-          </h2>
+            Call Recording Settings</h2>
           <p className="text-slate-400 mt-1">
             Configure call recording integration for CRM
           </p>
@@ -134,7 +133,7 @@ function CallRecordingSettings() {
 
       {/* Provider Selection */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-white font-semibold mb-4">Select Provider / प्रोवाइडर चुनें</h3>
+        <h3 className="text-white font-semibold mb-4">Select Provider</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
             onClick={() => handleChange('call_provider', 'twilio')}
@@ -321,8 +320,7 @@ function CallRecordingSettings() {
       <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-xl p-6 border border-green-500/30">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Volume2 className="h-5 w-5 text-green-400" />
-          Call Recording Features / कॉल रिकॉर्डिंग सुविधाएं
-        </h3>
+          Call Recording Features</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">

@@ -694,18 +694,18 @@ async def scheduled_compliance_check():
 # Document categories for the verification checklist
 DOCUMENT_CATEGORIES = {
     "operator": {
-        "label": "Operator Documents / ऑपरेटर दस्तावेज़",
+        "label": "Operator Documents",
         "types": [
-            {"id": "certificate_of_incorporation", "label": "Certificate of Incorporation / निगमन प्रमाणपत्र", "required": True},
-            {"id": "pan_card", "label": "PAN Card / पैन कार्ड", "required": True},
-            {"id": "gst_registration", "label": "GST Registration / जीएसटी पंजीकरण", "required": False},
+            {"id": "certificate_of_incorporation", "label": "Certificate of Incorporation", "required": True},
+            {"id": "pan_card", "label": "PAN Card", "required": True},
+            {"id": "gst_registration", "label": "GST Registration", "required": False},
             {"id": "cin_llp", "label": "CIN/LLP Details", "required": False},
-            {"id": "address_proof", "label": "Registered Office Address Proof / पता प्रमाण", "required": True},
-            {"id": "signatory_id", "label": "Authorized Signatory ID / अधिकृत हस्ताक्षरकर्ता", "required": True}
+            {"id": "address_proof", "label": "Registered Office Address Proof", "required": True},
+            {"id": "signatory_id", "label": "Authorized Signatory ID", "required": True}
         ]
     },
     "dgca": {
-        "label": "DGCA & Regulatory / DGCA और नियामक",
+        "label": "DGCA & Regulatory",
         "types": [
             {"id": "aoc", "label": "Air Operator Certificate (AOC)", "required": False, "has_expiry": True},
             {"id": "dgca_permissions", "label": "DGCA Permissions/Licences", "required": False, "has_expiry": True},
@@ -713,29 +713,29 @@ DOCUMENT_CATEGORIES = {
         ]
     },
     "aircraft": {
-        "label": "Aircraft Documents / विमान दस्तावेज़",
+        "label": "Aircraft Documents",
         "types": [
-            {"id": "registration_certificate", "label": "Aircraft Registration Certificate / पंजीकरण प्रमाणपत्र", "required": True},
-            {"id": "certificate_of_airworthiness", "label": "Certificate of Airworthiness / उड़ान योग्यता प्रमाणपत्र", "required": True, "has_expiry": True},
-            {"id": "insurance_policy", "label": "Aircraft Insurance Policy / बीमा पॉलिसी", "required": True, "has_expiry": True},
-            {"id": "third_party_insurance", "label": "Third Party Insurance / तृतीय पक्ष बीमा", "required": False, "has_expiry": True},
-            {"id": "passenger_liability", "label": "Passenger Liability Insurance / यात्री देयता", "required": False, "has_expiry": True},
-            {"id": "hull_insurance", "label": "Hull Insurance / हल बीमा", "required": False, "has_expiry": True},
-            {"id": "maintenance_release", "label": "Maintenance Release / रखरखाव रिलीज़", "required": True, "has_expiry": True},
+            {"id": "registration_certificate", "label": "Aircraft Registration Certificate", "required": True},
+            {"id": "certificate_of_airworthiness", "label": "Certificate of Airworthiness", "required": True, "has_expiry": True},
+            {"id": "insurance_policy", "label": "Aircraft Insurance Policy", "required": True, "has_expiry": True},
+            {"id": "third_party_insurance", "label": "Third Party Insurance", "required": False, "has_expiry": True},
+            {"id": "passenger_liability", "label": "Passenger Liability Insurance", "required": False, "has_expiry": True},
+            {"id": "hull_insurance", "label": "Hull Insurance", "required": False, "has_expiry": True},
+            {"id": "maintenance_release", "label": "Maintenance Release", "required": True, "has_expiry": True},
             {"id": "camo_details", "label": "CAMO/Maintenance Provider Details", "required": False}
         ]
     },
     "crew": {
-        "label": "Crew Documents / क्रू दस्तावेज़",
+        "label": "Crew Documents",
         "types": [
-            {"id": "pilot_licence", "label": "Pilot Licence / पायलट लाइसेंस", "required": True, "has_expiry": True},
-            {"id": "copilot_licence", "label": "Co-Pilot Licence / सह-पायलट लाइसेंस", "required": False, "has_expiry": True},
-            {"id": "medical_certificate", "label": "Medical Certificate / मेडिकल सर्टिफिकेट", "required": True, "has_expiry": True},
-            {"id": "crew_list", "label": "Crew List / क्रू सूची", "required": True}
+            {"id": "pilot_licence", "label": "Pilot Licence", "required": True, "has_expiry": True},
+            {"id": "copilot_licence", "label": "Co-Pilot Licence", "required": False, "has_expiry": True},
+            {"id": "medical_certificate", "label": "Medical Certificate", "required": True, "has_expiry": True},
+            {"id": "crew_list", "label": "Crew List", "required": True}
         ]
     },
     "agreements": {
-        "label": "Agreements / समझौते",
+        "label": "Agreements",
         "types": [
             {"id": "platform_agreement", "label": "AirYatra Platform Agreement", "required": True},
             {"id": "service_agreement", "label": "Service Agreement", "required": False},
@@ -745,16 +745,16 @@ DOCUMENT_CATEGORIES = {
 }
 
 PHOTO_CATEGORIES = [
-    {"id": "front", "label": "Front View / सामने का दृश्य", "required": True},
-    {"id": "rear", "label": "Rear View / पीछे का दृश्य", "required": True},
-    {"id": "left", "label": "Left Side / बाईं ओर", "required": True},
-    {"id": "right", "label": "Right Side / दाईं ओर", "required": True},
-    {"id": "cockpit", "label": "Cockpit / कॉकपिट", "required": True},
-    {"id": "cabin", "label": "Cabin / केबिन", "required": True},
-    {"id": "interior", "label": "Interior / इंटीरियर", "required": False},
-    {"id": "vip_cabin", "label": "VIP Cabin / VIP केबिन", "required": False},
-    {"id": "emergency_equipment", "label": "Emergency Equipment / आपातकालीन उपकरण", "required": False},
-    {"id": "safety_equipment", "label": "Safety Equipment / सुरक्षा उपकरण", "required": False}
+    {"id": "front", "label": "Front View", "required": True},
+    {"id": "rear", "label": "Rear View", "required": True},
+    {"id": "left", "label": "Left Side", "required": True},
+    {"id": "right", "label": "Right Side", "required": True},
+    {"id": "cockpit", "label": "Cockpit", "required": True},
+    {"id": "cabin", "label": "Cabin", "required": True},
+    {"id": "interior", "label": "Interior", "required": False},
+    {"id": "vip_cabin", "label": "VIP Cabin", "required": False},
+    {"id": "emergency_equipment", "label": "Emergency Equipment", "required": False},
+    {"id": "safety_equipment", "label": "Safety Equipment", "required": False}
 ]
 
 

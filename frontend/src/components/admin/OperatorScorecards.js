@@ -85,7 +85,7 @@ export default function OperatorScorecards() {
             </div>
           </div>
         ))}
-        {cards.length === 0 && <p className="text-slate-500 text-sm text-center py-8">Koi operator data nahi.</p>}
+        {cards.length === 0 && <p className="text-slate-500 text-sm text-center py-8">No operator data available.</p>}
       </div>
     </div>
   );

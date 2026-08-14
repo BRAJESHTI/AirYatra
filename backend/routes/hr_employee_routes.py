@@ -77,7 +77,7 @@ async def create_employee(
         })
 
     return {
-        "message": f"Employee created / कर्मचारी बन गया ({employee_code})",
+        "message": f"Employee created{employee_code})",
         "employee_id": user["id"],
         "employee_code": employee_code,
         "salary_id": salary_id,
@@ -129,7 +129,7 @@ async def update_employee(
     result = await db.users.update_one({"id": employee_id}, {"$set": update})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
-    return {"message": "Employee updated / कर्मचारी अपडेट हो गया"}
+    return {"message": "Employee updated"}
 
 
 # ==================== ATTENDANCE SELFIE ====================
@@ -161,7 +161,7 @@ async def upload_attendance_selfie(
 
     selfie_url = f"/api/uploads/attendance_selfies/{fname}"
     await db.attendance.update_one({"id": attendance_id}, {"$set": {"selfie_url": selfie_url}})
-    return {"message": "Selfie uploaded / सेल्फी अपलोड हो गई", "selfie_url": selfie_url}
+    return {"message": "Selfie uploaded", "selfie_url": selfie_url}
 
 
 # ==================== PAYROLL AUTO-RUN SETTINGS ====================
@@ -290,7 +290,7 @@ async def add_holiday(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.company_holidays.insert_one(dict(holiday))
-    return {"message": f"Holiday added / छुट्टी जोड़ी गई ({name})", "holiday": holiday}
+    return {"message": f"Holiday added{name})", "holiday": holiday}
 
 
 @router.delete("/holidays/{holiday_id}")
@@ -302,7 +302,7 @@ async def delete_holiday(
     result = await db.company_holidays.delete_one({"id": holiday_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Holiday not found")
-    return {"message": "Holiday removed / छुट्टी हटाई गई"}
+    return {"message": "Holiday removed"}
 
 
 # ==================== ATTENDANCE MONTHLY EXPORT (CSV) ====================
@@ -404,7 +404,7 @@ async def upload_profile_photo(
         f.write(content)
     photo_url = f"/api/uploads/profile_photos/{fname}"
     await db.users.update_one({"id": current_user["id"]}, {"$set": {"photo_url": photo_url}})
-    return {"message": "Photo updated / फोटो अपडेट हो गई", "photo_url": photo_url}
+    return {"message": "Photo updated", "photo_url": photo_url}
 
 
 @router.get("/directory")

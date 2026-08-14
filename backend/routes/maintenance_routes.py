@@ -810,15 +810,15 @@ async def get_pilot_documents(
         "documents": documents,
         "pilot": pilot_info,
         "document_types": [
-            {"value": "license", "label": "Pilot License / पायलट लाइसेंस"},
-            {"value": "medical", "label": "Medical Certificate / चिकित्सा प्रमाणपत्र"},
-            {"value": "type_rating", "label": "Type Rating / टाइप रेटिंग"},
+            {"value": "license", "label": "Pilot License"},
+            {"value": "medical", "label": "Medical Certificate"},
+            {"value": "type_rating", "label": "Type Rating"},
             {"value": "instrument_rating", "label": "Instrument Rating"},
             {"value": "english_proficiency", "label": "English Proficiency"},
-            {"value": "id_proof", "label": "ID Proof / आईडी प्रूफ"},
-            {"value": "passport", "label": "Passport / पासपोर्ट"},
+            {"value": "id_proof", "label": "ID Proof"},
+            {"value": "passport", "label": "Passport"},
             {"value": "training_certificate", "label": "Training Certificate"},
-            {"value": "other", "label": "Other / अन्य"}
+            {"value": "other", "label": "Other"}
         ]
     }
 
@@ -884,13 +884,13 @@ async def upload_pilot_document(
             
             if days_until_expiry < 0:
                 verification_status = "expired"
-                verification_notes.append("Document has expired / दस्तावेज़ समाप्त हो गया है")
+                verification_notes.append("Document has expired")
             elif days_until_expiry < 30:
                 verification_status = "expiring_soon"
-                verification_notes.append(f"Expires in {days_until_expiry} days / {days_until_expiry} दिनों में समाप्त")
+                verification_notes.append(f"Expires in {days_until_expiry} days")
             else:
                 verification_status = "valid"
-                verification_notes.append("Document valid / दस्तावेज़ वैध")
+                verification_notes.append("Document valid")
         except (ValueError, TypeError):
             verification_notes.append("Could not verify expiry date")
     

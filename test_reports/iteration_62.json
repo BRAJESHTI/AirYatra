@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 62 — Frontend-only smoke regression after ~150-file Devanagari/Hinglish sweep. Scanned every role dashboard (admin, operator, finance, customer, ceo, sales, hr) and key sub-pages (Customer /trips + cancel dialog, Customer /security, Operator /cancel-bookings + cancel dialog + reason dropdown, Operator /erp, Operator /journey-otp, Finance dashboard tabs, Admin dashboard). No blank screens, no JSX/render crashes, no garbled concatenations ('OTPOTP', dangling '/', 'undefined undefined', 'null null'), and no console pageerrors. Frontend compiled with warnings only (react-hooks/exhaustive-deps — pre-existing, unrelated). Confirmed frontend-side sweep is clean: repo grep for Devanagari across /app/frontend/src returns ONLY the two intentionally-kept files (TemplateSettings.js, EmailTemplateEditor.js language picker native names) — no unexpected residue. HOWEVER, the sweep did NOT touch several BACKEND route files whose hard-coded label strings still contain Devanagari and are served to the UI (visible on Admin dashboard header/recent-booking route text 'General Tour / सामान्य यात्रा', 'Other / अन्य' when trip-purpose or reports data is rendered). Backend testing was skipped per request scope, but this is a text-sweep miss that surfaces in the frontend.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/settings/payment-rules and /payment-rules/public", "issue": "DEFAULT_PAYMENT_RULES in backend/routes/settings_routes.py lines 620-629 still contain Devanagari labels: 'Wedding / शादी', 'Temple Yatra / मंदिर यात्रा', 'Corporate Tour / कॉर्पोरेट टूर', 'Election Campaign / चुनाव प्रचार', 'Medical Emergency / मेडिकल', 'Film Shooting / फिल्म शूटिंग', 'General Tour / सामान्य यात्रा', 'Pilgrimage / तीर्थ यात्रा', 'Business Meeting / बिज़नेस', 'Other / अन्य'. Also any docs already persisted in the payment_rules_settings collection carry these labels forward until re-seeded."},
+      {"endpoint": "GET /api/reports/... (reports_routes.py lines 697,703) and /api/analytics/... (analytics_routes.py lines 287,293)", "issue": "Hardcoded purpose→label maps still contain 'General Tour / सामान्य यात्रा', 'Other / अन्य' etc. — surfaces in Admin Reports and Analytics tabs."},
+      {"endpoint": "GET /api/price-breakup/... (price_breakup_routes.py line 147)", "issue": "Label 'Other Charges / अन्य शुल्क' — appears in customer/operator price breakups."},
+      {"endpoint": "GET /api/maintenance/... (maintenance_routes.py line 821)", "issue": "Dropdown value {'value':'other','label':'Other / अन्य'}."},
+      {"endpoint": "GET /api/operator/journey-otp/*", "issue": "Console error 'Failed to load journey data' fires twice on /operator/journey-otp for the demo operator (likely no active journey seeded; UI still renders the empty-state header cleanly, no crash). Verify endpoint returns 200 + empty list rather than throwing."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Admin Dashboard (any view that renders trip-purpose label from backend, e.g., recent bookings header, purpose picker, Payment Rules settings)", "issue": "Devanagari leaks in: '✈️ General Tour / सामान्य यात्रा' and '📝 Other / अन्य' visible in DOM body innerText on /admin. Root cause is backend-served label strings (see backend/minor above), not a frontend regex miss.", "selector": "any element rendering booking.purpose_label or payment-rule label", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Replace Devanagari in the following backend route files with English-only labels (regex sweep missed them): backend/routes/settings_routes.py (DEFAULT_PAYMENT_RULES, ~lines 619-630), backend/routes/reports_routes.py (~lines 697-703 purpose label map), backend/routes/analytics_routes.py (~lines 287-293 purpose label map), backend/routes/price_breakup_routes.py (line 147 'Other Charges / अन्य शुल्क' → 'Other Charges'), backend/routes/maintenance_routes.py (line 821 'Other / अन्य' → 'Other').",
+    "After the label change, either re-seed the payment_rules_settings collection or add a one-shot migration to overwrite persisted Hindi labels; otherwise the /payment-rules endpoint keeps returning cached Hindi labels from Mongo.",
+    "(Optional) Investigate /operator/journey-otp 'Failed to load journey data' — probably a 404/500 on the journey-otp list endpoint when no journeys exist; convert to 200 + [] so console stays clean."
+  ],
+  "critical_code_review_comments": [
+    "The Devanagari sweep was scoped to frontend + refund_approval_routes.py + email_service.py, but user-facing label strings also live in backend/routes/{settings,reports,analytics,price_breakup,maintenance}_routes.py. Any future 'English-only' pass must include these plus a Mongo migration for previously seeded rows in payment_rules_settings."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "~95% (all 7 role dashboards + 8 sub-pages render clean; single residual issue is backend-sourced Devanagari label bleed-through on Admin dashboard purpose labels)"},
+  "seed_data_creation": "None. No bookings cancelled this run (per reviewer instruction 'do NOT cancel more than 1 booking').",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "See /app/memory/test_credentials.md. All 7 role logins verified working with 2FA disabled.",
+  "context_for_next_testing_agent": "Frontend Devanagari sweep is genuinely clean — repo-wide grep of /app/frontend/src returns only the 2 intentionally-kept i18n files (TemplateSettings.js + EmailTemplateEditor.js language-picker native names) which the reviewer said to ignore. Remaining Devanagari that shows up in the UI is 100% sourced from backend hard-coded labels in the 5 route files listed above, and (for payment-rules) from persisted Mongo docs seeded before the sweep. When re-testing, verify /admin dashboard, /admin Payment Rules settings, and any purpose picker on the booking flow show English-only labels after the backend fix + Mongo re-seed.",
+  "rca_of_the_issue": "Sweep was limited to /app/frontend/src plus two backend files (refund_approval_routes.py, email_service.py). Trip-purpose label constants living in five other backend route modules were never touched, so their bilingual 'English / Hindi' labels continue to be returned by the API and rendered by the (already-sanitised) frontend, giving the appearance of a frontend miss. Additionally, /api/settings/payment-rules first checks Mongo and only falls back to DEFAULT_PAYMENT_RULES when nothing is stored — so even after editing the Python defaults, previously seeded documents (from earlier iterations) will keep the old Hindi labels until explicitly overwritten."
+}

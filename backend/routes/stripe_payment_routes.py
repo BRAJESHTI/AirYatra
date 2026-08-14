@@ -367,12 +367,12 @@ async def create_stripe_checkout(
         if booking.get("payment_status") not in ["paid", "fully_paid"]:
             raise HTTPException(status_code=400, detail="Advance payment pending — pehle advance bharein")
         if remaining <= 0:
-            raise HTTPException(status_code=400, detail="Already fully paid / पूरा भुगतान हो चुका है")
+            raise HTTPException(status_code=400, detail="Already fully paid")
         amount = remaining
         advance_percent = None
     else:
         if booking.get("payment_status") in ["paid", "fully_paid"]:
-            raise HTTPException(status_code=400, detail="Already paid / भुगतान पहले हो चुका है")
+            raise HTTPException(status_code=400, detail="Already paid")
         from routes.payment_rules_routes import resolve_payment_rule
         rule = await resolve_payment_rule(db, booking, total_amount)
         advance_percent = rule["advance_percent"]

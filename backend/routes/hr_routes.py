@@ -141,7 +141,7 @@ async def update_incentive_config(
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    return {"message": "Incentive configuration updated / इंसेंटिव कॉन्फ़िगरेशन अपडेट हो गया"}
+    return {"message": "Incentive configuration updated"}
 
 
 @router.get("/incentive-calculation/{employee_id}")
@@ -335,7 +335,7 @@ async def check_in(
     })
     
     if existing:
-        raise HTTPException(status_code=400, detail="Already checked in today / आज पहले से चेक-इन है")
+        raise HTTPException(status_code=400, detail="Already checked in today")
     
     attendance_id = str(uuid4())
     check_in_time = datetime.now(timezone.utc)
@@ -363,7 +363,7 @@ async def check_in(
     await db.attendance.insert_one(attendance)
     
     return {
-        "message": "Check-in successful / चेक-इन सफल",
+        "message": "Check-in successful",
         "attendance_id": attendance_id,
         "check_in_time": check_in_time.isoformat()
     }
@@ -386,7 +386,7 @@ async def check_out(
     })
     
     if not attendance:
-        raise HTTPException(status_code=400, detail="No check-in found for today / आज का चेक-इन नहीं मिला")
+        raise HTTPException(status_code=400, detail="No check-in found for today")
     
     check_out_time = datetime.now(timezone.utc)
     check_in_time = datetime.fromisoformat(attendance["check_in_time"].replace('Z', '+00:00'))
@@ -414,7 +414,7 @@ async def check_out(
     )
     
     return {
-        "message": "Check-out successful / चेक-आउट सफल",
+        "message": "Check-out successful",
         "check_out_time": check_out_time.isoformat(),
         "total_hours": total_hours,
         "status": status
@@ -557,7 +557,7 @@ async def _notify_hr_leave_applied(leave: dict):
             {"roles": {"$in": ["hr", "admin"]}, "is_active": True}, {"_id": 0, "email": 1}
         ).to_list(10)
         html = _leave_email_html(
-            "📩 New Leave Application / नया छुट्टी आवेदन",
+            "📩 New Leave Application",
             "#f97316",
             [
                 ("Employee", leave["employee_name"]),
@@ -589,9 +589,9 @@ async def _notify_employee_leave_decision(leave_id: str, approved: bool, reason:
         if not emp or not emp.get("email"):
             return
         if approved:
-            title, color, footer = "✅ Leave Approved / छुट्टी स्वीकृत", "#22c55e", "Enjoy your time off! Your leave balance has been updated."
+            title, color, footer = "✅ Leave Approved", "#22c55e", "Enjoy your time off! Your leave balance has been updated."
         else:
-            title, color, footer = "❌ Leave Rejected / छुट्टी अस्वीकृत", "#ef4444", "Please contact HR for more details."
+            title, color, footer = "❌ Leave Rejected", "#ef4444", "Please contact HR for more details."
         rows = [
             ("Leave Type", leave["leave_type"].title()),
             ("Duration", f'{leave["start_date"]} → {leave["end_date"]} ({leave["days"]} day(s))'),
@@ -642,7 +642,7 @@ async def apply_leave(
     background_tasks.add_task(_notify_hr_leave_applied, leave)
     
     return {
-        "message": "Leave application submitted / छुट्टी आवेदन जमा हो गया",
+        "message": "Leave application submitted",
         "leave_id": leave_id,
         "days": leave["days"]
     }
@@ -728,7 +728,7 @@ async def approve_leave(
         current += timedelta(days=1)
     
     background_tasks.add_task(_notify_employee_leave_decision, leave_id, True)
-    return {"message": "Leave approved / छुट्टी स्वीकृत"}
+    return {"message": "Leave approved"}
 
 
 @router.put("/leave/{leave_id}/reject")
@@ -751,7 +751,7 @@ async def reject_leave(
     )
     
     background_tasks.add_task(_notify_employee_leave_decision, leave_id, False, rejection_data.get("reason", ""))
-    return {"message": "Leave rejected / छुट्टी अस्वीकृत"}
+    return {"message": "Leave rejected"}
 
 
 @router.get("/leave/pending")
@@ -862,7 +862,7 @@ async def set_employee_salary(
     
     await db.employee_salaries.insert_one(salary)
     
-    return {"message": "Salary structure set / वेतन संरचना सेट हो गई", "salary_id": salary_id}
+    return {"message": "Salary structure set", "salary_id": salary_id}
 
 
 @router.get("/employee-salary/{employee_id}")
@@ -1114,7 +1114,7 @@ async def approve_payroll(
         }}
     )
     
-    return {"message": "Payroll approved / पेरोल स्वीकृत"}
+    return {"message": "Payroll approved"}
 
 
 @router.put("/payroll/{payroll_id}/mark-paid")
@@ -1135,4 +1135,4 @@ async def mark_payroll_paid(
         }}
     )
     
-    return {"message": "Payroll marked as paid / पेरोल भुगतान किया गया"}
+    return {"message": "Payroll marked as paid"}

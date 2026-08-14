@@ -80,8 +80,7 @@ function PilotDutyTracker() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-blue-400" />
-            Pilot Duty Tracker / पायलट ड्यूटी ट्रैकर
-          </h2>
+            Pilot Duty Tracker</h2>
           <p className="text-slate-400 mt-1">DGCA FDTL Compliance Dashboard</p>
         </div>
         <Button onClick={loadDutyStatus} variant="outline" className="border-slate-600">
@@ -94,22 +93,22 @@ function PilotDutyTracker() {
         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-4 border border-blue-500/30">
           <User className="h-6 w-6 text-blue-400 mb-2" />
           <p className="text-3xl font-bold text-white">{data?.summary?.total || 0}</p>
-          <p className="text-slate-400 text-sm">Total Pilots / कुल पायलट</p>
+          <p className="text-slate-400 text-sm">Total Pilots</p>
         </div>
         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4 border border-green-500/30">
           <CheckCircle className="h-6 w-6 text-green-400 mb-2" />
           <p className="text-3xl font-bold text-green-400">{data?.summary?.ok || 0}</p>
-          <p className="text-slate-400 text-sm">OK Status / सही स्थिति</p>
+          <p className="text-slate-400 text-sm">OK Status</p>
         </div>
         <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-xl p-4 border border-yellow-500/30">
           <AlertCircle className="h-6 w-6 text-yellow-400 mb-2" />
           <p className="text-3xl font-bold text-yellow-400">{data?.summary?.watch || 0}</p>
-          <p className="text-slate-400 text-sm">Watch Status / निगरानी</p>
+          <p className="text-slate-400 text-sm">Watch Status</p>
         </div>
         <div className="bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-xl p-4 border border-red-500/30">
           <AlertTriangle className="h-6 w-6 text-red-400 mb-2" />
           <p className="text-3xl font-bold text-red-400">{data?.summary?.over || 0}</p>
-          <p className="text-slate-400 text-sm">Over Limit / सीमा पार</p>
+          <p className="text-slate-400 text-sm">Over Limit</p>
         </div>
       </div>
 
@@ -117,23 +116,22 @@ function PilotDutyTracker() {
       <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
         <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
           <FileText className="h-5 w-5 text-blue-400" />
-          DGCA FDTL Limits / DGCA नियम
-        </h3>
+          DGCA FDTL Limits / DGCA        </h3>
         <div className="grid grid-cols-4 gap-4 text-sm">
           <div className="p-3 bg-slate-900/50 rounded-lg">
-            <p className="text-slate-400">Daily Max / दैनिक</p>
+            <p className="text-slate-400">Daily Max</p>
             <p className="text-white font-bold">{data?.dgca_limits?.max_flight_time_daily || 8} hours</p>
           </div>
           <div className="p-3 bg-slate-900/50 rounded-lg">
-            <p className="text-slate-400">Weekly Max / साप्ताहिक</p>
+            <p className="text-slate-400">Weekly Max</p>
             <p className="text-white font-bold">{data?.dgca_limits?.max_flight_time_weekly || 30} hours</p>
           </div>
           <div className="p-3 bg-slate-900/50 rounded-lg">
-            <p className="text-slate-400">Monthly Max / मासिक</p>
+            <p className="text-slate-400">Monthly Max</p>
             <p className="text-white font-bold">{data?.dgca_limits?.max_flight_time_monthly || 100} hours</p>
           </div>
           <div className="p-3 bg-slate-900/50 rounded-lg">
-            <p className="text-slate-400">Min Rest / न्यूनतम आराम</p>
+            <p className="text-slate-400">Min Rest</p>
             <p className="text-white font-bold">{data?.dgca_limits?.min_rest_period || 10} hours</p>
           </div>
         </div>
@@ -144,8 +142,7 @@ function PilotDutyTracker() {
         <div className="p-4 border-b border-slate-700">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Activity className="h-5 w-5 text-orange-400" />
-            Pilot Duty Status / पायलट ड्यूटी स्थिति
-          </h3>
+            Pilot Duty Status</h3>
         </div>
 
         {data?.pilots?.length > 0 ? (
@@ -183,7 +180,7 @@ function PilotDutyTracker() {
                     <div className="flex items-center gap-6">
                       {/* Monthly Hours Progress */}
                       <div className="text-right">
-                        <p className="text-slate-400 text-xs mb-1">Monthly Hours / मासिक घंटे</p>
+                        <p className="text-slate-400 text-xs mb-1">Monthly Hours</p>
                         <div className="flex items-center gap-2">
                           <div className="w-32 h-3 bg-slate-700 rounded-full overflow-hidden">
                             <div 
@@ -229,11 +226,10 @@ function PilotDutyTracker() {
                       <div>
                         <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                           <Timer className="h-4 w-4 text-blue-400" />
-                          Flight Hours / उड़ान घंटे
-                        </h4>
+                          Flight Hours</h4>
                         <div className="space-y-2">
                           <div className="flex justify-between p-2 bg-slate-900/50 rounded">
-                            <span className="text-slate-400">Daily / दैनिक</span>
+                            <span className="text-slate-400">Daily</span>
                             <span className={`font-bold ${
                               pilot.hours?.daily > pilot.limits?.daily * 0.9 ? 'text-red-400' : 'text-white'
                             }`}>
@@ -241,7 +237,7 @@ function PilotDutyTracker() {
                             </span>
                           </div>
                           <div className="flex justify-between p-2 bg-slate-900/50 rounded">
-                            <span className="text-slate-400">Weekly / साप्ताहिक</span>
+                            <span className="text-slate-400">Weekly</span>
                             <span className={`font-bold ${
                               pilot.hours?.weekly > pilot.limits?.weekly * 0.9 ? 'text-red-400' : 'text-white'
                             }`}>
@@ -249,7 +245,7 @@ function PilotDutyTracker() {
                             </span>
                           </div>
                           <div className="flex justify-between p-2 bg-slate-900/50 rounded">
-                            <span className="text-slate-400">Yearly / वार्षिक</span>
+                            <span className="text-slate-400">Yearly</span>
                             <span className="text-white font-bold">
                               {pilot.hours?.yearly || 0}h / {pilot.limits?.yearly || 1000}h
                             </span>
@@ -261,19 +257,18 @@ function PilotDutyTracker() {
                       <div>
                         <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                           <Plane className="h-4 w-4 text-orange-400" />
-                          Last Flight / अंतिम उड़ान
-                        </h4>
+                          Last Flight</h4>
                         <div className="space-y-2">
                           <div className="p-3 bg-slate-900/50 rounded">
-                            <p className="text-slate-400 text-xs">Date / तारीख</p>
+                            <p className="text-slate-400 text-xs">Date</p>
                             <p className="text-white">{pilot.last_flight?.date || 'No recent flight'}</p>
                           </div>
                           <div className="p-3 bg-slate-900/50 rounded">
-                            <p className="text-slate-400 text-xs">Route / मार्ग</p>
+                            <p className="text-slate-400 text-xs">Route</p>
                             <p className="text-white">{pilot.last_flight?.route || 'N/A'}</p>
                           </div>
                           <div className="p-3 bg-slate-900/50 rounded">
-                            <p className="text-slate-400 text-xs">Rest Since Duty / आराम</p>
+                            <p className="text-slate-400 text-xs">Rest Since Duty</p>
                             <p className={`font-bold ${
                               pilot.rest_hours_since_duty && pilot.rest_hours_since_duty < pilot.min_rest_required
                                 ? 'text-red-400' : 'text-green-400'
@@ -291,8 +286,7 @@ function PilotDutyTracker() {
                       <div>
                         <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                           <AlertTriangle className="h-4 w-4 text-red-400" />
-                          Alerts / अलर्ट
-                        </h4>
+                          Alerts</h4>
                         <div className="space-y-2">
                           {pilot.violations?.length > 0 ? (
                             pilot.violations.map((v, i) => (

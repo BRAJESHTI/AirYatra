@@ -41,10 +41,10 @@ const statusLabels = {
 };
 
 const docTypeLabels = {
-  collector_noc: 'Collector NOC / कलेक्टर NOC',
-  fire_dept: 'Fire Dept. Acknowledgment / फायर विभाग की पावती',
-  police_station: 'Police Station Acknowledgment / थाना पावती',
-  sp_dcp: 'SP/DCP Acknowledgment / SP/DCP पावती',
+  collector_noc: 'Collector NOCNOC',
+  fire_dept: 'Fire Dept. Acknowledgment',
+  police_station: 'Police Station Acknowledgment',
+  sp_dcp: 'SP/DCP Acknowledgment / SP/DCP',
   sp_noc: 'Superintendent of Police NOC',
   fire_noc: 'Fire Department NOC',
   gram_panchayat: 'Gram Panchayat Consent',

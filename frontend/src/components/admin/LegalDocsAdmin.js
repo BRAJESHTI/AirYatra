@@ -623,8 +623,7 @@ export default function LegalDocsAdmin() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileUp className="h-5 w-5 text-orange-500" />
-              Import Document / दस्तावेज़ इंपोर्ट करें
-            </DialogTitle>
+              Import Document</DialogTitle>
           </DialogHeader>
 
           {importing && !importParsedData ? (

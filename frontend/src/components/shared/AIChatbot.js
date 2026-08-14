@@ -28,7 +28,7 @@ function AIChatbot({ user }) {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `नमस्ते! 🙏 Welcome to AirYatra!
+        content: `🙏 Welcome to AirYatra!
 
 I'm your AI assistant. I can help you with:
 • 🚁 Booking inquiries & pricing
@@ -37,7 +37,7 @@ I'm your AI assistant. I can help you with:
 • ❓ General questions
 
 How can I assist you today?
-आज मैं आपकी कैसे मदद कर सकता हूं?`,
+`,
         timestamp: new Date().toISOString()
       }]);
     }
@@ -119,7 +119,7 @@ How can I assist you today?
         streaming: false,
         content: `I'm having trouble connecting right now. Please try again or contact support@airyatra.com
 
-मुझे अभी कनेक्ट करने में समस्या हो रही है। कृपया पुनः प्रयास करें।`,
+`,
         ai_generated: false
       } : m));
     } finally {
@@ -167,7 +167,7 @@ How can I assist you today?
           </div>
           <div>
             <h3 className="text-white font-semibold">AirYatra AI</h3>
-            <p className="text-orange-100 text-xs">Always here to help / हमेशा मदद के लिए</p>
+            <p className="text-orange-100 text-xs">Always here to help</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ How can I assist you today?
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message... / अपना संदेश लिखें..."
+                placeholder="Type your message..."
                 className="flex-1 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 disabled={loading}
               />

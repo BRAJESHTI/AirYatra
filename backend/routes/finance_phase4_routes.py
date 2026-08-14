@@ -195,7 +195,7 @@ async def ai_finance_query(request: AIQueryRequest):
     context_data = await gather_finance_context(db)
     
     # Build system prompt with financial data
-    system_prompt = f"""You are AirYatra's AI Finance Assistant (वित्त सहायक). You help CFOs and finance teams analyze financial data.
+    system_prompt = f"""You are AirYatra's AI Finance Assistant. You help CFOs and finance teams analyze financial data.
 
 Current Financial Context:
 - Total Bank Balance: ₹{context_data['bank_balance']:,.0f}

@@ -64,7 +64,7 @@ const GSTDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white">GST Compliance / GST अनुपालन</h2>
+          <h2 className="text-2xl font-bold text-white">GST Compliance / GST</h2>
           <p className="text-slate-400">GSTR-1, GSTR-3B, ITC Management, Vendor Compliance</p>
         </div>
         <Button onClick={fetchDashboard} variant="outline" className="border-slate-600 text-slate-300">
@@ -97,7 +97,7 @@ const GSTDashboard = () => {
                   <CardContent className="pt-6">
                     <TrendingUp className="h-8 w-8 text-emerald-400 mb-2" />
                     <p className="text-3xl font-bold text-white">₹{(dashboard.itc_summary?.output_gst || 0).toLocaleString()}</p>
-                    <p className="text-slate-400 text-sm">Output GST / आउटपुट GST</p>
+                    <p className="text-slate-400 text-sm">Output GSTGST</p>
                   </CardContent>
                 </Card>
                 
@@ -105,7 +105,7 @@ const GSTDashboard = () => {
                   <CardContent className="pt-6">
                     <TrendingDown className="h-8 w-8 text-blue-400 mb-2" />
                     <p className="text-3xl font-bold text-white">₹{(dashboard.itc_summary?.input_gst || 0).toLocaleString()}</p>
-                    <p className="text-slate-400 text-sm">Input GST (ITC) / इनपुट GST</p>
+                    <p className="text-slate-400 text-sm">Input GST (ITC)GST</p>
                   </CardContent>
                 </Card>
                 
@@ -113,7 +113,7 @@ const GSTDashboard = () => {
                   <CardContent className="pt-6">
                     <IndianRupee className="h-8 w-8 text-yellow-400 mb-2" />
                     <p className="text-3xl font-bold text-white">₹{(dashboard.itc_summary?.net_payable || 0).toLocaleString()}</p>
-                    <p className="text-slate-400 text-sm">Net Payable / देय राशि</p>
+                    <p className="text-slate-400 text-sm">Net Payable</p>
                   </CardContent>
                 </Card>
                 
@@ -121,7 +121,7 @@ const GSTDashboard = () => {
                   <CardContent className="pt-6">
                     <AlertTriangle className="h-8 w-8 text-red-400 mb-2" />
                     <p className="text-3xl font-bold text-white">₹{(dashboard.vendor_compliance?.at_risk_itc || 0).toLocaleString()}</p>
-                    <p className="text-slate-400 text-sm">At-Risk ITC / जोखिम में ITC</p>
+                    <p className="text-slate-400 text-sm">At-Risk ITCITC</p>
                   </CardContent>
                 </Card>
               </div>
@@ -133,8 +133,7 @@ const GSTDashboard = () => {
                   <CardHeader>
                     <CardTitle className="text-white flex items-center">
                       <FileText className="h-5 w-5 mr-2 text-blue-400" />
-                      Filing Status / फाइलिंग स्थिति
-                    </CardTitle>
+                      Filing Status</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -167,8 +166,7 @@ const GSTDashboard = () => {
                   <CardHeader>
                     <CardTitle className="text-white flex items-center">
                       <CreditCard className="h-5 w-5 mr-2 text-emerald-400" />
-                      Payment Status / भुगतान स्थिति
-                    </CardTitle>
+                      Payment Status</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -213,8 +211,7 @@ const GSTDashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <BarChart3 className="h-5 w-5 mr-2 text-purple-400" />
-                    ITC Summary / ITC सारांश
-                  </CardTitle>
+                    ITC Summary / ITC                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-6">

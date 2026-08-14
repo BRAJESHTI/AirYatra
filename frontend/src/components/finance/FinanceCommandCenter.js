@@ -74,8 +74,7 @@ export default function FinanceCommandCenter() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Activity className="h-7 w-7 text-orange-400" />
-            Finance Command Center / वित्त कमांड सेंटर
-          </h1>
+            Finance Command Center</h1>
           <p className="text-slate-400 mt-1">24x7 Real-time financial monitoring & AI insights</p>
         </div>
         <div className="flex items-center gap-3">
@@ -138,8 +137,7 @@ export default function FinanceCommandCenter() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-slate-300">
               <Wallet className="h-5 w-5 text-purple-400" />
-              Current Position / वर्तमान स्थिति
-            </CardTitle>
+              Current Position</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
@@ -163,8 +161,7 @@ export default function FinanceCommandCenter() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-green-300">
               <TrendingDown className="h-5 w-5" />
-              Expected Inflow / अपेक्षित आवक
-            </CardTitle>
+              Expected Inflow</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
@@ -185,8 +182,7 @@ export default function FinanceCommandCenter() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-red-300">
               <TrendingUp className="h-5 w-5" />
-              Expected Outflow / अपेक्षित जावक
-            </CardTitle>
+              Expected Outflow</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
@@ -334,8 +330,7 @@ export default function FinanceCommandCenter() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5 text-blue-400" />
-            Recent Transactions / हाल के लेनदेन
-          </CardTitle>
+            Recent Transactions</CardTitle>
           <div className="flex items-center gap-2">
             <Button
               variant={activeFilter === 'all' ? 'default' : 'outline'}

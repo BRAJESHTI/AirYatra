@@ -241,7 +241,7 @@ async def create_inquiry(
             
             broadcast_result = {
                 "status": "initiated",
-                "message": "Operators within 500km will be notified / 500km के अंदर के ऑपरेटर्स को सूचित किया जाएगा"
+                "message": "Operators within 500km will be notified"
             }
             
             logger.info(f"Inquiry broadcast initiated: {inquiry_number}")
@@ -270,12 +270,12 @@ async def create_inquiry(
     
     return {
         "success": True,
-        "message": "Inquiry submitted successfully! / इंक्वायरी जमा हो गई!",
+        "message": "Inquiry submitted successfully!",
         "inquiry_id": inquiry_id,
         "inquiry_number": inquiry_number,
         "status": "pending_acceptance",
         "broadcast": broadcast_result,
-        "next_step": "Wait for operator quotes / ऑपरेटर कोट्स का इंतज़ार करें"
+        "next_step": "Wait for operator quotes"
     }
 
 @router.get("/inquiry/{inquiry_id}/status")

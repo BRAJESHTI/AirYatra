@@ -156,8 +156,7 @@ const AdminVerificationEngine = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="h-6 w-6 text-orange-500" />
-            Verification Rule Engine / सत्यापन नियम इंजन
-          </h2>
+            Verification Rule Engine</h2>
           <p className="text-slate-400 text-sm">
             18-point configurable verification system • Sandbox.co.in Integration
           </p>
@@ -220,8 +219,7 @@ const AdminVerificationEngine = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <BadgeCheck className="h-5 w-5 text-orange-500" />
-                    Badge Distribution / बैज वितरण
-                  </CardTitle>
+                    Badge Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-4 gap-4">
@@ -250,8 +248,7 @@ const AdminVerificationEngine = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Settings className="h-5 w-5 text-orange-500" />
-                    System Mode / सिस्टम मोड
-                  </CardTitle>
+                    System Mode</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
@@ -287,8 +284,7 @@ const AdminVerificationEngine = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <User className="h-5 w-5 text-blue-500" />
-                Customer Verification Services / ग्राहक सत्यापन
-              </CardTitle>
+                Customer Verification Services</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -308,8 +304,7 @@ const AdminVerificationEngine = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-green-500" />
-                Operator Verification Services / ऑपरेटर सत्यापन
-              </CardTitle>
+                Operator Verification Services</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -331,8 +326,7 @@ const AdminVerificationEngine = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-orange-500" />
-                Booking Amount Rules / बुकिंग राशि नियम
-              </CardTitle>
+                Booking Amount Rules</CardTitle>
               <CardDescription className="text-slate-400">
                 Different verification requirements based on booking amount
               </CardDescription>
@@ -347,7 +341,6 @@ const AdminVerificationEngine = () => {
                         {rule.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <div className="text-slate-400 text-sm mb-2">{rule.description_hi}</div>
                     <div className="flex flex-wrap gap-2">
                       {rule.required_verifications?.map((v) => (
                         <Badge key={v} variant="outline" className="text-orange-400 border-orange-400">
@@ -371,8 +364,7 @@ const AdminVerificationEngine = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <AlertOctagon className="h-5 w-5 text-red-500" />
-                Auto Rules (If X Then Y) / स्वचालित नियम
-              </CardTitle>
+                Auto Rules (If X Then Y)</CardTitle>
               <CardDescription className="text-slate-400">
                 Automated actions triggered by verification events
               </CardDescription>
@@ -384,7 +376,6 @@ const AdminVerificationEngine = () => {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="font-medium text-white">{rule.name}</div>
-                        <div className="text-slate-400 text-sm">{rule.name_hi}</div>
                       </div>
                       <Switch
                         checked={rule.is_active}
@@ -415,8 +406,7 @@ const AdminVerificationEngine = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
-                Emergency Override / आपातकालीन ओवरराइड
-              </CardTitle>
+                Emergency Override</CardTitle>
               <CardDescription className="text-slate-400">
                 Switch to manual verification mode when APIs are down
               </CardDescription>
@@ -460,8 +450,7 @@ const AdminVerificationEngine = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <History className="h-5 w-5 text-orange-500" />
-                Audit Logs (Immutable) / ऑडिट लॉग
-              </CardTitle>
+                Audit Logs (Immutable)</CardTitle>
               <CardDescription className="text-slate-400">
                 All configuration changes are logged and cannot be deleted
               </CardDescription>
@@ -533,7 +522,6 @@ const ServiceRow = ({ service, onModeChange }) => {
         </div>
         <div>
           <div className="text-white font-medium">{service.description || service.service_type.replace(/_/g, ' ')}</div>
-          <div className="text-slate-500 text-xs">{service.description_hi || ''}</div>
         </div>
       </div>
       <div className="flex items-center gap-2">

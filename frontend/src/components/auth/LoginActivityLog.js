@@ -44,7 +44,7 @@ function LoginActivityLog({ user }) {
     } catch (err) {
       console.error('Error fetching login activity:', err);
       setError('Unable to load login history');
-      toast.error('Login history load करने में error हुआ');
+      toast.error('Failed to load login history');
     } finally {
       setLoading(false);
     }
@@ -84,13 +84,13 @@ function LoginActivityLog({ user }) {
       return {
         icon: <CheckCircle className="h-4 w-4" />,
         color: 'bg-green-500/20 text-green-400',
-        label: 'Login सफल'
+        label: 'Login Successful'
       };
     } else if (action === 'login_failed') {
       return {
         icon: <XCircle className="h-4 w-4" />,
         color: 'bg-red-500/20 text-red-400',
-        label: 'Login विफल'
+        label: 'Login Failed'
       };
     } else if (action === 'otp_verified') {
       return {
@@ -123,10 +123,10 @@ function LoginActivityLog({ user }) {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
     
-    if (diffMins < 1) return 'अभी / Just now';
-    if (diffMins < 60) return `${diffMins} मिनट पहले`;
-    if (diffHours < 24) return `${diffHours} घंटे पहले`;
-    if (diffDays < 7) return `${diffDays} दिन पहले`;
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hr ago`;
+    if (diffDays < 7) return `${diffDays} days ago`;
     
     return date.toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -186,7 +186,7 @@ function LoginActivityLog({ user }) {
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-orange-500" />
-          <h3 className="text-lg font-semibold text-white">Login Activity / लॉगिन गतिविधि</h3>
+          <h3 className="text-lg font-semibold text-white">Login Activity</h3>
         </div>
         <Button 
           variant="ghost" 
@@ -277,8 +277,7 @@ function LoginActivityLog({ user }) {
         <div className="p-3 bg-slate-800/50 border-t border-slate-800">
           <p className="text-xs text-slate-500 flex items-center gap-1">
             <Shield className="h-3 w-3" />
-            Showing last {activities.length} login activities. अगर कोई suspicious activity दिखे, तो तुरंत password बदलें।
-          </p>
+            Showing last {activities.length} login activities. If you notice any suspicious activity, change your password immediately.</p>
         </div>
       )}
     </div>

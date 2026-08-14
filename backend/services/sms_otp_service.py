@@ -164,7 +164,7 @@ class SMSOTPService:
                 }
             
             message = self.client.messages.create(
-                body=f"Your AirYatra verification code is: {otp}\n\nआपका AirYatra सत्यापन कोड है: {otp}",
+                body=f"Your AirYatra verification code is: {otp}",
                 from_=from_number,
                 to=phone
             )

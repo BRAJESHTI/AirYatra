@@ -167,7 +167,7 @@ export default function RevenueReports() {
           <StatCard label="Pending Amount" value={fmt(s.pending_amount)} color="text-yellow-400" testid="own-pending-amount" />
         </div>
         {(ownFleet?.bookings || []).length === 0 ? (
-          <p className="text-slate-500 text-sm">AirYatra own aircraft par abhi koi booking nahi aayi.</p>
+          <p className="text-slate-500 text-sm">No bookings on AirYatra own aircraft yet.</p>
         ) : (
           <div className="space-y-2 max-h-72 overflow-y-auto">
             {ownFleet.bookings.map((b) => (
@@ -228,7 +228,7 @@ export default function RevenueReports() {
                 </tr>
               ))}
               {(feeReport?.routes || []).length === 0 && (
-                <tr><td colSpan="8" className="text-slate-500 text-center py-6">Abhi koi fee income data nahi.</td></tr>
+                <tr><td colSpan="8" className="text-slate-500 text-center py-6">No fee income data yet.</td></tr>
               )}
             </tbody>
           </table>

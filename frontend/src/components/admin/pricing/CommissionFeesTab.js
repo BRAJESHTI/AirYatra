@@ -15,8 +15,7 @@ export const CommissionFeesTab = ({ controls, setControls }) => {
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Percent className="h-5 w-5 text-green-500" />
-          Commission & Platform Fees / कमीशन और प्लेटफॉर्म शुल्क
-        </CardTitle>
+          Commission & Platform Fees</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Platform Commission */}
@@ -47,7 +46,7 @@ export const CommissionFeesTab = ({ controls, setControls }) => {
 
         {/* Platform Fees */}
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <h4 className="text-white font-medium mb-4">Platform Fees / प्लेटफॉर्म शुल्क</h4>
+          <h4 className="text-white font-medium mb-4">Platform Fees</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label className="text-slate-400 text-sm">Convenience Fee (%)</Label>
@@ -88,7 +87,7 @@ export const CommissionFeesTab = ({ controls, setControls }) => {
 
         {/* GST Settings */}
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <h4 className="text-white font-medium mb-4">GST Configuration / जीएसटी विन्यास</h4>
+          <h4 className="text-white font-medium mb-4">GST Configuration</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label className="text-slate-400 text-sm">GST (%)</Label>

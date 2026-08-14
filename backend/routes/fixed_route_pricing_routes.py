@@ -194,7 +194,7 @@ async def create_fixed_route(
     
     return {
         "success": True,
-        "message": "Fixed route created successfully / रूट सफलतापूर्वक बनाया गया",
+        "message": "Fixed route created successfully",
         "route": serialize_doc(route_doc)
     }
 

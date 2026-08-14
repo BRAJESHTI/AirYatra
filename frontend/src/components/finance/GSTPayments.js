@@ -111,7 +111,7 @@ const GSTPayments = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold text-white">GST Payments / GST भुगतान</h3>
+          <h3 className="text-xl font-bold text-white">GST Payments / GST</h3>
           <p className="text-slate-400">Record and track GST payments</p>
         </div>
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>

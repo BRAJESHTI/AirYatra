@@ -193,7 +193,7 @@ const AircraftCompareModal = ({
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-center gap-2">
                 <Info className="h-4 w-4 text-blue-400" />
                 <span className="text-blue-300 text-sm">
-                  2-3 aircraft select karein compare karne ke liye
+                  Select 2-3 aircraft to compare
                 </span>
               </div>
               

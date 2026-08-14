@@ -21,9 +21,9 @@ const POPULAR_ROUTES = [
 ];
 
 const BOOKING_TYPES = [
-  { value: 'one_way', label: 'One Way / एक तरफ', icon: '→' },
-  { value: 'round_trip', label: 'Round Trip / वापसी', icon: '⟲' },
-  { value: 'charter', label: 'Charter / चार्टर', icon: '✈️' },
+  { value: 'one_way', label: 'One Way', icon: '→' },
+  { value: 'round_trip', label: 'Round Trip', icon: '⟲' },
+  { value: 'charter', label: 'Charter', icon: '✈️' },
 ];
 
 // Instant Quote Section
@@ -115,7 +115,7 @@ function InstantQuoteSection() {
       {/* Main Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <Label className="text-sm font-medium">From / कहां से</Label>
+          <Label className="text-sm font-medium">From</Label>
           <Input
             placeholder="Mumbai, Delhi, Bangalore..."
             value={formData.from_location}
@@ -124,7 +124,7 @@ function InstantQuoteSection() {
           />
         </div>
         <div>
-          <Label className="text-sm font-medium">To / कहां तक</Label>
+          <Label className="text-sm font-medium">To</Label>
           <Input
             placeholder="Shirdi, Agra, Coorg..."
             value={formData.to_location}
@@ -133,7 +133,7 @@ function InstantQuoteSection() {
           />
         </div>
         <div>
-          <Label className="text-sm font-medium">Date / तारीख</Label>
+          <Label className="text-sm font-medium">Date</Label>
           <Input
             type="date"
             value={formData.departure_date}
@@ -143,7 +143,7 @@ function InstantQuoteSection() {
           />
         </div>
         <div>
-          <Label className="text-sm font-medium">Booking Type / प्रकार</Label>
+          <Label className="text-sm font-medium">Booking Type</Label>
           <Select
             value={formData.booking_type}
             onValueChange={(val) => setFormData(prev => ({ ...prev, booking_type: val }))}
@@ -161,7 +161,7 @@ function InstantQuoteSection() {
           </Select>
         </div>
         <div>
-          <Label className="text-sm font-medium">Passengers / यात्री</Label>
+          <Label className="text-sm font-medium">Passengers</Label>
           <Select
             value={formData.passenger_count.toString()}
             onValueChange={(val) => setFormData(prev => ({ ...prev, passenger_count: parseInt(val) }))}
@@ -177,7 +177,7 @@ function InstantQuoteSection() {
           </Select>
         </div>
         <div>
-          <Label className="text-sm font-medium">Aircraft / विमान</Label>
+          <Label className="text-sm font-medium">Aircraft</Label>
           <Select
             value={formData.aircraft_type}
             onValueChange={(val) => setFormData(prev => ({ ...prev, aircraft_type: val }))}
@@ -203,7 +203,7 @@ function InstantQuoteSection() {
         {loading ? (
           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Calculating...</>
         ) : (
-          <><Zap className="w-4 h-4 mr-2" /> Get Instant Quote / तुरंत कोट पाएं</>
+          <><Zap className="w-4 h-4 mr-2" /> Get Instant Quote</>
         )}
       </Button>
 
@@ -214,8 +214,7 @@ function InstantQuoteSection() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
-                Quote Ready / कोट तैयार
-              </CardTitle>
+                Quote Ready</CardTitle>
               <Badge variant={quote.pricing_type === 'fixed_route' ? 'default' : 'secondary'}>
                 {quote.pricing_type === 'fixed_route' ? '✓ Fixed Price' : '📊 Dynamic'}
               </Badge>
@@ -266,7 +265,7 @@ function InstantQuoteSection() {
                 <span>₹{quote.price_breakdown?.gst?.toLocaleString('en-IN')}</span>
               </div>
               <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                <span>Total / कुल</span>
+                <span>Total</span>
                 <span className="text-orange-600">₹{quote.final_price?.toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -300,8 +299,7 @@ function InstantQuoteSection() {
           </CardContent>
           <CardFooter className="flex gap-2">
             <Button className="flex-1 bg-green-600 hover:bg-green-700">
-              <Check className="w-4 h-4 mr-2" /> Book Now / अभी बुक करें
-            </Button>
+              <Check className="w-4 h-4 mr-2" /> Book Now</Button>
             <Button variant="outline" onClick={() => setQuote(null)}>
               <RefreshCw className="w-4 h-4 mr-2" /> New Quote
             </Button>
@@ -506,8 +504,7 @@ function StartAuctionSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gavel className="w-5 h-5 text-purple-500" />
-          Start Reverse Auction / रिवर्स नीलामी शुरू करें
-        </CardTitle>
+          Start Reverse Auction</CardTitle>
         <p className="text-sm text-gray-500">
           Post your trip requirements and let operators compete to offer you the best price.
         </p>
@@ -515,7 +512,7 @@ function StartAuctionSection() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>From / कहां से</Label>
+            <Label>From</Label>
             <Input
               placeholder="Mumbai, Delhi..."
               value={formData.from_location}
@@ -524,7 +521,7 @@ function StartAuctionSection() {
             />
           </div>
           <div>
-            <Label>To / कहां तक</Label>
+            <Label>To</Label>
             <Input
               placeholder="Shirdi, Agra..."
               value={formData.to_location}
@@ -559,7 +556,7 @@ function StartAuctionSection() {
             </Select>
           </div>
           <div>
-            <Label>Max Budget (Optional) / अधिकतम बजट</Label>
+            <Label>Max Budget (Optional)</Label>
             <Input
               type="number"
               placeholder="₹ Leave empty for no limit"
@@ -569,7 +566,7 @@ function StartAuctionSection() {
             />
           </div>
           <div>
-            <Label>Special Requirements / विशेष आवश्यकताएं</Label>
+            <Label>Special Requirements</Label>
             <Input
               placeholder="Medical, VIP, Luggage..."
               value={formData.special_requirements}
@@ -588,7 +585,7 @@ function StartAuctionSection() {
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting...</>
           ) : (
-            <><Gavel className="w-4 h-4 mr-2" /> Start Auction / नीलामी शुरू करें</>
+            <><Gavel className="w-4 h-4 mr-2" /> Start Auction</>
           )}
         </Button>
       </CardFooter>
@@ -605,8 +602,7 @@ export default function ASREBookingWidget() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Zap className="w-6 h-6 text-orange-500" />
-            Smart Booking / स्मार्ट बुकिंग
-          </h1>
+            Smart Booking</h1>
           <p className="text-gray-500 text-sm mt-1">
             AI-powered instant quotes and reverse auctions for best prices
           </p>
@@ -638,8 +634,7 @@ export default function ASREBookingWidget() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-orange-500" />
-                Get Instant Quote / तुरंत कोट पाएं
-              </CardTitle>
+                Get Instant Quote</CardTitle>
               <p className="text-sm text-gray-500">
                 Real-time pricing based on distance, demand, and availability
               </p>
@@ -655,8 +650,7 @@ export default function ASREBookingWidget() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Gavel className="w-5 h-5 text-blue-500" />
-                My Active Auctions / मेरी नीलामियां
-              </CardTitle>
+                My Active Auctions</CardTitle>
               <p className="text-sm text-gray-500">
                 View bids from operators and accept the best offer
               </p>

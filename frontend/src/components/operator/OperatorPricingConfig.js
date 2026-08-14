@@ -13,17 +13,17 @@ import { pricingEngineAPI } from '../../services/api';
 
 // Purpose Multiplier Labels
 const purposeLabels = {
-  personal: 'Personal / व्यक्तिगत',
-  business: 'Business / व्यापार',
-  wedding: 'Wedding / शादी',
-  medical: 'Medical / चिकित्सा',
-  pilgrimage: 'Pilgrimage / तीर्थ',
-  election: 'Election / चुनाव',
-  corporate: 'Corporate / कॉर्पोरेट',
+  personal: 'Personal',
+  business: 'Business',
+  wedding: 'Wedding',
+  medical: 'Medical',
+  pilgrimage: 'Pilgrimage',
+  election: 'Election',
+  corporate: 'Corporate',
   vip: 'VIP',
-  tourism: 'Tourism / पर्यटन',
+  tourism: 'Tourism',
   aerial_survey: 'Aerial Survey',
-  film_shooting: 'Film Shooting / फिल्म'
+  film_shooting: 'Film Shooting'
 };
 
 function OperatorPricingConfig() {
@@ -115,7 +115,7 @@ function OperatorPricingConfig() {
       
     } catch (error) {
       console.error('Failed to load pricing config:', error);
-      toast.error('Failed to load pricing configuration / मूल्य विन्यास लोड करने में विफल');
+      toast.error('Failed to load pricing configuration');
     } finally {
       setLoading(false);
     }
@@ -128,10 +128,10 @@ function OperatorPricingConfig() {
         ...basePricing,
         helicopter_id: selectedHelicopter || 'default'
       });
-      toast.success('✅ Base pricing saved! / बेस प्राइसिंग सेव हो गई!');
+      toast.success('✅ Base pricing saved!');
     } catch (error) {
       console.error('Failed to save base pricing:', error);
-      toast.error('Failed to save / सेव करने में विफल');
+      toast.error('Failed to save');
     } finally {
       setSaving(false);
     }
@@ -144,10 +144,10 @@ function OperatorPricingConfig() {
         ...deadLegConfig,
         helicopter_id: selectedHelicopter || 'default'
       });
-      toast.success('✅ Dead-leg config saved! / डेड-लेग कॉन्फिग सेव हो गया!');
+      toast.success('✅ Dead-leg config saved!');
     } catch (error) {
       console.error('Failed to save dead-leg config:', error);
-      toast.error('Failed to save / सेव करने में विफल');
+      toast.error('Failed to save');
     } finally {
       setSaving(false);
     }
@@ -160,10 +160,10 @@ function OperatorPricingConfig() {
         ...additionalCharges,
         helicopter_id: selectedHelicopter || 'default'
       });
-      toast.success('✅ Additional charges saved! / अतिरिक्त शुल्क सेव हो गए!');
+      toast.success('✅ Additional charges saved!');
     } catch (error) {
       console.error('Failed to save additional charges:', error);
-      toast.error('Failed to save / सेव करने में विफल');
+      toast.error('Failed to save');
     } finally {
       setSaving(false);
     }
@@ -196,9 +196,8 @@ function OperatorPricingConfig() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-orange-500" />
-            Pricing Configuration / मूल्य विन्यास
-          </h2>
-          <p className="text-slate-400 mt-1">Configure your helicopter pricing / हेलीकॉप्टर प्राइसिंग सेट करें</p>
+            Pricing Configuration</h2>
+          <p className="text-slate-400 mt-1">Configure your helicopter pricing</p>
         </div>
       </div>
 
@@ -207,8 +206,7 @@ function OperatorPricingConfig() {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Calculator className="h-5 w-5 text-green-500" />
-            Base Pricing / बेस प्राइसिंग
-          </CardTitle>
+            Base Pricing</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Pricing Type Selection */}
@@ -231,7 +229,7 @@ function OperatorPricingConfig() {
           {/* Hourly Rate */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Hourly Rate / प्रति घंटा दर (₹)</Label>
+              <Label className="text-slate-300">Hourly Rate</Label>
               <Input
                 type="number"
                 value={basePricing.price_per_hour}
@@ -256,8 +254,7 @@ function OperatorPricingConfig() {
           <div className="bg-slate-700/30 rounded-lg p-4">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-blue-400" />
-              Day Package Pricing / दिवस पैकेज
-            </h4>
+              Day Package Pricing</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <Label className="text-slate-400 text-sm">Half-Day Hours</Label>
@@ -302,8 +299,7 @@ function OperatorPricingConfig() {
           <div className="bg-slate-700/30 rounded-lg p-4">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Percent className="h-4 w-4 text-purple-400" />
-              Purpose Multipliers / उद्देश्य गुणक
-            </h4>
+              Purpose Multipliers</h4>
             <p className="text-xs text-slate-400 mb-3">
               Set price multipliers based on booking purpose (1.0 = no change, 1.3 = 30% extra)
             </p>
@@ -327,7 +323,7 @@ function OperatorPricingConfig() {
 
           <Button onClick={saveBasePricing} disabled={saving} className="bg-green-600 hover:bg-green-700">
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Base Pricing / बेस प्राइसिंग सेव करें'}
+            {saving ? 'Saving...' : 'Save Base Pricing'}
           </Button>
         </CardContent>
       </Card>
@@ -337,8 +333,7 @@ function OperatorPricingConfig() {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Car className="h-5 w-5 text-yellow-500" />
-            Dead-Leg / Positioning Cost / पोजिशनिंग कॉस्ट
-          </CardTitle>
+            Dead-Leg / Positioning Cost</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
@@ -390,7 +385,7 @@ function OperatorPricingConfig() {
               </div>
 
               <div>
-                <Label className="text-slate-300">Base City / बेस शहर</Label>
+                <Label className="text-slate-300">Base City</Label>
                 <Input
                   type="text"
                   value={deadLegConfig.base_city || ''}
@@ -414,16 +409,14 @@ function OperatorPricingConfig() {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Settings className="h-5 w-5 text-blue-500" />
-            Additional Charges / अतिरिक्त शुल्क
-          </CardTitle>
+            Additional Charges</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Night Halt */}
           <div className="bg-slate-700/30 rounded-lg p-4">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Moon className="h-4 w-4 text-indigo-400" />
-              Night Halt Charges / रात्रि ठहराव शुल्क
-            </h4>
+              Night Halt Charges</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <Label className="text-slate-400 text-sm">Per Night (₹)</Label>
@@ -468,8 +461,7 @@ function OperatorPricingConfig() {
           <div className="bg-slate-700/30 rounded-lg p-4">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-orange-400" />
-              Waiting / Ground Holding / प्रतीक्षा शुल्क
-            </h4>
+              Waiting / Ground Holding</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-slate-400 text-sm">Free Minutes</Label>
@@ -558,7 +550,7 @@ function OperatorPricingConfig() {
 
           <Button onClick={saveAdditionalCharges} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Additional Charges / अतिरिक्त शुल्क सेव करें'}
+            {saving ? 'Saving...' : 'Save Additional Charges'}
           </Button>
         </CardContent>
       </Card>
@@ -568,7 +560,7 @@ function OperatorPricingConfig() {
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-blue-400 mt-0.5" />
           <div>
-            <h4 className="text-blue-400 font-medium">How Pricing Works / प्राइसिंग कैसे काम करती है</h4>
+            <h4 className="text-blue-400 font-medium">How Pricing Works</h4>
             <ul className="text-slate-300 text-sm mt-2 space-y-1">
               <li>• Base pricing is calculated using hourly rate or day packages</li>
               <li>• Dead-leg cost is added for helicopter positioning from base</li>

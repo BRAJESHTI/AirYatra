@@ -67,10 +67,10 @@ function LandingPermissionViewer({ operator }) {
   };
 
   const documentTypes = [
-    { key: 'collector_noc', label: 'Collector NOC', labelHi: 'कलेक्टर NOC', icon: Building2 },
-    { key: 'fire_dept', label: 'Fire Dept. Acknowledgment', labelHi: 'फायर विभाग की पावती', icon: FireExtinguisher },
-    { key: 'police_station', label: 'Police Station Acknowledgment', labelHi: 'स्थानीय थाना की पावती', icon: Shield },
-    { key: 'sp_dcp', label: 'SP/DCP Acknowledgment', labelHi: 'SP/DCP की पावती', icon: MapPinned },
+    { key: 'collector_noc', label: 'Collector NOC', labelHi: 'NOC', icon: Building2 },
+    { key: 'fire_dept', label: 'Fire Dept. Acknowledgment', labelHi: '', icon: FireExtinguisher },
+    { key: 'police_station', label: 'Police Station Acknowledgment', labelHi: '', icon: Shield },
+    { key: 'sp_dcp', label: 'SP/DCP Acknowledgment', labelHi: 'SP/DCP', icon: MapPinned },
   ];
 
   return (

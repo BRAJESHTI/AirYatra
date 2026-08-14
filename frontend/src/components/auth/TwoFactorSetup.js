@@ -71,7 +71,7 @@ function TwoFactorSetup({ user, onStatusChange }) {
       
       setSetupData(data);
       setRecoveryCodes(data.recovery_codes || []);
-      toast.success('QR code generated! अब Google Authenticator में scan करें');
+      toast.success('QR code generated! Scan it in Google Authenticator.');
     } catch (err) {
       toast.error('Setup failed. Please try again.');
     } finally {
@@ -104,7 +104,7 @@ function TwoFactorSetup({ user, onStatusChange }) {
         return;
       }
       
-      toast.success('2FA enabled successfully! / 2FA सफलतापूर्वक enable हुआ');
+      toast.success('2FA enabled successfully!');
       setSetupData(null);
       setVerifyCode('');
       setShowRecoveryCodes(true);
@@ -141,7 +141,7 @@ function TwoFactorSetup({ user, onStatusChange }) {
         return;
       }
       
-      toast.success('2FA disabled / 2FA बंद कर दिया गया');
+      toast.success('2FA disabled');
       setShowDisableModal(false);
       setDisablePassword('');
       fetchStatus();
@@ -230,12 +230,10 @@ These codes allow you to access your account if you lose your phone.
         <div className="flex items-center gap-2">
           <Smartphone className="h-5 w-5 text-orange-500" />
           <h3 className="text-lg font-semibold text-white">
-            Two-Factor Authentication / दो-चरणीय प्रमाणीकरण
-          </h3>
+            Two-Factor Authentication</h3>
         </div>
         <p className="text-sm text-slate-400 mt-1">
-          Google Authenticator से अपने account को extra secure करें
-        </p>
+          Secure your account with Google Authenticator.</p>
       </div>
 
       <div className="p-6 space-y-6">
@@ -247,7 +245,7 @@ These codes allow you to access your account if you lose your phone.
             </div>
             <div>
               <p className="font-medium text-white">
-                {status.enabled ? '2FA Enabled / सक्रिय' : '2FA Disabled / निष्क्रिय'}
+                {status.enabled ? '2FA Enabled' : '2FA Disabled'}
               </p>
               {status.enabled && status.recovery_codes_remaining !== undefined && (
                 <p className="text-xs text-slate-400">
@@ -273,19 +271,19 @@ These codes allow you to access your account if you lose your phone.
         {/* Setup Flow */}
         {!status.enabled && !setupData && (
           <div className="bg-slate-800/50 rounded-lg p-4">
-            <h4 className="font-medium text-white mb-2">How it works / कैसे काम करता है:</h4>
+            <h4 className="font-medium text-white mb-2">How it works</h4>
             <ol className="text-sm text-slate-400 space-y-2">
               <li className="flex items-start gap-2">
                 <span className="bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                <span>Google Authenticator app download करें (iOS/Android)</span>
+                <span>Download the Google Authenticator app (iOS/Android)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                <span>QR code scan करें app में</span>
+                <span>Scan the QR code in the app</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                <span>6-digit code enter करें verify करने के लिए</span>
+                <span>Enter the 6-digit code to verify</span>
               </li>
             </ol>
             
@@ -305,8 +303,7 @@ These codes allow you to access your account if you lose your phone.
           <div className="space-y-4">
             <div className="bg-slate-800/50 rounded-lg p-4 text-center">
               <p className="text-sm text-slate-400 mb-4">
-                इस QR code को Google Authenticator में scan करें
-              </p>
+Scan this QR code in Google Authenticator.</p>
               
               <div className="inline-block bg-white p-4 rounded-lg">
                 <QRCodeSVG 
@@ -376,11 +373,9 @@ These codes allow you to access your account if you lose your phone.
                   <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm text-yellow-200 font-medium">
-                      Save your recovery codes! / Recovery codes save करें!
-                    </p>
+                      Save your recovery codes!</p>
                     <p className="text-xs text-yellow-200/70 mt-1">
-                      ये codes phone खो जाने पर account access करने में मदद करेंगे
-                    </p>
+These codes will help you access your account if you lose your phone.</p>
                   </div>
                 </div>
               </div>

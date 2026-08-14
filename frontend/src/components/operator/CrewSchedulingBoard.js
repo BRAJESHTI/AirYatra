@@ -207,8 +207,7 @@ function CrewSchedulingBoard() {
             Crew Scheduling Board
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Drag & drop bookings to assign pilots / पायलट असाइन करने के लिए बुकिंग खींचें
-          </p>
+            Drag & drop bookings to assign pilots</p>
         </div>
 
         {/* Week Navigation */}

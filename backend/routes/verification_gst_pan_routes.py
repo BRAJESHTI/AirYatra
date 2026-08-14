@@ -143,7 +143,7 @@ async def verify_gst(
     if not validate_gstin_format(gstin):
         raise HTTPException(
             status_code=400,
-            detail="Invalid GST format. GST number should be 15 characters. / अमान्य GST प्रारूप"
+            detail="Invalid GST format. GST number should be 15 characters."
         )
     
     # Check if we have this GST in cache
@@ -161,7 +161,7 @@ async def verify_gst(
             "pincode": cached.get("pincode"),
             "status": cached.get("status"),
             "business_type": cached.get("business_type"),
-            "message": "GST verified from cache / कैश से GST सत्यापित"
+            "message": "GST verified from cache"
         }
     
     # Get API settings
@@ -206,7 +206,7 @@ async def verify_gst(
                         "pincode": data.get("pincode"),
                         "status": data.get("status") or data.get("sts"),
                         "business_type": data.get("business_type") or data.get("ctb"),
-                        "message": "GST verified via API / API से GST सत्यापित"
+                        "message": "GST verified via API"
                     }
         except Exception as e:
             print(f"GST API error: {e}")
@@ -239,7 +239,7 @@ async def verify_gst(
             "pincode": gst_data["pincode"],
             "status": gst_data["status"],
             "business_type": gst_data["business_type"],
-            "message": "GST verified (Sample Data - Mocked) / GST सत्यापित (नमूना डेटा)"
+            "message": "GST verified (Sample Data - Mocked)"
         }
     
     # GST not found - could still be valid, just not in our sample
@@ -271,7 +271,7 @@ async def verify_pan(
     if not validate_pan_format(pan):
         raise HTTPException(
             status_code=400,
-            detail="Invalid PAN format. PAN should be 10 characters. / अमान्य PAN प्रारूप"
+            detail="Invalid PAN format. PAN should be 10 characters."
         )
     
     # Check if we have this PAN in cache
@@ -283,7 +283,7 @@ async def verify_pan(
             "name": cached.get("name"),
             "pan_type": cached.get("type"),
             "status": cached.get("status"),
-            "message": "PAN verified from cache / कैश से PAN सत्यापित"
+            "message": "PAN verified from cache"
         }
     
     # Get API settings
@@ -323,7 +323,7 @@ async def verify_pan(
                         "name": data.get("name"),
                         "pan_type": data.get("type"),
                         "status": data.get("status"),
-                        "message": "PAN verified via API / API से PAN सत्यापित"
+                        "message": "PAN verified via API"
                     }
         except Exception as e:
             print(f"PAN API error: {e}")
@@ -350,7 +350,7 @@ async def verify_pan(
             "name": pan_data["name"],
             "pan_type": pan_data["type"],
             "status": pan_data["status"],
-            "message": "PAN verified (Sample Data - Mocked) / PAN सत्यापित (नमूना डेटा)"
+            "message": "PAN verified (Sample Data - Mocked)"
         }
     
     # PAN not found
@@ -367,7 +367,7 @@ async def verify_pan(
 async def get_sample_gst_numbers():
     """Get sample GST numbers for testing"""
     return {
-        "message": "Use these sample GST numbers for testing / परीक्षण के लिए इन नमूना GST नंबरों का उपयोग करें",
+        "message": "Use these sample GST numbers for testing",
         "samples": [
             {"gstin": "27AABCU9603R1ZM", "company": "INFOSYS LIMITED"},
             {"gstin": "07AABCT1332L1ZD", "company": "TATA CONSULTANCY SERVICES LIMITED"},
@@ -380,7 +380,7 @@ async def get_sample_gst_numbers():
 async def get_sample_pan_numbers():
     """Get sample PAN numbers for testing"""
     return {
-        "message": "Use these sample PAN numbers for testing / परीक्षण के लिए इन नमूना PAN नंबरों का उपयोग करें",
+        "message": "Use these sample PAN numbers for testing",
         "samples": [
             {"pan": "ABCDE1234F", "name": "RAHUL SHARMA", "type": "Individual"},
             {"pan": "PQRST5678G", "name": "PRIYA GUPTA", "type": "Individual"},

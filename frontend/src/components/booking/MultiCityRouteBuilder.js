@@ -90,7 +90,7 @@ const SortableLegCard = ({
               {index + 1}
             </div>
             <span className="text-white font-medium">
-              Leg {index + 1} / पड़ाव {index + 1}
+              Leg {index + 1}{index + 1}
               {index === 0 && <span className="text-green-400 text-xs ml-2">(Start)</span>}
               {index === legs.length - 1 && <span className="text-red-400 text-xs ml-2">(End)</span>}
             </span>
@@ -122,7 +122,7 @@ const SortableLegCard = ({
           <div>
             <Label className="text-slate-400 text-sm mb-2 block flex items-center gap-1">
               <MapPin className="h-3 w-3 text-green-400" />
-              From / से {index === 0 && <span className="text-red-400">*</span>}
+              From{index === 0 && <span className="text-red-400">*</span>}
             </Label>
             {index > 0 && legs[index - 1]?.to ? (
               // Auto-filled from previous leg's destination
@@ -147,7 +147,7 @@ const SortableLegCard = ({
           <div>
             <Label className="text-slate-400 text-sm mb-2 block flex items-center gap-1">
               <MapPin className="h-3 w-3 text-red-400" />
-              To / तक <span className="text-red-400">*</span>
+              To<span className="text-red-400">*</span>
             </Label>
             <LandingPointSelector
               label="Select destination"
@@ -391,7 +391,7 @@ export const MultiCityRouteBuilder = ({
     // Check if we have enough valid destinations
     const validLegs = legs.filter(leg => leg.from && leg.to);
     if (validLegs.length < 2) {
-      toast.error('Add at least 2 complete legs to optimize / ऑप्टिमाइज़ के लिए कम से कम 2 पूर्ण पड़ाव जोड़ें');
+      toast.error('Add at least 2 complete legs to optimize');
       return;
     }
     
@@ -449,14 +449,14 @@ export const MultiCityRouteBuilder = ({
       setShowOptimization(true);
       
       if (savings > 10) {
-        toast.success(`🚁 Found shorter route! Save ${Math.round(savings)} km / छोटा रास्ता मिला!`);
+        toast.success(`🚁 Found shorter route! Save ${Math.round(savings)} km`);
       } else {
-        toast.info('✅ Your route is already optimal! / आपका रूट पहले से बेहतर है!');
+        toast.info('✅ Your route is already optimal!');
       }
       
     } catch (error) {
       console.error('Route optimization failed:', error);
-      toast.error('Failed to optimize route / रूट ऑप्टिमाइज़ करने में विफल');
+      toast.error('Failed to optimize route');
     } finally {
       setOptimizing(false);
     }
@@ -502,7 +502,7 @@ export const MultiCityRouteBuilder = ({
       setLegs(recalculateChain(newLegs));
       setShowOptimization(false);
       setOptimizationResult(null);
-      toast.success('Route optimized! / रूट ऑप्टिमाइज़ हो गया!');
+      toast.success('Route optimized!');
     }
   };
 
@@ -513,8 +513,7 @@ export const MultiCityRouteBuilder = ({
         <div>
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Navigation className="h-5 w-5 text-orange-400" />
-            Multi-City Route Builder / बहु-शहर रूट बिल्डर
-          </h3>
+            Multi-City Route Builder</h3>
           <p className="text-slate-400 text-sm mt-1">
             Add {minLegs}-{maxLegs} destinations. Each additional leg gets {perLegDiscount}% off!
           </p>
@@ -548,8 +547,7 @@ export const MultiCityRouteBuilder = ({
             {showMap ? 'Hide Map' : 'Show Map'}
           </Button>
           <Badge className="bg-blue-500/20 text-blue-400">
-            {legs.length} Legs / {legs.length} पड़ाव
-          </Badge>
+            {legs.length} Legs / {legs.length}          </Badge>
         </div>
       </div>
       
@@ -567,7 +565,7 @@ export const MultiCityRouteBuilder = ({
       {/* Drag-Drop Hint */}
       <div className="flex items-center gap-2 text-slate-500 text-xs">
         <GripVertical className="h-4 w-4" />
-        <span>Drag legs to reorder your route / रूट क्रम बदलने के लिए खींचें</span>
+        <span>Drag legs to reorder your route</span>
       </div>
       
       {/* Route Legs with Drag-Drop */}
@@ -607,7 +605,7 @@ export const MultiCityRouteBuilder = ({
           className="w-full border-dashed border-slate-600 text-slate-400 hover:text-orange-400 hover:border-orange-500"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add Destination / गंतव्य जोड़ें ({legs.length}/{maxLegs})
+          Add Destination{legs.length}/{maxLegs})
         </Button>
       )}
       
@@ -618,8 +616,7 @@ export const MultiCityRouteBuilder = ({
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-white font-semibold flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple-400" />
-                Route Optimization / रूट ऑप्टिमाइज़ेशन
-              </h4>
+                Route Optimization</h4>
               <Button
                 variant="ghost"
                 size="sm"
@@ -669,8 +666,7 @@ export const MultiCityRouteBuilder = ({
                   className="w-full bg-purple-500 hover:bg-purple-600"
                 >
                   <Route className="h-4 w-4 mr-2" />
-                  Apply Optimized Route / ऑप्टिमाइज़्ड रूट लागू करें
-                </Button>
+                  Apply Optimized Route</Button>
               </>
             ) : (
               <div className="text-center py-4">
@@ -680,7 +676,7 @@ export const MultiCityRouteBuilder = ({
                   </svg>
                 </div>
                 <p className="text-green-400 font-medium">Your route is already optimal!</p>
-                <p className="text-slate-400 text-sm">आपका रूट पहले से ही सबसे बेहतर है!</p>
+                <p className="text-slate-400 text-sm"></p>
               </div>
             )}
           </CardContent>
@@ -693,8 +689,7 @@ export const MultiCityRouteBuilder = ({
           <CardContent className="p-4">
             <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
               <Calculator className="h-4 w-4 text-orange-400" />
-              Route Summary / रूट सारांश
-            </h4>
+              Route Summary</h4>
             
             {/* Visual Route */}
             <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-3">
@@ -747,7 +742,7 @@ export const MultiCityRouteBuilder = ({
         <AlertCircle className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
         <div className="text-blue-300">
           <p>Multi-city flights chain automatically. Each destination becomes the next leg&apos;s starting point.</p>
-          <p className="text-blue-400/70 mt-1">बहु-शहर उड़ानें स्वचालित रूप से जुड़ती हैं।</p>
+          <p className="text-blue-400/70 mt-1"></p>
         </div>
       </div>
     </div>

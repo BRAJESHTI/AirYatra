@@ -89,7 +89,7 @@ async def update_gst_config(
         upsert=True
     )
     
-    return {"message": "GST configuration updated / कॉन्फ़िगरेशन अपडेट हो गया"}
+    return {"message": "GST configuration updated"}
 
 
 # ==================== GST RETURNS FILING ====================
@@ -204,7 +204,7 @@ async def get_gst_returns(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get all GST returns / सभी GST रिटर्न प्राप्त करें"""
+    """Get all GST returns"""
     query = {}
     if return_type:
         query["return_type"] = return_type
@@ -270,7 +270,7 @@ async def file_gst_return(
     )
     
     return {
-        "message": "GST return filed successfully / GST रिटर्न फाइल हो गया",
+        "message": "GST return filed successfully",
         "arn": arn
     }
 
@@ -345,7 +345,7 @@ async def record_gst_payment(
             )
     
     return {
-        "message": "GST payment recorded / GST भुगतान दर्ज हो गया",
+        "message": "GST payment recorded",
         "payment_id": payment_id,
         "challan_number": challan_number
     }
@@ -394,7 +394,7 @@ async def get_itc_summary(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get Input/Output Tax Credit summary / इनपुट/आउटपुट टैक्स क्रेडिट"""
+    """Get Input/Output Tax Credit summary"""
     month = month or datetime.now().month
     year = year or datetime.now().year
     
@@ -460,7 +460,7 @@ async def get_itc_details(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get detailed ITC entries / विस्तृत ITC विवरण"""
+    """Get detailed ITC entries"""
     result = {"input": [], "output": []}
     
     if type in ["input", "all"]:
@@ -521,7 +521,7 @@ async def get_vendor_gst_compliance(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get vendor GST compliance status / वेंडर GST अनुपालन स्थिति"""
+    """Get vendor GST compliance status"""
     month = month or datetime.now().month
     year = year or datetime.now().year
     
@@ -612,7 +612,7 @@ async def send_vendor_gst_reminder(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
     db=Depends(get_database)
 ):
-    """Send GST reminder to vendor / वेंडर को GST रिमाइंडर भेजें"""
+    """Send GST reminder to vendor"""
     vendor = await db.vendors.find_one({"id": vendor_id}, {"_id": 0})
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
@@ -656,7 +656,7 @@ async def send_vendor_gst_reminder(
     )
     
     return {
-        "message": f"Reminder sent to {vendor.get('name')} / रिमाइंडर भेजा गया",
+        "message": f"Reminder sent to {vendor.get('name')}",
         "reminder_id": reminder_id,
         "email": vendor.get("email")
     }
@@ -669,7 +669,7 @@ async def send_bulk_gst_reminders(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
     db=Depends(get_database)
 ):
-    """Send reminders to all non-compliant vendors / सभी गैर-अनुपालक वेंडर को रिमाइंडर भेजें"""
+    """Send reminders to all non-compliant vendors"""
     month = data.get("month", datetime.now().month)
     year = data.get("year", datetime.now().year)
     min_compliance = data.get("min_compliance", 90)  # Send to vendors below this score
@@ -721,7 +721,7 @@ async def send_bulk_gst_reminders(
                 failed_count += 1
     
     return {
-        "message": f"Sent {sent_count} reminders / {sent_count} रिमाइंडर भेजे गए",
+        "message": f"Sent {sent_count} reminders",
         "sent": sent_count,
         "failed": failed_count,
         "reminders": reminders
@@ -795,7 +795,7 @@ async def reconcile_gstr2a(
             unmatched += 1
     
     return {
-        "message": "Reconciliation complete / मिलान पूर्ण",
+        "message": "Reconciliation complete",
         "matched": matched,
         "unmatched": unmatched,
         "total": matched + unmatched
@@ -1043,8 +1043,8 @@ Regards,
 AirYatra Finance Team
 
 ---
-यह आपके GST अनुपालन के संबंध में एक रिमाइंडर है।
-कृपया अपना GSTR-1 सही से फाइल करें।
+This is a reminder regarding your GST compliance.
+Please file your GSTR-1 correctly.
 """
         
         await send_email(

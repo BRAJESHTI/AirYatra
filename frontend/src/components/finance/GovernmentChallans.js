@@ -140,8 +140,7 @@ export default function GovernmentChallans() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <FileText className="h-7 w-7 text-blue-400" />
-            Government Challans / सरकारी चालान
-          </h1>
+            Government Challans</h1>
           <p className="text-slate-400 mt-1">GST, TDS, PF, ESIC compliance management</p>
         </div>
         <div className="flex items-center gap-3">
@@ -318,8 +317,7 @@ export default function GovernmentChallans() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-blue-400" />
-              Add New Challan / नया चालान जोड़ें
-            </DialogTitle>
+              Add New Challan</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>

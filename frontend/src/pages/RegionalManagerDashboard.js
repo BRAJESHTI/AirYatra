@@ -14,39 +14,39 @@ import RegionalPermissions from '@/components/regional/RegionalPermissions';
 const navGroups = [
   {
     id: 'main',
-    label: 'Dashboard / डैशबोर्ड',
+    label: 'Dashboard',
     icon: LayoutDashboard,
     items: [
-      { id: 'overview', label: 'Overview / ओवरव्यू', icon: LayoutDashboard },
-      { id: 'reports', label: 'Reports / रिपोर्ट', icon: BarChart3 },
+      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+      { id: 'reports', label: 'Reports', icon: BarChart3 },
     ]
   },
   {
     id: 'management',
-    label: 'Management / प्रबंधन',
+    label: 'Management',
     icon: Building2,
     items: [
-      { id: 'operators', label: 'Operators / ऑपरेटर', icon: Users, highlight: true },
-      { id: 'bookings', label: 'Bookings / बुकिंग', icon: Calendar },
-      { id: 'approvals', label: 'Pending Approvals / अनुमोदन', icon: CheckSquare, highlight: true },
+      { id: 'operators', label: 'Operators', icon: Users, highlight: true },
+      { id: 'bookings', label: 'Bookings', icon: Calendar },
+      { id: 'approvals', label: 'Pending Approvals', icon: CheckSquare, highlight: true },
     ]
   },
   {
     id: 'permissions',
-    label: 'Permissions / अनुमतियां',
+    label: 'Permissions',
     icon: Shield,
     items: [
-      { id: 'permissions', label: 'Landing Permissions / लैंडिंग अनुमतियां', icon: Shield },
-      { id: 'village', label: 'Village Permissions / गांव की अनुमतियां', icon: MapPin },
+      { id: 'permissions', label: 'Landing Permissions', icon: Shield },
+      { id: 'village', label: 'Village Permissions', icon: MapPin },
     ]
   },
   {
     id: 'account',
-    label: 'Account / खाता',
+    label: 'Account',
     icon: User,
     items: [
-      { id: 'profile', label: 'My Profile / प्रोफाइल', icon: User },
-      { id: 'settings', label: 'Settings / सेटिंग्स', icon: Settings },
+      { id: 'profile', label: 'My Profile', icon: User },
+      { id: 'settings', label: 'Settings', icon: Settings },
     ]
   },
 ];

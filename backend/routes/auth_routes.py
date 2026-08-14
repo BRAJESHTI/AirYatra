@@ -474,7 +474,7 @@ async def login(request: Request, credentials: UserLogin):
                 data={"sub": user["id"], "roles": user["roles"], "pending_2fa": True},
                 expires_delta=timedelta(minutes=5)  # Short-lived token for 2FA
             ),
-            "message": "Google Authenticator code required / Google Authenticator कोड डालें",
+            "message": "Google Authenticator code required",
             "risk_score": risk_assessment["score"],
             "risk_level": risk_assessment["level"]
         }
@@ -1893,7 +1893,7 @@ async def disable_2fa(
     if not verify_password(request.password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password / गलत पासवर्ड"
+            detail="Incorrect password"
         )
     
     result = await totp_service.disable_2fa(
@@ -2135,7 +2135,7 @@ async def emergent_google_callback(
             "token_type": "bearer",
             "user": user,
             "is_new_user": is_new_user,
-            "message": "Google login successful / Google लॉगिन सफल"
+            "message": "Google login successful"
         }
         
     except HTTPException:

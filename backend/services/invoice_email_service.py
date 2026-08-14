@@ -96,7 +96,7 @@ async def send_invoice_email(db, booking_id: str, gateway: str = "") -> dict:
         </div>
         <div class="content">
             <p>Namaste <strong>{customer_name}</strong>,</p>
-            <p>Aapka payment successfully receive ho gaya hai. Aapka <strong>Tax Invoice PDF</strong> is email ke saath attached hai — download link dhundhne ki zaroorat nahi!</p>
+            <p>Your payment has been received successfully. Your <strong>Tax Invoice PDF</strong> is attached to this email — no need to hunt for a download link!</p>
 
             <div class="invoice-box">
                 <h3 style="margin-top:0; color:#f97316; text-align:center;">📄 Invoice Details</h3>
@@ -227,7 +227,7 @@ async def _send_corporate_gst_email(db, booking: dict, booking_id: str, stage: s
     </div>
     <div style="padding:28px;">
       <p>Dear <strong>{corp.get('company_name')}</strong> Admin,</p>
-      <p>Aapki company booking ka payment successfully receive hua hai. GST-compliant Tax Invoice is email ke saath attached hai.</p>
+      <p>Payment for your company booking has been received successfully. The GST-compliant Tax Invoice is attached to this email.</p>
       <table style="width:100%;border-collapse:collapse;margin:14px 0;">
         <tr><td style="padding:8px 0;color:#94a3b8;">Invoice No:</td><td style="text-align:right;color:#60a5fa;font-weight:600;">{invoice_data['invoice_number']}</td></tr>
         <tr><td style="padding:8px 0;color:#94a3b8;">Booking Ref:</td><td style="text-align:right;font-weight:600;">{booking_ref}</td></tr>

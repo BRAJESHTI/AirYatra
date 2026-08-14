@@ -242,7 +242,7 @@ class SettlementAutomationService:
                 "id": str(uuid4()),
                 "user_id": operator.get("user_id"),
                 "type": "settlement_paid",
-                "title": "Settlement Paid! / भुगतान हो गया!",
+                "title": "Settlement Paid!",
                 "message": f"Settlement of ₹{settlement['net_payable']:,.2f} has been credited. Ref: {payment_reference}",
                 "data": {"settlement_id": settlement_id},
                 "read": False,

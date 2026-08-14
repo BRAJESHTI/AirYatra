@@ -11,31 +11,31 @@ function PasswordStrengthMeter({ password = '', showRequirements = true }) {
     {
       id: 'length',
       label: 'At least 8 characters',
-      labelHi: 'कम से कम 8 अक्षर',
+      labelHi: '',
       test: (pwd) => pwd.length >= 8,
     },
     {
       id: 'uppercase',
       label: 'One uppercase letter (A-Z)',
-      labelHi: 'एक बड़ा अक्षर (A-Z)',
+      labelHi: 'A-Z)',
       test: (pwd) => /[A-Z]/.test(pwd),
     },
     {
       id: 'lowercase',
       label: 'One lowercase letter (a-z)',
-      labelHi: 'एक छोटा अक्षर (a-z)',
+      labelHi: 'a-z)',
       test: (pwd) => /[a-z]/.test(pwd),
     },
     {
       id: 'number',
       label: 'One number (0-9)',
-      labelHi: 'एक नंबर (0-9)',
+      labelHi: '',
       test: (pwd) => /[0-9]/.test(pwd),
     },
     {
       id: 'special',
       label: 'One special character (!@#$%^&*)',
-      labelHi: 'एक स्पेशल character (!@#$%^&*)',
+      labelHi: 'character (!@#$%^&*)',
       test: (pwd) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd),
     },
   ], []);
@@ -63,13 +63,13 @@ function PasswordStrengthMeter({ password = '', showRequirements = true }) {
     const finalScore = Math.min(100, percentage + bonus);
     
     if (finalScore < 30) {
-      return { score: finalScore, level: 'weak', label: 'Weak / कमज़ोर', color: 'bg-red-500' };
+      return { score: finalScore, level: 'weak', label: 'Weak', color: 'bg-red-500' };
     } else if (finalScore < 50) {
-      return { score: finalScore, level: 'fair', label: 'Fair / ठीक', color: 'bg-orange-500' };
+      return { score: finalScore, level: 'fair', label: 'Fair', color: 'bg-orange-500' };
     } else if (finalScore < 80) {
-      return { score: finalScore, level: 'good', label: 'Good / अच्छा', color: 'bg-yellow-500' };
+      return { score: finalScore, level: 'good', label: 'Good', color: 'bg-yellow-500' };
     } else {
-      return { score: finalScore, level: 'strong', label: 'Strong / मज़बूत', color: 'bg-green-500' };
+      return { score: finalScore, level: 'strong', label: 'Strong', color: 'bg-green-500' };
     }
   }, [password, requirements]);
 

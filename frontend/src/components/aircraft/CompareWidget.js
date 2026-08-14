@@ -175,7 +175,7 @@ export const useCompareAircraft = (maxCompare = 3) => {
       }
       
       if (prev.length >= maxCompare) {
-        toast.warning(`Maximum ${maxCompare} aircraft compare kar sakte hain`);
+        toast.warning(`You can compare a maximum of ${maxCompare} aircraft`);
         return prev;
       }
       

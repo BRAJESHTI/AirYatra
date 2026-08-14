@@ -44,7 +44,7 @@ function InquiryNotifications({ operator }) {
     setProcessing(true);
     try {
       await inquiryBroadcastAPI.acceptInquiry(selectedInquiry.id, { remark: acceptRemark });
-      toast.success('🎉 Inquiry accepted! Customer will be notified. / पूछताछ स्वीकार!');
+      toast.success('🎉 Inquiry accepted! Customer will be notified.');
       setShowAcceptDialog(false);
       setAcceptRemark('');
       loadInquiries();
@@ -61,7 +61,7 @@ function InquiryNotifications({ operator }) {
     setProcessing(true);
     try {
       await inquiryBroadcastAPI.rejectInquiry(selectedInquiry.id, { reason: rejectReason });
-      toast.success('Inquiry rejected / पूछताछ अस्वीकार');
+      toast.success('Inquiry rejected');
       setShowRejectDialog(false);
       setRejectReason('');
       loadInquiries();
@@ -94,7 +94,7 @@ function InquiryNotifications({ operator }) {
   const handleReviseQuote = async () => {
     if (!selectedInquiry) return;
     if (!reviseData.amount || reviseData.amount <= 0) {
-      toast.error('Please enter valid amount / कृपया वैध राशि दर्ज करें');
+      toast.error('Please enter valid amount');
       return;
     }
     
@@ -104,7 +104,7 @@ function InquiryNotifications({ operator }) {
         amount: parseFloat(reviseData.amount),
         notes: reviseData.notes
       });
-      toast.success('💰 Revised quote sent to customer! / संशोधित कोट भेजा गया!');
+      toast.success('💰 Revised quote sent to customer!');
       setShowReviseDialog(false);
       setReviseData({ amount: '', notes: '' });
       loadInquiries();
@@ -157,8 +157,7 @@ function InquiryNotifications({ operator }) {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Bell className="h-6 w-6 text-orange-400" />
-            New Booking Inquiries / नई बुकिंग पूछताछ
-          </h2>
+            New Booking Inquiries</h2>
           <p className="text-slate-400 mt-1">
             Accept or reject booking requests within 500km of your location
           </p>
@@ -178,7 +177,7 @@ function InquiryNotifications({ operator }) {
       {inquiries.length === 0 ? (
         <div className="text-center py-16 bg-slate-900/50 rounded-xl border border-slate-800">
           <Bell className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400 text-lg">No new inquiries / कोई नई पूछताछ नहीं</p>
+          <p className="text-slate-400 text-lg">No new inquiries</p>
           <p className="text-slate-500 text-sm mt-2">
             New booking requests from customers within 500km will appear here
           </p>
@@ -337,8 +336,7 @@ function InquiryNotifications({ operator }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Check className="h-5 w-5 text-green-400" />
-              Accept Inquiry / पूछताछ स्वीकार करें
-            </DialogTitle>
+              Accept Inquiry</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
@@ -348,7 +346,7 @@ function InquiryNotifications({ operator }) {
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Remark (Optional) / टिप्पणी</Label>
+              <Label className="text-slate-300">Remark (Optional)</Label>
               <Input
                 value={acceptRemark}
                 onChange={(e) => setAcceptRemark(e.target.value)}
@@ -377,24 +375,23 @@ function InquiryNotifications({ operator }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <X className="h-5 w-5 text-red-400" />
-              Reject Inquiry / पूछताछ अस्वीकार करें
-            </DialogTitle>
+              Reject Inquiry</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Reason (Optional) / कारण</Label>
+              <Label className="text-slate-300">Reason (Optional)</Label>
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
               >
                 <option value="">Select reason...</option>
-                <option value="no_aircraft_available">No aircraft available / विमान उपलब्ध नहीं</option>
-                <option value="date_conflict">Date conflict / तारीख संघर्ष</option>
-                <option value="route_not_serviceable">Route not serviceable / मार्ग सेवा योग्य नहीं</option>
-                <option value="price_mismatch">Price expectations too low / कम बजट</option>
-                <option value="too_far">Location too far / बहुत दूर</option>
-                <option value="other">Other reason / अन्य कारण</option>
+                <option value="no_aircraft_available">No aircraft available</option>
+                <option value="date_conflict">Date conflict</option>
+                <option value="route_not_serviceable">Route not serviceable</option>
+                <option value="price_mismatch">Price expectations too low</option>
+                <option value="too_far">Location too far</option>
+                <option value="other">Other reason</option>
               </select>
             </div>
           </div>
@@ -418,8 +415,7 @@ function InquiryNotifications({ operator }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-orange-400" />
-              Send Revised Quote / संशोधित कोट भेजें
-            </DialogTitle>
+              Send Revised Quote</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
@@ -430,7 +426,7 @@ function InquiryNotifications({ operator }) {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-slate-300">Your Quote Amount (₹) / आपकी कोट राशि *</Label>
+              <Label className="text-slate-300">Your Quote Amount (₹)*</Label>
               <Input
                 type="number"
                 value={reviseData.amount}
@@ -441,7 +437,7 @@ function InquiryNotifications({ operator }) {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-slate-300">Notes for Customer (Optional) / टिप्पणी</Label>
+              <Label className="text-slate-300">Notes for Customer (Optional)</Label>
               <textarea
                 value={reviseData.notes}
                 onChange={(e) => setReviseData(prev => ({ ...prev, notes: e.target.value }))}

@@ -336,7 +336,6 @@ function InquiryStatus({ user }) {
                     }`}>
                       {step.label}
                     </span>
-                    <span className="text-xs text-slate-600">{step.labelHi}</span>
                   </div>
                   {index < STATUS_STEPS.length - 1 && (
                     <div className={`flex-1 h-1 mx-2 rounded ${

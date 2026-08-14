@@ -5,10 +5,10 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 
 const PENALTY_STATUS = {
-  issued: { label: 'Issued / जारी', color: 'bg-red-500/20 text-red-400 border-red-500/40', icon: AlertCircle },
-  paid: { label: 'Paid / भुगतान', color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: CheckCircle2 },
-  overdue: { label: 'Overdue / अतिदेय', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40', icon: AlertTriangle },
-  waived: { label: 'Waived / माफ', color: 'bg-slate-500/20 text-slate-400 border-slate-500/40', icon: XCircle },
+  issued: { label: 'Issued', color: 'bg-red-500/20 text-red-400 border-red-500/40', icon: AlertCircle },
+  paid: { label: 'Paid', color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: CheckCircle2 },
+  overdue: { label: 'Overdue', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40', icon: AlertTriangle },
+  waived: { label: 'Waived', color: 'bg-slate-500/20 text-slate-400 border-slate-500/40', icon: XCircle },
 };
 
 const PENALTY_TYPES = {
@@ -154,8 +154,7 @@ export default function PenaltyDashboard({ operatorId, compact = false }) {
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-red-400" />
-            Penalty Dashboard / जुर्माना डैशबोर्ड
-          </h2>
+            Penalty Dashboard</h2>
           <p className="text-slate-400 text-sm mt-1">View and manage your penalty history</p>
         </div>
         <Button onClick={loadPenalties} variant="outline" size="sm" className="border-slate-600">
@@ -195,7 +194,7 @@ export default function PenaltyDashboard({ operatorId, compact = false }) {
               <AlertTriangle className="h-6 w-6 text-red-400 animate-pulse" />
             </div>
             <div>
-              <p className="text-red-400 font-semibold">Overdue Penalties! / बकाया जुर्माना!</p>
+              <p className="text-red-400 font-semibold">Overdue Penalties!</p>
               <p className="text-slate-400 text-sm">
                 Pay immediately to avoid suspension or delisting. Contact support if you need payment plan.
               </p>
@@ -209,7 +208,7 @@ export default function PenaltyDashboard({ operatorId, compact = false }) {
         {penalties.length === 0 ? (
           <div className="glass rounded-xl p-8 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto text-green-400" />
-            <p className="text-green-400 mt-2 font-medium">No Penalties! / कोई जुर्माना नहीं</p>
+            <p className="text-green-400 mt-2 font-medium">No Penalties!</p>
             <p className="text-slate-500 text-sm mt-1">Keep up the excellent service!</p>
           </div>
         ) : (
@@ -311,8 +310,7 @@ export default function PenaltyDashboard({ operatorId, compact = false }) {
                       <div className="pt-2 border-t border-slate-700">
                         <Button className="w-full bg-blue-500 hover:bg-blue-600">
                           <CreditCard className="h-4 w-4 mr-2" />
-                          Pay Now / अभी भुगतान करें
-                        </Button>
+                          Pay Now</Button>
                         <p className="text-xs text-slate-500 text-center mt-2">
                           Contact support for payment issues: support@airyatra.com
                         </p>
@@ -335,7 +333,7 @@ export default function PenaltyDashboard({ operatorId, compact = false }) {
 
       {/* Info Section */}
       <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
-        <p className="text-sm text-blue-400 font-medium mb-2">Penalty Policy / जुर्माना नीति</p>
+        <p className="text-sm text-blue-400 font-medium mb-2">Penalty Policy</p>
         <ul className="text-xs text-slate-400 space-y-1">
           <li>• First serious complaint: ₹10,000</li>
           <li>• 2 complaints in 30 days: ₹20,000 + 7-day suspension</li>

@@ -11,7 +11,7 @@ const SERVICES = [
     id: 'charter',
     icon: Plane,
     title: 'Private Jet Charter',
-    titleHi: 'प्राइवेट जेट चार्टर',
+    titleHi: '',
     description: 'Luxury private jets for business and leisure travel. Fly on your schedule with maximum comfort and privacy.',
     features: [
       'Flexible scheduling - fly when you want',
@@ -27,7 +27,7 @@ const SERVICES = [
     id: 'helicopter',
     icon: Globe,
     title: 'Helicopter Services',
-    titleHi: 'हेलीकॉप्टर सेवाएं',
+    titleHi: '',
     description: 'Quick city transfers, scenic aerial tours, and emergency medical evacuations with our modern helicopter fleet.',
     features: [
       'City-to-city rapid transfers',
@@ -43,7 +43,7 @@ const SERVICES = [
     id: 'corporate',
     icon: Building2,
     title: 'Corporate Solutions',
-    titleHi: 'कॉर्पोरेट सॉल्यूशंस',
+    titleHi: '',
     description: 'Dedicated aviation solutions for enterprises with volume discounts, priority booking, and travel analytics.',
     features: [
       'Corporate flight accounts',
@@ -59,7 +59,7 @@ const SERVICES = [
     id: 'management',
     icon: FileCheck,
     title: 'Aircraft Management',
-    titleHi: 'एयरक्राफ्ट मैनेजमेंट',
+    titleHi: '',
     description: 'Complete aircraft management including maintenance scheduling, crew management, and charter revenue optimization.',
     features: [
       'Maintenance scheduling & tracking',
@@ -75,7 +75,7 @@ const SERVICES = [
     id: 'emergency',
     icon: Zap,
     title: 'Emergency Services',
-    titleHi: 'इमरजेंसी सेवाएं',
+    titleHi: '',
     description: '24/7 emergency aviation support for medical evacuations, organ transport, and disaster relief operations.',
     features: [
       'Air ambulance services',
@@ -91,7 +91,7 @@ const SERVICES = [
     id: 'concierge',
     icon: HeartHandshake,
     title: 'Concierge Services',
-    titleHi: 'कॉन्सियर्ज सेवाएं',
+    titleHi: '',
     description: 'End-to-end travel assistance including luxury hotel bookings, ground transportation, and event planning.',
     features: [
       'Luxury hotel reservations',
@@ -157,7 +157,6 @@ function ServicesPage() {
                     <service.icon className="h-10 w-10 text-white" />
                   </div>
                   <h2 className="text-3xl font-bold text-white mb-2">{service.title}</h2>
-                  <p className="text-orange-400 text-sm mb-4">{service.titleHi}</p>
                   <p className="text-slate-400 text-lg mb-6">{service.description}</p>
                   
                   <ul className="space-y-3 mb-6">

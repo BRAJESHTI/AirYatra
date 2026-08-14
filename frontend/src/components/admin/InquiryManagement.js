@@ -88,8 +88,7 @@ function InquiryManagement() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Bell className="h-6 w-6 text-orange-400" />
-            Inquiry Management / इंक्वायरी प्रबंधन
-          </h1>
+            Inquiry Management</h1>
           <p className="text-slate-400 text-sm mt-1">
             View and manage all customer booking inquiries
           </p>
@@ -271,8 +270,7 @@ function InquiryManagement() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Bell className="h-5 w-5 text-orange-400" />
-              Inquiry Details / इंक्वायरी विवरण
-            </DialogTitle>
+              Inquiry Details</DialogTitle>
           </DialogHeader>
           
           {selectedInquiry && (

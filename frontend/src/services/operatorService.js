@@ -4,6 +4,7 @@ import api from './apiClient';
 export const operatorAPI = {
   createProfile: (data) => api.post('/operator/profile', data),
   getProfile: () => api.get('/operator/profile'),
+  getInquiries: (params) => api.get('/quotes/operator/inquiries', { params }),
   updateProfile: (data) => api.put('/operator/profile', data),
   getDashboard: () => api.get('/operator/dashboard'),
   createPilot: (data) => api.post('/operator/pilots', data),

@@ -29,7 +29,7 @@ export const FractionalSection = ({ user }) => {
 
   const openReserve = (offering) => {
     if (!user) {
-      toast.error('Please login to reserve a share / शेयर रिज़र्व करने के लिए लॉगिन करें');
+      toast.error('Please login to reserve a share');
       return;
     }
     setShares(1);
@@ -60,7 +60,7 @@ export const FractionalSection = ({ user }) => {
       <div className="bg-gradient-to-r from-orange-500/10 to-transparent border border-orange-500/20 rounded-2xl p-5 mb-8 flex items-start gap-3">
         <PieChart className="h-6 w-6 text-orange-400 shrink-0 mt-0.5" />
         <div>
-          <h2 className="text-white font-bold">Own an aircraft at 1/8th the cost / एक-आठवें दाम पर विमान के मालिक बनें</h2>
+          <h2 className="text-white font-bold">Own an aircraft at 1/8th the cost</h2>
           <p className="text-slate-400 text-sm mt-1">
             Buy a share, get guaranteed flying hours every year — AirYatra manages crew, hangarage & maintenance. Reserve now, our investment desk completes your allocation. No payment required today.
           </p>
@@ -112,7 +112,7 @@ export const FractionalSection = ({ user }) => {
                   className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
                   data-testid={`reserve-share-btn-${o.id}`}
                 >
-                  {o.shares_available === 0 ? 'Fully Subscribed' : 'Reserve Share / शेयर रिज़र्व करें'}
+                  {o.shares_available === 0 ? 'Fully Subscribed' : 'Reserve Share'}
                 </Button>
               </div>
             </div>

@@ -211,7 +211,7 @@ class NotificationService:
     ) -> Dict:
         """Send OTP via SMS and/or WhatsApp"""
         
-        message = f"Your AirYatra OTP for {purpose}: {otp}\n\nValid for 30 minutes. Do not share with anyone.\n\nआपका AirYatra OTP: {otp}"
+        message = f"Your AirYatra OTP for {purpose}: {otp}\n\nValid for 30 minutes. Do not share with anyone.\n\nAirYatra OTP: {otp}"
         
         # Try SMS first
         sms_result = await self.send_sms(phone_number, message, db)
@@ -282,7 +282,7 @@ class NotificationService:
 💰 Amount: ₹{booking.get('total_amount', 0):,}
 
 Thank you for choosing AirYatra!
-धन्यवाद AirYatra को चुनने के लिए!"""
+"""
             
             whatsapp_result = await self.send_whatsapp(customer_phone, whatsapp_message, db)
         
@@ -305,35 +305,32 @@ Thank you for choosing AirYatra!
             "pickup": f"""🚁 *AirYatra Journey OTP*
 
 Your pilot has arrived for pickup!
-आपका पायलट पिकअप के लिए आ गया है!
 
 📋 Booking: {booking_info.get('booking_number', '')}
 🔐 OTP: *{otp}*
 
 Share this OTP with pilot to confirm pickup.
-पिकअप की पुष्टि के लिए यह OTP पायलट को दें।""",
+""",
             
             "start_journey": f"""🚁 *AirYatra Journey Start OTP*
 
 Ready to start your journey!
-यात्रा शुरू करने के लिए तैयार!
 
 📋 Booking: {booking_info.get('booking_number', '')}
 🔐 OTP: *{otp}*
 
 Share this OTP with pilot to start flight.
-उड़ान शुरू करने के लिए यह OTP पायलट को दें।""",
+""",
             
             "complete_journey": f"""🚁 *AirYatra Journey Completion OTP*
 
 You have reached your destination!
-आप अपनी मंजिल पर पहुंच गए हैं!
 
 📋 Booking: {booking_info.get('booking_number', '')}
 🔐 OTP: *{otp}*
 
 Share this OTP with pilot to complete journey.
-यात्रा पूर्ण करने के लिए यह OTP पायलट को दें।"""
+"""
         }
         
         message = otp_messages.get(otp_type, f"Your AirYatra OTP: {otp}")

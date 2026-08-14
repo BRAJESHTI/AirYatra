@@ -15,7 +15,7 @@ function WebhookIntegration() {
     {
       id: 'facebook',
       name: 'Facebook Lead Ads',
-      nameHi: 'फेसबुक लीड ऐड्स',
+      nameHi: '',
       icon: Facebook,
       color: 'blue',
       endpoint: `${backendUrl}/api/crm/leads/webhook/facebook`,
@@ -38,7 +38,7 @@ function WebhookIntegration() {
     {
       id: 'whatsapp',
       name: 'WhatsApp Business',
-      nameHi: 'व्हाट्सएप बिज़नेस',
+      nameHi: '',
       icon: MessageSquare,
       color: 'green',
       endpoint: `${backendUrl}/api/crm/leads/webhook/whatsapp`,
@@ -59,7 +59,7 @@ function WebhookIntegration() {
     {
       id: 'indiamart',
       name: 'IndiaMart',
-      nameHi: 'इंडियामार्ट',
+      nameHi: '',
       icon: Building2,
       color: 'orange',
       endpoint: `${backendUrl}/api/crm/leads/webhook/indiamart`,
@@ -83,7 +83,7 @@ function WebhookIntegration() {
     {
       id: 'justdial',
       name: 'JustDial',
-      nameHi: 'जस्टडायल',
+      nameHi: '',
       icon: Phone,
       color: 'red',
       endpoint: `${backendUrl}/api/crm/leads/webhook/justdial`,
@@ -104,7 +104,7 @@ function WebhookIntegration() {
     {
       id: 'email',
       name: 'Email Parser',
-      nameHi: 'ईमेल पार्सर',
+      nameHi: '',
       icon: Mail,
       color: 'purple',
       endpoint: `${backendUrl}/api/crm/leads/webhook/email`,
@@ -125,7 +125,7 @@ function WebhookIntegration() {
     {
       id: 'website',
       name: 'Website Form',
-      nameHi: 'वेबसाइट फॉर्म',
+      nameHi: '',
       icon: Globe,
       color: 'cyan',
       endpoint: `${backendUrl}/api/crm/leads/webhook/website`,
@@ -170,8 +170,7 @@ function WebhookIntegration() {
       <div>
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <Webhook className="h-6 w-6 text-purple-400" />
-          Webhook Integration / वेबहुक इंटीग्रेशन
-        </h2>
+          Webhook Integration</h2>
         <p className="text-slate-400 mt-1">
           Connect external lead sources to automatically capture leads in CRM
         </p>
@@ -181,7 +180,7 @@ function WebhookIntegration() {
       <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 flex items-start gap-3">
         <AlertTriangle className="h-5 w-5 text-purple-400 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-purple-200 font-medium">How Webhooks Work / वेबहुक कैसे काम करते हैं</p>
+          <p className="text-purple-200 font-medium">How Webhooks Work</p>
           <p className="text-purple-200/70 text-sm mt-1">
             When a lead is generated on an external platform (Facebook, WhatsApp, IndiaMart), 
             that platform sends the lead data to our webhook URL. Our system automatically 
@@ -212,7 +211,6 @@ function WebhookIntegration() {
                     </div>
                     <div>
                       <h3 className="text-white font-semibold">{webhook.name}</h3>
-                      <p className="text-slate-400 text-sm">{webhook.nameHi}</p>
                     </div>
                   </div>
                   <span className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300">
@@ -291,7 +289,7 @@ function WebhookIntegration() {
 
       {/* Testing Section */}
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-white font-semibold mb-4">Quick Test / त्वरित परीक्षण</h3>
+        <h3 className="text-white font-semibold mb-4">Quick Test</h3>
         <p className="text-slate-400 text-sm mb-4">
           Use this cURL command in terminal to test webhook lead creation:
         </p>

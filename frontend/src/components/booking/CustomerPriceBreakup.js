@@ -274,15 +274,15 @@ export const CustomerPriceBreakup = ({
 
 export const BookingTypeSelector = ({ selected, onSelect }) => {
   const bookingTypes = [
-    { key: 'one_way', label: 'One Way', labelHi: 'एकतरफा', icon: '→', desc: 'A to B' },
-    { key: 'round_trip', label: 'Round Trip', labelHi: 'वापसी', icon: '↔', desc: 'A to B to A', discount: '5-10%' },
-    { key: 'multi_city', label: 'Multi-City', labelHi: 'बहु-शहर', icon: '◇', desc: 'Multiple stops' },
-    { key: 'hourly_charter', label: 'Hourly', labelHi: 'प्रति घंटा', icon: '⏱', desc: 'By the hour' },
-    { key: 'daily_charter', label: 'Daily', labelHi: 'दैनिक', icon: '📅', desc: 'Full day' },
-    { key: 'multi_day', label: 'Multi-Day', labelHi: 'बहु-दिवसीय', icon: '📆', desc: '3+ days', discount: '10-15%' },
-    { key: 'group_booking', label: 'Group', labelHi: 'समूह', icon: '👥', desc: '5+ passengers', discount: 'Special' },
-    { key: 'emergency', label: 'Emergency', labelHi: 'आपात', icon: '🚨', desc: 'Urgent booking', priority: true },
-    { key: 'event_based', label: 'Event', labelHi: 'इवेंट', icon: '🎉', desc: 'Wedding/Corporate' }
+    { key: 'one_way', label: 'One Way', labelHi: '', icon: '→', desc: 'A to B' },
+    { key: 'round_trip', label: 'Round Trip', labelHi: '', icon: '↔', desc: 'A to B to A', discount: '5-10%' },
+    { key: 'multi_city', label: 'Multi-City', labelHi: '', icon: '◇', desc: 'Multiple stops' },
+    { key: 'hourly_charter', label: 'Hourly', labelHi: '', icon: '⏱', desc: 'By the hour' },
+    { key: 'daily_charter', label: 'Daily', labelHi: '', icon: '📅', desc: 'Full day' },
+    { key: 'multi_day', label: 'Multi-Day', labelHi: '', icon: '📆', desc: '3+ days', discount: '10-15%' },
+    { key: 'group_booking', label: 'Group', labelHi: '', icon: '👥', desc: '5+ passengers', discount: 'Special' },
+    { key: 'emergency', label: 'Emergency', labelHi: '', icon: '🚨', desc: 'Urgent booking', priority: true },
+    { key: 'event_based', label: 'Event', labelHi: '', icon: '🎉', desc: 'Wedding/Corporate' }
   ];
   
   return (

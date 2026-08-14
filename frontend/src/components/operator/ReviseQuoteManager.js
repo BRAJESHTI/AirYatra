@@ -86,7 +86,7 @@ function ReviseQuoteManager({ operator }) {
         breakdown: quoteForm.breakdown
       });
       
-      toast.success('Quote submitted successfully! / कोट सफलतापूर्वक भेजा गया');
+      toast.success('Quote submitted successfully!');
       setShowQuoteDialog(false);
       loadQuoteRequests();
     } catch (error) {
@@ -108,10 +108,10 @@ function ReviseQuoteManager({ operator }) {
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'quote_requested': return 'Quote Requested / कोट मांगा';
-      case 'quote_sent': return 'Quote Sent / कोट भेजा';
-      case 'accepted': return 'Accepted / स्वीकार';
-      case 'rejected': return 'Rejected / अस्वीकार';
+      case 'quote_requested': return 'Quote Requested';
+      case 'quote_sent': return 'Quote Sent';
+      case 'accepted': return 'Accepted';
+      case 'rejected': return 'Rejected';
       default: return status;
     }
   };
@@ -131,8 +131,7 @@ function ReviseQuoteManager({ operator }) {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-orange-400" />
-            Quote Requests / कोट अनुरोध
-          </h2>
+            Quote Requests</h2>
           <p className="text-slate-400 mt-1">Respond to customer quote requests with revised prices</p>
         </div>
         <Button variant="outline" onClick={loadQuoteRequests}>
@@ -173,7 +172,7 @@ function ReviseQuoteManager({ operator }) {
         <div className="text-center py-16">
           <DollarSign className="h-16 w-16 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400 text-lg">No quote requests yet</p>
-          <p className="text-slate-500">कोई कोट अनुरोध नहीं है</p>
+          <p className="text-slate-500"></p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -257,8 +256,7 @@ function ReviseQuoteManager({ operator }) {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Calculator className="h-5 w-5 text-orange-400" />
-              Send Revised Quote / संशोधित कोट भेजें
-            </DialogTitle>
+              Send Revised Quote</DialogTitle>
           </DialogHeader>
           
           {selectedRequest && (
@@ -272,7 +270,7 @@ function ReviseQuoteManager({ operator }) {
               
               {/* Price Breakdown */}
               <div className="space-y-3">
-                <Label className="text-orange-400">Price Breakdown / मूल्य विवरण</Label>
+                <Label className="text-orange-400">Price Breakdown</Label>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -333,7 +331,7 @@ function ReviseQuoteManager({ operator }) {
               
               {/* Final Quote Amount */}
               <div className="space-y-2">
-                <Label className="text-orange-400">Final Quote Amount / अंतिम कोट राशि *</Label>
+                <Label className="text-orange-400">Final Quote Amount*</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-slate-400">₹</span>
                   <Input
@@ -357,7 +355,7 @@ function ReviseQuoteManager({ operator }) {
               
               {/* Validity */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Quote Validity / कोट वैधता</Label>
+                <Label className="text-slate-300">Quote Validity</Label>
                 <select
                   value={quoteForm.validity_hours}
                   onChange={(e) => setQuoteForm({ ...quoteForm, validity_hours: parseInt(e.target.value) })}
@@ -372,7 +370,7 @@ function ReviseQuoteManager({ operator }) {
               
               {/* Notes */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Notes for Customer / ग्राहक के लिए नोट</Label>
+                <Label className="text-slate-300">Notes for Customer</Label>
                 <textarea
                   value={quoteForm.notes}
                   onChange={(e) => setQuoteForm({ ...quoteForm, notes: e.target.value })}
@@ -419,8 +417,7 @@ function ReviseQuoteManager({ operator }) {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Send Quote / कोट भेजें
-                </>
+                  Send Quote</>
               )}
             </Button>
           </DialogFooter>

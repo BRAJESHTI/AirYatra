@@ -154,17 +154,17 @@ const EmergencyBookingForm = ({
   };
 
   const urgencyLevels = config?.urgency_levels || {
-    critical: { label: 'Critical / अत्यंत जरूरी', color: 'red', surcharge_percent: 50 },
-    high: { label: 'High / उच्च', color: 'orange', surcharge_percent: 25 },
-    medium: { label: 'Medium / मध्यम', color: 'yellow', surcharge_percent: 10 }
+    critical: { label: 'Critical', color: 'red', surcharge_percent: 50 },
+    high: { label: 'High', color: 'orange', surcharge_percent: 25 },
+    medium: { label: 'Medium', color: 'yellow', surcharge_percent: 10 }
   };
 
   const urgencyReasons = config?.urgency_reasons || {
-    medical_emergency: { label: 'Medical Emergency / चिकित्सा आपातकाल', icon: '🏥' },
-    time_critical: { label: 'Time Critical / समय-महत्वपूर्ण', icon: '⏰' },
-    vip_travel: { label: 'VIP Travel / वीआईपी यात्रा', icon: '👔' },
-    disaster_relief: { label: 'Disaster Relief / आपदा राहत', icon: '🆘' },
-    organ_transport: { label: 'Organ Transport / अंग परिवहन', icon: '❤️' }
+    medical_emergency: { label: 'Medical Emergency', icon: '🏥' },
+    time_critical: { label: 'Time Critical', icon: '⏰' },
+    vip_travel: { label: 'VIP Travel', icon: '👔' },
+    disaster_relief: { label: 'Disaster Relief', icon: '🆘' },
+    organ_transport: { label: 'Organ Transport', icon: '❤️' }
   };
 
   return (
@@ -177,8 +177,7 @@ const EmergencyBookingForm = ({
           </div>
           <div>
             <h2 className="text-red-400 font-bold text-xl">
-              Emergency Booking / आपातकालीन बुकिंग
-            </h2>
+              Emergency Booking</h2>
             <p className="text-red-400/70 text-sm">
               Priority queue + Instant operator notification
             </p>
@@ -192,8 +191,7 @@ const EmergencyBookingForm = ({
           <CardHeader className="pb-2">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-red-400" />
-              Urgency Level / आवश्यकता स्तर
-            </CardTitle>
+              Urgency Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -230,8 +228,7 @@ const EmergencyBookingForm = ({
           <CardHeader className="pb-2">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Heart className="h-4 w-4 text-pink-400" />
-              Reason / कारण
-            </CardTitle>
+              Reason</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -260,8 +257,7 @@ const EmergencyBookingForm = ({
             <CardHeader className="pb-2">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-green-400" />
-                Pickup / पिकअप
-              </CardTitle>
+                Pickup</CardTitle>
             </CardHeader>
             <CardContent>
               <LandingPointSelector
@@ -278,8 +274,7 @@ const EmergencyBookingForm = ({
             <CardHeader className="pb-2">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-red-400" />
-                Drop / गंतव्य
-              </CardTitle>
+                Drop</CardTitle>
             </CardHeader>
             <CardContent>
               <LandingPointSelector
@@ -298,13 +293,12 @@ const EmergencyBookingForm = ({
           <CardHeader className="pb-2">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-400" />
-              Flight Details / उड़ान विवरण
-            </CardTitle>
+              Flight Details</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-slate-300 mb-2 block">Passengers / यात्री</Label>
+                <Label className="text-slate-300 mb-2 block">Passengers</Label>
                 <Input
                   type="number"
                   min="1"
@@ -357,8 +351,7 @@ const EmergencyBookingForm = ({
           <CardHeader className="pb-2">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Phone className="h-4 w-4 text-green-400" />
-              Emergency Contact / आपातकालीन संपर्क
-            </CardTitle>
+              Emergency Contact</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -393,7 +386,7 @@ const EmergencyBookingForm = ({
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0" />
             <div className="text-yellow-400 text-sm">
-              <p className="font-medium">Emergency Surcharge Notice / आपातकालीन अधिभार</p>
+              <p className="font-medium">Emergency Surcharge Notice</p>
               <p className="mt-1 text-yellow-400/70">
                 Emergency bookings include a {urgencyLevels[formData.urgency_level]?.surcharge_percent}% priority surcharge 
                 for immediate processing and dedicated operator response.

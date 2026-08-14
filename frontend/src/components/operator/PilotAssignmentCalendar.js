@@ -60,7 +60,7 @@ function PilotAssignmentCalendar() {
         throw new Error(err.detail || 'Assignment failed');
       }
       
-      toast.success('Pilot assigned successfully! / पायलट असाइन किया गया!');
+      toast.success('Pilot assigned successfully!');
       setSelectedBooking(null);
       loadData();
     } catch (error) {
@@ -186,8 +186,7 @@ function PilotAssignmentCalendar() {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <UserPlus className="h-6 w-6 text-blue-400" />
-            Pilot Assignment / पायलट असाइनमेंट
-          </h2>
+            Pilot Assignment</h2>
           <p className="text-slate-400 mt-1">Assign pilots to bookings from calendar view</p>
         </div>
         <Button onClick={loadData} variant="outline" className="border-slate-600">
@@ -200,24 +199,24 @@ function PilotAssignmentCalendar() {
         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-4 border border-blue-500/30">
           <User className="h-6 w-6 text-blue-400 mb-2" />
           <p className="text-3xl font-bold text-white">{data?.total_pilots || 0}</p>
-          <p className="text-slate-400 text-sm">Total Pilots / कुल पायलट</p>
+          <p className="text-slate-400 text-sm">Total Pilots</p>
         </div>
         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4 border border-green-500/30">
           <Check className="h-6 w-6 text-green-400 mb-2" />
           <p className="text-3xl font-bold text-green-400">
             {(data?.bookings?.length || 0) - (data?.unassigned_bookings || 0)}
           </p>
-          <p className="text-slate-400 text-sm">Assigned / असाइन किया गया</p>
+          <p className="text-slate-400 text-sm">Assigned</p>
         </div>
         <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-xl p-4 border border-orange-500/30">
           <AlertCircle className="h-6 w-6 text-orange-400 mb-2" />
           <p className="text-3xl font-bold text-orange-400">{data?.unassigned_bookings || 0}</p>
-          <p className="text-slate-400 text-sm">Unassigned / बिना असाइन</p>
+          <p className="text-slate-400 text-sm">Unassigned</p>
         </div>
         <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30">
           <Plane className="h-6 w-6 text-purple-400 mb-2" />
           <p className="text-3xl font-bold text-purple-400">{data?.bookings?.length || 0}</p>
-          <p className="text-slate-400 text-sm">Total Bookings / कुल बुकिंग</p>
+          <p className="text-slate-400 text-sm">Total Bookings</p>
         </div>
       </div>
 
@@ -320,8 +319,7 @@ function PilotAssignmentCalendar() {
             <div className="bg-slate-800/50 rounded-xl border border-blue-500/30 p-4">
               <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-blue-400" />
-                Assign Pilot / पायलट चुनें
-              </h4>
+                Assign Pilot</h4>
               <p className="text-slate-400 text-sm mb-3">
                 Select pilot for: <span className="text-white">{selectedBooking.route}</span>
               </p>
@@ -387,8 +385,7 @@ function PilotAssignmentCalendar() {
         <div className="p-4 border-b border-slate-700">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <User className="h-5 w-5 text-blue-400" />
-            Pilot Overview / पायलट अवलोकन
-          </h3>
+            Pilot Overview</h3>
         </div>
         
         <div className="overflow-x-auto">

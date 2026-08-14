@@ -197,8 +197,7 @@ export default function BulkDiscountUpload() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Tag className="h-6 w-6 text-green-400" />
-            Discount Management / छूट प्रबंधन
-          </h1>
+            Discount Management</h1>
           <p className="text-slate-400 text-sm mt-1">Bulk upload and manage discount codes</p>
         </div>
         <div className="flex gap-2">
@@ -246,7 +245,7 @@ export default function BulkDiscountUpload() {
         <div className="glass rounded-xl p-6">
           {/* Instructions */}
           <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 mb-6">
-            <h3 className="text-blue-400 font-medium mb-2">CSV Format Instructions / निर्देश</h3>
+            <h3 className="text-blue-400 font-medium mb-2">CSV Format Instructions</h3>
             <p className="text-slate-400 text-sm mb-2">
               Upload a CSV file with the following columns:
             </p>

@@ -458,7 +458,7 @@ async def _notify_winner(email: str, name: str, title: str, winning_bid: float):
       <div style="background:#16a34a;padding:20px 28px;"><h2 style="margin:0;color:#fff;">🏆 Congratulations — You Won the Auction!</h2></div>
       <div style="padding:28px;">
         <p>Dear {name},</p>
-        <p>Your bid was the highest and the reserve was met — <b>{title}</b> is yours! / बधाई हो, नीलामी आपने जीत ली!</p>
+        <p>Your bid was the highest and the reserve was met — <b>{title}</b> is yours!</p>
         <div style="background:#1e293b;border-radius:8px;padding:16px;margin:16px 0;">
           <p style="margin:0;"><b>Winning Bid:</b> <span style="color:#f97316;font-size:20px;">Rs. {winning_bid:,.0f}</span></p>
         </div>
@@ -543,7 +543,7 @@ async def _notify_outbid(email: str, name: str, title: str, new_bid: float, ends
           <p style="margin:0;"><b>New Highest Bid:</b> <span style="color:#f97316;font-size:18px;">Rs. {new_bid:,.0f}</span></p>
           <p style="margin:8px 0 0;"><b>Auction Ends:</b> {ends}</p>
         </div>
-        <p><b>Don't lose this aircraft!</b> Head back to the auction and place a higher bid before time runs out. / समय खत्म होने से पहले ऊंची बोली लगाएं!</p>
+        <p><b>Don't lose this aircraft!</b> Head back to the auction and place a higher bid before time runs out.</p>
         <p style="color:#94a3b8;font-size:13px;">Team AirYatra • Live Aircraft Auctions</p>
       </div>
     </div>"""
@@ -852,7 +852,7 @@ async def toggle_watch_auction(auction_id: str, current_user: dict = Depends(get
         "user_email": current_user.get("email"),
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    return {"watching": True, "message": "Watching! We'll email you before this auction ends / नीलामी खत्म होने से पहले याद दिलाएंगे"}
+    return {"watching": True, "message": "Watching! We'll email you before this auction ends"}
 
 
 @router.get("/auctions/watchlist/my")

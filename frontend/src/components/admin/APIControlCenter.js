@@ -217,7 +217,7 @@ const APIControlCenter = () => {
           notify_slack_webhook: budgetConfig.slack_webhook || null
         }
       });
-      toast.success('Budget configured! / बजट कॉन्फ़िगर हो गया!');
+      toast.success('Budget configured!');
       loadBudgetStatus();
     } catch (error) {
       toast.error('Failed to save budget config');
@@ -241,7 +241,7 @@ const APIControlCenter = () => {
           enable_health_alerts: alertConfig.enable_health_alerts
         }
       });
-      toast.success('Alert channels configured! / अलर्ट चैनल कॉन्फ़िगर!');
+      toast.success('Alert channels configured!');
     } catch (error) {
       toast.error('Failed to save alert config');
     } finally {
@@ -277,7 +277,7 @@ const APIControlCenter = () => {
   // Start Failover Test
   const startFailoverTest = async () => {
     if (!selectedApiForTest) {
-      toast.error('Select an API to test / टेस्ट के लिए API चुनें');
+      toast.error('Select an API to test');
       return;
     }
     try {
@@ -303,7 +303,7 @@ const APIControlCenter = () => {
       const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/simulate-failure?test_id=${activeTest.test_id}`, {}, authHeaders);
       toast.info(response.data.message_hi || response.data.message);
       if (response.data.failover_triggered) {
-        toast.success('🔄 Failover would be triggered! / फेलओवर ट्रिगर होता!');
+        toast.success('🔄 Failover would be triggered!');
       }
       loadTestSessions();
     } catch (error) {
@@ -316,7 +316,7 @@ const APIControlCenter = () => {
     if (!activeTest?.test_id) return;
     try {
       const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/stop?test_id=${activeTest.test_id}`, {}, authHeaders);
-      toast.success('Test stopped! / टेस्ट बंद!');
+      toast.success('Test stopped!');
       setActiveTest(null);
       loadTestSessions();
     } catch (error) {
@@ -333,7 +333,7 @@ const APIControlCenter = () => {
     try {
       setStartingTest(true);
       const response = await axios.post(`${API_URL}/api/api-control/admin/failover/test-mode/run-full-test?api_id=${selectedApiForTest}`, {}, authHeaders);
-      toast.success('Full test completed! / पूर्ण टेस्ट पूरा!');
+      toast.success('Full test completed!');
       loadTestSessions();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to run full test');
@@ -398,8 +398,7 @@ const APIControlCenter = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Server className="h-6 w-6 text-orange-500" />
-            API Control Center / API नियंत्रण केंद्र
-          </h2>
+            API Control Center / API          </h2>
           <p className="text-slate-400 text-sm">
             Manage all APIs • Monitor health • Emergency override
           </p>
@@ -517,8 +516,7 @@ const APIControlCenter = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <ArrowRightLeft className="h-5 w-5 text-blue-500" />
-                Failover Status / फेलओवर स्थिति
-              </CardTitle>
+                Failover Status</CardTitle>
               <CardDescription className="text-slate-400">
                 Automatic failover switches to backup API when primary fails
               </CardDescription>
@@ -614,8 +612,7 @@ const APIControlCenter = () => {
                 <div>
                   <CardTitle className="text-white flex items-center gap-2">
                     <BarChart3 className="h-5 w-5 text-green-500" />
-                    Monthly Cost Report / मासिक लागत रिपोर्ट
-                  </CardTitle>
+                    Monthly Cost Report</CardTitle>
                   <CardDescription className="text-slate-400">
                     API usage costs for finance team
                   </CardDescription>
@@ -697,8 +694,7 @@ const APIControlCenter = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-green-500" />
-                  Budget Status / बजट स्थिति
-                </CardTitle>
+                  Budget Status</CardTitle>
               </CardHeader>
               <CardContent>
                 {budgetStatus?.configured ? (
@@ -775,12 +771,11 @@ const APIControlCenter = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Settings className="h-5 w-5 text-orange-500" />
-                  Configure Budget / बजट सेटिंग्स
-                </CardTitle>
+                  Configure Budget</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-slate-400 text-sm">Monthly Budget (₹) / मासिक बजट</label>
+                  <label className="text-slate-400 text-sm">Monthly Budget (₹)</label>
                   <Input
                     type="number"
                     placeholder="e.g., 50000"
@@ -844,8 +839,7 @@ const APIControlCenter = () => {
                   className="w-full bg-orange-500 hover:bg-orange-600"
                 >
                   {savingBudget ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                  Save Budget Config / बजट सेव करें
-                </Button>
+                  Save Budget Config</Button>
               </CardContent>
             </Card>
           </div>
@@ -855,8 +849,7 @@ const APIControlCenter = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Bell className="h-5 w-5 text-yellow-500" />
-                Alert Channels / अलर्ट चैनल
-              </CardTitle>
+                Alert Channels</CardTitle>
               <CardDescription className="text-slate-400">
                 Configure Slack & Email notifications for API failures, budget alerts, health issues
               </CardDescription>
@@ -892,7 +885,7 @@ const APIControlCenter = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-white font-medium">Alert Types / अलर्ट प्रकार</h4>
+                  <h4 className="text-white font-medium">Alert Types</h4>
                   <div className="space-y-2">
                     <label className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg cursor-pointer">
                       <Switch
@@ -958,8 +951,7 @@ const APIControlCenter = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <TestTube className="h-5 w-5 text-purple-500" />
-                  Failover Test Mode / फेलओवर टेस्ट
-                </CardTitle>
+                  Failover Test Mode</CardTitle>
                 <CardDescription className="text-slate-400">
                   Simulate failures safely without affecting production
                 </CardDescription>
@@ -988,7 +980,7 @@ const APIControlCenter = () => {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-slate-400 text-sm">Select API to Test / टेस्ट के लिए API चुनें</label>
+                      <label className="text-slate-400 text-sm">Select API to Test</label>
                       <select
                         value={selectedApiForTest}
                         onChange={(e) => setSelectedApiForTest(e.target.value)}
@@ -1036,8 +1028,7 @@ const APIControlCenter = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-white flex items-center gap-2">
                     <History className="h-5 w-5 text-blue-500" />
-                    Test History / टेस्ट इतिहास
-                  </CardTitle>
+                    Test History</CardTitle>
                   <Button variant="ghost" size="sm" onClick={loadTestSessions}>
                     <RefreshCw className="h-4 w-4" />
                   </Button>
@@ -1081,7 +1072,7 @@ const APIControlCenter = () => {
           {/* How Failover Testing Works */}
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4">
-              <h4 className="text-white font-medium mb-2">🧪 How Failover Testing Works / कैसे काम करता है?</h4>
+              <h4 className="text-white font-medium mb-2">🧪 How Failover Testing Works</h4>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
                 <div className="p-3 bg-slate-700/50 rounded-lg">
                   <div className="text-purple-400 font-medium">1️⃣ Select API</div>
@@ -1108,8 +1099,7 @@ const APIControlCenter = () => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <History className="h-5 w-5 text-orange-500" />
-              Recent API Changes / हाल के बदलाव
-            </CardTitle>
+              Recent API Changes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -1209,7 +1199,6 @@ const APICard = ({ api, onToggle, onModeSwitch, onEmergencyOverride, getStatusCo
 
         {/* Description */}
         <p className="text-slate-400 text-sm">{api.description}</p>
-        <p className="text-slate-500 text-xs">{api.description_hi}</p>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-2 text-center">

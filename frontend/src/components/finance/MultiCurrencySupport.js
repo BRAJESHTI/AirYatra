@@ -141,8 +141,7 @@ export default function MultiCurrencySupport() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Globe className="h-7 w-7 text-teal-400" />
-            Multi-Currency Support / बहु-मुद्रा समर्थन
-          </h1>
+            Multi-Currency Support</h1>
           <p className="text-slate-400 mt-1">Live forex rates and international vendor payments</p>
         </div>
         <div className="flex items-center gap-3">
@@ -220,8 +219,7 @@ export default function MultiCurrencySupport() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calculator className="h-5 w-5 text-blue-400" />
-                Currency Converter / मुद्रा परिवर्तक
-              </CardTitle>
+                Currency Converter</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-5 gap-4 items-center">
@@ -419,8 +417,7 @@ export default function MultiCurrencySupport() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-teal-400" />
-              Create Forex Payment / विदेशी मुद्रा भुगतान
-            </DialogTitle>
+              Create Forex Payment</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>

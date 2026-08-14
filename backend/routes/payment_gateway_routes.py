@@ -273,7 +273,7 @@ async def initiate_bulk_salary_transfer(
     await db.payment_batches.insert_one(batch_record)
     
     return {
-        "message": "Bulk salary transfer initiated / बल्क सैलरी ट्रांसफर शुरू",
+        "message": "Bulk salary transfer initiated",
         "batch_id": batch_id,
         "batch_number": batch_number,
         "summary": {
@@ -493,7 +493,7 @@ async def reverse_salary_transfer(
     await db.journal_entries.insert_one(reversal_entry)
     
     return {
-        "message": "Salary transfer reversed / सैलरी ट्रांसफर रिवर्स हो गया",
+        "message": "Salary transfer reversed",
         "reversal_id": reversal_id,
         "original_transaction": transaction_id,
         "journal_entry_id": reversal_entry["id"]
@@ -553,7 +553,7 @@ async def create_vendor(
     await db.vendors.insert_one(vendor)
     
     return {
-        "message": "Vendor created / वेंडर बन गया",
+        "message": "Vendor created",
         "vendor_id": vendor_id,
         "vendor_code": vendor["vendor_code"]
     }
@@ -653,7 +653,7 @@ async def create_vendor_bill(
     await db.vendor_bills.insert_one(bill)
     
     return {
-        "message": "Vendor bill created / वेंडर बिल बन गया",
+        "message": "Vendor bill created",
         "bill_id": bill_id,
         "bill_number": bill["bill_number"],
         "tds_details": {
@@ -709,7 +709,7 @@ async def approve_vendor_bill(
         }}
     )
     
-    return {"message": "Bill approved / बिल स्वीकृत"}
+    return {"message": "Bill approved"}
 
 
 @router.post("/vendor/bill/bulk-payment")
@@ -871,7 +871,7 @@ async def process_bulk_vendor_payment(
         })
     
     return {
-        "message": "Bulk vendor payment initiated / बल्क वेंडर पेमेंट शुरू",
+        "message": "Bulk vendor payment initiated",
         "batch_id": batch_id,
         "batch_number": batch_number,
         "summary": {
@@ -959,7 +959,7 @@ async def complete_vendor_payment(
     await db.journal_entries.insert_one(journal_entry)
     
     return {
-        "message": "Vendor payment completed / वेंडर पेमेंट पूर्ण",
+        "message": "Vendor payment completed",
         "journal_entry_id": journal_entry["id"]
     }
 
@@ -1044,7 +1044,7 @@ from services.approval_workflow import ApprovalWorkflow, TDSConfigManager, Appro
 async def get_available_gateways(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE]))
 ):
-    """Get list of available payment gateways / उपलब्ध पेमेंट गेटवे"""
+    """Get list of available payment gateways"""
     gateways = payment_gateway_manager.get_available_gateways()
     return {
         "gateways": gateways,
@@ -1058,7 +1058,7 @@ async def update_gateway_config(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
-    """Update gateway configuration / गेटवे कॉन्फ़िगरेशन अपडेट करें"""
+    """Update gateway configuration"""
     gateway_name = config.get("gateway")
     credentials = config.get("credentials", {})
     
@@ -1075,7 +1075,7 @@ async def update_gateway_config(
         upsert=True
     )
     
-    return {"message": f"{gateway_name} configuration updated / कॉन्फ़िगरेशन अपडेट हो गया"}
+    return {"message": f"{gateway_name} configuration updated"}
 
 
 # ==================== APPROVAL WORKFLOW ENDPOINTS ====================
@@ -1086,7 +1086,7 @@ async def create_approval_request(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Create approval request for payment / पेमेंट के लिए अनुमोदन अनुरोध बनाएं"""
+    """Create approval request for payment"""
     workflow = ApprovalWorkflow(db)
     
     result = await workflow.create_approval_request(
@@ -1109,7 +1109,7 @@ async def get_pending_approvals(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get pending approvals for current user's role / लंबित अनुमोदन प्राप्त करें"""
+    """Get pending approvals for current user's role"""
     workflow = ApprovalWorkflow(db)
     role = current_user.get("role", "")
     
@@ -1212,7 +1212,7 @@ async def reject_approval(
     current_user: dict = Depends(require_roles([UserRole.HR, UserRole.FINANCE, UserRole.ADMIN, UserRole.SUPER_ADMIN])),
     db=Depends(get_database)
 ):
-    """Reject approval request / अनुमोदन अनुरोध अस्वीकार करें"""
+    """Reject approval request"""
     workflow = ApprovalWorkflow(db)
     
     result = await workflow.reject(
@@ -1233,7 +1233,7 @@ async def get_approval_history(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get approval history / अनुमोदन इतिहास प्राप्त करें"""
+    """Get approval history"""
     workflow = ApprovalWorkflow(db)
     
     history = await workflow.get_approval_history(
@@ -1281,7 +1281,7 @@ async def add_custom_tds_rate(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
     db=Depends(get_database)
 ):
-    """Add custom TDS rate for vendor / वेंडर के लिए कस्टम TDS रेट जोड़ें"""
+    """Add custom TDS rate for vendor"""
     tds_manager = TDSConfigManager(db)
     
     custom_rate = await tds_manager.add_custom_rate(
@@ -1293,7 +1293,7 @@ async def add_custom_tds_rate(
         updater_id=current_user["id"]
     )
     
-    return {"message": "Custom TDS rate added / कस्टम TDS रेट जोड़ा गया", "custom_rate": custom_rate}
+    return {"message": "Custom TDS rate added", "custom_rate": custom_rate}
 
 
 @router.post("/tds/calculate")
@@ -1302,7 +1302,7 @@ async def calculate_tds(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Calculate TDS for amount / राशि के लिए TDS की गणना करें"""
+    """Calculate TDS for amount"""
     tds_manager = TDSConfigManager(db)
     
     result = await tds_manager.calculate_tds(
@@ -1321,7 +1321,7 @@ async def get_tds_sections(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get all TDS sections with rates / सभी TDS सेक्शन प्राप्त करें"""
+    """Get all TDS sections with rates"""
     tds_manager = TDSConfigManager(db)
     sections = await tds_manager.get_tds_sections()
     return {"sections": sections}
@@ -1350,7 +1350,7 @@ async def multi_gateway_salary_transfer(
         workflow = ApprovalWorkflow(db)
         is_approved = await workflow.is_approved(approval_id)
         if not is_approved:
-            raise HTTPException(status_code=400, detail="Approval pending / अनुमोदन लंबित है")
+            raise HTTPException(status_code=400, detail="Approval pending")
     
     # Get approved payrolls
     payrolls = await db.payroll.find({
@@ -1360,7 +1360,7 @@ async def multi_gateway_salary_transfer(
     }, {"_id": 0}).to_list(500)
     
     if not payrolls:
-        raise HTTPException(status_code=400, detail="No approved payrolls found / कोई अनुमोदित पेरोल नहीं मिला")
+        raise HTTPException(status_code=400, detail="No approved payrolls found")
     
     # Prepare employee data with bank details
     employees = []
@@ -1392,7 +1392,7 @@ async def multi_gateway_salary_transfer(
         })
     
     if not employees:
-        raise HTTPException(status_code=400, detail="No employees with bank details found / बैंक विवरण वाले कोई कर्मचारी नहीं मिले")
+        raise HTTPException(status_code=400, detail="No employees with bank details found")
     
     # Process bulk transfer
     result = await payment_gateway_manager.process_bulk_salary(
@@ -1441,7 +1441,7 @@ async def multi_gateway_salary_transfer(
             )
     
     return {
-        "message": f"Bulk salary transfer initiated via {gateway_name} / {gateway_name} के माध्यम से बल्क सैलरी ट्रांसफर शुरू",
+        "message": f"Bulk salary transfer initiated via {gateway_name}",
         "batch_id": batch_id,
         "batch_number": batch_number,
         "gateway": gateway_name,
@@ -1477,7 +1477,7 @@ async def multi_gateway_vendor_payment(
         workflow = ApprovalWorkflow(db)
         is_approved = await workflow.is_approved(approval_id)
         if not is_approved:
-            raise HTTPException(status_code=400, detail="Approval pending / अनुमोदन लंबित है")
+            raise HTTPException(status_code=400, detail="Approval pending")
     
     # Get approved unpaid bills
     query = {"status": "approved", "payment_status": "unpaid"}
@@ -1487,7 +1487,7 @@ async def multi_gateway_vendor_payment(
     bills = await db.vendor_bills.find(query, {"_id": 0}).to_list(100)
     
     if not bills:
-        raise HTTPException(status_code=400, detail="No approved unpaid bills found / कोई अनुमोदित अवैतनिक बिल नहीं मिला")
+        raise HTTPException(status_code=400, detail="No approved unpaid bills found")
     
     successful_payments = []
     failed_payments = []
@@ -1580,7 +1580,7 @@ async def multi_gateway_vendor_payment(
     })
     
     return {
-        "message": f"Vendor payments initiated via {gateway_name} / {gateway_name} के माध्यम से वेंडर पेमेंट शुरू",
+        "message": f"Vendor payments initiated via {gateway_name}",
         "batch_id": batch_id,
         "batch_number": batch_number,
         "gateway": gateway_name,
@@ -1689,7 +1689,7 @@ async def create_auto_salary_run(
     )
     
     return {
-        "message": "Salary run created and sent for approval / सैलरी रन बनाया गया और अनुमोदन के लिए भेजा गया",
+        "message": "Salary run created and sent for approval",
         "run_id": run_id,
         "run_number": run_number,
         "approval_id": approval["approval_id"],
@@ -1722,7 +1722,7 @@ async def execute_auto_salary_run(
         workflow = ApprovalWorkflow(db)
         is_approved = await workflow.is_approved(run["approval_id"])
         if not is_approved:
-            raise HTTPException(status_code=400, detail="Salary run not approved yet / सैलरी रन अभी तक अनुमोदित नहीं है")
+            raise HTTPException(status_code=400, detail="Salary run not approved yet")
     
     if run["status"] in ["processing", "completed"]:
         raise HTTPException(status_code=400, detail=f"Salary run already {run['status']}")
@@ -1762,7 +1762,7 @@ async def execute_auto_salary_run(
     )
     
     return {
-        "message": "Salary run executed / सैलरी रन निष्पादित हो गया",
+        "message": "Salary run executed",
         "run_id": run_id,
         "run_number": run["run_number"],
         **transfer_result
@@ -1776,7 +1776,7 @@ async def get_salary_runs(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
-    """Get all salary runs / सभी सैलरी रन प्राप्त करें"""
+    """Get all salary runs"""
     query = {}
     if status:
         query["status"] = status
@@ -1824,7 +1824,7 @@ async def add_employee_bank_details(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR])),
     db=Depends(get_database)
 ):
-    """Add/Update employee bank details / कर्मचारी बैंक विवरण जोड़ें"""
+    """Add/Update employee bank details"""
     employee_id = data["employee_id"]
     
     bank_details = {
@@ -1845,7 +1845,7 @@ async def add_employee_bank_details(
         upsert=True
     )
     
-    return {"message": "Bank details saved / बैंक विवरण सहेजे गए", "employee_id": employee_id}
+    return {"message": "Bank details saved", "employee_id": employee_id}
 
 
 @router.get("/employee/{employee_id}/bank-details")
@@ -1877,7 +1877,7 @@ async def get_finance_dashboard(
     current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANCE])),
     db=Depends(get_database)
 ):
-    """Get finance dashboard data / फाइनेंस डैशबोर्ड डेटा प्राप्त करें"""
+    """Get finance dashboard data"""
     
     # Pending approvals
     pending_approvals = await db.approval_requests.count_documents({

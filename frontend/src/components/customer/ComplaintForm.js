@@ -8,22 +8,22 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 
 const SEVERITY_OPTIONS = [
-  { value: 'low', label: 'Low / कम', color: 'bg-green-500/20 text-green-400 border-green-500/40' },
-  { value: 'medium', label: 'Medium / मध्यम', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' },
-  { value: 'high', label: 'High / गंभीर', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
-  { value: 'critical', label: 'Critical / अत्यंत गंभीर', color: 'bg-red-500/20 text-red-400 border-red-500/40' },
+  { value: 'low', label: 'Low', color: 'bg-green-500/20 text-green-400 border-green-500/40' },
+  { value: 'medium', label: 'Medium', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' },
+  { value: 'high', label: 'High', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
+  { value: 'critical', label: 'Critical', color: 'bg-red-500/20 text-red-400 border-red-500/40' },
 ];
 
 const CATEGORY_OPTIONS = [
-  { value: 'safety', label: 'Safety Concern / सुरक्षा चिंता' },
-  { value: 'service_quality', label: 'Service Quality / सेवा गुणवत्ता' },
-  { value: 'cancellation', label: 'Cancellation Issue / रद्दीकरण' },
-  { value: 'delay', label: 'Flight Delay / विलंब' },
-  { value: 'equipment_failure', label: 'Equipment Failure / उपकरण खराबी' },
-  { value: 'crew_behavior', label: 'Crew Behavior / क्रू व्यवहार' },
-  { value: 'billing', label: 'Billing Issue / बिलिंग' },
-  { value: 'feature_discrepancy', label: 'Service Discrepancy / सेवा विसंगति' },
-  { value: 'other', label: 'Other / अन्य' },
+  { value: 'safety', label: 'Safety Concern' },
+  { value: 'service_quality', label: 'Service Quality' },
+  { value: 'cancellation', label: 'Cancellation Issue' },
+  { value: 'delay', label: 'Flight Delay' },
+  { value: 'equipment_failure', label: 'Equipment Failure' },
+  { value: 'crew_behavior', label: 'Crew Behavior' },
+  { value: 'billing', label: 'Billing Issue' },
+  { value: 'feature_discrepancy', label: 'Service Discrepancy' },
+  { value: 'other', label: 'Other' },
 ];
 
 export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
@@ -45,13 +45,13 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     const invalidFiles = files.filter(f => !validTypes.includes(f.type));
     if (invalidFiles.length > 0) {
-      toast.error('Only JPG, PNG, WEBP, PDF allowed / केवल JPG, PNG, WEBP, PDF');
+      toast.error('Only JPG, PNG, WEBP, PDF allowedJPG, PNG, WEBP, PDF');
       return;
     }
 
     // Max 5 files, 5MB each
     if (evidenceFiles.length + files.length > 5) {
-      toast.error('Maximum 5 files allowed / अधिकतम 5 फाइलें');
+      toast.error('Maximum 5 files allowed');
       return;
     }
 
@@ -75,7 +75,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
         };
         reader.readAsDataURL(file);
       }
-      toast.success('Files attached / फाइलें जुड़ गईं');
+      toast.success('Files attached');
     } catch (err) {
       toast.error('File upload failed');
     } finally {
@@ -89,11 +89,11 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
 
   const handleSubmit = async () => {
     if (!formData.subject.trim()) {
-      toast.error('Subject is required / विषय आवश्यक है');
+      toast.error('Subject is required');
       return;
     }
     if (!formData.description.trim() || formData.description.length < 20) {
-      toast.error('Description must be at least 20 characters / विवरण कम से कम 20 अक्षर');
+      toast.error('Description must be at least 20 characters');
       return;
     }
 
@@ -112,7 +112,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
       
       toast.success(
         <div>
-          <p className="font-semibold">Complaint Filed! / शिकायत दर्ज!</p>
+          <p className="font-semibold">Complaint Filed!</p>
           <p className="text-sm">#{response.data.complaint_number}</p>
           <p className="text-xs text-slate-400 mt-1">Operator must respond within 2 hours</p>
         </div>
@@ -124,7 +124,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
       onSuccess?.(response.data);
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to file complaint / शिकायत दर्ज करने में विफल');
+      toast.error(err.response?.data?.detail || 'Failed to file complaint');
     } finally {
       setSubmitting(false);
     }
@@ -138,14 +138,13 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <AlertTriangle className="h-5 w-5 text-orange-400" />
-            File Complaint / शिकायत दर्ज करें
-          </DialogTitle>
+            File Complaint</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Booking Info */}
           <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-            <p className="text-sm text-slate-400">Booking / बुकिंग</p>
+            <p className="text-sm text-slate-400">Booking</p>
             <p className="font-semibold text-white">{booking.booking_number || booking.inquiry_number || `#${booking.id?.slice(0, 8)}`}</p>
             <p className="text-sm text-slate-400 mt-1">
               {booking.pickup_location || booking.from_location} → {booking.drop_location || booking.to_location}
@@ -154,7 +153,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
 
           {/* Subject */}
           <div>
-            <Label className="text-slate-300">Subject / विषय *</Label>
+            <Label className="text-slate-300">Subject*</Label>
             <Input
               value={formData.subject}
               onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
@@ -168,7 +167,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
           {/* Category & Severity */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-slate-300">Category / श्रेणी</Label>
+              <Label className="text-slate-300">Category</Label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
@@ -181,7 +180,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
               </select>
             </div>
             <div>
-              <Label className="text-slate-300">Severity / गंभीरता</Label>
+              <Label className="text-slate-300">Severity</Label>
               <select
                 value={formData.severity}
                 onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value }))}
@@ -197,7 +196,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
 
           {/* Description */}
           <div>
-            <Label className="text-slate-300">Description / विवरण *</Label>
+            <Label className="text-slate-300">Description*</Label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -210,7 +209,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
 
           {/* Evidence Upload */}
           <div>
-            <Label className="text-slate-300">Evidence / सबूत (Optional)</Label>
+            <Label className="text-slate-300">EvidenceOptional)</Label>
             <div className="mt-2 border-2 border-dashed border-slate-600 rounded-lg p-4 text-center">
               <input
                 type="file"
@@ -257,11 +256,11 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
 
           {/* Warning */}
           <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-sm">
-            <p className="text-orange-400 font-medium">Important / महत्वपूर्ण:</p>
+            <p className="text-orange-400 font-medium">Important</p>
             <ul className="text-slate-400 text-xs mt-1 space-y-1">
-              <li>• Operator must respond within 24 hours / ऑपरेटर को 24 घंटे में जवाब देना होगा</li>
-              <li>• AirYatra will investigate independently / एयरयात्रा स्वतंत्र रूप से जांच करेगा</li>
-              <li>• Decision is final - no appeal / निर्णय अंतिम है</li>
+              <li>• Operator must respond within 24 hours</li>
+              <li>• AirYatra will investigate independently</li>
+              <li>• Decision is final - no appeal</li>
             </ul>
           </div>
         </div>
@@ -273,8 +272,7 @@ export default function ComplaintForm({ isOpen, onClose, booking, onSuccess }) {
             className="border-slate-600 text-slate-300"
             disabled={submitting}
           >
-            Cancel / रद्द करें
-          </Button>
+            Cancel</Button>
           <Button
             onClick={handleSubmit}
             disabled={submitting || !formData.subject || !formData.description}

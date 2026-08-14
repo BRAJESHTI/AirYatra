@@ -111,8 +111,8 @@ export default function PlatformFeesPanel() {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white mb-1">City / Route Platform Fees</h2>
         <p className="text-slate-400 text-sm">
-          Route ya city ke hisab se platform fee set karein — har operator quote par auto-apply hogi.
-          Koi rule match na ho to <span className="text-orange-400 font-semibold">Global Default {globalDefault}%</span> lagega.
+          Set platform fees by route or city — auto-applied to every operator quote.
+          If no rule matches, the <span className="text-orange-400 font-semibold">Global Default {globalDefault}%</span> applies.
         </p>
       </div>
 
@@ -122,7 +122,7 @@ export default function PlatformFeesPanel() {
           {/* Global Default */}
           <div className="glass p-5 rounded-xl" data-testid="global-default-card">
             <p className="text-white font-semibold mb-1 flex items-center gap-2"><Percent className="h-4 w-4 text-orange-400" /> Global Default Fee</p>
-            <p className="text-slate-500 text-xs mb-3">Jab koi city/route rule match nahi hota</p>
+            <p className="text-slate-500 text-xs mb-3">Applied when no city/route rule matches</p>
             <div className="flex items-center gap-2">
               <Input type="number" min="0" max="100" step="0.5"
                 value={settings.global_default_percent}
@@ -165,7 +165,7 @@ export default function PlatformFeesPanel() {
                 {settings.surge.enabled ? 'ON' : 'OFF'}
               </button>
             </div>
-            <p className="text-slate-500 text-xs mb-3">Fixed routes par demand (24h searches + bookings) ke hisab se AI rate auto-badhata hai.</p>
+            <p className="text-slate-500 text-xs mb-3">AI auto-increases rates on fixed routes based on demand (24h searches + bookings).</p>
             <div className="flex items-center gap-2">
               <span className="text-slate-300 text-xs">Max increase:</span>
               <Input type="number" min="0" max="100" step="5" value={settings.surge.max_percent}
@@ -217,7 +217,7 @@ export default function PlatformFeesPanel() {
       {/* Rules list */}
       <div className="space-y-3" data-testid="fee-rules-list">
         {rules.length === 0 && (
-          <p className="text-slate-500 text-sm text-center py-8">Koi rule nahi — sabhi quotes par global default {globalDefault}% lagega.</p>
+          <p className="text-slate-500 text-sm text-center py-8">No rules yet — the global default {globalDefault}% applies to all quotes.</p>
         )}
         {rules.map((rule) => (
           <div key={rule.id} data-testid={`fee-rule-${rule.id}`}

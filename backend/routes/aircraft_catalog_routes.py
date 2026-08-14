@@ -43,8 +43,7 @@ class AircraftBasicInfo(BaseModel):
     registration_number: str  # VT-XXX
     serial_number: Optional[str] = None
     
-    # NEW: Technical Specifications / तकनीकी विवरण
-    engine_type: Optional[str] = None  # turbine, piston, twin_turbine
+    # NEW: Technical Specifications    engine_type: Optional[str] = None  # turbine, piston, twin_turbine
     engine_model: Optional[str] = None  # PT6A, Rolls-Royce etc.
     cruise_speed_kmh: Optional[int] = None  # Cruise speed in km/h
     max_range_km: Optional[int] = None  # Maximum range in km
@@ -78,7 +77,7 @@ class CrewMember(BaseModel):
 
 
 class CrewConfiguration(BaseModel):
-    """Aircraft Crew Configuration / क्रू विन्यास"""
+    """Aircraft Crew Configuration"""
     pilot_count: int = 1  # Number of pilots required
     copilot_required: bool = False  # Whether co-pilot is mandatory
     cabin_crew_count: int = 0  # Number of cabin crew
@@ -88,7 +87,7 @@ class CrewConfiguration(BaseModel):
 
 
 class AircraftPricing(BaseModel):
-    """Section D - Commercial Details / व्यावसायिक विवरण"""
+    """Section D - Commercial Details"""
     # Base Pricing
     one_way_price: Optional[float] = None
     return_price: Optional[float] = None  # Round trip discount
@@ -103,8 +102,7 @@ class AircraftPricing(BaseModel):
     helipad_charges: Optional[float] = None
     crew_charges: Optional[float] = None
     
-    # NEW: Booking Type Specific Pricing / बुकिंग प्रकार
-    multi_city_per_leg_discount: Optional[float] = None  # % discount per leg
+    # NEW: Booking Type Specific Pricing    multi_city_per_leg_discount: Optional[float] = None  # % discount per leg
     group_booking_discount: Optional[float] = None  # For 5+ pax
     emergency_surcharge_percent: Optional[float] = None  # Urgent bookings
     event_package_price: Optional[float] = None  # Wedding/Corporate events
@@ -123,7 +121,7 @@ class AircraftPricing(BaseModel):
 
 
 class AircraftFeatures(BaseModel):
-    """Section E - Aircraft Features & Amenities / सुविधाएं"""
+    """Section E - Aircraft Features & Amenities"""
     total_seats: int = 4
     vip_seats: int = 0
     cabin_size: Optional[str] = None  # small, medium, large
@@ -145,8 +143,7 @@ class AircraftFeatures(BaseModel):
     usb_ports: bool = True
     power_outlets: bool = False  # 220V outlets
     
-    # Food & Beverages / भोजन
-    refreshments: bool = False
+    # Food & Beverages    refreshments: bool = False
     hot_beverages: bool = False  # Tea/Coffee
     cold_beverages: bool = False
     snacks: bool = False
@@ -175,14 +172,13 @@ class AircraftFeatures(BaseModel):
 
 
 class SafetyEquipment(BaseModel):
-    """Section C - Safety Equipment / सुरक्षा उपकरण"""
+    """Section C - Safety Equipment"""
     first_aid_kit: bool = True
     fire_extinguisher: bool = True
     elt: bool = True  # Emergency Locator Transmitter
     life_jackets: bool = False
     
-    # NEW: Advanced Safety Systems / उन्नत सुरक्षा प्रणाली
-    oxygen_kit: bool = False  # Required for flights >10,000 ft
+    # NEW: Advanced Safety Systems    oxygen_kit: bool = False  # Required for flights >10,000 ft
     oxygen_kit_type: Optional[str] = None  # portable, fixed, diluter_demand
     tcas: bool = False  # Traffic Collision Avoidance System
     tcas_version: Optional[str] = None  # TCAS I, TCAS II, ACAS X
@@ -224,8 +220,7 @@ class CreateAircraftRequest(BaseModel):
     pricing: AircraftPricing
     # Safety Equipment
     safety_equipment: Optional[SafetyEquipment] = None
-    # Crew Configuration / क्रू विन्यास
-    crew_configuration: Optional[CrewConfiguration] = None
+    # Crew Configuration    crew_configuration: Optional[CrewConfiguration] = None
     # Description
     description: Optional[str] = None
     highlights: Optional[List[str]] = None
@@ -243,59 +238,59 @@ class UpdateVerificationRequest(BaseModel):
 
 # ============ CONSTANTS ============
 
-# Booking Types / बुकिंग प्रकार
+# Booking Types
 BOOKING_TYPES = {
     "one_way": {
-        "label": "One Way / एकतरफा",
+        "label": "One Way",
         "description": "Single journey from A to B",
         "icon": "arrow_right"
     },
     "round_trip": {
-        "label": "Round Trip / वापसी यात्रा",
+        "label": "Round Trip",
         "description": "Return journey A to B to A",
         "discount_hint": "Save 5-10% on round trips",
         "icon": "refresh"
     },
     "multi_city": {
-        "label": "Multi-City / बहु-शहर",
+        "label": "Multi-City",
         "description": "Multiple destinations in one trip",
         "discount_hint": "Per-leg discounts available",
         "icon": "route"
     },
     "hourly_charter": {
-        "label": "Hourly Charter / प्रति घंटा",
+        "label": "Hourly Charter",
         "description": "Book by the hour",
         "min_hours": 1,
         "icon": "clock"
     },
     "daily_charter": {
-        "label": "Daily Charter / दैनिक",
+        "label": "Daily Charter",
         "description": "Full day aircraft at your disposal",
         "icon": "calendar_today"
     },
     "multi_day": {
-        "label": "Multi-Day / बहु-दिवसीय",
+        "label": "Multi-Day",
         "description": "3+ days charter with discounts",
         "discount_hint": "10-15% off for 3+ days",
         "min_days": 3,
         "icon": "date_range"
     },
     "group_booking": {
-        "label": "Group Booking / समूह बुकिंग",
+        "label": "Group Booking",
         "description": "5+ passengers, special rates",
         "discount_hint": "Group discounts available",
         "min_passengers": 5,
         "icon": "groups"
     },
     "emergency": {
-        "label": "Emergency / आपातकालीन",
+        "label": "Emergency",
         "description": "Urgent medical or time-critical",
         "surcharge_hint": "Priority booking surcharge may apply",
         "priority": True,
         "icon": "emergency"
     },
     "event_based": {
-        "label": "Event Package / इवेंट पैकेज",
+        "label": "Event Package",
         "description": "Weddings, Corporate events, Film shoots",
         "custom_quote": True,
         "icon": "celebration"
@@ -320,11 +315,11 @@ AVAILABILITY_STATUS = {
 }
 
 AIRCRAFT_TYPES = {
-    "helicopter": "Helicopter / हेलीकॉप्टर",
-    "light_jet": "Light Jet / लाइट जेट",
-    "mid_jet": "Mid Jet / मिड जेट",
-    "heavy_jet": "Heavy Jet / हैवी जेट",
-    "turboprop": "Turboprop / टर्बोप्रॉप"
+    "helicopter": "Helicopter",
+    "light_jet": "Light Jet",
+    "mid_jet": "Mid Jet",
+    "heavy_jet": "Heavy Jet",
+    "turboprop": "Turboprop"
 }
 
 DOCUMENT_TYPES = [
@@ -523,7 +518,7 @@ async def create_aircraft(
             "stretcher_compatible": False
         },
         
-        # Crew Configuration / क्रू विन्यास
+        # Crew Configuration
         "crew_configuration": request.crew_configuration.dict() if request.crew_configuration else {
             "pilot_count": 1,
             "copilot_required": False,
@@ -1601,11 +1596,11 @@ async def compare_aircraft(
             }
         },
         "comparison_categories": [
-            {"key": "specs", "label": "Technical Specifications / तकनीकी विवरण"},
-            {"key": "capacity", "label": "Capacity / क्षमता"},
-            {"key": "crew", "label": "Crew / क्रू"},
-            {"key": "safety", "label": "Safety / सुरक्षा"},
-            {"key": "amenities", "label": "Amenities / सुविधाएं"},
-            {"key": "pricing", "label": "Pricing / मूल्य"}
+            {"key": "specs", "label": "Technical Specifications"},
+            {"key": "capacity", "label": "Capacity"},
+            {"key": "crew", "label": "Crew"},
+            {"key": "safety", "label": "Safety"},
+            {"key": "amenities", "label": "Amenities"},
+            {"key": "pricing", "label": "Pricing"}
         ]
     }

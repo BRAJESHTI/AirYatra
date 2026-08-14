@@ -800,7 +800,7 @@ function BookingPage({ user }) {
         currentStep,
         savedAt: new Date().toISOString()
       }));
-      toast.info('🔐 Login karein, form data save ho gaya hai! / Please login, form data is saved!');
+      toast.info('🔐 Please login — your form data is saved!');
       navigate('/login', { state: { returnTo: '/booking' } });
       return;
     }

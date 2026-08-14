@@ -32,7 +32,7 @@ export const EmpPayslips = () => {
       a.download = `AirYatra_Payslip_${slip.period?.replace(' ', '_')}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Payslip downloaded / वेतन पर्ची डाउनलोड हो गई');
+      toast.success('Payslip downloaded');
     } catch (e) {
       toast.error('Failed to download payslip');
     } finally { setDownloading(false); }
@@ -50,7 +50,7 @@ export const EmpPayslips = () => {
   return (
     <div className="space-y-6" data-testid="emp-payslips">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-white">Payslips / वेतन पर्ची</h1>
+        <h1 className="text-2xl font-bold text-white">Payslips</h1>
         <div className="flex gap-2">
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="bg-slate-800 text-white rounded-lg px-3 py-2 border border-slate-700 text-sm" data-testid="payslip-month-select">
             {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{new Date(2026, i).toLocaleString('en', { month: 'long' })}</option>)}
@@ -66,7 +66,7 @@ export const EmpPayslips = () => {
       ) : !slip ? (
         <div className="bg-slate-800/50 rounded-xl p-10 text-center border border-slate-700">
           <FileText className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-          <p className="text-white font-medium">No payslip for this month / इस महीने की पर्ची नहीं मिली</p>
+          <p className="text-white font-medium">No payslip for this month</p>
           <p className="text-slate-400 text-sm">Payroll may not be generated yet. Contact HR.</p>
         </div>
       ) : (
@@ -82,7 +82,7 @@ export const EmpPayslips = () => {
           </div>
           <div className="grid md:grid-cols-2 gap-6 p-5">
             <div>
-              <h3 className="text-green-400 font-semibold mb-2">Earnings / आय</h3>
+              <h3 className="text-green-400 font-semibold mb-2">Earnings</h3>
               {earnRows.map(([k, v]) => (
                 <div key={k} className="flex justify-between py-1.5 border-b border-slate-700/50 text-sm">
                   <span className="text-slate-400">{k}</span><span className="text-white">₹{(v || 0).toLocaleString()}</span>
@@ -91,7 +91,7 @@ export const EmpPayslips = () => {
               <div className="flex justify-between py-2 font-bold text-sm"><span className="text-white">Gross</span><span className="text-green-400">₹{(slip.gross_earnings || 0).toLocaleString()}</span></div>
             </div>
             <div>
-              <h3 className="text-red-400 font-semibold mb-2">Deductions / कटौती</h3>
+              <h3 className="text-red-400 font-semibold mb-2">Deductions</h3>
               {dedRows.map(([k, v]) => (
                 <div key={k} className="flex justify-between py-1.5 border-b border-slate-700/50 text-sm">
                   <span className="text-slate-400">{k}</span><span className="text-white">₹{(v || 0).toLocaleString()}</span>
@@ -101,7 +101,7 @@ export const EmpPayslips = () => {
             </div>
           </div>
           <div className="bg-orange-500/15 border-t border-orange-500/40 p-4 flex justify-between items-center">
-            <span className="text-white font-semibold">NET SALARY / शुद्ध वेतन</span>
+            <span className="text-white font-semibold">NET SALARY</span>
             <span className="text-orange-400 text-2xl font-bold" data-testid="net-salary-amount">₹{(slip.net_salary || 0).toLocaleString()}</span>
           </div>
         </div>

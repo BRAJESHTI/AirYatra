@@ -97,7 +97,7 @@ async def _create_request(db, booking, refund_type, deduction_pct, initiated_by,
 # ==================== CANCELLATION REASONS (Admin/CEO managed) ====================
 
 DEFAULT_REASONS = {
-    "operator": ["Weather thik nahi hai", "Night ho gaya hai (day-flying limit)", "Engine/Technical fault",
+    "operator": ["Bad weather conditions", "Night time (day-flying limit reached)", "Engine/Technical fault",
                  "Pilot unavailable / duty limit", "Landing permission issue"],
     "customer": ["Change of plans", "Medical emergency", "Booked by mistake", "Found better option"],
 }
@@ -162,7 +162,7 @@ async def _send_cancellation_email(db, booking, req):
     </div>
     <div style="padding:26px;">
       <p>Dear {customer.get('full_name') or 'Customer'},</p>
-      <p>{'Aapki booking operator dwara cancel ki gayi hai.' if by == 'Operator' else 'Aapki cancellation request receive ho gayi hai.'} Details neeche hain:</p>
+      <p>{'Your booking has been cancelled by the operator.' if by == 'Operator' else 'Your cancellation request has been received.'} Details below:</p>
       <div style="background:#1a1a2e;border-radius:12px;padding:18px;margin:16px 0;">
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;"><span style="color:#94a3b8;">Route</span><span style="font-weight:600;">{route}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4e;"><span style="color:#94a3b8;">Cancelled By</span><span style="font-weight:600;">{by}</span></div>
@@ -175,10 +175,10 @@ async def _send_cancellation_email(db, booking, req):
         <p style="margin:8px 0 0;color:#cbd5e1;font-size:14px;">
           • Refund team approval: within <b>24–48 hours</b><br/>
           • Amount credit to original payment method: <b>5–7 business days</b> after approval<br/>
-          • Status updates milte rahenge email par
+          • You will keep receiving status updates by email
         </p>
       </div>
-      <p style="color:#94a3b8;font-size:13px;">Koi sawaal ho to support@airyatra.co.in par likhein.</p>
+      <p style="color:#94a3b8;font-size:13px;">For any questions, write to support@airyatra.co.in.</p>
       <p style="margin-top:18px;">Team AirYatra ✈️</p>
     </div>
   </div>
@@ -482,5 +482,5 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
                    f"but auto gateway refund pending ({gw.get('reason')}). Manual processing required.")
         return {"message": msg, "status": "approved", "approvals": approvals, "gateway_refund": gw}
     await db.refund_requests.update_one({"id": request_id}, {"$set": {"approvals": approvals}})
-    return {"message": f"Approval 1/{REQUIRED_APPROVALS} recorded. Ek aur approver chahiye.",
+    return {"message": f"Approval 1/{REQUIRED_APPROVALS} recorded. One more approver is required.",
             "status": "pending_approval", "approvals": approvals}

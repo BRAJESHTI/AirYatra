@@ -247,7 +247,7 @@ async def file_complaint(
         "success": True,
         "complaint_id": complaint_id,
         "complaint_number": complaint_number,
-        "message": "Complaint filed successfully / शिकायत दर्ज हो गई",
+        "message": "Complaint filed successfully",
         "operator_response_deadline": response_deadline.isoformat(),
         "message_hi": "आपकी शिकायत दर्ज हो गई है। ऑपरेटर को 24 घंटे में जवाब देना होगा।"
     }

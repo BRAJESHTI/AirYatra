@@ -313,14 +313,14 @@ def prepare_operator_notification(booking_data: dict, distance_km: float) -> dic
     
     # Map booking_purpose to readable format
     purpose_map = {
-        "wedding": "Wedding / शादी",
+        "wedding": "Wedding",
         "temple_yatra": "Temple / Pilgrimage",
         "company_tour": "Corporate Tour",
         "election_tour": "Election / Political",
         "general_tour": "General Tour",
         "medical_emergency": "Medical / Air Ambulance",
         "business_meeting": "Business Meeting",
-        "pilgrimage": "Pilgrimage / तीर्थ यात्रा",
+        "pilgrimage": "Pilgrimage",
         "film_shooting": "Film/Media Shooting",
         "survey_inspection": "Survey/Inspection",
         "other": "Other"

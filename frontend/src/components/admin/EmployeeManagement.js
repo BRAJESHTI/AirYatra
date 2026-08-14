@@ -41,7 +41,7 @@ function EmployeeManagement() {
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const create = async () => {
-    if (!form.full_name || !form.email || !form.password) return toast.error('Name, email, password required hai');
+    if (!form.full_name || !form.email || !form.password) return toast.error('Name, email and password are required');
     if (form.password.length < 8) return toast.error('Password kam se kam 8 characters ka ho');
     setSaving(true);
     try {
@@ -70,7 +70,7 @@ function EmployeeManagement() {
         employee_id: salaryDialog.id,
         ...Object.fromEntries(SALARY_FIELDS.map(([k]) => [k, Number(salaryForm[k] || 0)])),
       });
-      toast.success('Salary structure updated / वेतन संरचना सेट');
+      toast.success('Salary structure updated');
       setSalaryDialog(null);
       await load();
     } catch (e) {
@@ -82,12 +82,11 @@ function EmployeeManagement() {
     <div className="space-y-6" data-testid="employee-management">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Employee Management / कर्मचारी प्रबंधन</h1>
+          <h1 className="text-2xl font-bold text-white">Employee Management</h1>
           <p className="text-slate-400 text-sm">{employees.length} staff members • Employees login at /employee</p>
         </div>
         <Button onClick={() => setOpen(true)} className="bg-green-500 hover:bg-green-600" data-testid="add-employee-btn">
-          <Plus className="h-4 w-4 mr-2" />Add Employee / नया कर्मचारी
-        </Button>
+          <Plus className="h-4 w-4 mr-2" />Add Employee</Button>
       </div>
 
       {loading ? (
@@ -155,7 +154,7 @@ function EmployeeManagement() {
       {/* Create Employee Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Add Employee / नया कर्मचारी जोड़ें</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add Employee</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div><Label className="text-slate-300">Full Name *</Label><Input value={form.full_name} onChange={set('full_name')} className="bg-slate-800 border-slate-700 mt-1" data-testid="emp-name-input" /></div>
@@ -181,8 +180,7 @@ function EmployeeManagement() {
               </div>
             </div>
             <Button onClick={create} disabled={saving} className="w-full bg-green-500 hover:bg-green-600" data-testid="create-employee-btn">
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Employee / कर्मचारी बनाएं
-            </Button>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Employee</Button>
           </div>
         </DialogContent>
       </Dialog>

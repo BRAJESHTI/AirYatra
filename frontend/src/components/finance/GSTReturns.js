@@ -123,7 +123,7 @@ const GSTReturns = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold text-white">GST Returns / GST रिटर्न</h3>
+          <h3 className="text-xl font-bold text-white">GST Returns / GST</h3>
           <p className="text-slate-400">GSTR-1, GSTR-3B Filing</p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

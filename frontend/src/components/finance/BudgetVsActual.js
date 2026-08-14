@@ -23,11 +23,11 @@ const formatINR = (amount) => {
 };
 
 const categoryLabels = {
-  fuel_expenses: 'Fuel / ईंधन',
-  maintenance: 'Maintenance / रखरखाव',
+  fuel_expenses: 'Fuel',
+  maintenance: 'Maintenance',
   pilot_salaries: 'Pilot Salaries',
   crew_salaries: 'Crew Salaries',
-  insurance: 'Insurance / बीमा',
+  insurance: 'Insurance',
   hangar_rental: 'Hangar Rental',
   vendor_payments: 'Vendor Payments',
   marketing: 'Marketing',
@@ -120,8 +120,7 @@ export default function BudgetVsActual() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Target className="h-7 w-7 text-blue-400" />
-            Budget vs Actual / बजट बनाम वास्तविक
-          </h1>
+            Budget vs Actual</h1>
           <p className="text-slate-400 mt-1">Track planned vs actual spending across categories</p>
         </div>
         <div className="flex items-center gap-3">
@@ -213,8 +212,7 @@ export default function BudgetVsActual() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-blue-400" />
-            Budget by Category / श्रेणी के अनुसार बजट
-          </CardTitle>
+            Budget by Category</CardTitle>
         </CardHeader>
         <CardContent>
           {budgets.length === 0 ? (
@@ -296,8 +294,7 @@ export default function BudgetVsActual() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Calendar className="h-5 w-5 text-purple-400" />
-            6-Month Trend / 6 महीने का ट्रेंड
-          </CardTitle>
+            6-Month Trend / 6          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-end justify-between h-48 gap-4">
@@ -344,8 +341,7 @@ export default function BudgetVsActual() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-blue-400" />
-              Set Budget / बजट सेट करें
-            </DialogTitle>
+              Set Budget</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>

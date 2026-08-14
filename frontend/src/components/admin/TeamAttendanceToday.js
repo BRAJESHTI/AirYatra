@@ -7,10 +7,10 @@ import { toast } from 'sonner';
 const BACKEND = process.env.REACT_APP_BACKEND_URL;
 
 const STATUS_META = {
-  in_office: { label: 'In Office / उपस्थित', dot: 'bg-green-400', chip: 'bg-green-500/20 text-green-400' },
-  checked_out: { label: 'Checked Out / चेक-आउट', dot: 'bg-sky-400', chip: 'bg-sky-500/20 text-sky-400' },
-  on_leave: { label: 'On Leave / छुट्टी पर', dot: 'bg-yellow-400', chip: 'bg-yellow-500/20 text-yellow-400' },
-  missing: { label: 'Missing / अनुपस्थित', dot: 'bg-red-400', chip: 'bg-red-500/20 text-red-400' },
+  in_office: { label: 'In Office', dot: 'bg-green-400', chip: 'bg-green-500/20 text-green-400' },
+  checked_out: { label: 'Checked Out', dot: 'bg-sky-400', chip: 'bg-sky-500/20 text-sky-400' },
+  on_leave: { label: 'On Leave', dot: 'bg-yellow-400', chip: 'bg-yellow-500/20 text-yellow-400' },
+  missing: { label: 'Missing', dot: 'bg-red-400', chip: 'bg-red-500/20 text-red-400' },
 };
 
 function TeamAttendanceToday() {
@@ -48,7 +48,7 @@ function TeamAttendanceToday() {
     <div className="space-y-6" data-testid="team-attendance-today">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Team Today / आज की टीम</h1>
+          <h1 className="text-2xl font-bold text-white">Team Today</h1>
           <p className="text-slate-400 text-sm">{data.date} • {data.counts.total} staff • auto-refreshes every 30s</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => load()} className="border-slate-600 text-slate-300" data-testid="refresh-team-btn">
@@ -59,7 +59,7 @@ function TeamAttendanceToday() {
       {data.is_holiday && (
         <div className="bg-purple-500/15 border border-purple-500/40 rounded-xl p-4 flex items-center gap-3" data-testid="holiday-banner">
           <PartyPopper className="h-6 w-6 text-purple-400" />
-          <p className="text-white">Aaj company holiday hai: <b>{data.holiday_name}</b> 🎉</p>
+          <p className="text-white">Today is a company holiday: <b>{data.holiday_name}</b> 🎉</p>
         </div>
       )}
 

@@ -230,7 +230,7 @@ async def submit_quote_on_behalf(body: AdminQuoteCreate, user: dict = Depends(ge
             "user_id": customer_user_id,
             "type": "quote_received",
             "title": f"✈️ New Quote Received - ₹{customer_total:,.0f}",
-            "message": f"{operator_name} ne aapki booking ke liye quote bheja hai. Abhi review karein!",
+            "message": f"{operator_name} has sent a quote for your booking. Review it now!",
             "reference_id": body.booking_id,
             "data": {"quote_id": quote_id, "amount": customer_total, "operator_name": operator_name},
             "read": False,

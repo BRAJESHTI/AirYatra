@@ -20,29 +20,29 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 // ============ DOCUMENT CATEGORIES FOR AIRCRAFT ============
 const DOCUMENT_CATEGORIES = {
   regulatory: {
-    label: 'DGCA & Regulatory / DGCA और नियामक',
+    label: 'DGCA & Regulatory / DGCA',
     types: [
-      { id: 'registration_certificate', label: 'Registration Certificate / पंजीकरण प्रमाणपत्र', required: true, has_expiry: false },
-      { id: 'certificate_of_airworthiness', label: 'Certificate of Airworthiness / उड़ान योग्यता', required: true, has_expiry: true },
+      { id: 'registration_certificate', label: 'Registration Certificate', required: true, has_expiry: false },
+      { id: 'certificate_of_airworthiness', label: 'Certificate of Airworthiness', required: true, has_expiry: true },
       { id: 'aoc', label: 'Air Operator Certificate (AOC)', required: false, has_expiry: true },
       { id: 'dgca_permissions', label: 'DGCA Permissions', required: false, has_expiry: true },
       { id: 'noise_certificate', label: 'Noise Certificate', required: false, has_expiry: false },
     ]
   },
   insurance: {
-    label: 'Insurance / बीमा',
+    label: 'Insurance',
     types: [
-      { id: 'insurance_policy', label: 'Aircraft Insurance Policy / विमान बीमा', required: true, has_expiry: true },
-      { id: 'third_party_insurance', label: 'Third Party Insurance / तृतीय पक्ष बीमा', required: false, has_expiry: true },
-      { id: 'passenger_liability', label: 'Passenger Liability / यात्री देयता', required: false, has_expiry: true },
-      { id: 'hull_insurance', label: 'Hull Insurance / हल बीमा', required: false, has_expiry: true },
+      { id: 'insurance_policy', label: 'Aircraft Insurance Policy', required: true, has_expiry: true },
+      { id: 'third_party_insurance', label: 'Third Party Insurance', required: false, has_expiry: true },
+      { id: 'passenger_liability', label: 'Passenger Liability', required: false, has_expiry: true },
+      { id: 'hull_insurance', label: 'Hull Insurance', required: false, has_expiry: true },
     ]
   },
   maintenance: {
-    label: 'Maintenance / रखरखाव',
+    label: 'Maintenance',
     types: [
-      { id: 'maintenance_release', label: 'Maintenance Release / रखरखाव रिलीज़', required: true, has_expiry: true },
-      { id: 'tech_log', label: 'Technical Log / तकनीकी लॉग', required: false, has_expiry: false },
+      { id: 'maintenance_release', label: 'Maintenance Release', required: true, has_expiry: true },
+      { id: 'tech_log', label: 'Technical Log', required: false, has_expiry: false },
       { id: 'component_history', label: 'Component History', required: false, has_expiry: false },
       { id: 'ad_compliance', label: 'Airworthiness Directive Compliance', required: false, has_expiry: false },
     ]
@@ -51,15 +51,15 @@ const DOCUMENT_CATEGORIES = {
 
 // ============ PHOTO CATEGORIES ============
 const PHOTO_CATEGORIES = [
-  { id: 'front', label: 'Front View / सामने', required: true },
-  { id: 'rear', label: 'Rear View / पीछे', required: true },
-  { id: 'left', label: 'Left Side / बाईं ओर', required: true },
-  { id: 'right', label: 'Right Side / दाईं ओर', required: true },
-  { id: 'cockpit', label: 'Cockpit / कॉकपिट', required: true },
-  { id: 'cabin', label: 'Cabin / केबिन', required: true },
-  { id: 'interior', label: 'Interior / इंटीरियर', required: false },
-  { id: 'vip_cabin', label: 'VIP Cabin / VIP केबिन', required: false },
-  { id: 'emergency_equipment', label: 'Emergency Equipment / आपातकालीन', required: false },
+  { id: 'front', label: 'Front View', required: true },
+  { id: 'rear', label: 'Rear View', required: true },
+  { id: 'left', label: 'Left Side', required: true },
+  { id: 'right', label: 'Right Side', required: true },
+  { id: 'cockpit', label: 'Cockpit', required: true },
+  { id: 'cabin', label: 'Cabin', required: true },
+  { id: 'interior', label: 'Interior', required: false },
+  { id: 'vip_cabin', label: 'VIP Cabin / VIP', required: false },
+  { id: 'emergency_equipment', label: 'Emergency Equipment', required: false },
 ];
 
 // ============ FILE UPLOAD COMPONENT ============
@@ -678,7 +678,7 @@ const AircraftDocumentManager = ({ aircraft, onUpdate }) => {
                   {complianceScore.percentage}%
                 </div>
                 <div>
-                  <p className="text-white font-medium">Compliance Score / अनुपालन स्कोर</p>
+                  <p className="text-white font-medium">Compliance Score</p>
                   <p className="text-slate-400 text-sm">
                     Grade: <span className="font-bold text-lg">{complianceScore.grade}</span>
                   </p>

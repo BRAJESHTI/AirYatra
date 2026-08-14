@@ -22,8 +22,7 @@ function NotFoundPage() {
 
       {/* Message */}
       <h2 className="text-3xl font-bold text-white mb-4 text-center">
-        Page Not Found / पेज नहीं मिला
-      </h2>
+        Page Not Found</h2>
       <p className="text-slate-400 text-center max-w-md mb-8">
         The page you&#39;re looking for doesn&#39;t exist or has been moved. 
         Let&#39;s get you back on track!
@@ -47,7 +46,7 @@ function NotFoundPage() {
 
       {/* Quick Links */}
       <div className="mt-12 text-center">
-        <p className="text-slate-500 text-sm mb-4">Quick Links / त्वरित लिंक</p>
+        <p className="text-slate-500 text-sm mb-4">Quick Links</p>
         <div className="flex flex-wrap justify-center gap-4">
           <Link to="/services" className="text-orange-400 hover:text-orange-300 text-sm">
             Services

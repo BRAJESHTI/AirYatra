@@ -154,8 +154,7 @@ export default function ComplaintAnalytics() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-blue-400" />
-            Complaint Analytics / शिकायत विश्लेषण
-          </h1>
+            Complaint Analytics</h1>
           <p className="text-slate-400 text-sm mt-1">Trends, resolution times, operator rankings</p>
         </div>
         <div className="flex items-center gap-3">
@@ -234,8 +233,7 @@ export default function ComplaintAnalytics() {
         <div className="glass rounded-xl p-5">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <PieChart className="h-5 w-5 text-blue-400" />
-            Complaints by Category / श्रेणी अनुसार
-          </h3>
+            Complaints by Category</h3>
           <div className="space-y-3">
             {categoryData.length === 0 ? (
               <p className="text-slate-400 text-center py-4">No data available</p>
@@ -265,8 +263,7 @@ export default function ComplaintAnalytics() {
         <div className="glass rounded-xl p-5">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-400" />
-            Severity Distribution / गंभीरता
-          </h3>
+            Severity Distribution</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
               <p className="text-3xl font-bold text-green-400">{analytics?.severityBreakdown?.low || 0}</p>
@@ -304,8 +301,7 @@ export default function ComplaintAnalytics() {
         <div className="p-5 border-b border-slate-700">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <Building2 className="h-5 w-5 text-red-400" />
-            Operator Complaint Rankings / ऑपरेटर रैंकिंग
-          </h3>
+            Operator Complaint Rankings</h3>
           <p className="text-slate-400 text-sm mt-1">Operators with most complaints (worst to best)</p>
         </div>
         
@@ -375,8 +371,7 @@ export default function ComplaintAnalytics() {
       <div className="glass rounded-xl p-5">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-green-400" />
-          Recommended Actions / अनुशंसित कार्रवाई
-        </h3>
+          Recommended Actions</h3>
         <div className="grid md:grid-cols-3 gap-4">
           {analytics?.pendingCount > 10 && (
             <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">

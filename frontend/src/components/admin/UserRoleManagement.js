@@ -8,13 +8,13 @@ import { userManagementAPI } from '@/services/api';
 import { toast } from 'sonner';
 
 const ROLES = [
-  { id: 'regional_manager', name: 'Regional Manager', name_hi: 'क्षेत्रीय प्रबंधक', color: 'blue' },
-  { id: 'hr', name: 'HR', name_hi: 'एचआर', color: 'pink' },
-  { id: 'finance', name: 'Finance', name_hi: 'वित्त', color: 'green' },
-  { id: 'marketing', name: 'Marketing', name_hi: 'मार्केटिंग', color: 'purple' },
-  { id: 'operations', name: 'Operations', name_hi: 'ऑपरेशंस', color: 'orange' },
-  { id: 'admin', name: 'Admin', name_hi: 'एडमिन', color: 'red' },
-  { id: 'super_admin', name: 'Super Admin', name_hi: 'सुपर एडमिन', color: 'yellow' },
+  { id: 'regional_manager', name: 'Regional Manager', name_hi: '', color: 'blue' },
+  { id: 'hr', name: 'HR', name_hi: '', color: 'pink' },
+  { id: 'finance', name: 'Finance', name_hi: '', color: 'green' },
+  { id: 'marketing', name: 'Marketing', name_hi: '', color: 'purple' },
+  { id: 'operations', name: 'Operations', name_hi: '', color: 'orange' },
+  { id: 'admin', name: 'Admin', name_hi: '', color: 'red' },
+  { id: 'super_admin', name: 'Super Admin', name_hi: '', color: 'yellow' },
 ];
 
 const REGIONS = ['North', 'South', 'East', 'West', 'Central', 'Northeast'];
@@ -63,7 +63,7 @@ function UserRoleManagement() {
     
     try {
       await userManagementAPI.createUser(formData);
-      toast.success('User created successfully / यूजर बनाया गया');
+      toast.success('User created successfully');
       setShowCreateDialog(false);
       resetForm();
       loadUsers();
@@ -176,7 +176,7 @@ function UserRoleManagement() {
             <Users className="h-6 w-6 text-orange-400" />
             User & Role Management
           </h2>
-          <p className="text-slate-400">यूजर और भूमिका प्रबंधन - Manage internal users and their roles</p>
+          <p className="text-slate-400">Manage internal users and their roles</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={loadUsers} variant="outline" className="border-slate-700">
@@ -198,7 +198,7 @@ function UserRoleManagement() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users... / यूजर खोजें..."
+              placeholder="Search users..."
               className="pl-10 bg-slate-800 border-slate-700"
             />
           </div>
@@ -316,8 +316,7 @@ function UserRoleManagement() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-orange-400" />
-              Create Internal User / आंतरिक यूजर बनाएं
-            </DialogTitle>
+              Create Internal User</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-2 gap-4">
@@ -395,7 +394,7 @@ function UserRoleManagement() {
                         : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                     }`}
                   >
-                    {role.name} / {role.name_hi}
+                    {role.name}
                   </button>
                 ))}
               </div>
@@ -417,8 +416,7 @@ function UserRoleManagement() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Edit className="h-5 w-5 text-orange-400" />
-              Edit User / यूजर संपादित करें
-            </DialogTitle>
+              Edit User</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-2 gap-4">

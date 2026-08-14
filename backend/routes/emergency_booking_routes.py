@@ -21,7 +21,7 @@ router = APIRouter(prefix="/emergency", tags=["Emergency Bookings"])
 
 URGENCY_LEVELS = {
     "critical": {
-        "label": "Critical / अत्यंत जरूरी",
+        "label": "Critical",
         "priority": 1,
         "surcharge_percent": 50,
         "max_response_minutes": 5,
@@ -29,7 +29,7 @@ URGENCY_LEVELS = {
         "color": "red"
     },
     "high": {
-        "label": "High / उच्च",
+        "label": "High",
         "priority": 2,
         "surcharge_percent": 25,
         "max_response_minutes": 15,
@@ -37,7 +37,7 @@ URGENCY_LEVELS = {
         "color": "orange"
     },
     "medium": {
-        "label": "Medium / मध्यम",
+        "label": "Medium",
         "priority": 3,
         "surcharge_percent": 10,
         "max_response_minutes": 30,
@@ -48,27 +48,27 @@ URGENCY_LEVELS = {
 
 URGENCY_REASONS = {
     "medical_emergency": {
-        "label": "Medical Emergency / चिकित्सा आपातकाल",
+        "label": "Medical Emergency",
         "icon": "🏥",
         "priority_boost": 1
     },
     "time_critical": {
-        "label": "Time Critical / समय-महत्वपूर्ण",
+        "label": "Time Critical",
         "icon": "⏰",
         "priority_boost": 0
     },
     "vip_travel": {
-        "label": "VIP Travel / वीआईपी यात्रा",
+        "label": "VIP Travel",
         "icon": "👔",
         "priority_boost": 0
     },
     "disaster_relief": {
-        "label": "Disaster Relief / आपदा राहत",
+        "label": "Disaster Relief",
         "icon": "🆘",
         "priority_boost": 1
     },
     "organ_transport": {
-        "label": "Organ Transport / अंग परिवहन",
+        "label": "Organ Transport",
         "icon": "❤️",
         "priority_boost": 2
     }
@@ -361,7 +361,7 @@ async def respond_to_emergency(
     if response.can_fulfill and not response.aircraft_id:
         raise HTTPException(
             status_code=400, 
-            detail="aircraft_id is required when can_fulfill is True / जब आप पूर्ति कर सकते हैं तो aircraft_id आवश्यक है"
+            detail="aircraft_id is required when can_fulfill is True"
         )
     
     # Validate aircraft belongs to operator

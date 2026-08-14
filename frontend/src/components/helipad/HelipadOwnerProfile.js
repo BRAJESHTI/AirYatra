@@ -156,7 +156,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         await landingAPI.updateLandingPoint(helipadId, updateData);
       }
       
-      toast.success('Helipad profile updated! / हेलीपैड प्रोफाइल अपडेट हुई!');
+      toast.success('Helipad profile updated!');
       if (onUpdate) onUpdate();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update');
@@ -176,7 +176,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Helipad Owner Profile / हेलीपैड मालिक प्रोफाइल</h1>
+        <h1 className="text-3xl font-bold text-white">Helipad Owner Profile</h1>
         <p className="text-slate-400 mt-1">Manage your helipad details and availability</p>
       </div>
 
@@ -215,11 +215,10 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         <div className="glass p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <User className="h-5 w-5 text-blue-400" />
-            Owner Information / मालिक की जानकारी
-          </h3>
+            Owner Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Owner Name / मालिक का नाम *</Label>
+              <Label className="text-slate-300">Owner Name*</Label>
               <Input
                 value={formData.owner_name}
                 onChange={(e) => handleChange('owner_name', e.target.value)}
@@ -236,7 +235,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
               />
             </div>
             <div>
-              <Label className="text-slate-300">Phone / फोन *</Label>
+              <Label className="text-slate-300">Phone*</Label>
               <Input
                 value={formData.owner_phone}
                 onChange={(e) => handleChange('owner_phone', e.target.value)}
@@ -258,11 +257,10 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         <div className="glass p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Building2 className="h-5 w-5 text-purple-400" />
-            Helipad Details / हेलीपैड विवरण
-          </h3>
+            Helipad Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <Label className="text-slate-300">Helipad Name / हेलीपैड का नाम *</Label>
+              <Label className="text-slate-300">Helipad Name*</Label>
               <Input
                 value={formData.helipad_name}
                 onChange={(e) => handleChange('helipad_name', e.target.value)}
@@ -270,7 +268,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
               />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-slate-300">Address / पता</Label>
+              <Label className="text-slate-300">Address</Label>
               <Input
                 value={formData.address}
                 onChange={(e) => handleChange('address', e.target.value)}
@@ -278,7 +276,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
               />
             </div>
             <div>
-              <Label className="text-slate-300">City / शहर</Label>
+              <Label className="text-slate-300">City</Label>
               <Input
                 value={formData.city}
                 onChange={(e) => handleChange('city', e.target.value)}
@@ -286,7 +284,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
               />
             </div>
             <div>
-              <Label className="text-slate-300">District / जिला</Label>
+              <Label className="text-slate-300">District</Label>
               <Input
                 value={formData.district}
                 onChange={(e) => handleChange('district', e.target.value)}
@@ -294,7 +292,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
               />
             </div>
             <div>
-              <Label className="text-slate-300">State / राज्य</Label>
+              <Label className="text-slate-300">State</Label>
               <Input
                 value={formData.state}
                 onChange={(e) => handleChange('state', e.target.value)}
@@ -337,8 +335,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         <div className="glass p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Shield className="h-5 w-5 text-green-400" />
-            Facility Details / सुविधा विवरण
-          </h3>
+            Facility Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-slate-300">Surface Type</Label>
@@ -399,8 +396,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         <div className="glass p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Clock className="h-5 w-5 text-yellow-400" />
-            Operating Hours / कार्य समय
-          </h3>
+            Operating Hours</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-slate-300">Start Time</Label>
@@ -427,8 +423,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         <div className="glass p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-green-400" />
-            Rent Configuration / किराया विन्यास
-          </h3>
+            Rent Configuration</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-slate-300">Rent Per Landing (₹)</Label>
@@ -477,7 +472,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
         <div className="glass p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-400" />
-            Bank Details / बैंक विवरण (For Rent Payments)
+            Bank DetailsFor Rent Payments)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -530,8 +525,7 @@ function HelipadOwnerProfile({ user, helipadId, onUpdate }) {
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Profile / प्रोफाइल सेव करें
-              </>
+                Save Profile</>
             )}
           </Button>
         </div>

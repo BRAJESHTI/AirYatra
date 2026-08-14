@@ -297,8 +297,7 @@ function AdminOverview({ data, onRefresh, loading, onNavigate }) {
       <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Target className="h-5 w-5 text-orange-400" />
-          Booking Purpose Analytics / बुकिंग उद्देश्य विश्लेषण
-        </h3>
+          Booking Purpose Analytics</h3>
         <BookingPurposeChart />
       </div>
     </div>

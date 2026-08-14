@@ -46,7 +46,7 @@ export default function RefundApprovals() {
   };
 
   const decide = async (req, action) => {
-    if (otp.length !== 6) { toast.error('6-digit OTP daalein'); return; }
+    if (otp.length !== 6) { toast.error('Enter the 6-digit OTP'); return; }
     if (!remark.trim()) { toast.error('Remark required'); return; }
     setBusy(`${action}-${req.id}`);
     try {
@@ -70,7 +70,7 @@ export default function RefundApprovals() {
           <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-orange-400" /> Refund Approvals
           </h2>
-          <p className="text-slate-400 text-sm">2 approvers chahiye (Sales/Accounts/Finance/Admin/CEO). Trip complete/invoice ke baad sirf Admin/CEO. Har approval OTP-verified.</p>
+          <p className="text-slate-400 text-sm">Requires 2 approvers (Sales/Accounts/Finance/Admin/CEO). After trip completion/invoice, only Admin/CEO can approve. Every approval is OTP-verified.</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} className="border-slate-600 text-slate-300" data-testid="refresh-refunds-btn">
           <RefreshCw className="h-4 w-4" />
@@ -78,7 +78,7 @@ export default function RefundApprovals() {
       </div>
 
       {requests.length === 0 && (
-        <p className="text-slate-500 text-sm text-center py-10" data-testid="no-pending-refunds">Koi pending refund request nahi. 🎉</p>
+        <p className="text-slate-500 text-sm text-center py-10" data-testid="no-pending-refunds">No pending refund requests. 🎉</p>
       )}
 
       <div className="space-y-4">
