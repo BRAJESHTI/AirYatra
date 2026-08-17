@@ -3865,3 +3865,7 @@ PAYPAL_MODE=sandbox  # or 'live'
 - LIVE PROVEN on prod: Helicopter est ₹5 → advance ₹2 (cf 6261094074) → balance ₹3 (cf via order ..4a9e02d2) → payment_status=fully_paid, remaining ₹0 = 100% SETTLED.
 - ⚠️ Frontend Pay Balance button is PREVIEW-only until REDEPLOY. Backend balance flow already live on prod.
 - Prod remaining balances currently: Jet ₹5 (est ₹10, advance ₹5 paid) still open; Yacht fully paid; Helicopter fully settled.
+
+##### 42. ALL 3 SERVICES 100% SETTLED — Aug 17, 2026
+- Jet balance ₹5 paid live (order ..75efb2e4) → JET fully_paid (₹10/10, remaining ₹0).
+- FINAL: Yacht ₹15 ✅ | Helicopter ₹5 (₹2 adv + ₹3 bal) ✅ | Jet ₹10 (₹5 adv + ₹5 bal) ✅ — ALL fully_paid, 100% settled on production via Cashfree LIVE.
