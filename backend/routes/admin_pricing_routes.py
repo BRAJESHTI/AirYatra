@@ -569,6 +569,16 @@ async def invoice_email_log(limit: int = 50, user: dict = Depends(get_current_us
     return {"logs": logs, "total": len(logs), "sent": sent}
 
 
+@router.post("/resend-invoice/{booking_id}")
+async def resend_invoice(booking_id: str, user: dict = Depends(get_current_user)):
+    """Manually resend invoice email for a booking (retries failed sends)"""
+    _require_admin(user)
+    db = get_database()
+    from services.invoice_email_service import send_invoice_email
+    result = await send_invoice_email(db, booking_id, "manual_resend")
+    return {"booking_id": booking_id, "result": result}
+
+
 @router.get("/operator-scorecards")
 async def operator_scorecards(user: dict = Depends(get_current_user)):
     """Rank operators by quotes won, ratings and on-time flights"""

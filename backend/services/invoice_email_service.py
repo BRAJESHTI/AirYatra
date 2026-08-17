@@ -27,7 +27,8 @@ async def send_invoice_email(db, booking_id: str, gateway: str = "") -> dict:
     stage = _stage(booking.get("payment_status") or "paid")
     key = f"{booking_id}:{stage}"
 
-    # Atomic idempotency claim (verify endpoint + webhook can both fire)
+    # Atomic idempotency claim (verify endpoint + webhook can both fire).
+    # Allow retry if a previous attempt FAILED (SMTP timeout etc).
     claim = await db.invoice_email_log.update_one(
         {"key": key},
         {"$setOnInsert": {
@@ -37,7 +38,14 @@ async def send_invoice_email(db, booking_id: str, gateway: str = "") -> dict:
         upsert=True,
     )
     if not claim.upserted_id:
-        return {"success": True, "skipped": "invoice email already sent for this stage"}
+        # Key exists — re-claim only if last attempt failed
+        reclaim = await db.invoice_email_log.update_one(
+            {"key": key, "status": {"$in": ["failed", "pdf_failed"]}},
+            {"$set": {"status": "sending", "gateway": gateway,
+                      "retried_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        if reclaim.modified_count == 0:
+            return {"success": True, "skipped": "invoice email already sent for this stage"}
 
     customer = await db.users.find_one({"id": booking.get("customer_id")}, {"_id": 0}) or {}
     to_email = customer.get("email") or booking.get("customer_email") or booking.get("email")

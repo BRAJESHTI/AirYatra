@@ -1404,20 +1404,30 @@ class EmailService:
             use_starttls = self.config.get('start_tls', False)
             use_direct_tls = self.config.get('use_tls', True) and not use_starttls
             
-            # Send email
-            await aiosmtplib.send(
-                msg,
-                hostname=self.config['host'],
-                port=self.config['port'],
-                username=self.config['username'],
-                password=self.config['password'],
-                use_tls=use_direct_tls,
-                start_tls=use_starttls,
-                tls_context=context
-            )
-            
-            logger.info(f"Email sent successfully to {to_email}: {subject}")
-            return {"success": True, "message": "Email sent successfully"}
+            # Send email with retry (handles intermittent "server ready" timeouts)
+            last_err = None
+            for attempt in range(3):
+                try:
+                    await aiosmtplib.send(
+                        msg,
+                        hostname=self.config['host'],
+                        port=self.config['port'],
+                        username=self.config['username'],
+                        password=self.config['password'],
+                        use_tls=use_direct_tls,
+                        start_tls=use_starttls,
+                        tls_context=context,
+                        timeout=30,
+                    )
+                    logger.info(f"Email sent successfully to {to_email}: {subject}")
+                    return {"success": True, "message": "Email sent successfully"}
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Email send attempt {attempt + 1}/3 to {to_email} failed: {e}")
+                    if attempt < 2:
+                        await asyncio.sleep(2 * (attempt + 1))
+            logger.error(f"Failed to send email to {to_email} after 3 attempts: {last_err}")
+            return {"success": False, "error": str(last_err)}
             
         except Exception as e:
             logger.error(f"Failed to send email to {to_email}: {str(e)}")

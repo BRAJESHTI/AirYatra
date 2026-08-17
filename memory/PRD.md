@@ -3869,3 +3869,12 @@ PAYPAL_MODE=sandbox  # or 'live'
 ##### 42. ALL 3 SERVICES 100% SETTLED — Aug 17, 2026
 - Jet balance ₹5 paid live (order ..75efb2e4) → JET fully_paid (₹10/10, remaining ₹0).
 - FINAL: Yacht ₹15 ✅ | Helicopter ₹5 (₹2 adv + ₹3 bal) ✅ | Jet ₹10 (₹5 adv + ₹5 bal) ✅ — ALL fully_paid, 100% settled on production via Cashfree LIVE.
+
+##### 43. Invoice Email After Payment — Bug found + fixed (Aug 17, 2026)
+- FINDING on prod invoice_email_log: Yacht (vertical) invoice email SENT ✅; Helicopter + Jet (aviation) FAILED ("Timed out waiting for server ready message" — Gmail SMTP connection timeout, intermittent).
+- Invoice PDF DOWNLOAD works fine (separate from email).
+- FIX 1 (email_service.send_email): added timeout=30 + 3x retry with backoff on SMTP failures.
+- FIX 2 (invoice_email_service): idempotency claim now RE-CLAIMS keys whose prior status was failed/pdf_failed (earlier $setOnInsert permanently skipped failed emails).
+- FIX 3: new POST /api/admin/pricing/resend-invoice/{booking_id} (admin) to manually resend/retry.
+- Verified in preview: email_service.send_email → success; endpoints wired (401 without auth).
+- ⚠️ Fixes are PREVIEW-only → REDEPLOY needed. After redeploy, resend failed heli/jet invoices via resend endpoint (or they auto-retry on next trigger).
