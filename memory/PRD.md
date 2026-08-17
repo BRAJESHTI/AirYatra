@@ -3847,3 +3847,13 @@ PAYPAL_MODE=sandbox  # or 'live'
 - FULL CHAIN VERIFIED for ₹15 booking: booking status paid; owner portal payout; finance/admin revenue report (yacht gross ₹15, commission ₹1.5 @10%, owner_payout ₹13.5); settlement STL-VT + ledger_entry created; audit_logs signed entry (tamper-proof) with amount/cf_payment_id/upi.
 - FINAL GATEWAY REPORT: Cashfree VERDICT=PASS (2 paid, live/production). Razorpay=PENDING (no live keys yet — user deferred).
 - ⚠️ TODO after testing: (1) Restore original pricing (test pricing still ACTIVE on prod). (2) Remove ADMIN_RECOVERY_TOKEN env from prod to auto-disable recovery endpoints. (3) Investigate 60s verify-otp latency on prod.
+
+##### 40. PROD LIVE TEST — Helicopter + Jet + Yacht ALL PASS ✅ (Aug 17, 2026)
+- Aviation bookings via POST /api/bookings/inquiry (aircraft_type helicopter / chartered_plane; NOTE: "jet" = chartered_plane, no private_jet type). _resolve_payable does NOT need operator acceptance for aviation — just booking + amount>0. Default advance 50%.
+- LIVE Cashfree UPI collect results (real money, user GPay-approved):
+  * Yacht ₹15 (YB2026080001): cf 6261035107 — PAID/confirmed
+  * Helicopter (INQ20260817CB187E, est ₹5, 50% advance ₹2): cf 6261094074 — paid/confirmed
+  * Jet/chartered_plane (INQ202608178B08D8, est ₹10, advance ₹5): cf 6261100550 — paid/confirmed
+  * ₹1 gateway test: cf 6261..-era — PAID
+- Gateway Test Report: Cashfree total 10, PASS 4, FAIL 0 → VERDICT PASS (all with webhook proof). 4 signed (tamper-proof) audit_logs entries.
+- Aviation bookings auto set status=confirmed + payment_status=paid on advance payment; vertical yacht full settlement (STL-VT) + ledger + finance report all reflected.
