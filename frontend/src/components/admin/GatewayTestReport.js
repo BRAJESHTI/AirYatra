@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { RefreshCw, Loader2, CheckCircle2, XCircle, Clock, Webhook } from 'lucide-react';
+import { RefreshCw, Loader2, CheckCircle2, XCircle, Clock, Webhook, TestTube2, Undo2 } from 'lucide-react';
 import api from '@/services/api';
+import { toast } from 'sonner';
 
 const fmtIST = (iso) => {
   try { return new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }); }
@@ -36,6 +37,33 @@ const SummaryCard = ({ name, s }) => (
 export default function GatewayTestReport() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pricing, setPricing] = useState(null);
+  const [pricingBusy, setPricingBusy] = useState(false);
+  const [seedBusy, setSeedBusy] = useState(false);
+
+  const runSeed = async () => {
+    setSeedBusy(true);
+    try {
+      const r = await api.post('/verticals/admin/seed');
+      toast.success(r.data.message);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Seed failed');
+    } finally { setSeedBusy(false); }
+  };
+
+  const loadPricing = () => api.get('/payments/cashfree/test-pricing/status').then(r => setPricing(r.data)).catch(() => {});
+
+  const togglePricing = async () => {
+    setPricingBusy(true);
+    try {
+      const ep = pricing?.active ? 'restore' : 'apply';
+      const r = await api.post(`/payments/cashfree/test-pricing/${ep}`);
+      toast.success(r.data.message);
+      loadPricing();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Pricing action failed');
+    } finally { setPricingBusy(false); }
+  };
 
   const load = () => {
     setLoading(true);
@@ -44,7 +72,7 @@ export default function GatewayTestReport() {
       .catch(() => {})
       .finally(() => setLoading(false));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadPricing(); }, []);
 
   if (!report && loading) return <div className="glass rounded-xl p-5 border border-slate-700/50 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-orange-400" /></div>;
   if (!report) return null;
@@ -59,6 +87,33 @@ export default function GatewayTestReport() {
         <Button size="sm" variant="outline" className="border-slate-600 text-slate-300" onClick={load} disabled={loading} data-testid="gw-report-refresh-btn">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
+      </div>
+
+      <div className={`mb-4 p-3 rounded-xl border flex items-center justify-between flex-wrap gap-2 ${pricing?.active ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-700/60 bg-slate-800/30'}`} data-testid="test-pricing-section">
+        <div>
+          <p className="text-white text-sm font-medium flex items-center gap-1.5">
+            <TestTube2 className="h-4 w-4 text-amber-400" /> Test Pricing (₹5–₹50)
+            {pricing?.active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">ACTIVE</span>}
+          </p>
+          <p className="text-slate-500 text-xs mt-0.5">
+            {pricing?.active
+              ? `Gateway test ke liye sasti pricing lagi hai (by ${pricing.applied_by || 'admin'}) — test ke baad restore karein!`
+              : 'Live gateway test se pehle apply karein — Helicopter ₹5, Jet ₹10, Yacht ₹15, Cruise ₹20... (original backup safe rahega)'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button size="sm" variant="outline" disabled={seedBusy}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700/50"
+            onClick={runSeed} data-testid="seed-marine-btn">
+            {seedBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Seed Marine Data'}
+          </Button>
+          <Button size="sm" variant="outline" disabled={pricingBusy}
+            className={pricing?.active ? 'border-green-500/50 text-green-400 hover:bg-green-500/10' : 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10'}
+            onClick={togglePricing} data-testid="test-pricing-toggle-btn">
+            {pricingBusy ? <Loader2 className="h-4 w-4 animate-spin" /> :
+              pricing?.active ? <><Undo2 className="h-4 w-4 mr-1" /> Restore Original Pricing</> : <><TestTube2 className="h-4 w-4 mr-1" /> Apply Test Pricing</>}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">

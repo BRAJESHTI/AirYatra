@@ -8,7 +8,7 @@ import uuid
 import logging
 
 from database import get_database
-from middleware import get_current_user
+from middleware import get_current_user, require_roles
 
 router = APIRouter(prefix="/verticals", tags=["Verticals: Helipad/Yacht/Cruise"])
 logger = logging.getLogger(__name__)
@@ -147,6 +147,65 @@ async def asset_availability(asset_id: str, user: dict = Depends(get_current_use
 
 
 # ==================== BOOKINGS ====================
+
+SEED_VERTICAL_USERS = [
+    ("yachtowner@airyatra.co.in", "Yacht@123456", "yacht_owner", "Marina Yachts Pvt Ltd"),
+    ("cruiseop@airyatra.co.in", "Cruise@123456", "cruise_operator", "BlueWave Cruises Ltd"),
+    ("helipadowner@airyatra.co.in", "Helipad@123456", "helipad_owner", "SkyPad Helipads"),
+]
+SEED_VERTICAL_ASSETS = [
+    ("helipad", "Juhu Beach Helipad", "Mumbai", "Juhu Beach, Near Airport", 25000, "helipad_owner", "DGCA-approved rooftop helipad with night landing"),
+    ("helipad", "Aravalli Hills Helipad", "Gurugram", "Sector 59, Aravalli Edge", 18000, "helipad_owner", "Corporate helipad with lounge"),
+    ("yacht", "Ocean Pearl 55ft", "Goa", "Mandovi Marina", 15000, "yacht_owner", "Luxury 55ft yacht, 12 guests, crew included"),
+    ("yacht", "Sea Breeze Catamaran", "Mumbai", "Gateway of India Jetty", 12000, "yacht_owner", "Catamaran for parties, 20 guests"),
+    ("cruise", "BlueWave Explorer", "Kochi", "Kochi Port Terminal 2", 8500, "cruise_operator", "3-night Lakshadweep cruise, luxury cabins"),
+    ("cruise", "Ganga Vilas Deluxe", "Varanasi", "Ravidas Ghat", 12500, "cruise_operator", "River cruise with heritage tours"),
+]
+
+
+@router.post("/admin/seed")
+async def seed_vertical_data(current_user: dict = Depends(require_roles(["admin", "super_admin"]))):
+    """Idempotent seed: marine/helipad owner accounts + assets (for fresh production DB)"""
+    from auth import get_password_hash
+    db = get_database()
+    now = datetime.now(timezone.utc).isoformat()
+    uids, created_users, created_assets = {}, 0, 0
+    for email, pwd, role, name in SEED_VERTICAL_USERS:
+        existing = await db.users.find_one({"email": email})
+        if existing:
+            uids[role] = existing["id"]
+            continue
+        uid = str(uuid.uuid4())
+        await db.users.insert_one({"id": uid, "email": email, "password_hash": get_password_hash(pwd),
+                                   "full_name": name, "roles": [role], "is_active": True, "email_verified": True,
+                                   "phone": "+919000000001", "created_at": now})
+        uids[role] = uid
+        created_users += 1
+    prefix = {"helipad": "HLP", "yacht": "YCT", "cruise": "CRZ"}
+    unit = {"helipad": "landing", "yacht": "hour", "cruise": "cabin/night"}
+    for v, name, city, loc, price, role, desc in SEED_VERTICAL_ASSETS:
+        if await db.vertical_assets.find_one({"name": name}):
+            continue
+        count = await db.vertical_assets.count_documents({"vertical": v})
+        owner = await db.users.find_one({"id": uids[role]}, {"full_name": 1})
+        await db.vertical_assets.insert_one({
+            "id": str(uuid.uuid4()), "asset_code": f"{prefix[v]}-{count+1:04d}", "vertical": v,
+            "name": name, "city": city, "location": loc, "description": desc,
+            "base_price": price, "price_unit": unit[v], "details": {}, "images": [],
+            "owner_user_id": uids[role], "owner_name": (owner or {}).get("full_name"), "status": "active",
+            "blocked_dates": [], "created_at": now})
+        created_assets += 1
+    try:
+        from routes.audit_trail_routes import audit_event
+        await audit_event(db, "vertical_seed_executed", current_user,
+                          details={"created_users": created_users, "created_assets": created_assets},
+                          resource_type="seed", risk_level="high")
+    except Exception:
+        pass
+    total = await db.vertical_assets.count_documents({})
+    return {"message": f"Seed complete: {created_users} new owner accounts, {created_assets} new assets (total assets: {total})",
+            "created_users": created_users, "created_assets": created_assets, "total_assets": total}
+
 
 @router.post("/bookings")
 async def create_booking(data: BookingCreate, user: dict = Depends(get_current_user)):

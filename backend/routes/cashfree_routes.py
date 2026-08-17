@@ -376,7 +376,9 @@ async def _finalize_cashfree_payment(db, order_record, cf_payment_id, payment_me
     booking_id = order_record.get("booking_id")
     amount = float(order_record.get("amount") or 0)
 
-    if order_record.get("booking_type") == "vertical":
+    if order_record.get("booking_type") == "gateway_test":
+        pass  # ₹1 gateway test — no booking to complete
+    elif order_record.get("booking_type") == "vertical":
         booking = await db.vertical_bookings.find_one({"id": booking_id}, {"_id": 0})
         if booking and booking.get("payment_status") != "paid":
             from routes.vertical_routes import _complete_vertical_payment
@@ -571,7 +573,7 @@ async def gateway_test_report(current_user: dict = Depends(get_current_user)):
         webhook = await db.cashfree_webhooks.find_one({"order_id": c.get("cashfree_order_id")}, {"_id": 0, "event_type": 1, "received_at": 1})
         status = c.get("status")
         rows.append({
-            "gateway": "cashfree", "type": {"payment_link": "Payment Link", "upi_collect": "UPI Collect"}.get(c.get("channel"), "Order"),
+            "gateway": "cashfree", "type": {"payment_link": "Payment Link", "upi_collect": "UPI Collect", "gateway_test": "₹1 Gateway Test"}.get(c.get("channel"), "Order"),
             "order_id": c.get("cashfree_order_id"), "amount": c.get("amount"), "mode": c.get("mode"),
             "status": status, "by": None, "created_at": c.get("created_at"),
             "webhook_proof": (f"{webhook['event_type']} @ {webhook['received_at'][:19]}" if webhook else
@@ -593,6 +595,47 @@ async def gateway_test_report(current_user: dict = Depends(get_current_user)):
     return {"rows": rows[:150],
             "summary": {"razorpay": _summary("razorpay"), "cashfree": _summary("cashfree")},
             "generated_at": datetime.now(timezone.utc).isoformat()}
+
+
+@router.post("/one-rupee-test")
+async def cashfree_one_rupee_test(request: Request, current_user: dict = Depends(get_current_user)):
+    """Safe ₹1 LIVE Cashfree gateway test — no booking needed. Opens hosted checkout."""
+    if not (PAYMENT_STAFF & set(current_user.get("roles", []))):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    db = get_database()
+    import os
+    base_url = (os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("FRONTEND_URL", "")).strip('"')
+    result = await cashfree_service.create_order(
+        amount=1.0, booking_id=f"CFTEST{uuid.uuid4().hex[:8]}", customer_id=current_user["id"],
+        customer_name=current_user.get("full_name") or "Gateway Tester",
+        customer_email=current_user.get("email", "admin@airyatra.co.in"),
+        customer_phone=current_user.get("phone") or "9999999999",
+        return_url=f"{base_url}/admin", notify_url=f"{base_url}/api/payments/cashfree/webhook")
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=f"Cashfree order failed: {str(result.get('error', ''))[:300]}")
+    order_id = result["order_id"]
+    await db.cashfree_orders.insert_one({
+        "id": str(uuid.uuid4()), "cashfree_order_id": order_id,
+        "cf_order_id": result.get("cf_order_id"), "payment_session_id": result.get("payment_session_id"),
+        "booking_id": None, "booking_type": "gateway_test", "user_id": current_user["id"],
+        "amount": 1.0, "payment_type": "gateway_test", "currency": "INR", "upi_id": None,
+        "channel": "gateway_test", "collect_mode": "hosted_checkout",
+        "status": "created", "mode": result.get("mode", cashfree_service.mode),
+        "mock_mode": result.get("mock_mode", False),
+        "created_at": datetime.now(timezone.utc).isoformat()})
+    try:
+        from routes.audit_trail_routes import audit_event
+        await audit_event(db, "cashfree_one_rupee_test_initiated", current_user,
+                          details={"order_id": order_id, "amount": 1.0, "gateway": "cashfree",
+                                   "mode": result.get("mode", cashfree_service.mode)},
+                          resource_type="payment", resource_id=order_id, risk_level="medium",
+                          ip=request.client.host if request.client else None)
+    except Exception:
+        pass
+    return {"success": True, "order_id": order_id, "amount": 1.0,
+            "payment_session_id": result.get("payment_session_id"),
+            "mode": result.get("mode", cashfree_service.mode),
+            "message": "₹1 Cashfree test order ready — checkout me UPI se pay karein"}
 
 
 @router.get("/collect-status/{order_id}")
@@ -651,6 +694,17 @@ async def collect_status(order_id: str, current_user: dict = Depends(get_current
 TEST_PRICES_VERTICAL = {"yacht": 15, "cruise": 20, "helipad": 40}
 TEST_PRICES_AIRCRAFT = {"helicopter": 5, "chartered_plane": 10, "private_jet": 10,
                         "air_ambulance": 25, "cargo": 30, "joy_ride": 35, "scenic": 35}
+
+
+@router.get("/test-pricing/status")
+async def test_pricing_status(current_user: dict = Depends(get_current_user)):
+    """Is test pricing currently active?"""
+    if not (PAYMENT_STAFF & set(current_user.get("roles", []))):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    db = get_database()
+    backup = await db.test_pricing_backup.find_one({"active": True}, {"_id": 0, "created_at": 1, "created_by": 1})
+    return {"active": bool(backup), "applied_at": backup.get("created_at") if backup else None,
+            "applied_by": backup.get("created_by") if backup else None}
 
 
 @router.post("/test-pricing/apply")

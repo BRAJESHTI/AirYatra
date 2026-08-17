@@ -21,6 +21,57 @@ export default function PaymentGatewayMode() {
   const [busy, setBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [cfBusy, setCfBusy] = useState(false);
+  const [cfResult, setCfResult] = useState(null);
+
+  const loadCashfreeSdk = () => new Promise((resolve) => {
+    if (window.Cashfree) return resolve(true);
+    const s = document.createElement('script');
+    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+
+  const runCashfreeOneRupeeTest = async () => {
+    setCfBusy(true);
+    setCfResult(null);
+    try {
+      const res = await api.post('/payments/cashfree/one-rupee-test');
+      toast.success(res.data.message);
+      const ok = await loadCashfreeSdk();
+      if (!ok) throw new Error('Cashfree SDK load nahi hua');
+      const cashfree = window.Cashfree({ mode: res.data.mode === 'production' ? 'production' : 'sandbox' });
+      cashfree.checkout({ paymentSessionId: res.data.payment_session_id, redirectTarget: '_modal' });
+      setCfResult({ ok: null, message: 'Checkout khula — UPI se ₹1 pay karein, status auto-check ho raha hai...' });
+      const started = Date.now();
+      const poll = setInterval(async () => {
+        if (Date.now() - started > 10 * 60 * 1000) {
+          clearInterval(poll);
+          setCfResult({ ok: false, message: '₹1 test expire ho gaya — dobara try karein' });
+          setCfBusy(false);
+          return;
+        }
+        try {
+          const s = await api.get(`/payments/cashfree/collect-status/${res.data.order_id}`);
+          if (s.data.status === 'SUCCESS') {
+            clearInterval(poll);
+            setCfResult({ ok: true, message: `✅ CASHFREE LIVE VERIFIED — ₹1 payment successful (${s.data.cf_payment_id || res.data.order_id})` });
+            toast.success('Cashfree ₹1 LIVE payment verified!');
+            setCfBusy(false);
+          } else if (s.data.status === 'FAILED') {
+            clearInterval(poll);
+            setCfResult({ ok: false, message: '₹1 payment failed/expired' });
+            setCfBusy(false);
+          }
+        } catch (e) { /* keep polling */ }
+      }, 4000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || e.message || 'Cashfree ₹1 test failed');
+      setCfResult({ ok: false, message: e.response?.data?.detail || e.message || 'Failed' });
+      setCfBusy(false);
+    }
+  };
 
   const runOneRupeeTest = async () => {
     setTestBusy(true);
@@ -141,6 +192,28 @@ export default function PaymentGatewayMode() {
           )}
         </div>
       )}
+
+      <div className="mt-4 pt-4 border-t border-slate-700/60 flex items-center justify-between flex-wrap gap-3" data-testid="cashfree-one-rupee-section">
+        <div>
+          <p className="text-slate-200 text-sm font-medium flex items-center gap-1.5">
+            <IndianRupee className="h-4 w-4 text-cyan-400" /> Cashfree ₹1 LIVE Test
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/40">PRODUCTION</span>
+          </p>
+          <p className="text-slate-500 text-xs mt-0.5">
+            Real ₹1 UPI charge hoga — Cashfree hosted checkout se gateway verify karein (booking ki zaroorat nahi)
+          </p>
+        </div>
+        <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10" disabled={cfBusy}
+          onClick={runCashfreeOneRupeeTest} data-testid="cashfree-one-rupee-btn">
+          {cfBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><IndianRupee className="h-4 w-4 mr-1" /> Pay ₹1 via Cashfree</>}
+        </Button>
+        {cfResult && (
+          <div className={`w-full text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 ${cfResult.ok ? 'bg-green-500/10 text-green-400 border border-green-500/30' : cfResult.ok === false ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-blue-500/10 text-blue-300 border border-blue-500/30'}`} data-testid="cashfree-one-rupee-result">
+            {cfResult.ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : cfResult.ok === false ? <ShieldAlert className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {cfResult.message}
+          </div>
+        )}
+      </div>
 
       {showConfirm && !isLive && (
         <div className="mt-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30" data-testid="go-live-confirm">

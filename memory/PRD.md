@@ -3828,3 +3828,11 @@ PAYPAL_MODE=sandbox  # or 'live'
 - ⚠️ CASHFREE MERCHANT LIMITS discovered: S2S collect NOT enabled, link_creation_api NOT enabled (endpoint returns clear 400 — auto-works once Cashfree enables). ONLY viable live path: hosted checkout AFTER domain whitelisting at merchant.cashfree.com
 - PRODUCTION deployed at heli-notifications.emergent.host (user domain airyatra.co.in) — user must redeploy to push this code + whitelist BOTH preview & production domains
 - Regression file: /app/backend/tests/test_iter71_gateway_report_and_payment_link.py
+
+##### 38. Production Live-Test Enablers 🟢 DONE — testing_agent 34/34 PASS (June 2026)
+- POST /payments/cashfree/one-rupee-test (staff): ₹1 LIVE Cashfree order, no booking needed, hosted checkout, booking_type=gateway_test (finalize skips booking writes). UI: PaymentGatewayMode 'Cashfree ₹1 LIVE Test' + PRODUCTION badge (cashfree-one-rupee-btn), SDK modal + 4s polling
+- GET /payments/cashfree/test-pricing/status + UI Apply/Restore toggle (test-pricing-toggle-btn) in GatewayTestReport card
+- POST /verticals/admin/seed (admin, idempotent): 3 owner accounts (yachtowner/cruiseop/helipadowner @airyatra.co.in) + 6 marine assets. UI 'Seed Marine Data' button (seed-marine-btn)
+- deployment_agent: PASS (supervisor 'blocker' was false positive — platform READONLY conf exists)
+- PRODUCTION FACTS discovered: airyatra.co.in = live prod (old code, Cashfree MOCK/no keys → REDEPLOY needed); prod DB has customer account (same pwd) but admin password DIFFERENT on prod (4 login attempts left — careful, lockout at 5); prod has 0 marine assets (seed button needed); Cashfree whitelisting approved only for airyatra.co.in (not preview domain)
+- PRODUCTION TEST RUNBOOK: Redeploy → admin login on airyatra.co.in (user's own prod password + email OTP) → API Keys page → ₹1 Cashfree LIVE test (gateway verify) → Seed Marine Data → Apply Test Pricing → customer books yacht ₹15 → owner confirm → UPI Collect → GPay approve → Test Report PASS + webhook proof → Restore Original Pricing
