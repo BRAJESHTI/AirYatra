@@ -272,6 +272,8 @@ class CashfreeService:
                 "order_status": order.get("order_status"),
                 "is_paid": is_paid,
                 "payment": successful,
+                "order_amount": order.get("order_amount"),
+                "amount_paid": (successful.get("payment_amount") if successful else None),
                 "cf_payment_id": successful.get("cf_payment_id") if successful else None,
                 "payment_method": successful.get("payment_method") if successful else None,
                 "mode": self.mode

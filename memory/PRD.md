@@ -3885,3 +3885,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Preview passwords updated per user's Hostinger sheet (see test_credentials.md). booking@airyatra.co.in created. Real customer dr.brajeshptiwari@gmail.com (pre-existing) password set Customer@123.
 - TESTED preview: customer new-UA login → direct, no OTP ✅; admin login → OTP sent to Hostinger mailbox ✅; forgot-password send-otp 7/7 users ✅ (5/min rate limit).
 - ⚠️ REDEPLOY needed for prod. Prod DB accounts are @airyatra.com — set passwords there via recovery endpoints post-deploy.
+
+##### 45. SEC-001 CRITICAL FIX — Cashfree amount tampering + IDOR (Aug 17, 2026) — testing_agent 32/32 PASS
+- Security audit (deployed app) findings: SEC-001 CRITICAL (legacy cashfree create-order client amount + no ownership; verify-payment confirmed bookings without amount check), SEC-002 HIGH (ADMIN_RECOVERY_TOKEN live on prod — user chose to keep until prod sync done, remove later), P3s deferred (CORS wildcard, old Razorpay key in git file, webhook secret fallback).
+- FIXED SEC-001: create-order → _resolve_payable (server amount, ownership, confirmed/unpaid gates); verify-payment → ownership check + paid_amount>=order_amount underpayment reject + _finalize_cashfree_payment idempotent finalizer; insecure dead code deleted; cashfree_service.verify_payment now returns order_amount+amount_paid.
+- iter_73: 17 new SEC tests + 15 regression = 32/32 PASS (tamper ₹1 ignored → real amount; IDOR 403; unconfirmed 400; paid 400; unknown 404; deprecated 404; upi-collect/webhook/RBAC regression intact). Test file: /app/backend/tests/test_iter73_sec001_cashfree.py
+- ⚠️ PROD STILL VULNERABLE until REDEPLOY (fix is preview-only). SEC-002 + P3 hardening = PENDING BACKLOG per user.

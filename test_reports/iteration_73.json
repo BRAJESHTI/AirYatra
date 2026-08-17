@@ -1,0 +1,33 @@
+{
+  "summary": "Iter-73 SEC-001 verification: legacy Cashfree /create-order and /verify-payment endpoints hardened. Created /app/backend/tests/test_iter73_sec001_cashfree.py (17 tests) — 17/17 PASS. Verified: (1) create-order client `amount:1` is IGNORED — server returns real booking amount (yacht test price ₹15 not ₹1). (2) IDOR — customer B calling create-order with customer A's booking_id → 403 'Not your booking' (no order returned). (3) Unconfirmed booking → 400 'Booking must be confirmed by owner before payment'. (4) Already-paid booking → 400 'Already paid'. (5) Unknown booking → 404. (6) Unauth create-order → 401/403. (7) verify-payment — customer B on A's order → 403 'Not authorized for this order'. (8) verify-payment unknown order_id → 404 'Order not found'. (9) verify-payment owner OK → 200 is_paid:false (order still ACTIVE at Cashfree, no real payment). (10) Deprecated route POST /_verify-payment-deprecated → 404 (deleted). (11) Underpayment guard code path executes without crash. REGRESSION green: upi-collect for confirmed yacht booking returns 200 with server amount ₹15 + hosted_checkout + payment_session_id; collect-status returns PENDING (ACTIVE); webhook invalid sig → 401; duplicate webhook → duplicate:true; one-rupee-test staff → 200 ₹1 order, customer → 403. Old test_cashfree_upi_collect.py (15 tests) also re-run 15/15 PASS after in-scope admin-password refresh (Admin123! → Adm@Air123 per test_credentials.md Aug 17, 2026 update). TOTAL: 32/32 tests green.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter73_sec001_cashfree.py",
+    "/app/test_reports/pytest/iter73_sec001.xml",
+    "/app/test_reports/pytest/iter73_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "cashfree_routes.py L74 create-order now correctly calls `_resolve_payable` first and uses its returned `amount` (not `data.amount`) in cashfree_service.create_order call at L88 and in the DB record L109 — client `amount` field is fully decorative. VERIFIED via tamper test.",
+    "cashfree_routes.py L147 verify-payment ownership check `order_record.user_id != current_user.id AND not PAYMENT_STAFF` — correctly denies other customers but still allows staff (admin/finance/etc) to reconcile. Good.",
+    "cashfree_routes.py L157-163 underpayment guard `paid_amount + 0.01 < order_amount` protects against a Cashfree order that was somehow paid at a lower amount (defense-in-depth; float epsilon 0.01 = 1 paisa tolerance — reasonable).",
+    "cashfree_routes.py — `_verify-payment-deprecated` route is fully removed from source (grep-verified). Returns 404 as expected.",
+    "CreateOrderRequest still declares `amount: float` (L26) as required — accepting the field for API-compat is fine since it's ignored server-side, but consider marking it Optional[float]=None and logging a warning when client passes it (audit signal for tamper attempts). Non-blocking."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter73_sec001_cashfree.py (new)",
+    "/app/backend/tests/test_cashfree_upi_collect.py (admin password refresh to Adm@Air123)"
+  ],
+  "success_rate": { "backend": "100% (32/32)", "frontend": "N/A — testing_type backend only" },
+  "seed_data_creation": "1 real PRODUCTION Cashfree order created via /one-rupee-test (₹1, staff will just expire, unpaid). 1 real production Cashfree order created via /create-order tamper test (yacht ₹15, unpaid — will expire). 1 real production Cashfree order created via /upi-collect (₹15, unpaid — will expire). 1 synthetic underpayment cashfree_orders DB row (amount=99999, no gateway order). No real payments completed. cashfree_webhook_events dedup row inserted for the PAYMENT_FAILED dupe test.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123 (customer A, direct login, no OTP). dr.brajeshptiwari@gmail.com / Customer@123 (customer B for IDOR). admin@airyatra.co.in / Adm@Air123 (staff, OTP minted via services.otp_service.OTPService — pattern in test_vertical_razorpay.py). yachtowner@airyatra.co.in / Yacht@123456 (booking confirmation).",
+  "context_for_next_testing_agent": "SEC-001 fix fully verified with live PRODUCTION Cashfree keys. No real payment made. If iterating further on payments, note that test-pricing END STATE is ACTIVE (yacht ₹15, cruise ₹20, helipad ₹40, aircraft ≤ ₹50 per iter-72 handoff). Admin password is now Adm@Air123 (NOT Admin123!). If deprecated route needs to be re-instated with proper auth guards later, ensure /_verify-payment-deprecated remains removed until then. `CreateOrderRequest.amount` is still a required field in the Pydantic model for API-compat but server ignores it — consider making Optional and audit-logging tamper attempts (see critical_code_review_comments).",
+  "rca_of_the_issue": "N/A — SEC-001 fix is correct and complete. Both endpoints derive amount server-side via _resolve_payable (which owns amount computation + ownership + status gating) and use PAYMENT_STAFF set intersection for staff-elevated verify. No client-controlled state reaches the payment finalizer."
+}

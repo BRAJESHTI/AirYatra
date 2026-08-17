@@ -65,32 +65,27 @@ async def create_cashfree_order(
     data: CreateOrderRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Create a Cashfree order for booking payment"""
+    """Create a Cashfree order for booking payment.
+    SEC-001 FIX: amount is derived server-side via _resolve_payable (client amount ignored)
+    and booking ownership is enforced."""
     db = get_database()
-    
-    # Verify booking exists
-    booking = await db.bookings.find_one({"id": data.booking_id})
-    inquiry = await db.inquiries.find_one({"id": data.booking_id})
-    
-    if not booking and not inquiry:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    
-    record = booking or inquiry
-    
+
+    # Server-side amount + ownership (raises 403/404/400 as needed)
+    btype, record, amount, payment_type = await _resolve_payable(db, data.booking_id, current_user)
+
     # Get customer details
     customer_name = data.customer_name or current_user.get("full_name", current_user.get("name", "Customer"))
     customer_email = data.customer_email or current_user.get("email", "customer@airyatra.com")
     customer_phone = data.customer_phone or current_user.get("phone", "9999999999")
-    
-    # Build return URL
+
     import os
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://airyatra-corporate.preview.emergentagent.com")
+    base_url = (os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("FRONTEND_URL", "")).strip('"')
     return_url = data.return_url or f"{base_url}/payment/cashfree/result?booking_id={data.booking_id}"
     notify_url = f"{base_url}/api/payments/cashfree/webhook"
-    
-    # Create Cashfree order
+
+    # Create Cashfree order with SERVER-DERIVED amount
     result = await cashfree_service.create_order(
-        amount=data.amount,
+        amount=amount,
         booking_id=data.booking_id,
         customer_id=current_user["id"],
         customer_name=customer_name,
@@ -99,19 +94,20 @@ async def create_cashfree_order(
         return_url=return_url,
         notify_url=notify_url
     )
-    
+
     if not result.get("success"):
         raise HTTPException(status_code=400, detail=result.get("error", "Failed to create Cashfree order"))
-    
-    # Store order in database
+
     order_record = {
         "id": str(uuid.uuid4()),
         "cashfree_order_id": result["order_id"],
         "cf_order_id": result.get("cf_order_id"),
         "payment_session_id": result.get("payment_session_id"),
         "booking_id": data.booking_id,
+        "booking_type": btype,
         "user_id": current_user["id"],
-        "amount": data.amount,
+        "amount": amount,
+        "payment_type": payment_type,
         "currency": "INR",
         "status": "created",
         "mode": result.get("mode", "sandbox"),
@@ -119,12 +115,12 @@ async def create_cashfree_order(
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.cashfree_orders.insert_one(order_record.copy())
-    
+
     return {
         "success": True,
         "order_id": result["order_id"],
         "payment_session_id": result.get("payment_session_id"),
-        "amount": data.amount,
+        "amount": amount,
         "currency": "INR",
         "mode": result.get("mode"),
         "mock_mode": result.get("mock_mode", False),
@@ -137,86 +133,47 @@ async def verify_cashfree_payment(
     data: VerifyPaymentRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Verify Cashfree payment status"""
+    """Verify Cashfree payment status.
+    SEC-001 FIX: enforces order ownership + validates the amount actually paid at Cashfree
+    matches the server-recorded order amount before confirming, and uses the secure
+    idempotent finalizer (no client-controlled state)."""
     db = get_database()
-    
-    # Verify payment with Cashfree
+
+    order_record = await db.cashfree_orders.find_one({"cashfree_order_id": data.order_id}, {"_id": 0})
+    if not order_record:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Ownership: only the order's own user or payment staff
+    if order_record.get("user_id") != current_user["id"] and not (PAYMENT_STAFF & set(current_user.get("roles", []))):
+        raise HTTPException(status_code=403, detail="Not authorized for this order")
+
+    # Verify with Cashfree gateway
     result = await cashfree_service.verify_payment(data.order_id)
-    
     if not result.get("success"):
         raise HTTPException(status_code=400, detail=result.get("error", "Failed to verify payment"))
-    
-    # Find order record
-    order_record = await db.cashfree_orders.find_one({"cashfree_order_id": data.order_id})
-    booking_id = data.booking_id or (order_record.get("booking_id") if order_record else None)
-    
-    # Update order record
-    if order_record:
-        await db.cashfree_orders.update_one(
-            {"cashfree_order_id": data.order_id},
-            {"$set": {
-                "status": "paid" if result.get("is_paid") else result.get("order_status", "unknown"),
-                "cf_payment_id": result.get("cf_payment_id"),
-                "payment_method": result.get("payment_method"),
-                "verified_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-    
-    # Update booking status if paid
-    if result.get("is_paid") and booking_id:
-        await db.bookings.update_one(
-            {"id": booking_id},
-            {"$set": {
-                "payment_status": "paid",
-                "status": "confirmed",
-                "payment_method": "cashfree",
-                "cashfree_order_id": data.order_id,
-                "cf_payment_id": result.get("cf_payment_id"),
-                "paid_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        await db.inquiries.update_one(
-            {"id": booking_id},
-            {"$set": {
-                "payment_status": "paid",
-                "status": "confirmed",
-                "payment_method": "cashfree",
-                "cashfree_order_id": data.order_id,
-                "paid_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        
-        # Record transaction
-        transaction = {
-            "id": str(uuid.uuid4()),
-            "type": "cashfree_payment",
-            "booking_id": booking_id,
-            "user_id": current_user["id"],
-            "cashfree_order_id": data.order_id,
-            "cf_payment_id": result.get("cf_payment_id"),
-            "amount": order_record.get("amount") if order_record else 0,
-            "currency": "INR",
-            "payment_method": result.get("payment_method"),
-            "status": "completed",
-            "mode": result.get("mode"),
-            "mock_mode": result.get("mock_mode", False),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.transactions.insert_one(transaction.copy())
 
-        from services.invoice_email_service import schedule_invoice_email
-        schedule_invoice_email(db, booking_id, "cashfree")
-    
-    return {
-        "success": True,
-        "is_paid": result.get("is_paid", False),
-        "order_status": result.get("order_status"),
-        "cf_payment_id": result.get("cf_payment_id"),
-        "payment_method": result.get("payment_method"),
-        "booking_id": booking_id,
-        "mode": result.get("mode"),
-        "mock_mode": result.get("mock_mode", False)
-    }
+    is_paid = bool(result.get("is_paid"))
+    # Validate paid amount >= server-recorded order amount (reject underpayment)
+    order_amount = float(order_record.get("amount") or 0)
+    paid_amount = float(result.get("amount_paid") or result.get("order_amount") or 0)
+    if is_paid and paid_amount and order_amount and paid_amount + 0.01 < order_amount:
+        logger.warning(f"Cashfree underpayment: order {data.order_id} expected {order_amount} got {paid_amount}")
+        await db.cashfree_orders.update_one({"cashfree_order_id": data.order_id},
+                                            {"$set": {"status": "underpaid"}})
+        raise HTTPException(status_code=400, detail="Paid amount is less than the required amount")
+
+    if is_paid:
+        await _finalize_cashfree_payment(db, order_record, result.get("cf_payment_id"),
+                                         result.get("payment_method"), source="verify")
+        return {"success": True, "is_paid": True, "order_id": data.order_id,
+                "amount": order_amount, "cf_payment_id": result.get("cf_payment_id")}
+
+    await db.cashfree_orders.update_one(
+        {"cashfree_order_id": data.order_id, "status": {"$ne": "paid"}},
+        {"$set": {"status": result.get("order_status", "unknown"),
+                  "verified_at": datetime.now(timezone.utc).isoformat()}})
+    return {"success": True, "is_paid": False, "order_id": data.order_id,
+            "order_status": result.get("order_status")}
 
 
 @router.get("/order/{order_id}")

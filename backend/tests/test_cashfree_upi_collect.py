@@ -20,7 +20,7 @@ API = f"{BASE_URL}/api"
 CASHFREE_SECRET = backend_env.get("CASHFREE_CLIENT_SECRET", "").strip('"')
 
 CUSTOMER = {"email": "customer@airyatra.co.in", "password": "Customer@123"}
-ADMIN = {"email": "admin@airyatra.co.in", "password": "Admin123!"}
+ADMIN = {"email": "admin@airyatra.co.in", "password": "Adm@Air123"}
 YACHT_OWNER = {"email": "yachtowner@airyatra.co.in", "password": "Yacht@123456"}
 TEST_UPI = "dr.brajeshptiwari@okicici"
 
