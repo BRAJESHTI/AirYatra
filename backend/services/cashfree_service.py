@@ -161,6 +161,64 @@ class CashfreeService:
             logger.error(f"Cashfree UPI collect error: {e}")
             return {"success": False, "error": str(e)}
 
+    async def create_payment_link(self, link_id: str, amount: float, purpose: str,
+                                  customer_name: str, customer_email: str, customer_phone: str,
+                                  return_url: str = None, notify_url: str = None) -> Dict[str, Any]:
+        """Create a Cashfree Payment Link (hosted on Cashfree's own domain — no whitelisting needed)"""
+        if not self.is_configured():
+            return {"success": True, "link_id": link_id, "link_url": f"https://mock.cashfree/{link_id}",
+                    "link_status": "ACTIVE", "mode": "MOCK", "mock_mode": True}
+        try:
+            payload = {
+                "link_id": link_id,
+                "link_amount": float(amount),
+                "link_currency": "INR",
+                "link_purpose": purpose[:500],
+                "customer_details": {
+                    "customer_name": customer_name,
+                    "customer_email": customer_email,
+                    "customer_phone": customer_phone,
+                },
+                "link_notify": {"send_sms": False, "send_email": False},
+                "link_meta": {}
+            }
+            if return_url:
+                payload["link_meta"]["return_url"] = return_url
+            if notify_url:
+                payload["link_meta"]["notify_url"] = notify_url
+            result = await self._request("POST", "/links", body=payload, idempotency_key=link_id)
+            if not result.get("success"):
+                return result
+            return {"success": True, "link_id": link_id, "cf_link_id": result.get("cf_link_id"),
+                    "link_url": result.get("link_url"), "link_qrcode": result.get("link_qrcode"),
+                    "link_status": result.get("link_status"), "mode": self.mode}
+        except Exception as e:
+            logger.error(f"Cashfree payment link error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_payment_link(self, link_id: str) -> Dict[str, Any]:
+        """Get payment link status (PAID/ACTIVE/EXPIRED)"""
+        if not self.is_configured():
+            return {"success": True, "link_status": "PAID", "mock_mode": True}
+        try:
+            return await self._request("GET", f"/links/{link_id}")
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def get_link_orders(self, link_id: str) -> Any:
+        """Orders created against a payment link (for payment proof)"""
+        if not self.is_configured():
+            return {"success": True, "data": []}
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.get(f"{self.base_url}/links/{link_id}/orders",
+                                            headers=self._get_headers())
+            if response.status_code >= 400:
+                return {"success": False, "error": response.text}
+            return {"success": True, "data": response.json()}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     async def get_order(self, order_id: str) -> Dict[str, Any]:
         """Get order details from Cashfree"""
         if not self.is_configured():

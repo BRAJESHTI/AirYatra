@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import api from '../../services/api';
 import { toast } from 'sonner';
 import PaymentGatewayMode from './PaymentGatewayMode';
+import GatewayTestReport from './GatewayTestReport';
 
 function APIKeysSettings({ user }) {
   const [loading, setLoading] = useState(true);
@@ -132,6 +133,7 @@ function APIKeysSettings({ user }) {
   return (
     <div className="space-y-6">
       <PaymentGatewayMode />
+      <GatewayTestReport />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

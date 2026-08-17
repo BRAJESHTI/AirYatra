@@ -3820,3 +3820,11 @@ PAYPAL_MODE=sandbox  # or 'live'
 - TEST PRICING ACTIVE: Helicopter ₹5/hr, Jet ₹10/hr, Yacht ₹15, Cruise ₹20, AirAmb ₹25, Cargo ₹30, Scenic ₹35, Helipad ₹40. Restore: POST /api/payments/cashfree/test-pricing/restore
 - ⚠️ USER BLOCKERS: (1) Domain whitelist at merchant.cashfree.com > Developers (preview URL + production domain) — checkout modal shows 'Broken Link!' until done. (2) Optional: email care@cashfree.com for S2S direct-collect enablement. (3) Razorpay real UPI needs LIVE keys (not provided — Razorpay stays TEST mode)
 - Regression suite: /app/backend/tests/test_cashfree_upi_collect.py (15 tests)
+
+##### 37. Payment Gateway Test Report + Cashfree Payment Link 🟢 DONE — testing_agent 21/21 PASS (June 2026)
+- GET /payments/cashfree/test-report (staff): rows (gateway/type/order_id/amount≤50/mode/status/webhook_proof/verdict PASS-FAIL-PENDING) + per-gateway summary. Frontend admin/GatewayTestReport.js in APIKeysSettings (data-testid gateway-test-report)
+- POST /payments/cashfree/payment-link + collect-status link branch + webhook order_tags.link_id mapping + service create_payment_link/get_payment_link/get_link_orders. Frontend: link buttons in MarineBookings dialog + PaymentPage
+- HTTPException 502→400 fix (502 triggered Cloudflare HTML page instead of API error)
+- ⚠️ CASHFREE MERCHANT LIMITS discovered: S2S collect NOT enabled, link_creation_api NOT enabled (endpoint returns clear 400 — auto-works once Cashfree enables). ONLY viable live path: hosted checkout AFTER domain whitelisting at merchant.cashfree.com
+- PRODUCTION deployed at heli-notifications.emergent.host (user domain airyatra.co.in) — user must redeploy to push this code + whitelist BOTH preview & production domains
+- Regression file: /app/backend/tests/test_iter71_gateway_report_and_payment_link.py

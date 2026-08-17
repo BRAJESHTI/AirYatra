@@ -34,6 +34,7 @@ export default function MarineBookings() {
   const [collectFor, setCollectFor] = useState(null);
   const [upiId, setUpiId] = useState('dr.brajeshptiwari@okicici');
   const [collectStatus, setCollectStatus] = useState(null);
+  const [linkUrl, setLinkUrl] = useState(null);
   const pollRef = React.useRef(null);
 
   const stopPoll = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
@@ -47,6 +48,39 @@ export default function MarineBookings() {
     s.onerror = () => resolve(false);
     document.body.appendChild(s);
   });
+
+  const startStatusPoll = (orderId) => {
+    const started = Date.now();
+    stopPoll();
+    pollRef.current = setInterval(async () => {
+      if (Date.now() - started > 15 * 60 * 1000) { stopPoll(); setCollectStatus('timeout'); setBusy(''); return; }
+      try {
+        const s = await api.get(`/payments/cashfree/collect-status/${orderId}`);
+        if (s.data.status === 'SUCCESS') {
+          stopPoll(); setCollectStatus('success'); setBusy('');
+          toast.success('UPI payment successful! Booking confirmed & paid.');
+          setCollectFor(null); setLinkUrl(null); load();
+        } else if (s.data.status === 'FAILED') {
+          stopPoll(); setCollectStatus('failed'); setBusy('');
+          toast.error('Payment failed / expired');
+        }
+      } catch (e) { /* keep polling */ }
+    }, 4000);
+  };
+
+  const createPaymentLink = async () => {
+    setBusy('link');
+    try {
+      const res = await api.post('/payments/cashfree/payment-link', { booking_id: collectFor.id });
+      toast.success(res.data.message);
+      setLinkUrl(res.data.link_url);
+      setCollectStatus('pending');
+      startStatusPoll(res.data.order_id);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Payment link failed');
+      setBusy('');
+    }
+  };
 
   const sendCollect = async () => {
     const upi = upiId.trim();
@@ -64,22 +98,7 @@ export default function MarineBookings() {
         }
       }
       setCollectStatus('pending');
-      const started = Date.now();
-      stopPoll();
-      pollRef.current = setInterval(async () => {
-        if (Date.now() - started > 10 * 60 * 1000) { stopPoll(); setCollectStatus('timeout'); setBusy(''); return; }
-        try {
-          const s = await api.get(`/payments/cashfree/collect-status/${res.data.order_id}`);
-          if (s.data.status === 'SUCCESS') {
-            stopPoll(); setCollectStatus('success'); setBusy('');
-            toast.success('UPI payment successful! Booking confirmed & paid.');
-            setCollectFor(null); load();
-          } else if (s.data.status === 'FAILED') {
-            stopPoll(); setCollectStatus('failed'); setBusy('');
-            toast.error('UPI collect failed / declined');
-          }
-        } catch (e) { /* keep polling */ }
-      }, 4000);
+      startStatusPoll(res.data.order_id);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'UPI collect failed');
       setCollectStatus(null); setBusy('');
@@ -374,7 +393,7 @@ export default function MarineBookings() {
         </>
       )}
 
-      <Dialog open={!!collectFor} onOpenChange={(o) => { if (!o) { setCollectFor(null); stopPoll(); setBusy(''); } }}>
+      <Dialog open={!!collectFor} onOpenChange={(o) => { if (!o) { setCollectFor(null); setLinkUrl(null); stopPoll(); setBusy(''); } }}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white" data-testid="upi-collect-dialog">
           <DialogHeader>
             <DialogTitle>UPI Collect — {collectFor?.booking_number}</DialogTitle>
@@ -392,10 +411,31 @@ export default function MarineBookings() {
                 <span className="text-blue-300">Google Pay me request approve karein — status auto-update hoga...</span>
               </div>
             )}
+            {linkUrl && (
+              <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-2" data-testid="marine-payment-link-box">
+                <p className="text-cyan-300 text-sm font-medium">📱 Payment Link ready — phone pe kholein:</p>
+                <p className="text-slate-300 font-mono text-[11px] break-all">{linkUrl}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="border-cyan-500/50 text-cyan-400 h-7 text-xs"
+                    onClick={() => { navigator.clipboard.writeText(linkUrl); toast.success('Link copied!'); }} data-testid="copy-payment-link-btn">
+                    Copy Link
+                  </Button>
+                  <Button size="sm" variant="outline" className="border-cyan-500/50 text-cyan-400 h-7 text-xs"
+                    onClick={() => window.open(linkUrl, '_blank')} data-testid="open-payment-link-btn">
+                    Open
+                  </Button>
+                </div>
+              </div>
+            )}
             {collectStatus === 'failed' && <p className="text-red-400 text-sm">❌ Collect failed/declined — dobara try karein</p>}
             {collectStatus === 'timeout' && <p className="text-amber-400 text-sm">⏱️ Request expire ho gaya</p>}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+              onClick={createPaymentLink} disabled={busy === 'link' || collectStatus === 'pending'} data-testid="marine-payment-link-btn">
+              {busy === 'link' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              📱 Payment Link (phone pe)
+            </Button>
             <Button onClick={sendCollect} disabled={busy === 'collect' || collectStatus === 'pending'}
               className="bg-cyan-600 hover:bg-cyan-700" data-testid="marine-send-collect-btn">
               {busy === 'collect' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <IndianRupee className="h-4 w-4 mr-1" />}

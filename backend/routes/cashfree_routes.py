@@ -310,7 +310,7 @@ async def create_cashfree_refund(
 
 class UPICollectRequest(BaseModel):
     booking_id: str
-    upi_id: str
+    upi_id: Optional[str] = None
 
 
 PAYMENT_STAFF = {"admin", "super_admin", "finance", "ceo", "cfo"}
@@ -432,7 +432,7 @@ async def initiate_upi_collect(data: UPICollectRequest, request: Request,
                                current_user: dict = Depends(get_current_user)):
     """Send a real UPI Collect request to a VPA — approval popup appears in GPay/PhonePe"""
     db = get_database()
-    upi = data.upi_id.strip()
+    upi = (data.upi_id or "").strip()
     if "@" not in upi or " " in upi:
         raise HTTPException(status_code=400, detail="Invalid UPI ID (format: name@bank)")
 
@@ -448,7 +448,7 @@ async def initiate_upi_collect(data: UPICollectRequest, request: Request,
         return_url=f"{base_url}/payment/cashfree/result?booking_id={data.booking_id}",
         notify_url=f"{base_url}/api/payments/cashfree/webhook")
     if not result.get("success"):
-        raise HTTPException(status_code=502, detail=f"Cashfree order failed: {str(result.get('error', ''))[:300]}")
+        raise HTTPException(status_code=400, detail=f"Cashfree order failed: {str(result.get('error', ''))[:300]}")
 
     order_id = result["order_id"]
     collect_mode = "direct_collect"
@@ -460,7 +460,7 @@ async def initiate_upi_collect(data: UPICollectRequest, request: Request,
             collect_mode = "hosted_checkout"
             collect = {"success": True, "cf_payment_id": ""}
         else:
-            raise HTTPException(status_code=502, detail=f"UPI collect failed: {err[:300]}")
+            raise HTTPException(status_code=400, detail=f"UPI collect failed: {err[:300]}")
 
     await db.cashfree_orders.insert_one({
         "id": str(uuid.uuid4()), "cashfree_order_id": order_id,
@@ -491,6 +491,110 @@ async def initiate_upi_collect(data: UPICollectRequest, request: Request,
                         else f"Cashfree secure checkout khul raha hai — UPI select karke {upi} daaliye, GPay me approve karein")}
 
 
+@router.post("/payment-link")
+async def create_payment_link(data: UPICollectRequest, request: Request,
+                              current_user: dict = Depends(get_current_user)):
+    """Cashfree Payment Link — opens on Cashfree's own domain (no whitelisting needed).
+    Customer opens link on phone → pays via UPI → booking auto-completes via poll/webhook."""
+    db = get_database()
+    btype, booking, amount, payment_type = await _resolve_payable(db, data.booking_id, current_user)
+
+    import os
+    base_url = (os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("FRONTEND_URL", "")).strip('"')
+    link_id = f"CFL{uuid.uuid4().hex[:18]}"
+    booking_number = booking.get("booking_number") or booking.get("inquiry_number") or data.booking_id[:8]
+    result = await cashfree_service.create_payment_link(
+        link_id=link_id, amount=amount,
+        purpose=f"AirYatra Booking {booking_number}",
+        customer_name=current_user.get("full_name") or current_user.get("name") or "Customer",
+        customer_email=current_user.get("email", "customer@airyatra.co.in"),
+        customer_phone=current_user.get("phone") or "9999999999",
+        return_url=f"{base_url}/payment/cashfree/result?booking_id={data.booking_id}",
+        notify_url=f"{base_url}/api/payments/cashfree/webhook")
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=f"Payment link failed: {str(result.get('error', ''))[:300]}")
+
+    await db.cashfree_orders.insert_one({
+        "id": str(uuid.uuid4()), "cashfree_order_id": link_id,
+        "cf_link_id": result.get("cf_link_id"), "link_url": result.get("link_url"),
+        "booking_id": data.booking_id, "booking_type": btype, "user_id": current_user["id"],
+        "amount": amount, "payment_type": payment_type, "currency": "INR",
+        "upi_id": data.upi_id.strip() if data.upi_id else None,
+        "channel": "payment_link", "collect_mode": "payment_link",
+        "status": "link_created", "mode": result.get("mode", cashfree_service.mode),
+        "mock_mode": result.get("mock_mode", False),
+        "created_at": datetime.now(timezone.utc).isoformat()})
+    try:
+        from routes.audit_trail_routes import audit_event
+        await audit_event(db, "cashfree_payment_link_created", current_user,
+                          details={"booking_id": data.booking_id, "link_id": link_id, "amount": amount,
+                                   "gateway": "cashfree", "booking_type": btype,
+                                   "link_url": result.get("link_url")},
+                          resource_type="payment", resource_id=link_id, risk_level="medium",
+                          ip=request.client.host if request.client else None)
+    except Exception:
+        pass
+    return {"success": True, "order_id": link_id, "link_url": result.get("link_url"),
+            "link_qrcode": result.get("link_qrcode"), "amount": amount, "payment_type": payment_type,
+            "mode": result.get("mode", cashfree_service.mode),
+            "message": f"₹{amount:g} payment link ready — phone pe kholein aur UPI se pay karein"}
+
+
+@router.get("/test-report")
+async def gateway_test_report(current_user: dict = Depends(get_current_user)):
+    """PASS/FAIL report of all gateway test transactions (amount ≤ ₹50) with webhook proof"""
+    if not (PAYMENT_STAFF & set(current_user.get("roles", []))):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    db = get_database()
+    rows = []
+
+    # Razorpay ₹1 gateway tests
+    async for t in db.gateway_tests.find({}, {"_id": 0}).sort("created_at", -1).limit(100):
+        rows.append({
+            "gateway": "razorpay", "type": "₹1 Gateway Test", "order_id": t.get("order_id"),
+            "amount": t.get("amount", 1), "mode": t.get("mode"), "status": t.get("status"),
+            "by": t.get("by"), "created_at": t.get("created_at"),
+            "webhook_proof": None, "payment_id": t.get("payment_id"),
+            "verdict": "PASS" if t.get("status") == "paid" else "PENDING"})
+
+    # Razorpay small orders (test pricing bookings)
+    async for o in db.payment_orders.find({"amount": {"$lte": 50}}, {"_id": 0}).sort("created_at", -1).limit(100):
+        rows.append({
+            "gateway": "razorpay", "type": f"{(o.get('vertical') or 'booking').title()} Booking",
+            "order_id": o.get("order_id"), "amount": o.get("amount"), "mode": "mock" if o.get("mock") else "gateway",
+            "status": o.get("status"), "by": None, "created_at": o.get("created_at"),
+            "webhook_proof": None, "payment_id": o.get("payment_id"),
+            "verdict": "PASS" if o.get("status") == "paid" else ("FAIL" if o.get("status") == "failed" else "PENDING")})
+
+    # Cashfree orders / collect / payment links
+    async for c in db.cashfree_orders.find({"amount": {"$lte": 50}}, {"_id": 0}).sort("created_at", -1).limit(100):
+        webhook = await db.cashfree_webhooks.find_one({"order_id": c.get("cashfree_order_id")}, {"_id": 0, "event_type": 1, "received_at": 1})
+        status = c.get("status")
+        rows.append({
+            "gateway": "cashfree", "type": {"payment_link": "Payment Link", "upi_collect": "UPI Collect"}.get(c.get("channel"), "Order"),
+            "order_id": c.get("cashfree_order_id"), "amount": c.get("amount"), "mode": c.get("mode"),
+            "status": status, "by": None, "created_at": c.get("created_at"),
+            "webhook_proof": (f"{webhook['event_type']} @ {webhook['received_at'][:19]}" if webhook else
+                              ("verified via polling" if c.get("paid_source") == "poll" and status == "paid" else None)),
+            "payment_id": c.get("cf_payment_id") or None, "link_url": c.get("link_url"),
+            "verdict": "PASS" if status == "paid" else ("FAIL" if status == "failed" else "PENDING")})
+
+    rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+
+    def _summary(gw):
+        g = [r for r in rows if r["gateway"] == gw]
+        return {"total": len(g),
+                "pass": sum(1 for r in g if r["verdict"] == "PASS"),
+                "fail": sum(1 for r in g if r["verdict"] == "FAIL"),
+                "pending": sum(1 for r in g if r["verdict"] == "PENDING"),
+                "verdict": "PASS" if any(r["verdict"] == "PASS" for r in g) else ("FAIL" if g and all(r["verdict"] == "FAIL" for r in g) else "PENDING"),
+                "mode": ("live/production" if any(r.get("mode") in ("live", "production") for r in g) else "test")}
+
+    return {"rows": rows[:150],
+            "summary": {"razorpay": _summary("razorpay"), "cashfree": _summary("cashfree")},
+            "generated_at": datetime.now(timezone.utc).isoformat()}
+
+
 @router.get("/collect-status/{order_id}")
 async def collect_status(order_id: str, current_user: dict = Depends(get_current_user)):
     """Poll UPI collect status — finalizes booking on SUCCESS (idempotent)"""
@@ -505,6 +609,27 @@ async def collect_status(order_id: str, current_user: dict = Depends(get_current
                 "cf_payment_id": rec.get("cf_payment_id"), "already_paid": True}
     if rec.get("status") == "failed":
         return {"status": "FAILED", "order_id": order_id}
+
+    # Payment Link flow — poll link status on Cashfree
+    if rec.get("channel") == "payment_link":
+        link = await cashfree_service.get_payment_link(order_id)
+        link_status = link.get("link_status", "ACTIVE")
+        if link_status == "PAID" or float(link.get("link_amount_paid") or 0) >= float(rec.get("amount") or 0) > 0:
+            cf_payment_id, payment_method = "", None
+            lo = await cashfree_service.get_link_orders(order_id)
+            for o in (lo.get("data") or []):
+                if o.get("order_status") == "PAID":
+                    cf_payment_id = str(o.get("cf_order_id") or o.get("order_id") or "")
+                    break
+            await _finalize_cashfree_payment(db, rec, cf_payment_id, payment_method, source="poll")
+            return {"status": "SUCCESS", "order_id": order_id, "amount": rec.get("amount"),
+                    "cf_payment_id": cf_payment_id}
+        if link_status in ("EXPIRED", "CANCELLED"):
+            await db.cashfree_orders.update_one(
+                {"cashfree_order_id": order_id, "status": {"$ne": "paid"}}, {"$set": {"status": "failed"}})
+            return {"status": "FAILED", "order_status": link_status, "order_id": order_id}
+        return {"status": "PENDING", "order_status": link_status, "order_id": order_id,
+                "link_url": rec.get("link_url")}
 
     result = await cashfree_service.verify_payment(order_id)
     if result.get("success") and result.get("is_paid"):
@@ -631,6 +756,12 @@ async def cashfree_webhook(request: Request):
     try:
         if event_type in ("PAYMENT_SUCCESS", "PAYMENT_SUCCESS_WEBHOOK"):
             rec = await db.cashfree_orders.find_one({"cashfree_order_id": order_id}, {"_id": 0})
+            if not rec:
+                # Payment Link orders carry link_id in order_tags
+                link_id = (order_data.get("order_tags") or {}).get("link_id") or \
+                          (data.get("link") or {}).get("link_id")
+                if link_id:
+                    rec = await db.cashfree_orders.find_one({"cashfree_order_id": link_id}, {"_id": 0})
             if rec:
                 await _finalize_cashfree_payment(db, rec, cf_payment_id,
                                                  payment_data.get("payment_method"), source="webhook")

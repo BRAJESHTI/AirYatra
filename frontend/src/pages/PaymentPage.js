@@ -43,6 +43,9 @@ function PaymentPage({ user }) {
   const [selectedGateway, setSelectedGateway] = useState('stripe');
   const isBalance = new URLSearchParams(location.search).get('type') === 'balance';
   const [ledger, setLedger] = useState(null);
+  const [upiId, setUpiId] = useState('dr.brajeshptiwari@okicici');
+  const [collectState, setCollectState] = useState(null);
+  const [payLink, setPayLink] = useState(null);
 
   useEffect(() => {
     api.get('/payments/gateways')
@@ -216,6 +219,46 @@ function PaymentPage({ user }) {
     document.body.appendChild(s);
   });
 
+  const startCollectPoll = (orderId, amount) => {
+    const started = Date.now();
+    const poll = setInterval(async () => {
+      if (Date.now() - started > 15 * 60 * 1000) {
+        clearInterval(poll);
+        setCollectState({ status: 'timeout' });
+        setProcessing(false);
+        toast.error('Request expire ho gaya — dobara try karein');
+        return;
+      }
+      try {
+        const s = await api.get(`/payments/cashfree/collect-status/${orderId}`);
+        if (s.data.status === 'SUCCESS') {
+          clearInterval(poll);
+          toast.success('UPI payment successful!');
+          navigate(`/payment/success?gateway=cashfree&booking_id=${inquiryId}&amount=${amount}`);
+        } else if (s.data.status === 'FAILED') {
+          clearInterval(poll);
+          setCollectState({ status: 'failed' });
+          setProcessing(false);
+          toast.error('Payment failed / expired');
+        }
+      } catch (e) { /* keep polling */ }
+    }, 4000);
+  };
+
+  const handleCashfreePaymentLink = async () => {
+    setProcessing(true);
+    try {
+      const res = await api.post('/payments/cashfree/payment-link', { booking_id: inquiryId });
+      toast.success(res.data.message);
+      setPayLink(res.data.link_url);
+      setCollectState({ status: 'pending', orderId: res.data.order_id, amount: res.data.amount, link: true });
+      startCollectPoll(res.data.order_id, res.data.amount);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Payment link failed');
+      setProcessing(false);
+    }
+  };
+
   const handleCashfreeCollect = async () => {
     const upi = upiId.trim();
     if (!upi.includes('@')) return toast.error('Valid UPI ID daaliye (e.g. name@okicici)');
@@ -234,29 +277,7 @@ function PaymentPage({ user }) {
         }
       }
       setCollectState({ status: 'pending', orderId: res.data.order_id, amount: res.data.amount, hosted: res.data.collect_mode === 'hosted_checkout' });
-      const started = Date.now();
-      const poll = setInterval(async () => {
-        if (Date.now() - started > 10 * 60 * 1000) {
-          clearInterval(poll);
-          setCollectState({ status: 'timeout' });
-          setProcessing(false);
-          toast.error('Collect request expire ho gaya — dobara try karein');
-          return;
-        }
-        try {
-          const s = await api.get(`/payments/cashfree/collect-status/${res.data.order_id}`);
-          if (s.data.status === 'SUCCESS') {
-            clearInterval(poll);
-            toast.success('UPI payment successful!');
-            navigate(`/payment/success?gateway=cashfree&booking_id=${inquiryId}&amount=${res.data.amount}`);
-          } else if (s.data.status === 'FAILED') {
-            clearInterval(poll);
-            setCollectState({ status: 'failed' });
-            setProcessing(false);
-            toast.error('UPI collect failed / declined');
-          }
-        } catch (e) { /* keep polling */ }
-      }, 4000);
+      startCollectPoll(res.data.order_id, res.data.amount);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'UPI collect request failed');
       setCollectState(null);
@@ -549,15 +570,41 @@ function PaymentPage({ user }) {
               disabled={collectState?.status === 'pending'}
               data-testid="upi-id-input"
             />
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={handleCashfreePaymentLink}
+                disabled={processing || collectState?.status === 'pending'}
+                className="text-cyan-400 text-sm underline decoration-dotted hover:text-cyan-300 disabled:opacity-50"
+                data-testid="cashfree-payment-link-btn"
+              >
+                📱 Ya Payment Link banayein (phone pe khol kar pay karein)
+              </button>
+            </div>
+            {payLink && (
+              <div className="mt-3 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-2" data-testid="payment-link-box">
+                <p className="text-cyan-300 text-sm font-medium">Payment Link ready:</p>
+                <p className="text-slate-300 font-mono text-[11px] break-all">{payLink}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => { navigator.clipboard.writeText(payLink); toast.success('Link copied!'); }}
+                    className="text-xs px-3 py-1 rounded border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10" data-testid="copy-pay-link-btn">
+                    Copy Link
+                  </button>
+                  <button onClick={() => window.open(payLink, '_blank')}
+                    className="text-xs px-3 py-1 rounded border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10" data-testid="open-pay-link-btn">
+                    Open
+                  </button>
+                </div>
+              </div>
+            )}
             {collectState?.status === 'pending' && (
               <div className="mt-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center gap-3" data-testid="collect-pending-banner">
                 <Loader2 className="h-5 w-5 text-blue-400 animate-spin flex-shrink-0" />
                 <div>
                   <p className="text-blue-300 font-medium text-sm">
-                    {collectState.hosted ? `Cashfree checkout khula — ₹${collectState.amount?.toLocaleString()}` : `Collect request bheja gaya — ₹${collectState.amount?.toLocaleString()}`}
+                    {collectState.link ? `Payment link active — ₹${collectState.amount?.toLocaleString()}` : collectState.hosted ? `Cashfree checkout khula — ₹${collectState.amount?.toLocaleString()}` : `Collect request bheja gaya — ₹${collectState.amount?.toLocaleString()}`}
                   </p>
                   <p className="text-slate-400 text-xs mt-0.5">
-                    {collectState.hosted ? 'Checkout me UPI select karke apni UPI ID daaliye, phir GPay me approve karein. Status auto-update hoga...' : 'Google Pay kholiye aur payment request approve karein. Status auto-update hoga...'}
+                    {collectState.link ? 'Link phone pe khol kar UPI se pay karein. Status auto-update hoga...' : collectState.hosted ? 'Checkout me UPI select karke apni UPI ID daaliye, phir GPay me approve karein. Status auto-update hoga...' : 'Google Pay kholiye aur payment request approve karein. Status auto-update hoga...'}
                   </p>
                 </div>
               </div>
