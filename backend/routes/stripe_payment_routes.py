@@ -230,6 +230,35 @@ class WalletApplyRequest(BaseModel):
     booking_id: str
 
 
+@router.get("/payments/summary/{booking_id}")
+async def payment_summary(booking_id: str, current_user: dict = Depends(get_current_user),
+                          db=Depends(get_database)):
+    """Payment ledger for a booking: total, paid, remaining balance (for 'Pay Balance' UI)"""
+    booking = await db.inquiries.find_one({"id": booking_id}, {"_id": 0}) or \
+              await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    btype = "aviation"
+    if not booking:
+        booking = await db.vertical_bookings.find_one({"id": booking_id}, {"_id": 0})
+        btype = "vertical"
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    owner = booking.get("customer_id") or booking.get("user_id")
+    staff = {"admin", "super_admin", "finance", "ceo", "cfo"} & set(current_user.get("roles", []))
+    if owner != current_user["id"] and not staff:
+        raise HTTPException(status_code=403, detail="Not your booking")
+
+    if btype == "vertical":
+        total = float(booking.get("amount") or 0)
+        credited = total if booking.get("payment_status") == "paid" else 0.0
+        remaining = round(total - credited, 2)
+    else:
+        total, credited, remaining, _ = await _payment_ledger(db, booking)
+    return {"booking_id": booking_id, "booking_type": btype,
+            "total_amount": round(total, 2), "paid_amount": round(credited, 2),
+            "remaining_amount": round(remaining, 2), "is_fully_paid": remaining <= 0,
+            "currency": "INR"}
+
+
 @router.get("/payments/gateways")
 async def list_payment_gateways(current_user: dict = Depends(get_current_user), db=Depends(get_database)):
     """Available payment gateways + user's wallet/reward balance"""

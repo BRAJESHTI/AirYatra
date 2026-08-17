@@ -30,6 +30,21 @@ function MyTrips({ user }) {
   const [pendingQuotes, setPendingQuotes] = useState([]);
   const [tripQuotes, setTripQuotes] = useState([]);
   const [refundMap, setRefundMap] = useState({});
+  const [balanceMap, setBalanceMap] = useState({});
+
+  const loadBalances = async (tripsList) => {
+    const candidates = (tripsList || []).filter(t =>
+      ['confirmed', 'payment_completed', 'quote_accepted', 'paid'].includes(t.status));
+    const results = await Promise.all(candidates.map(async (t) => {
+      try {
+        const r = await api.get(`/payments/transactions/${t.id}`);
+        return [t.id, r.data];
+      } catch (e) { return null; }
+    }));
+    const map = {};
+    results.forEach(x => { if (x && x[1] && x[1].remaining_due > 0) map[x[0]] = { remaining_amount: x[1].remaining_due, total_amount: x[1].total_amount, paid_amount: x[1].paid_total }; });
+    setBalanceMap(map);
+  };
 
   const loadRefunds = async () => {
     try {
@@ -52,6 +67,7 @@ function MyTrips({ user }) {
       const response = await customerAPI.getTrips();
       setTrips(response.data.trips || []);
       setStatistics(response.data.statistics || {});
+      loadBalances(response.data.trips || []);
     } catch (error) {
       toast.error('Failed to load trips');
     } finally {
@@ -436,6 +452,17 @@ function MyTrips({ user }) {
                     data-testid="preflight-checklist-btn"
                   >
                     <ClipboardCheck className="h-4 w-4 mr-1" /> Pre-flight
+                  </Button>
+                )}
+                {/* Pay Balance - remaining amount due */}
+                {balanceMap[trip.id] && balanceMap[trip.id].remaining_amount > 0 && (
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                    onClick={() => window.location.href = `/payment/${trip.id}?type=balance`}
+                    data-testid={`pay-balance-btn-${trip.id}`}
+                  >
+                    <IndianRupee className="h-4 w-4 mr-1" /> Pay Balance ₹{balanceMap[trip.id].remaining_amount.toLocaleString('en-IN')}
                   </Button>
                 )}
                 {/* Invoice Download - show for confirmed, payment_completed, or completed */}

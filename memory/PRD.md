@@ -3857,3 +3857,11 @@ PAYPAL_MODE=sandbox  # or 'live'
   * ₹1 gateway test: cf 6261..-era — PAID
 - Gateway Test Report: Cashfree total 10, PASS 4, FAIL 0 → VERDICT PASS (all with webhook proof). 4 signed (tamper-proof) audit_logs entries.
 - Aviation bookings auto set status=confirmed + payment_status=paid on advance payment; vertical yacht full settlement (STL-VT) + ledger + finance report all reflected.
+
+##### 41. Invoice Download + Pay Balance (100% settlement) — Aug 17, 2026
+- Invoice PDF download: EXISTS + WORKS (GET /api/customer/bookings/{id}/invoice → valid PDF 2719 bytes). MyTrips "Invoice" button for confirmed/paid/completed.
+- Pay Balance: was MISSING in UI → BUILT. MyTrips loadBalances() calls /payments/transactions/{id} (already on prod), shows "Pay Balance ₹X" button (data-testid pay-balance-btn-{id}) → /payment/{id}?type=balance → PaymentPage balance mode → Cashfree upi-collect resolves payment_type=balance.
+- Also added GET /payments/summary/{booking_id} (stripe_payment_routes) — convenience ledger endpoint (vertical+aviation). MyTrips uses the existing /payments/transactions endpoint instead (no new backend dep).
+- LIVE PROVEN on prod: Helicopter est ₹5 → advance ₹2 (cf 6261094074) → balance ₹3 (cf via order ..4a9e02d2) → payment_status=fully_paid, remaining ₹0 = 100% SETTLED.
+- ⚠️ Frontend Pay Balance button is PREVIEW-only until REDEPLOY. Backend balance flow already live on prod.
+- Prod remaining balances currently: Jet ₹5 (est ₹10, advance ₹5 paid) still open; Yacht fully paid; Helicopter fully settled.
