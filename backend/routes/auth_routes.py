@@ -458,6 +458,15 @@ async def login(request: Request, credentials: UserLogin):
         requires_otp = False
         force_otp_by_risk = False
         reason = "bypass_enabled"
+
+    # Customer/Pilot/Operator: NO security OTP even on new browser/device/location change
+    _OTP_EXEMPT = {"customer", "pilot", "operator", "vendor",
+                   "yacht_owner", "cruise_operator", "helipad_owner"}
+    _user_roles = set(user.get("roles", []))
+    if _user_roles and _user_roles <= _OTP_EXEMPT:
+        requires_otp = False
+        force_otp_by_risk = False
+        reason = "otp_exempt_role"
     
     # Force OTP if risk level demands it
     if force_otp_by_risk and not requires_otp:

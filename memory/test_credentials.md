@@ -102,3 +102,18 @@ curl -X POST "https://airyatra-corporate.preview.emergentagent.com/api/auth/dev/
 - **Privileged logins (admin@, finance@, operator@, ceo@, etc.) now require an emailed 6-digit OTP.** Login flow: POST /api/auth/login → {otp_required:true, otp_sent:true} → OTP emailed → POST /api/auth/login/verify-otp {email, otp_code} → JWT. Use "Trust this device for 30 days" to skip OTP on the same device for 30 days.
 - **Customer / non-privileged accounts** (customer@airyatra.co.in etc.) still log in directly (token in login response) — no OTP unless risk/new-device triggers it.
 - AUTOMATED TESTING NOTE: OTP is SHA256-hashed in db.otp_codes (plaintext not recoverable). To test privileged flows programmatically, mint a known OTP server-side via services.otp_service.OTPService().create_otp(user_id, email, purpose='login') then call /login/verify-otp. Alternatively use a customer account (no OTP).
+
+## Hostinger Email Era (Aug 17, 2026) — PREVIEW passwords updated
+SMTP: smtp.hostinger.com:465 SSL, sender noreply@airyatra.co.in / Nor@Air123 (SMTP_SSL=true in backend/.env)
+| Account | Password | Roles | Login OTP? |
+|---|---|---|---|
+| ceo@airyatra.co.in | Ceo@Air123 | ceo,admin,super_admin | YES |
+| admin@airyatra.co.in | Adm@Air123 | admin | YES |
+| finance@airyatra.co.in | Fin@Air123 | finance,cfo | YES |
+| hr@airyatra.co.in | Hr@Air123 | hr,admin | YES |
+| booking@airyatra.co.in | Boo@Air123 | booking (new) | YES |
+| sales@airyatra.co.in | Sal@Air123 | sales,admin | YES |
+| dr.brajeshptiwari@gmail.com | Customer@123 | customer (real test user) | NO (exempt) |
+OTP EXEMPT roles (never login OTP, even new device/location): customer, pilot, operator, vendor, yacht_owner, cruise_operator, helipad_owner. Employees (admin/ceo/finance/hr/sales/booking/support/cfo) always OTP.
+Forgot-password OTP: works for all (rate limit 5/min per IP).
+NOTE: PRODUCTION DB has @airyatra.com accounts — after redeploy use /api/recovery endpoints to set these passwords on prod.

@@ -28,8 +28,8 @@ SMTP_CONFIG = {
     "password": os.environ.get("SMTP_PASSWORD", ""),
     "from_email": os.environ.get("SMTP_FROM_EMAIL", "airyatraadmin@gmail.com"),
     "from_name": os.environ.get("SMTP_FROM_NAME", "AirYatra"),
-    "use_tls": False,  # Use STARTTLS for Gmail (port 587)
-    "start_tls": True,  # Gmail requires STARTTLS
+    "use_tls": os.environ.get("SMTP_SSL", "false").lower() == "true",
+    "start_tls": os.environ.get("SMTP_SSL", "false").lower() != "true",
 }
 
 # ==================== EMAIL TEMPLATES ====================

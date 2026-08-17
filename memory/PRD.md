@@ -3878,3 +3878,10 @@ PAYPAL_MODE=sandbox  # or 'live'
 - FIX 3: new POST /api/admin/pricing/resend-invoice/{booking_id} (admin) to manually resend/retry.
 - Verified in preview: email_service.send_email → success; endpoints wired (401 without auth).
 - ⚠️ Fixes are PREVIEW-only → REDEPLOY needed. After redeploy, resend failed heli/jet invoices via resend endpoint (or they auto-retry on next trigger).
+
+##### 44. Hostinger SMTP + Role-based OTP policy + Password refresh (Aug 17, 2026)
+- SMTP switched Gmail→Hostinger (smtp.hostinger.com:465 direct SSL via new SMTP_SSL env flag; email_service TLS mode now env-driven). Test email sent OK.
+- OTP policy (otp_service.should_require_otp + auth_routes force_otp_by_risk): customer/pilot/operator/vendor/yacht_owner/cruise_operator/helipad_owner NEVER get login OTP (even new browser/device/location). Employees (admin/ceo/cfo/finance/hr/sales/booking/support) always OTP. "operator" removed from privileged set.
+- Preview passwords updated per user's Hostinger sheet (see test_credentials.md). booking@airyatra.co.in created. Real customer dr.brajeshptiwari@gmail.com (pre-existing) password set Customer@123.
+- TESTED preview: customer new-UA login → direct, no OTP ✅; admin login → OTP sent to Hostinger mailbox ✅; forgot-password send-otp 7/7 users ✅ (5/min rate limit).
+- ⚠️ REDEPLOY needed for prod. Prod DB accounts are @airyatra.com — set passwords there via recovery endpoints post-deploy.

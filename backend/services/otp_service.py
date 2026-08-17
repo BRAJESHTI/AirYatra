@@ -343,15 +343,23 @@ class OTPService:
         # GLOBAL BYPASS: Check if user has login_shield_bypass flag
         if user_data.get("login_shield_bypass", False):
             return False, "bypass_enabled"
-        
-        # Privileged / finance roles always require OTP (step-up MFA)
-        # Enforced BEFORE the per-user otp_enabled flag so it cannot be self-disabled
+
         roles = user_data.get("roles", [])
+        # Customer / Pilot / Operator: NEVER require login OTP (even on new device/location)
+        OTP_EXEMPT_ROLES = {"customer", "pilot", "operator", "vendor",
+                            "yacht_owner", "cruise_operator", "helipad_owner"}
         PRIVILEGED_ROLES = {
-            "admin", "super_admin", "ceo", "operator",
+            "admin", "super_admin", "ceo",
             "finance", "cfo", "finance_head", "accounts_manager", "treasury_analyst",
+            "hr", "sales", "booking", "support",
         }
-        if PRIVILEGED_ROLES & set(roles):
+        role_set = set(roles)
+        if role_set and role_set <= OTP_EXEMPT_ROLES:
+            return False, "otp_exempt_role"
+
+        # AirYatra employees always require OTP (step-up MFA)
+        # Enforced BEFORE the per-user otp_enabled flag so it cannot be self-disabled
+        if PRIVILEGED_ROLES & role_set:
             # But check if device is trusted first
             is_trusted, _ = await self.is_device_trusted(user_id, user_agent, ip_address)
             if is_trusted:
