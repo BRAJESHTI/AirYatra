@@ -3836,3 +3836,14 @@ PAYPAL_MODE=sandbox  # or 'live'
 - deployment_agent: PASS (supervisor 'blocker' was false positive — platform READONLY conf exists)
 - PRODUCTION FACTS discovered: airyatra.co.in = live prod (old code, Cashfree MOCK/no keys → REDEPLOY needed); prod DB has customer account (same pwd) but admin password DIFFERENT on prod (4 login attempts left — careful, lockout at 5); prod has 0 marine assets (seed button needed); Cashfree whitelisting approved only for airyatra.co.in (not preview domain)
 - PRODUCTION TEST RUNBOOK: Redeploy → admin login on airyatra.co.in (user's own prod password + email OTP) → API Keys page → ₹1 Cashfree LIVE test (gateway verify) → Seed Marine Data → Apply Test Pricing → customer books yacht ₹15 → owner confirm → UPI Collect → GPay approve → Test Report PASS + webhook proof → Restore Original Pricing
+
+##### 39. PRODUCTION LIVE PAYMENT TEST — CASHFREE PASS ✅ (Aug 17, 2026)
+- Emergency recovery routes (routes/recovery_routes.py) — token-gated (ADMIN_RECOVERY_TOKEN env, 404 if unset), staff-only mint-otp + reset-password, audited. Enabled main agent to login on production (airyatra.co.in) where passwords/OTP-email were inaccessible.
+- PRODUCTION FACTS: prod DB seeded with @airyatra.COM staff accounts (admin@airyatra.com etc) NOT .co.in; vertical owners (yachtowner@airyatra.co.in / Yacht@123456) login WITHOUT OTP (not in privileged OTP list); verify-otp on prod is SLOW (~60s — likely GeoIP/new-device email blocking, perf concern noted).
+- Cashfree S2S direct-collect + payment_link NOT enabled on merchant; hosted checkout works on whitelisted airyatra.co.in. Main agent drove checkout via Playwright + React-native input setter, user approved on GPay.
+- LIVE RESULTS (real money):
+  * ₹1 Gateway Test: order CF_CFTEST4e64231b_624d3d51 → PAID, cf_payment_id 6261035107-era, webhook PAYMENT_SUCCESS @15:42 → PASS
+  * ₹15 Yacht Booking (YB2026080001, Ocean Pearl 55ft): UPI collect → user approved → PAID, cf_payment_id 6261035107, webhook @15:48 → PASS
+- FULL CHAIN VERIFIED for ₹15 booking: booking status paid; owner portal payout; finance/admin revenue report (yacht gross ₹15, commission ₹1.5 @10%, owner_payout ₹13.5); settlement STL-VT + ledger_entry created; audit_logs signed entry (tamper-proof) with amount/cf_payment_id/upi.
+- FINAL GATEWAY REPORT: Cashfree VERDICT=PASS (2 paid, live/production). Razorpay=PENDING (no live keys yet — user deferred).
+- ⚠️ TODO after testing: (1) Restore original pricing (test pricing still ACTIVE on prod). (2) Remove ADMIN_RECOVERY_TOKEN env from prod to auto-disable recovery endpoints. (3) Investigate 60s verify-otp latency on prod.

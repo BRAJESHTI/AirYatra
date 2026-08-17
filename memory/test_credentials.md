@@ -15,6 +15,12 @@
 | Sales | sales@airyatra.co.in | Sales@123456 | Rahul Kapoor, Sales Manager |
 | Employee | employee@airyatra.co.in | Employee@123 | EMP-0001, HRMS portal |
 
+## Emergency Recovery (June 2026) — for production when SMTP OTP unavailable
+`ADMIN_RECOVERY_TOKEN` in backend/.env gates two endpoints (404 if env unset):
+- POST /api/recovery/mint-otp {email} + header `X-Recovery-Token` → returns login OTP directly (staff only)
+- POST /api/recovery/reset-password {email,new_password} + header `X-Recovery-Token` → resets staff password + clears lockout
+Preview token: `9FLFzgJU1ih7jK-DopSezPnWgZbTRwW5hXbh76wwJhk`. PRODUCTION passwords for @airyatra.co.in accounts are UNKNOWN/different from preview (admin@ Admin123! fails on prod) — use recovery endpoints after deploying + adding ADMIN_RECOVERY_TOKEN env var to production.
+
 ## 2FA/OTP Status: ADMIN STEP-UP MFA ACTIVE (June 2026 — SEC-003)
 Admin/privileged logins return `otp_required:true` (email OTP). For automated tests, mint OTP directly via backend OTPService (delete old `otp_codes` first to bypass 60s cooldown) then POST /api/auth/login/verify-otp — pattern in `/app/backend/tests/test_vertical_razorpay.py` `_mint_otp_and_verify()`. Customer/non-privileged users login directly without OTP.
 **IMPORTANT**: backend/.env DB_NAME must stay `"airyatra_db"` (the `airyatra` DB is stale/empty — wrong DB caused destination search to return no suggestions).

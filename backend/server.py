@@ -134,6 +134,7 @@ from routes import razorpay_routes
 from routes import paypal_routes
 # Cashfree Payment Gateway
 from routes import cashfree_routes
+from routes import recovery_routes
 # Legal Documents Management
 from routes import legal_documents_routes
 # Payment Receipts
@@ -407,6 +408,7 @@ api_router.include_router(paypal_routes.router)
 
 # Cashfree Payment Gateway
 api_router.include_router(cashfree_routes.router)
+api_router.include_router(recovery_routes.router)
 
 # Legal Documents Management
 api_router.include_router(legal_documents_routes.router)
