@@ -53,6 +53,14 @@ async def trigger_departure_reminders(current_user: dict = Depends(require_admin
     return {"message": "24h departure reminders triggered", "emails_sent": sent}
 
 
+@router.post("/trigger/cashfree-refund-sync")
+async def trigger_cashfree_refund_sync(current_user: dict = Depends(require_admin)):
+    """Manually sync pending Cashfree refund credit statuses"""
+    from scheduler import sync_cashfree_refund_credits
+    synced = await sync_cashfree_refund_credits()
+    return {"message": "Cashfree refund credit sync triggered", "refunds_synced": synced}
+
+
 @router.post("/pause/{job_id}")
 async def pause_job(job_id: str, current_user: dict = Depends(require_admin)):
     """

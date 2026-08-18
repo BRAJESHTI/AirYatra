@@ -17,6 +17,10 @@ const STATUS_LABELS = {
   rejected: 'Rejected',
 };
 
+const isCredited = (r) => r.manual_processed || r.refund_credit_status === 'SUCCESS' ||
+  (r.gateway_refund_id && r.gateway !== 'cashfree');
+const isInitiated = (r) => !isCredited(r) && !!r.gateway_refund_id;
+
 export default function SupportRefundsView() {
   const [data, setData] = useState({ requests: [], stats: {} });
   const [loading, setLoading] = useState(true);
@@ -38,7 +42,7 @@ export default function SupportRefundsView() {
 
   const rows = data.requests.filter((r) => {
     if (filter === 'all') return true;
-    if (filter === 'credited') return r.gateway_refund_id || r.manual_processed;
+    if (filter === 'credited') return isCredited(r);
     return r.status === filter;
   });
 
@@ -117,9 +121,15 @@ export default function SupportRefundsView() {
                   <td className="p-3 text-green-400 font-semibold">{fmt(r.refundable_amount)}</td>
                   <td className="p-3 capitalize">{(r.initiated_by || '').replace('_', ' ')}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${STATUS_STYLES[r.status] || 'bg-slate-600/30 text-slate-300'}`}>
-                      {(r.gateway_refund_id || r.manual_processed) ? 'Credited' : (STATUS_LABELS[r.status] || r.status)}
-                    </span>
+                    {isCredited(r) ? (
+                      <span className="px-2 py-1 rounded-full text-xs bg-sky-500/20 text-sky-400">Credited</span>
+                    ) : isInitiated(r) ? (
+                      <span className="px-2 py-1 rounded-full text-xs bg-indigo-500/20 text-indigo-400">Refund Initiated</span>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs ${STATUS_STYLES[r.status] || 'bg-slate-600/30 text-slate-300'}`}>
+                        {STATUS_LABELS[r.status] || r.status}
+                      </span>
+                    )}
                   </td>
                   <td className="p-3 text-slate-400">{(r.created_at || '').slice(0, 10)}</td>
                 </tr>

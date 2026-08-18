@@ -747,11 +747,13 @@ async def cashfree_webhook(request: Request):
     data = event.get("data", {})
     order_data = data.get("order", {})
     payment_data = data.get("payment", {})
-    order_id = order_data.get("order_id")
+    refund_data = data.get("refund", {}) or {}
+    order_id = order_data.get("order_id") or refund_data.get("order_id")
     cf_payment_id = str(payment_data.get("cf_payment_id") or "")
+    refund_uid = str(refund_data.get("cf_refund_id") or refund_data.get("refund_id") or "")
 
-    # Duplicate webhook protection
-    event_key = f"{event_type}:{order_id}:{cf_payment_id}"
+    # Duplicate webhook protection (refund events keyed by refund id)
+    event_key = f"{event_type}:{order_id}:{cf_payment_id or refund_uid}"
     if await db.cashfree_webhook_events.find_one({"event_key": event_key}):
         logger.info(f"Cashfree webhook duplicate skipped: {event_key}")
         return {"status": "received", "duplicate": True}
@@ -788,10 +790,17 @@ async def cashfree_webhook(request: Request):
                 {"cashfree_order_id": order_id, "status": {"$ne": "paid"}},
                 {"$set": {"status": "failed", "webhook_received": True}})
 
-        elif event_type in ("REFUND_SUCCESS", "PAYMENT_REFUND_SUCCESS"):
+        elif "REFUND" in event_type:
+            r_status = refund_data.get("refund_status") or \
+                       ("SUCCESS" if "SUCCESS" in event_type else None)
             await db.cashfree_refunds.update_one(
                 {"order_id": order_id},
-                {"$set": {"refund_status": "SUCCESS", "webhook_received": True}})
+                {"$set": {"refund_status": r_status, "webhook_received": True}})
+            from routes.refund_approval_routes import apply_cashfree_refund_status
+            sync = await apply_cashfree_refund_status(
+                db, [refund_data.get("cf_refund_id"), refund_data.get("refund_id")],
+                r_status, source="webhook")
+            logger.info(f"Cashfree refund webhook {r_status} for order {order_id}: {sync}")
 
         return {"status": "received", "event_type": event_type}
 

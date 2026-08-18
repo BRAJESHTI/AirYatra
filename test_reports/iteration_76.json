@@ -1,0 +1,34 @@
+{
+  "summary": "Iter-76 (backend + quick frontend): Refund Webhook Sync — verified apply_cashfree_refund_status + _confirm_refund_credit + poll_cashfree_refund_status + /scheduler/trigger/cashfree-refund-sync + Cashfree /payments/cashfree/webhook (signed HMAC) end-to-end. Wrote /app/backend/tests/test_iter76_refund_webhook_sync.py (11 tests) — 11/11 PASS. Frontend: logged in support user, /support → Refunds tab renders 4 Credited (sky) badges + Credited filter pill works; no initiated-unconfirmed refund currently exists in DB so 'Refund Initiated' (indigo) badge is not visually observed live, but JS isCredited/isInitiated helpers directly mirror backend refund_credit_status logic (verified by Scenario B where webhook sync of first-of-two txns leaves refund_credit_status unset).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter76_refund_webhook_sync.py",
+    "/app/test_reports/pytest/iter76.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "apply_cashfree_refund_status L582-607 correctly matches on either gateway_refund_id OR merchant_refund_id (webhook sometimes carries only one), no-op when gateway_status already equals incoming status (idempotent short-circuit at L593), and stamps status_source+status_synced_at. Solid.",
+    "_confirm_refund_credit L544-579 gate on unresolved cashfree txns (count_documents where gateway_status != SUCCESS) → only when zero pending, updates refund_credit_status=SUCCESS, refund_credited_at, gateway_refund_status=SUCCESS, propagates refund_status='credited' to inquiries/bookings/vertical_bookings, sends email, writes signed audit_logs refund_credited. Guard at L551 prevents duplicate email/audit on replay (test A confirmed cnt==1 after two applies).",
+    "poll_cashfree_refund_status L610-628 correctly filters gateway_status NOT IN [SUCCESS, CANCELLED, FAILED], so already-final txns are never re-polled (test D verified via stub call log).",
+    "cashfree_routes.py L756 event_key now includes cf_payment_id OR refund_uid → different refund ids on same order are NOT deduped against each other (test F verified: cfr_T5 and cfr_T5_alt both processed, resulting request refund_credit_status=SUCCESS only after both).",
+    "/refunds/failed-gateway L402-406 $or query correctly surfaces (a) refunds without gateway_refund_id and (b) refunds later CANCELLED/FAILED/ONHOLD by Cashfree. Test C verified CANCELLED path appears.",
+    "/refunds/my L323-359 gateway-aware credited logic + 'Refund initiated — bank credit within 5–7 business days' sub for initiated-but-unconfirmed cashfree requests (test G verified).",
+    "MINOR (non-blocking): sync_cashfree_refund_credits/scheduler + trigger endpoint returns 200 with real Cashfree GETs to fake orders; each GET call is a real network hit — poller runs every 30 min and hits real API per pending txn (no rate limit guard). For scale, consider batching by order or short-circuiting on 404. Not a defect for current volume.",
+    "MINOR (non-blocking): _confirm_refund_credit writes gateway_refund_status='SUCCESS' but _refund_via_cashfree writes 'processed' — two different string states for the same conceptual field. /failed-gateway relies on absence of gateway_refund_id OR CANCELLED/FAILED/ONHOLD in refund_credit_status, so it works, but downstream UI/analytics reading gateway_refund_status must handle both. Suggest documenting the state machine."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter76_refund_webhook_sync.py (new)"
+  ],
+  "success_rate": { "backend": "100% (11/11)", "frontend": "PASS (visual + interaction verified for support Refunds tab)" },
+  "seed_data_creation": "All synthetic docs use booking_number prefix TEST_WHS-* and are cleaned up in each test's finally block. Scenarios A/B/C/D each seed a synthetic vertical_booking + refund_request + refund_transactions row(s) with cashfree_order_id=CF_TEST_WHS*. Scenario F additionally seeds a second pending txn on the same order to prove different-refund-id dedupe. Scenario G seeds two extra refund_requests (TEST_WHS-GP, TEST_WHS-GS) under customer@ to exercise /refunds/my credited-vs-initiated tracker. Also inserts one unrelated already-SUCCESS refund_transactions row (deleted immediately after) to prove the poller skips already-final txns. cashfree_webhook_events entries created during test F are also cleaned up.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123 (direct login); finance@airyatra.co.in / Fin@Air123, admin@airyatra.co.in / Adm@Air123, noreply@airyatra.co.in / Nor@Air123 all via /recovery/mint-otp + /auth/login/verify-otp (X-Recovery-Token=9FLFzgJU1ih7jK-DopSezPnWgZbTRwW5hXbh76wwJhk).",
+  "context_for_next_testing_agent": "Refund Webhook Sync feature verified end-to-end. Webhook signature scheme is HMAC-SHA256(base64) of (timestamp + raw_body) using key=CASHFREE_WEBHOOK_SECRET or CASHFREE_CLIENT_SECRET. Unit test D demonstrates safe monkeypatching of services.cashfree_service.cashfree_service (module-level singleton). NEVER call real cashfree_service.create_refund with production keys — always monkeypatch (see StubCF in iter75) or use fake CF_ order ids. Real cashfree get_refund is safe (GET only) but still monkeypatch to keep tests deterministic. The 'Refund Initiated' indigo badge in SupportRefundsView.js was not observed live (no initiated-unconfirmed cashfree refund currently in DB); if this needs visual confirmation, seed a request with gateway='cashfree', gateway_refund_id set, refund_credit_status unset — then load /support → Refunds.",
+  "rca_of_the_issue": "N/A — all scenarios PASS. One minor test bug fixed during the run: audit_event stores the request id under entity_id (not resource_id) — corrected the assertion in test A on first retry."
+}

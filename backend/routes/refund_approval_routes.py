@@ -328,18 +328,27 @@ async def my_refund_trackers(user: dict = Depends(get_current_user)):
         {"customer_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
     out = []
     for r in reqs:
-        credited = bool(r.get("gateway_refund_id") or r.get("manual_processed"))
+        if r.get("gateway") == "cashfree" and not r.get("manual_processed"):
+            credited = r.get("refund_credit_status") == "SUCCESS"
+            initiated = bool(r.get("gateway_refund_id"))
+        else:
+            credited = bool(r.get("gateway_refund_id") or r.get("manual_processed"))
+            initiated = credited
         approved = r["status"] == "approved" or credited
         rejected = r["status"] == "rejected"
         n_approvals = len(r.get("approvals", []))
+        credited_sub = None
+        if not credited:
+            credited_sub = ("Refund initiated — bank credit within 5–7 business days"
+                            if initiated else "5–7 business days to your payment method")
         steps = [
             {"key": "requested", "label": "Refund Requested", "done": True, "at": r.get("created_at")},
             {"key": "approved", "label": "Team Approval",
              "sub": f"{min(n_approvals, REQUIRED_APPROVALS)}/{REQUIRED_APPROVALS} approvals",
              "done": approved, "at": r.get("approved_at")},
             {"key": "credited", "label": "Amount Credited",
-             "sub": "5–7 business days to your payment method" if not credited else None,
-             "done": credited, "at": r.get("gateway_refund_at") or r.get("manual_processed_at")},
+             "sub": credited_sub,
+             "done": credited, "at": r.get("refund_credited_at") or r.get("gateway_refund_at") or r.get("manual_processed_at")},
         ]
         current = 2 if credited else (1 if approved else 0)
         out.append({
@@ -376,7 +385,10 @@ async def care_refunds_view(user: dict = Depends(get_current_user)):
             stats["rejected"] += 1
         elif r["status"] == "approved":
             stats["approved"] += 1
-            if r.get("gateway_refund_id") or r.get("manual_processed"):
+            if r.get("gateway") == "cashfree" and not r.get("manual_processed"):
+                if r.get("refund_credit_status") == "SUCCESS":
+                    stats["credited"] += 1
+            elif r.get("gateway_refund_id") or r.get("manual_processed"):
                 stats["credited"] += 1
     return {"requests": reqs, "total": len(reqs), "stats": stats}
 
@@ -388,8 +400,9 @@ async def failed_gateway_refunds(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Finance/Admin/CEO access required")
     db = get_database()
     reqs = await db.refund_requests.find(
-        {"status": "approved", "gateway_refund_id": {"$exists": False},
-         "manual_processed": {"$ne": True}},
+        {"status": "approved", "manual_processed": {"$ne": True},
+         "$or": [{"gateway_refund_id": {"$exists": False}},
+                 {"refund_credit_status": {"$in": ["CANCELLED", "FAILED", "ONHOLD"]}}]},
         {"_id": 0}).sort("approved_at", -1).to_list(100)
     return {"requests": reqs, "total": len(reqs)}
 
@@ -501,7 +514,8 @@ async def _refund_via_cashfree(db, req):
         await db.refund_transactions.insert_one({
             "id": str(uuid.uuid4()), "refund_request_id": req["id"], "booking_id": req["booking_id"],
             "method": "cashfree", "cashfree_order_id": o["cashfree_order_id"], "amount": amt,
-            "gateway_refund_id": rid, "gateway_status": res.get("refund_status", "PENDING"),
+            "gateway_refund_id": rid, "merchant_refund_id": res.get("refund_id"),
+            "gateway_status": res.get("refund_status", "PENDING"),
             "mock": bool(res.get("mock_mode")), "created_at": _now().isoformat()})
         logger.info(f"Cashfree refund ₹{amt} triggered on order {o['cashfree_order_id']} (refund {rid})")
     refunded_total = round(req["refundable_amount"] - remaining, 2)
@@ -525,6 +539,93 @@ async def _refund_via_cashfree(db, req):
                   "gateway_refund_error": error or f"Partial refund: ₹{refunded_total} of ₹{req['refundable_amount']}"}})
     return {"triggered": False, "reason": error or "partial_refund", "gateway": "cashfree",
             "refunded_so_far": refunded_total}
+
+
+async def _confirm_refund_credit(db, req_id):
+    """Saare Cashfree txns SUCCESS hone par request ko credited mark karo + customer ko notify"""
+    pending = await db.refund_transactions.count_documents(
+        {"refund_request_id": req_id, "method": "cashfree", "gateway_status": {"$ne": "SUCCESS"}})
+    if pending:
+        return False
+    req = await db.refund_requests.find_one({"id": req_id}, {"_id": 0})
+    if not req or req.get("refund_credit_status") == "SUCCESS":
+        return False
+    await db.refund_requests.update_one(
+        {"id": req_id}, {"$set": {"refund_credit_status": "SUCCESS",
+                                  "refund_credited_at": _now().isoformat(),
+                                  "gateway_refund_status": "SUCCESS"}})
+    for coll in (db.inquiries, db.bookings, db.vertical_bookings):
+        await coll.update_one({"id": req["booking_id"]}, {"$set": {"refund_status": "credited"}})
+    try:
+        customer = await db.users.find_one({"id": req.get("customer_id")}, {"_id": 0, "email": 1, "full_name": 1})
+        if customer and customer.get("email"):
+            from services.email_service import email_service
+            await email_service.send_email(
+                to_email=customer["email"],
+                subject=f"✅ Refund ₹{req['refundable_amount']:,.0f} Credited — Booking {req['booking_ref']} | AirYatra",
+                html_body=f"""<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;'>
+                <h2 style='color:#16a34a;'>Refund Credited ✅</h2>
+                <p>Dear {customer.get('full_name') or 'Customer'},</p>
+                <p>Cashfree has confirmed that your refund of <b>₹{req['refundable_amount']:,.0f}</b> for booking
+                <b>{req['booking_ref']}</b> has been credited to your original payment method.</p>
+                <p style='color:#64748b;font-size:13px;'>If you don't see it yet, it may take a few hours
+                depending on your bank.<br/>Team AirYatra ✈️</p></div>""")
+    except Exception as e:
+        logger.error(f"Refund credited email failed for {req_id}: {e}")
+    await audit_event(db, "refund_credited", {"id": "system", "full_name": "Cashfree Sync"},
+                      details={"booking_ref": req.get("booking_ref"), "amount": req["refundable_amount"]},
+                      resource_type="refund_request", resource_id=req_id, risk_level="medium")
+    logger.info(f"Refund CREDITED confirmed for booking {req.get('booking_ref')} (₹{req['refundable_amount']})")
+    return True
+
+
+async def apply_cashfree_refund_status(db, refund_ids, status, source="webhook"):
+    """Webhook/poller se Cashfree refund status sync (idempotent)"""
+    ids = [str(i) for i in (refund_ids or []) if i]
+    if not ids or not status:
+        return {"matched": False}
+    txn = await db.refund_transactions.find_one(
+        {"method": "cashfree", "$or": [{"gateway_refund_id": {"$in": ids}},
+                                       {"merchant_refund_id": {"$in": ids}}]},
+        {"_id": 0, "id": 1, "refund_request_id": 1, "gateway_status": 1})
+    if not txn:
+        return {"matched": False}
+    if txn.get("gateway_status") == status:
+        return {"matched": True, "refund_request_id": txn["refund_request_id"], "changed": False}
+    await db.refund_transactions.update_one(
+        {"id": txn["id"]}, {"$set": {"gateway_status": status, "status_source": source,
+                                     "status_synced_at": _now().isoformat()}})
+    credited = False
+    if status == "SUCCESS":
+        credited = await _confirm_refund_credit(db, txn["refund_request_id"])
+    elif status in ("CANCELLED", "FAILED", "ONHOLD"):
+        await db.refund_requests.update_one(
+            {"id": txn["refund_request_id"]},
+            {"$set": {"refund_credit_status": status, "gateway_refund_status": "failed",
+                      "gateway_refund_error": f"Cashfree refund {ids[0]} marked {status}"}})
+    return {"matched": True, "refund_request_id": txn["refund_request_id"],
+            "changed": True, "credited": credited}
+
+
+async def poll_cashfree_refund_status(db) -> int:
+    """Fallback poller: pending Cashfree refunds ka live status API se sync"""
+    from services.cashfree_service import cashfree_service
+    txns = await db.refund_transactions.find(
+        {"method": "cashfree", "merchant_refund_id": {"$exists": True, "$ne": None},
+         "gateway_status": {"$nin": ["SUCCESS", "CANCELLED", "FAILED"]}},
+        {"_id": 0}).to_list(50)
+    synced = 0
+    for t in txns:
+        res = await cashfree_service.get_refund(t["cashfree_order_id"], t["merchant_refund_id"])
+        status = (res or {}).get("refund_status")
+        if status and status != t.get("gateway_status"):
+            out = await apply_cashfree_refund_status(
+                db, [t.get("gateway_refund_id"), t.get("merchant_refund_id")], status, source="poller")
+            if out.get("changed"):
+                synced += 1
+    if synced:
+        logger.info(f"Cashfree refund poller: {synced} refund status synced")
+    return synced
 
 
 async def _trigger_gateway_refund(db, req):

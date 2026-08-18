@@ -1030,6 +1030,20 @@ async def send_departure_reminders_24h():
         return 0
 
 
+async def sync_cashfree_refund_credits():
+    """Fallback poller: Cashfree se pending refund credits ka status sync (webhook miss hone par)"""
+    from database import get_database_sync
+    from routes.refund_approval_routes import poll_cashfree_refund_status
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        return await poll_cashfree_refund_status(db)
+    except Exception as e:
+        logger.error(f"sync_cashfree_refund_credits failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -1084,6 +1098,15 @@ def start_scheduler():
         trigger=IntervalTrigger(hours=1),
         id="departure_reminders_24h",
         name="24h Departure Reminders (Flight/Yacht)",
+        replace_existing=True
+    )
+
+    # Cashfree refund credit sync every 30 minutes (webhook fallback)
+    scheduler.add_job(
+        sync_cashfree_refund_credits,
+        trigger=IntervalTrigger(minutes=30),
+        id="cashfree_refund_sync",
+        name="Cashfree Refund Credit Sync",
         replace_existing=True
     )
     

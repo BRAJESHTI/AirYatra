@@ -3919,3 +3919,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Fixed AUTH_REDIRECT blocker: google_auth_routes.py callback now derives origin from request headers (_request_origin) instead of FRONTEND_URL env.
 - Removed dead cleanup_old_sessions scheduler job (db.sessions unused anywhere).
 - Live refund finding: preview's ₹15 yacht (YB2026080012) Cashfree orders are ACTIVE/unpaid on real Cashfree API; the paid flag came from a simulated webhook. REAL ₹15 payment lives on PRODUCTION DB. User chose to run live Cashfree refund test on PRODUCTION after redeploy (self-service via UI + Hostinger OTP emails).
+
+## Aug 18, 2026 — Refund Webhook Sync (iter-76, 11/11 PASS)
+- Cashfree REFUND* webhooks (signature-enforced, refund-id-aware dedupe) + 30-min fallback poller (`cashfree_refund_sync` job, manual trigger /api/scheduler/trigger/cashfree-refund-sync) now auto-sync refund credit status.
+- On confirmed credit: refund_request.refund_credit_status=SUCCESS, booking refund_status=credited, customer gets "Refund Credited" email, signed audit log (refund_credited).
+- Truthful panels: customer tracker shows "Refund initiated — 5–7 days" until Cashfree confirms; care-view credited stat + SupportRefundsView badges (Credited/Refund Initiated); failed-gateway also lists refunds later CANCELLED/FAILED/ONHOLD.
+- Note: gateway_refund_status has two success-ish states ('processed' at initiation, 'SUCCESS' after credit confirm) — documented, panels handle both.
