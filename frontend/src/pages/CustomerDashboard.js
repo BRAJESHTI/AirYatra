@@ -10,26 +10,18 @@ import ChatWidget from '../components/customer/ChatWidget';
 import CustomerProfile from '../components/customer/CustomerProfile';
 import ReferAndEarn from '../components/customer/ReferAndEarn';
 import LoyaltyRewards from '../components/customer/LoyaltyRewards';
-import MyAircraftListings from '../components/customer/MyAircraftListings';
 import MyInvestments from '../components/customer/MyInvestments';
 import MyWatchlist from '../components/customer/MyWatchlist';
 import CustomerPaymentHistory from '../components/customer/CustomerPaymentHistory';
-import CustomerBookingStats from '../components/customer/CustomerBookingStats';
-import FlightPriceHistory from '../components/customer/FlightPriceHistory';
-import RouteSuggestions from '../components/customer/RouteSuggestions';
 import NotificationBell from '../components/shared/NotificationBell';
 import GlobalSearch from '../components/shared/GlobalSearch';
 import SwipeableCard from '../components/shared/SwipeableCard';
 import CustomerKYCUpload from '../components/customer/CustomerKYCUpload';
 import LoginActivityLog from '../components/auth/LoginActivityLog';
 import TwoFactorSetup from '../components/auth/TwoFactorSetup';
-import { CustomerAuctions } from '../components/auction/AuctionDashboard';
 import { useResponsiveSidebar, MobileMenuButton, ResponsiveSidebar, CollapsibleNavGroup } from '../components/shared/Sidebar';
-import { AircraftComparison } from '../components/aircraft/AircraftComparison';
 import RefundHistory from '../components/customer/RefundHistory';
-import CarbonCalculator from '../components/customer/CarbonCalculator';
-import ASREBookingWidget from '../components/customer/ASREBookingWidget';
-import MarineBookings from '../components/customer/MarineBookings';
+import BookYourJourney from '../components/customer/BookYourJourney';
 import FeaturedAssets from '../components/customer/FeaturedAssets';
 import { Zap } from 'lucide-react';
 
@@ -41,30 +33,20 @@ const navGroups = [
     icon: Home,
     items: [
       { id: 'overview', label: 'Dashboard', icon: Home, path: '/customer' },
-      { id: 'smart-booking', label: 'Smart Booking', icon: Zap, path: '/customer/smart-booking', highlight: true },
-      { id: 'marine', label: 'Yacht • Cruise • Helipad', icon: Anchor, path: '/customer/marine', highlight: true },
+      { id: 'book', label: 'Book Your Journey', icon: Calendar, path: '/customer/book', highlight: true },
       { id: 'trips', label: 'My Trips', icon: MapPin, path: '/customer/trips', highlight: true },
-      { id: 'compare', label: 'Compare Aircraft', icon: Scale, path: '/customer/compare', highlight: true },
-      { id: 'stats', label: 'My Stats', icon: PieChart, path: '/customer/stats', highlight: true },
-      { id: 'price-trends', label: 'Price Trends', icon: TrendingUp, path: '/customer/price-trends', highlight: true },
-      { id: 'route-suggestions', label: 'Route Ideas', icon: Sparkles, path: '/customer/route-suggestions', highlight: true },
-      { id: 'carbon', label: 'Carbon Calculator', icon: Leaf, path: '/customer/carbon', highlight: true },
-      { id: 'booking', label: 'New Booking', icon: Calendar, path: '/booking', external: true, highlight: true },
-      { id: 'auctions', label: 'Live Auctions', icon: Gavel, path: '/customer/auctions', highlight: true },
-      { id: 'mylistings', label: 'My Aircraft', icon: Plane, path: '/customer/listings' },
       { id: 'watchlist', label: 'My Watchlist', icon: Bell, path: '/customer/watchlist' },
     ]
   },
   {
     id: 'rewards',
-    label: 'Rewards & Offers',
+    label: 'Payments, Rewards & Offers',
     icon: Gift,
     items: [
       { id: 'payments', label: 'Payment History', icon: CreditCard, path: '/customer/payments', highlight: true },
       { id: 'refunds', label: 'Refund History', icon: Wallet, path: '/customer/refunds', highlight: true },
       { id: 'refer', label: 'Refer & Earn', icon: Gift, path: '/customer/refer' },
       { id: 'investments', label: 'My Investments', icon: PieChart, path: '/customer/investments' },
-      { id: 'wallet', label: 'My Wallet', icon: Wallet, path: '/customer/wallet' },
       { id: 'loyalty', label: 'VIP Points', icon: Star, path: '/customer/loyalty' },
     ]
   },
@@ -75,7 +57,6 @@ const navGroups = [
     items: [
       { id: 'complaints', label: 'My Complaints', icon: Flag, path: '/customer/complaints', highlight: true },
       { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/customer/messages' },
-      { id: 'help', label: 'Help Center', icon: HelpCircle, path: '/customer/help' },
     ]
   },
   {
@@ -86,7 +67,6 @@ const navGroups = [
       { id: 'profile', label: 'Profile', icon: User, path: '/customer/profile' },
       { id: 'kyc', label: 'KYC Documents', icon: Shield, path: '/customer/kyc', highlight: true },
       { id: 'security', label: 'Security', icon: Shield, path: '/customer/security' },
-      { id: 'settings', label: 'Settings', icon: Settings, path: '/customer/settings' },
     ]
   },
 ];
@@ -110,24 +90,19 @@ function CustomerDashboard({ user, onLogout }) {
   useEffect(() => {
     const path = location.pathname;
     if (path.includes('/trips')) setActiveTab('trips');
+    else if (path.includes('/book')) setActiveTab('book');
+    else if (path.includes('/marine')) setActiveTab('book');
     else if (path.includes('/complaints')) setActiveTab('complaints');
-    else if (path.includes('/listings')) setActiveTab('mylistings');
     else if (path.includes('/investments')) setActiveTab('investments');
     else if (path.includes('/watchlist')) setActiveTab('watchlist');
+    else if (path.includes('/auctions')) setActiveTab('watchlist');
     else if (path.includes('/profile')) setActiveTab('profile');
     else if (path.includes('/messages')) setActiveTab('messages');
     else if (path.includes('/refer')) setActiveTab('refer');
     else if (path.includes('/loyalty')) setActiveTab('loyalty');
     else if (path.includes('/payments')) setActiveTab('payments');
     else if (path.includes('/refunds')) setActiveTab('refunds');
-    else if (path.includes('/stats')) setActiveTab('stats');
-    else if (path.includes('/price-trends')) setActiveTab('price-trends');
-    else if (path.includes('/route-suggestions')) setActiveTab('route-suggestions');
     else if (path.includes('/kyc')) setActiveTab('kyc');
-    else if (path.includes('/smart-booking')) setActiveTab('smart-booking');
-    else if (path.includes('/marine')) setActiveTab('marine');
-    else if (path.includes('/auctions')) setActiveTab('auctions');
-    else if (path.includes('/carbon')) setActiveTab('carbon');
     else setActiveTab('overview');
   }, [location.pathname]);
 
@@ -177,8 +152,8 @@ function CustomerDashboard({ user, onLogout }) {
     switch (activeTab) {
       case 'trips':
         return <MyTrips user={user} />;
-      case 'mylistings':
-        return <MyAircraftListings user={user} />;
+      case 'book':
+        return <BookYourJourney />;
       case 'investments':
         return <MyInvestments user={user} />;
       case 'watchlist':
@@ -204,24 +179,8 @@ function CustomerDashboard({ user, onLogout }) {
         return <CustomerPaymentHistory user={user} />;
       case 'refunds':
         return <RefundHistory userId={user?.id} />;
-      case 'stats':
-        return <CustomerBookingStats user={user} />;
-      case 'price-trends':
-        return <FlightPriceHistory user={user} />;
-      case 'route-suggestions':
-        return <RouteSuggestions user={user} />;
-      case 'carbon':
-        return <CarbonCalculator />;
-      case 'smart-booking':
-        return <ASREBookingWidget />;
-      case 'marine':
-        return <MarineBookings />;
       case 'complaints':
         return <MyComplaints user={user} />;
-      case 'auctions':
-        return <CustomerAuctions />;
-      case 'compare':
-        return <AircraftComparison onClose={() => setActiveTab('overview')} />;
       default:
         return (
           <div className="max-w-6xl mx-auto">
@@ -236,12 +195,11 @@ function CustomerDashboard({ user, onLogout }) {
               </div>
               {/* Mobile: Book Now + Login visible at top */}
               <div className="flex gap-3 mt-4 sm:mt-0">
-                <Link to="/booking">
-                  <Button className="bg-orange-500 hover:bg-orange-600" data-testid="header-book-btn">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Book Now
-                  </Button>
-                </Link>
+                <Button className="bg-orange-500 hover:bg-orange-600" data-testid="header-book-btn"
+                  onClick={() => { setActiveTab('book'); navigate('/customer/book'); }}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Your Journey
+                </Button>
               </div>
             </div>
 
@@ -267,11 +225,12 @@ function CustomerDashboard({ user, onLogout }) {
 
             {/* Quick Actions - Larger CTAs */}
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
-              <Link to="/booking" className="group bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all transform hover:scale-[1.02]">
+              <button onClick={() => { setActiveTab('book'); navigate('/customer/book'); }} data-testid="book-your-journey-cta"
+                className="group bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all transform hover:scale-[1.02] text-left">
                 <Calendar className="h-8 w-8 text-white mb-3 group-hover:scale-110 transition-transform" />
-                <h3 className="text-xl font-bold text-white mb-1">Book a Flight</h3>
-                <p className="text-orange-100 text-sm">Charter your private jet or helicopter</p>
-              </Link>
+                <h3 className="text-xl font-bold text-white mb-1">BOOK YOUR JOURNEY</h3>
+                <p className="text-orange-100 text-sm">Helicopter • Private Jet • Yacht • Cruise</p>
+              </button>
               <button onClick={() => { setActiveTab('trips'); navigate('/customer/trips'); }} className="group bg-slate-800/50 p-6 rounded-xl border border-slate-700 hover:bg-slate-700/50 hover:border-blue-500/50 transition-all text-left transform hover:scale-[1.02]">
                 <MapPin className="h-8 w-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-bold text-white mb-1">View My Trips</h3>
@@ -289,18 +248,18 @@ function CustomerDashboard({ user, onLogout }) {
                 <span className="text-sm text-white">Payments</span>
               </button>
               <button 
-                onClick={() => { setActiveTab('smart-booking'); navigate('/customer/smart-booking'); }}
-                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-yellow-500/50 transition-all text-center"
-              >
-                <Zap className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
-                <span className="text-sm text-white">Smart Booking</span>
-              </button>
-              <button 
-                onClick={() => { setActiveTab('auctions'); navigate('/customer/auctions'); }}
+                onClick={() => { setActiveTab('watchlist'); navigate('/customer/watchlist'); }}
                 className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-purple-500/50 transition-all text-center"
               >
                 <Gavel className="h-6 w-6 text-purple-400 mx-auto mb-2" />
-                <span className="text-sm text-white">Auctions</span>
+                <span className="text-sm text-white">My Watchlist</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('complaints'); navigate('/customer/complaints'); }}
+                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-blue-500/50 transition-all text-center"
+              >
+                <HelpCircle className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+                <span className="text-sm text-white">Support</span>
               </button>
               <button 
                 onClick={() => { setActiveTab('loyalty'); navigate('/customer/loyalty'); }}

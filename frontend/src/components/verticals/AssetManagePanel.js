@@ -19,6 +19,7 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
   const [crew, setCrew] = useState([]);
   const [rules, setRules] = useState([]);
   const [images, setImages] = useState([]);
+  const [setup, setSetup] = useState({});
   const [busy, setBusy] = useState(false);
 
   const resizeImage = (file) => new Promise((resolve) => {
@@ -67,6 +68,16 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
     setCrew(asset.crew || []);
     setImages(asset.images || []);
     setRules(asset.seasonal_rules || []);
+    setSetup({
+      available_slots: (asset.available_slots || []).join(', '),
+      min_duration: asset.min_duration || '',
+      max_capacity: asset.max_capacity || 1,
+      base_price: asset.base_price || '',
+      packages: asset.packages || [],
+      additional_charges: asset.additional_charges || [],
+      facilities: (asset.facilities || []).join(', '),
+      special_conditions: asset.special_conditions || '',
+    });
     setTab('calendar');
     api.get(`/verticals/assets/${asset.id}/availability`)
       .then(r => setBookedRanges(r.data.booked_ranges || []))
@@ -108,6 +119,24 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); } finally { setBusy(false); }
   };
 
+  const saveSetup = async () => {
+    setBusy(true);
+    try {
+      await api.put(`/verticals/assets/${asset.id}`, {
+        available_slots: setup.available_slots.split(',').map(s => s.trim()).filter(Boolean),
+        min_duration: setup.min_duration ? parseInt(setup.min_duration) : null,
+        max_capacity: parseInt(setup.max_capacity) || 1,
+        base_price: parseFloat(setup.base_price) || asset.base_price,
+        packages: (setup.packages || []).filter(p => p.name).map(p => ({ name: p.name, price: parseFloat(p.price) || 0 })),
+        additional_charges: (setup.additional_charges || []).filter(c => c.label).map(c => ({ label: c.label, amount: parseFloat(c.amount) || 0 })),
+        facilities: setup.facilities.split(',').map(s => s.trim()).filter(Boolean),
+        special_conditions: setup.special_conditions || null,
+      });
+      toast.success('Booking setup saved — customer calendar updated');
+      onSaved();
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to save'); } finally { setBusy(false); }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -117,7 +146,7 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
         </DialogHeader>
 
         <div className="flex gap-2 mb-2">
-          {[['calendar', 'Calendar', CalendarDays], ['crew', 'Crew', Users], ['pricing', 'Seasonal Pricing', TrendingUp], ['photos', 'Photos', ImagePlus]].map(([id, label, Icon]) => (
+          {[['calendar', 'Calendar', CalendarDays], ['setup', 'Booking Setup', Save], ['crew', 'Crew', Users], ['pricing', 'Seasonal Pricing', TrendingUp], ['photos', 'Photos', ImagePlus]].map(([id, label, Icon]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 ${tab === id ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}
               data-testid={`manage-tab-${id}`}>
@@ -144,6 +173,91 @@ export default function AssetManagePanel({ asset, open, onClose, onSaved }) {
               <p className="text-slate-500 text-xs">{blocked.length} blocked date(s)</p>
               <Button onClick={saveCalendar} disabled={busy} className="bg-orange-500 hover:bg-orange-600" data-testid="save-calendar-btn">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />} Save Calendar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'setup' && (
+          <div data-testid="booking-setup-panel" className="space-y-3">
+            <p className="text-slate-400 text-sm">Customer booking calendar in settings se control hota hai — slots, capacity, packages, charges.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Available Time Slots (comma separated, HH:MM)</label>
+                <Input value={setup.available_slots || ''} placeholder="06:00, 09:00, 15:00"
+                  onChange={(e) => setSetup(s => ({ ...s, available_slots: e.target.value }))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid="setup-slots" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Base Price (₹ per unit)</label>
+                <Input type="number" value={setup.base_price || ''}
+                  onChange={(e) => setSetup(s => ({ ...s, base_price: e.target.value }))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid="setup-price" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Minimum Booking Duration (units)</label>
+                <Input type="number" value={setup.min_duration || ''} placeholder="e.g. 2"
+                  onChange={(e) => setSetup(s => ({ ...s, min_duration: e.target.value }))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid="setup-min-duration" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Max Capacity (bookings per date)</label>
+                <Input type="number" min="1" value={setup.max_capacity || 1}
+                  onChange={(e) => setSetup(s => ({ ...s, max_capacity: e.target.value }))}
+                  className="bg-slate-800 border-slate-700 text-white h-9" data-testid="setup-capacity" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Packages (name + price)</label>
+              {(setup.packages || []).map((p, i) => (
+                <div key={i} className="grid grid-cols-[2fr_1fr_auto] gap-2 mb-1">
+                  <Input value={p.name || ''} placeholder="Package name"
+                    onChange={(e) => setSetup(s => ({ ...s, packages: s.packages.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))}
+                    className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`pkg-name-${i}`} />
+                  <Input type="number" value={p.price ?? ''} placeholder="₹"
+                    onChange={(e) => setSetup(s => ({ ...s, packages: s.packages.map((x, j) => j === i ? { ...x, price: e.target.value } : x) }))}
+                    className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`pkg-price-${i}`} />
+                  <button onClick={() => setSetup(s => ({ ...s, packages: s.packages.filter((_, j) => j !== i) }))} className="text-slate-500 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 mt-1"
+                onClick={() => setSetup(s => ({ ...s, packages: [...(s.packages || []), { name: '', price: '' }] }))} data-testid="add-package-btn">
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Package
+              </Button>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Additional Charges (label + amount)</label>
+              {(setup.additional_charges || []).map((c, i) => (
+                <div key={i} className="grid grid-cols-[2fr_1fr_auto] gap-2 mb-1">
+                  <Input value={c.label || ''} placeholder="e.g. Port Charges"
+                    onChange={(e) => setSetup(s => ({ ...s, additional_charges: s.additional_charges.map((x, j) => j === i ? { ...x, label: e.target.value } : x) }))}
+                    className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`charge-label-${i}`} />
+                  <Input type="number" value={c.amount ?? ''} placeholder="₹"
+                    onChange={(e) => setSetup(s => ({ ...s, additional_charges: s.additional_charges.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) }))}
+                    className="bg-slate-800 border-slate-700 text-white h-9" data-testid={`charge-amount-${i}`} />
+                  <button onClick={() => setSetup(s => ({ ...s, additional_charges: s.additional_charges.filter((_, j) => j !== i) }))} className="text-slate-500 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 mt-1"
+                onClick={() => setSetup(s => ({ ...s, additional_charges: [...(s.additional_charges || []), { label: '', amount: '' }] }))} data-testid="add-charge-btn">
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Charge
+              </Button>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Facilities (comma separated)</label>
+              <Input value={setup.facilities || ''} placeholder="Crew, Music System, BBQ, Life Jackets"
+                onChange={(e) => setSetup(s => ({ ...s, facilities: e.target.value }))}
+                className="bg-slate-800 border-slate-700 text-white h-9" data-testid="setup-facilities" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Special Conditions</label>
+              <Input value={setup.special_conditions || ''} placeholder="e.g. Weather dependent, ID mandatory"
+                onChange={(e) => setSetup(s => ({ ...s, special_conditions: e.target.value }))}
+                className="bg-slate-800 border-slate-700 text-white h-9" data-testid="setup-conditions" />
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={saveSetup} disabled={busy} className="bg-orange-500 hover:bg-orange-600" data-testid="save-setup-btn">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />} Save Booking Setup
               </Button>
             </div>
           </div>

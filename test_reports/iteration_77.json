@@ -1,0 +1,36 @@
+{
+  "summary": "Iter-77 Customer Portal FINAL UI & Workflow Correction. Backend: created /app/backend/tests/test_iter77_customer_portal_final.py — 12/12 PASS covering service-categories GET/PUT + customer 403, availability endpoint shape (all 9 new fields), owner PUT persists booking-setup (slots/duration/capacity/packages/charges/facilities/conditions), quote breakup math (operator=base*qty + package 500 + additional 100 + fees + taxes = total), check-availability blocked/free, min_duration enforcement, POST /verticals/bookings persists start_time/guests/package + price_breakup + amount==total, double-booking lock (max_capacity=1 → 2nd booking 400), /refunds/my details object shape + YB2026080009 'Refund Completed'. Frontend: verified customer sidebar restructure (Main=Dashboard/Book Your Journey/My Trips/My Watchlist ONLY, all 11 forbidden items absent), Book Your Journey CTA → /customer/book renders service dropdown + service cards, Yacht flow opens dialog with customer-availability-calendar + Price Breakup panel (₹127 total math verified visually: ₹30 operator + ₹-3 deal + ₹100 port + ₹0 fee + ₹0 tax), Helicopter selection navigates to /booking (Book Your Flight page loads after useRef fix), My Watchlist shows both tabs (quotes + watched) + empty state, MyTrips renders trip-info chips, Yacht Owner Booking Setup panel opens with all fields correctly reflecting backend-persisted setup + Save button present, Admin dashboard loads (spot check).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AuctionDashboard.js (CountdownBar)", "issue": "FIXED IN THIS RUN — useRef was used at line 92 but not imported, causing 'useRef is not defined' runtime crash on /booking page (helicopter/private_jet booking flow). This was a critical blocker preventing customers from booking helicopter/private jet after selecting service from Book Your Journey dropdown.", "selector": "runtime error overlay", "priority": "CRITICAL_FIXED"}
+    ],
+    "integration_issues": [
+      {"flow": "MyTrips → RefundTracker View Details", "issue": "refund-details-btn-{bookingId} was not rendered for the current customer's 3 visible trips even though /refunds/my returns refunds with details. Likely reason: refundMap keys off r.booking_id which may not match any current MyTrips trip.id (e.g. seeded refunds like YB2026080009 point to vertical_bookings but customer MyTrips shows different trips). Not reproducible with a live cancellable trip in this session. Backend /refunds/my details object shape is verified correct (12/12 pytest). Recommend the developer seed or preserve a completed-refund vertical_booking in customer's trips list so View Details is visible in-app, or confirm MyTrips is fetching vertical_bookings correctly and mapping by id.", "affected_selectors": ["refund-details-btn-*", "cancellation-details-dialog", "cancellation-details-table"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter77_customer_portal_final.py",
+    "/app/test_reports/pytest/iter77.xml"
+  ],
+  "action_items": [
+    "Verify MyTrips RefundTracker 'View Details' visibility end-to-end by ensuring at least one refunded vertical booking appears in customer's trips list (currently the 3 visible trips do not have entries in refundMap keyed by booking_id). Backend contract is correct; issue is likely data/mapping visibility."
+  ],
+  "critical_code_review_comments": [
+    "auction/AuctionDashboard.js line 92 used useRef without importing it — this is a Sev-1 that crashed the entire /booking (helicopter/private_jet) route. Fixed by adding useRef to the React import. Suggest an ESLint pre-commit check (react-hooks/exhaustive-deps + no-undef) to catch this class of defect early.",
+    "vertical_routes.py _check_asset_availability query filters start_date $lte end_date but does NOT filter on end_date $gte start_date; instead iterates in Python (L234-244) with a `be < start_date` skip. Works correctly for the tested cases but a proper $or overlap query at DB level would scale better and be more idiomatic.",
+    "vertical_routes.py update_asset allowed-fields set (L167-169) is duplicated conceptually with the create model — a shared 'ASSET_MUTABLE_FIELDS' constant would prevent drift when new booking-setup fields are added."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter77_customer_portal_final.py (new)",
+    "/app/frontend/src/components/auction/AuctionDashboard.js (fixed missing useRef import)"
+  ],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "PASS on sidebar restructure, Book Your Journey yacht flow (calendar+breakup+availability), helicopter/private-jet /booking navigation, My Watchlist tabs, MyTrips info chips, Yacht Owner Booking Setup panel, Admin dashboard load. Not live-clicked: save-service-categories-btn (blocked by admin OTP rate-limit during test window; component + testids verified in code and admin PUT verified end-to-end from backend test)."},
+  "seed_data_creation": "No permanent seed. Owner (yachtowner) asset 'Ocean Pearl 55ft' had its booking-setup updated during the test (available_slots=['06:00','09:00'], min_duration=2, max_capacity=1, packages=[Party Package 500], additional_charges=[Port Charges 100], facilities=[Crew, BBQ], special_conditions='Weather dependent'). blocked_dates and single vertical_booking created during double-booking-lock test were cleaned up in finally blocks. Service categories toggled cruise off/on within the test and restored to all-true in the finally block.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "customer@airyatra.co.in / Customer@123 (direct); yachtowner@airyatra.co.in / Yacht@123456 (direct); admin@airyatra.co.in / Adm@Air123 via /recovery/mint-otp + /auth/login/verify-otp (X-Recovery-Token=9FLFzgJU1ih7jK-DopSezPnWgZbTRwW5hXbh76wwJhk).",
+  "context_for_next_testing_agent": "AuctionDashboard useRef import was fixed in this iteration. If /booking page crashes with 'X is not defined' again, first suspect the React hooks import list in AuctionDashboard.js. Backend booking-setup contract is stable: PUT /verticals/assets/{id} accepts available_slots, min_duration, max_capacity, packages, additional_charges, facilities, special_conditions in the allowed set (L167-169). The customer's Ocean Pearl 55ft owner asset was left with min_duration=2 and max_capacity=1 after this run — subsequent yacht bookings for that asset will need quantity>=2 and may fail on double-booking if a stale booking exists on the same date. Admin OTP login is rate-limited to ~60s cooldown on /recovery/mint-otp — plan accordingly if repeated admin sessions are needed.",
+  "rca_of_the_issue": "useRef bug RCA: /app/frontend/src/components/auction/AuctionDashboard.js used `const expiredRef = useRef(false);` at line 92 inside the CountdownBar component but the module-level React import at line 1 only imported `{ useState, useEffect, useCallback }`. When /booking (which imports AuctionDashboard chunk) rendered, React threw ReferenceError: useRef is not defined and the whole page fell back to the Uncaught Runtime Errors overlay, blocking helicopter/private_jet booking. Fix: added useRef to the React import."
+}

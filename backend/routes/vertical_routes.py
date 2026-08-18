@@ -63,6 +63,42 @@ class BookingCreate(BaseModel):
     quantity: int = 1
     notes: Optional[str] = None
     passengers: List[Dict[str, Any]] = []
+    start_time: Optional[str] = None
+    guests: Optional[int] = None
+    package: Optional[str] = None
+
+
+DEFAULT_SERVICE_CATEGORIES = {"helicopter": True, "private_jet": True,
+                              "yacht": True, "cruise": True, "helipad": True}
+
+
+@router.get("/service-categories")
+async def get_service_categories(user: dict = Depends(get_current_user)):
+    """Customer booking dropdown ke liye admin-enabled service categories"""
+    db = get_database()
+    doc = await db.platform_settings.find_one({"key": "service_categories"}, {"_id": 0})
+    return {"categories": {**DEFAULT_SERVICE_CATEGORIES, **((doc or {}).get("categories") or {})}}
+
+
+@router.put("/admin/service-categories")
+async def update_service_categories(data: Dict[str, Any] = Body(...),
+                                    user: dict = Depends(require_roles(["admin", "super_admin"]))):
+    db = get_database()
+    cats = {k: bool(v) for k, v in (data.get("categories") or {}).items()
+            if k in DEFAULT_SERVICE_CATEGORIES}
+    if not cats:
+        raise HTTPException(status_code=400, detail="No valid categories provided")
+    await db.platform_settings.update_one(
+        {"key": "service_categories"},
+        {"$set": {"categories": cats, "updated_by": user["id"],
+                  "updated_at": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+    try:
+        from routes.audit_trail_routes import audit_event
+        await audit_event(db, "service_categories_updated", user, details=cats,
+                          resource_type="platform_settings", risk_level="medium")
+    except Exception:
+        pass
+    return {"message": "Service categories updated", "categories": cats}
 
 
 # ==================== ASSETS ====================
@@ -128,7 +164,9 @@ async def update_asset(asset_id: str, updates: Dict[str, Any] = Body(...),
         raise HTTPException(status_code=404, detail="Asset not found")
     if asset["owner_user_id"] != user["id"] and not STAFF_ROLES & set(user.get("roles", [])):
         raise HTTPException(status_code=403, detail="Not your asset")
-    allowed = {"name", "city", "location", "description", "base_price", "details", "images", "status", "blocked_dates", "crew", "seasonal_rules"}
+    allowed = {"name", "city", "location", "description", "base_price", "details", "images", "status",
+               "blocked_dates", "crew", "seasonal_rules", "available_slots", "min_duration",
+               "max_capacity", "packages", "additional_charges", "facilities", "special_conditions"}
     updates = {k: v for k, v in updates.items() if k in allowed}
     await db.vertical_assets.update_one({"id": asset_id}, {"$set": updates})
     return {"message": "Asset updated"}
@@ -137,13 +175,149 @@ async def update_asset(asset_id: str, updates: Dict[str, Any] = Body(...),
 @router.get("/assets/{asset_id}/availability")
 async def asset_availability(asset_id: str, user: dict = Depends(get_current_user)):
     db = get_database()
-    asset = await db.vertical_assets.find_one({"id": asset_id}, {"_id": 0, "blocked_dates": 1, "id": 1})
+    asset = await db.vertical_assets.find_one(
+        {"id": asset_id},
+        {"_id": 0, "blocked_dates": 1, "id": 1, "available_slots": 1, "min_duration": 1,
+         "max_capacity": 1, "packages": 1, "additional_charges": 1, "facilities": 1,
+         "special_conditions": 1, "vertical": 1})
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     booked = await db.vertical_bookings.find(
-        {"asset_id": asset_id, "status": {"$in": ["confirmed", "paid"]}},
+        {"asset_id": asset_id, "status": {"$in": ["confirmed", "paid", "pending"]}},
         {"_id": 0, "start_date": 1, "end_date": 1}).to_list(200)
-    return {"blocked_dates": asset.get("blocked_dates", []), "booked_ranges": booked}
+    max_cap = int(asset.get("max_capacity") or 1)
+    day_counts = {}
+    for b in booked:
+        s, e = b["start_date"], b.get("end_date") or b["start_date"]
+        try:
+            cur = datetime.fromisoformat(s)
+            end = datetime.fromisoformat(e)
+            while cur <= end:
+                d = cur.strftime("%Y-%m-%d")
+                day_counts[d] = day_counts.get(d, 0) + 1
+                cur += timedelta(days=1)
+        except Exception:
+            day_counts[s] = day_counts.get(s, 0) + 1
+    full_dates = [d for d, c in day_counts.items() if c >= max_cap]
+    return {"blocked_dates": asset.get("blocked_dates", []), "booked_ranges": booked,
+            "fully_booked_dates": full_dates, "max_capacity": max_cap,
+            "available_slots": asset.get("available_slots", []),
+            "min_duration": asset.get("min_duration"),
+            "packages": asset.get("packages", []),
+            "additional_charges": asset.get("additional_charges", []),
+            "facilities": asset.get("facilities", []),
+            "special_conditions": asset.get("special_conditions")}
+
+
+async def _check_asset_availability(db, asset, start_date: str, end_date: str):
+    """Server-side authoritative availability check (double-booking lock)"""
+    end_date = end_date or start_date
+    try:
+        cur = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+    except Exception:
+        return False, "Invalid date"
+    blocked = set(asset.get("blocked_dates", []))
+    max_cap = int(asset.get("max_capacity") or 1)
+    dates = []
+    while cur <= end:
+        dates.append(cur.strftime("%Y-%m-%d"))
+        cur += timedelta(days=1)
+    for d in dates:
+        if d in blocked:
+            return False, f"{d} is blocked by the operator"
+    overlapping = await db.vertical_bookings.find(
+        {"asset_id": asset["id"], "status": {"$in": ["confirmed", "paid", "pending"]},
+         "start_date": {"$lte": end_date}},
+        {"_id": 0, "start_date": 1, "end_date": 1}).to_list(300)
+    day_counts = {}
+    for b in overlapping:
+        be = b.get("end_date") or b["start_date"]
+        if be < start_date:
+            continue
+        try:
+            c2 = datetime.fromisoformat(b["start_date"])
+            e2 = datetime.fromisoformat(be)
+            while c2 <= e2:
+                d = c2.strftime("%Y-%m-%d")
+                day_counts[d] = day_counts.get(d, 0) + 1
+                c2 += timedelta(days=1)
+        except Exception:
+            continue
+    for d in dates:
+        if day_counts.get(d, 0) >= max_cap:
+            return False, f"{d} is fully booked"
+    return True, None
+
+
+@router.get("/assets/{asset_id}/check-availability")
+async def check_availability(asset_id: str, start_date: str, end_date: Optional[str] = None,
+                             user: dict = Depends(get_current_user)):
+    """Real-time availability check before booking"""
+    db = get_database()
+    asset = await db.vertical_assets.find_one({"id": asset_id, "status": "active"}, {"_id": 0})
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    ok, reason = await _check_asset_availability(db, asset, start_date, end_date or start_date)
+    return {"available": ok, "reason": reason,
+            "message": "Available – Book Now" if ok else "Not Available"}
+
+
+async def _compute_price_breakup(db, asset, start_date: str, quantity: int, package: Optional[str] = None):
+    """Complete transparent price breakup (operator + package + additional + platform fee + taxes)"""
+    qty = max(1, quantity)
+    operator_charges = round(asset["base_price"] * qty, 2)
+    applied_rule, seasonal_adj = None, 0.0
+    for rule in asset.get("seasonal_rules", []):
+        if rule.get("start_date") <= start_date <= rule.get("end_date"):
+            seasonal_adj = round(operator_charges * float(rule.get("multiplier_pct", 0)) / 100, 2)
+            applied_rule = rule.get("name")
+            break
+    subtotal = operator_charges + seasonal_adj
+    deal_applied, deal_discount = False, 0.0
+    if asset["id"] == await _todays_deal_id(db):
+        deal_applied = True
+        deal_discount = round(subtotal * 0.10, 2)
+        subtotal = round(subtotal - deal_discount, 2)
+    package_price, package_name = 0.0, None
+    if package:
+        for p in asset.get("packages", []):
+            if p.get("name") == package:
+                package_price = round(float(p.get("price") or 0), 2)
+                package_name = p.get("name")
+                break
+    additional = [{"label": c.get("label"), "amount": round(float(c.get("amount") or 0), 2)}
+                  for c in asset.get("additional_charges", [])]
+    additional_total = round(sum(c["amount"] for c in additional), 2)
+    cfg = await db.platform_settings.find_one({"key": "vertical_pricing"}, {"_id": 0}) or {}
+    fee_pct = float(cfg.get("platform_fee_pct") or 0)
+    tax_pct = float(cfg.get("tax_pct") or 0)
+    pre_fee = round(subtotal + package_price + additional_total, 2)
+    platform_fee = round(pre_fee * fee_pct / 100, 2)
+    taxes = round((pre_fee + platform_fee) * tax_pct / 100, 2)
+    total = round(pre_fee + platform_fee + taxes, 2)
+    return {
+        "operator_charges": operator_charges,
+        "seasonal_adjustment": seasonal_adj, "seasonal_rule": applied_rule,
+        "deal_discount": -deal_discount if deal_applied else 0.0, "deal_applied": deal_applied,
+        "package": package_name, "package_price": package_price,
+        "additional_charges": additional, "additional_total": additional_total,
+        "platform_fee": platform_fee, "platform_fee_pct": fee_pct,
+        "taxes": taxes, "tax_pct": tax_pct,
+        "total": total,
+    }
+
+
+@router.get("/assets/{asset_id}/quote")
+async def asset_quote(asset_id: str, start_date: str, quantity: int = 1,
+                      package: Optional[str] = None, user: dict = Depends(get_current_user)):
+    """Booking se pehle complete price breakup"""
+    db = get_database()
+    asset = await db.vertical_assets.find_one({"id": asset_id, "status": "active"}, {"_id": 0})
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    breakup = await _compute_price_breakup(db, asset, start_date, quantity, package)
+    return {"breakup": breakup, "asset_name": asset["name"], "unit": asset["price_unit"]}
 
 
 # ==================== BOOKINGS ====================
@@ -213,21 +387,21 @@ async def create_booking(data: BookingCreate, user: dict = Depends(get_current_u
     asset = await db.vertical_assets.find_one({"id": data.asset_id, "status": "active"}, {"_id": 0})
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not available")
-    if data.start_date in asset.get("blocked_dates", []):
-        raise HTTPException(status_code=400, detail="Selected date is not available")
+    end_date = data.end_date or data.start_date
+    ok, reason = await _check_asset_availability(db, asset, data.start_date, end_date)
+    if not ok:
+        raise HTTPException(status_code=400, detail=f"Not Available — {reason}")
+    if data.guests and asset.get("details", {}).get("max_guests"):
+        pass
     qty = max(1, data.quantity)
-    amount = round(asset["base_price"] * qty, 2)
-    applied_rule = None
-    for rule in asset.get("seasonal_rules", []):
-        if rule.get("start_date") <= data.start_date <= rule.get("end_date"):
-            amount = round(amount * (1 + float(rule.get("multiplier_pct", 0)) / 100), 2)
-            applied_rule = rule.get("name")
-            break
-    deal_applied = False
-    original_amount = amount
-    if asset["id"] == await _todays_deal_id(db):
-        deal_applied = True
-        amount = round(amount * 0.9, 2)
+    if asset.get("min_duration") and qty < int(asset["min_duration"]):
+        raise HTTPException(status_code=400,
+                            detail=f"Minimum booking duration is {asset['min_duration']} {asset['price_unit']}(s)")
+    breakup = await _compute_price_breakup(db, asset, data.start_date, qty, data.package)
+    amount = breakup["total"]
+    applied_rule = breakup["seasonal_rule"]
+    deal_applied = breakup["deal_applied"]
+    original_amount = round(amount - breakup["deal_discount"], 2) if deal_applied else amount
     prefix = {"helipad": "HB", "yacht": "YB", "cruise": "CB"}[asset["vertical"]]
     count = await db.vertical_bookings.count_documents({"vertical": asset["vertical"]})
     booking = {
@@ -244,9 +418,13 @@ async def create_booking(data: BookingCreate, user: dict = Depends(get_current_u
         "customer_email": user["email"],
         "start_date": data.start_date,
         "end_date": data.end_date or data.start_date,
+        "start_time": data.start_time,
+        "guests": data.guests,
+        "package": data.package,
         "quantity": qty,
         "unit": asset["price_unit"],
         "amount": amount,
+        "price_breakup": breakup,
         "seasonal_rule_applied": applied_rule,
         "deal_discount_applied": deal_applied,
         "original_amount": original_amount if deal_applied else None,

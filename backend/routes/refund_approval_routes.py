@@ -351,11 +351,45 @@ async def my_refund_trackers(user: dict = Depends(get_current_user)):
              "done": credited, "at": r.get("refund_credited_at") or r.get("gateway_refund_at") or r.get("manual_processed_at")},
         ]
         current = 2 if credited else (1 if approved else 0)
+        approvals_view = [{"role": a.get("role"), "approver": a.get("approver_name"),
+                           "remark": a.get("remark"), "at": a.get("at")}
+                          for a in r.get("approvals", [])]
+        if credited:
+            refund_status = "Refund Completed"
+        elif r.get("gateway_refund_id"):
+            refund_status = "Refund Processing"
+        elif rejected:
+            refund_status = "Rejected"
+        elif approved:
+            refund_status = "Approved — Refund Processing"
+        else:
+            refund_status = "Under Admin/Finance Review"
         out.append({
             "booking_id": r["booking_id"], "booking_ref": r["booking_ref"],
             "refundable_amount": r["refundable_amount"], "deduction_pct": r["deduction_pct"],
             "status": r["status"], "rejected": rejected, "reject_remark": r.get("reject_remark"),
             "refund_id": r.get("gateway_refund_id"), "steps": steps, "current_step": current,
+            "details": {
+                "request_id": r["id"],
+                "requested_at": r.get("created_at"),
+                "reason": r.get("reason") or "Not specified",
+                "requested_by": (r.get("initiated_by") or "customer").replace("_", " ").title(),
+                "booking_amount": r.get("booking_amount") or r.get("amount_paid"),
+                "amount_paid": r.get("amount_paid"),
+                "cancellation_charges": r.get("deduction_amount"),
+                "deduction_pct": r.get("deduction_pct"),
+                "refund_eligible_amount": r.get("refundable_amount"),
+                "refund_status": refund_status,
+                "refund_method": ("Manual Bank Transfer" if r.get("manual_processed")
+                                  else (r.get("gateway") or "razorpay").title() + " (original payment method)"),
+                "approvals": approvals_view,
+                "decision": ("Rejected" if rejected else ("Approved" if approved else "Pending")),
+                "decision_at": r.get("rejected_at") if rejected else r.get("approved_at"),
+                "remarks": r.get("reject_remark") or (approvals_view[-1]["remark"] if approvals_view else None),
+                "expected_timeline": "5–7 business days after approval",
+                "refund_credited_at": r.get("refund_credited_at") or r.get("manual_processed_at"),
+                "refund_reference_id": r.get("gateway_refund_id") or r.get("manual_reference"),
+            },
         })
     return {"refunds": out}
 

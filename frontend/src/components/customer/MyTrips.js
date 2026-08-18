@@ -359,10 +359,10 @@ function MyTrips({ user }) {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
                 <div className="flex items-center gap-2 text-slate-400">
                   <Calendar className="h-4 w-4" />
-                  <span>{trip.departure_date ? new Date(trip.departure_date).toLocaleDateString() : 'TBD'}</span>
+                  <span>{trip.departure_date ? new Date(trip.departure_date).toLocaleDateString() : 'TBD'}{trip.departure_time ? ` • ${trip.departure_time}` : ''}</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-400">
                   <Plane className="h-4 w-4" />
@@ -372,6 +372,31 @@ function MyTrips({ user }) {
                   <IndianRupee className="h-4 w-4" />
                   <span>₹{(trip.estimated_price || trip.total_amount || 0).toLocaleString()}</span>
                 </div>
+              </div>
+
+              {/* Complete booking info: service, payment, paid, balance, refund */}
+              <div className="flex flex-wrap gap-2 mb-4 text-xs" data-testid={`trip-info-${trip.id}`}>
+                <span className="px-2 py-1 rounded-full bg-slate-700/50 text-slate-300">
+                  ✈️ {trip.aircraft_type === 'chartered_plane' ? 'Private Jet' : trip.aircraft_type === 'helicopter' ? 'Helicopter' : (trip.vertical || 'Flight')}
+                </span>
+                <span className={`px-2 py-1 rounded-full ${['paid', 'fully_paid'].includes(trip.payment_status) ? 'bg-green-500/20 text-green-400' : trip.payment_status === 'partially_paid' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-400'}`}>
+                  Payment: {(trip.payment_status || 'unpaid').replace('_', ' ')}
+                </span>
+                {balanceMap[trip.id] && (
+                  <>
+                    <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-400">
+                      Paid: ₹{(balanceMap[trip.id].paid_amount || 0).toLocaleString('en-IN')}
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-400">
+                      Balance: ₹{(balanceMap[trip.id].remaining_amount || 0).toLocaleString('en-IN')}
+                    </span>
+                  </>
+                )}
+                {refundMap[trip.id] && (
+                  <span className={`px-2 py-1 rounded-full ${refundMap[trip.id].rejected ? 'bg-red-500/20 text-red-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
+                    Refund: {refundMap[trip.id].details?.refund_status || refundMap[trip.id].status}
+                  </span>
+                )}
               </div>
 
               {/* Additional info for inquiries */}

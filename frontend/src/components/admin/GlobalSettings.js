@@ -8,6 +8,7 @@ import { settingsAPI, settlementAutomationAPI } from '@/services/api';
 import { toast } from 'sonner';
 import InquiryDistributionSettings from './InquiryDistributionSettings';
 import PaymentSettings from './PaymentSettings';
+import ServiceCategorySettings from './ServiceCategorySettings';
 
 function GlobalSettings() {
   const [activeTab, setActiveTab] = useState('platform');
@@ -171,6 +172,7 @@ function GlobalSettings() {
 
   const tabs = [
     { id: 'platform', label: 'Platform', icon: Settings },
+    { id: 'services', label: 'Booking Services', icon: Plane, highlight: true },
     { id: 'pricing', label: 'Pricing', icon: Calculator },
     { id: 'payment_rules', label: 'Payment Rules', icon: CreditCard, highlight: true },
     { id: 'flight_types', label: 'Flight Types', icon: Plane, highlight: true },
@@ -337,6 +339,9 @@ function GlobalSettings() {
               </Button>
             </div>
           )}
+
+          {/* Service Category Toggles */}
+          {activeTab === 'services' && <ServiceCategorySettings />}
 
           {/* Pricing Settings */}
           {activeTab === 'pricing' && (

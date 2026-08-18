@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import api from '../../services/api';
+import { CustomerAuctions } from '../auction/AuctionDashboard';
 
 const formatCr = (p) => `₹${(p / 10000000).toFixed(p % 10000000 === 0 ? 0 : 2)} Cr`;
 
@@ -25,6 +26,7 @@ const RESULT_LABELS = {
 };
 
 export const MyWatchlist = ({ user }) => {
+  const [tab, setTab] = useState('quotes');
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -62,12 +64,31 @@ export const MyWatchlist = ({ user }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6" data-testid="my-watchlist">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Bell className="h-6 w-6 text-orange-500" /> My Watchlist</h1>
-          <p className="text-slate-400 text-sm">Auctions you're watching — we email you before they end</p>
+      <div>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Bell className="h-6 w-6 text-orange-500" /> My Watchlist</h1>
+        <p className="text-slate-400 text-sm">Live charter auctions with operator quotes + aircraft sale auctions you're watching</p>
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={() => setTab('quotes')} data-testid="watchlist-tab-quotes"
+          className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === 'quotes' ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+          <Gavel className="h-4 w-4" /> Live Auctions & Operator Quotes
+        </button>
+        <button onClick={() => setTab('watched')} data-testid="watchlist-tab-watched"
+          className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === 'watched' ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+          <Bell className="h-4 w-4" /> Watched Sale Auctions
+        </button>
+      </div>
+
+      {tab === 'quotes' && (
+        <div data-testid="watchlist-live-auctions">
+          <CustomerAuctions />
         </div>
+      )}
+
+      {tab === 'watched' && (<>
+      <div className="flex justify-end">
         <Button onClick={() => navigate('/exchange?mode=auctions')} className="bg-orange-500 hover:bg-orange-600" data-testid="explore-auctions-btn">
           <Gavel className="h-4 w-4 mr-2" /> Explore Auctions
         </Button>
@@ -134,6 +155,7 @@ export const MyWatchlist = ({ user }) => {
           })}
         </div>
       )}
+      </>)}
     </div>
   );
 };

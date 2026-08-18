@@ -38,7 +38,7 @@ export default function FeaturedAssets() {
   if (items.length === 0) return null;
 
   const go = (item) => {
-    if (['yacht', 'cruise', 'helipad'].includes(item.type)) navigate(`/customer/marine?v=${item.type}`);
+    if (['yacht', 'cruise', 'helipad'].includes(item.type)) navigate(`/customer/book`);
     else navigate('/booking');
   };
 

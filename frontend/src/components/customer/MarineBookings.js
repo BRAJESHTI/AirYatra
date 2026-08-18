@@ -4,6 +4,7 @@ import { Anchor, Ship, Plane, Loader2, IndianRupee, CalendarDays, CreditCard, Us
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import api from '@/services/api';
 import { toast } from 'sonner';
 import RefundTracker from './RefundTracker';
@@ -15,14 +16,17 @@ const VERTICALS = [
   { id: 'cruise', label: 'Cruise Cabin', icon: Ship, unit: 'cabin/night' },
 ];
 
-export default function MarineBookings() {
+export default function MarineBookings({ initialVertical, hideTabs }) {
   const [params] = useSearchParams();
-  const [vertical, setVertical] = useState(params.get('v') || 'yacht');
+  const [vertical, setVertical] = useState(initialVertical || params.get('v') || 'yacht');
   const [assets, setAssets] = useState([]);
   const [myBookings, setMyBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ start_date: '', end_date: '', quantity: 1 });
+  const [form, setForm] = useState({ start_date: '', end_date: '', quantity: 1, start_time: '', guests: '', package: '' });
+  const [avail, setAvail] = useState(null);
+  const [availStatus, setAvailStatus] = useState(null);
+  const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState('');
   const [manifestFor, setManifestFor] = useState(null);
   const [passengers, setPassengers] = useState([]);
@@ -139,17 +143,58 @@ export default function MarineBookings() {
 
   useEffect(() => { load(vertical); }, [vertical]);
 
+  const openBooking = async (a) => {
+    setSelected(a);
+    setForm({ start_date: '', end_date: '', quantity: 1, start_time: '', guests: '', package: '' });
+    setAvailStatus(null);
+    setQuote(null);
+    setAvail(null);
+    try {
+      const r = await api.get(`/verticals/assets/${a.id}/availability`);
+      setAvail(r.data);
+      if (r.data.min_duration) setForm(f => ({ ...f, quantity: r.data.min_duration }));
+    } catch (e) { setAvail({ blocked_dates: [], fully_booked_dates: [], available_slots: [], packages: [] }); }
+  };
+
+  const onDateSelect = async (dateStr, assetId, qty, pkg) => {
+    setForm(f => ({ ...f, start_date: dateStr, end_date: dateStr }));
+    setAvailStatus({ checking: true });
+    try {
+      const [chk, q] = await Promise.all([
+        api.get(`/verticals/assets/${assetId}/check-availability?start_date=${dateStr}`),
+        api.get(`/verticals/assets/${assetId}/quote?start_date=${dateStr}&quantity=${qty || 1}${pkg ? `&package=${encodeURIComponent(pkg)}` : ''}`),
+      ]);
+      setAvailStatus(chk.data);
+      setQuote(q.data.breakup);
+    } catch (e) {
+      setAvailStatus({ available: false, message: 'Not Available' });
+      setQuote(null);
+    }
+  };
+
+  const refreshQuote = async (assetId, dateStr, qty, pkg) => {
+    if (!dateStr) return;
+    try {
+      const q = await api.get(`/verticals/assets/${assetId}/quote?start_date=${dateStr}&quantity=${qty || 1}${pkg ? `&package=${encodeURIComponent(pkg)}` : ''}`);
+      setQuote(q.data.breakup);
+    } catch (e) {}
+  };
+
   const book = async () => {
-    if (!form.start_date) { toast.error('Select a date'); return; }
+    if (!form.start_date) { toast.error('Select an available date'); return; }
+    if (availStatus && availStatus.available === false) { toast.error('Selected date is Not Available'); return; }
     setBusy('book');
     try {
       const res = await api.post('/verticals/bookings', {
         asset_id: selected.id, start_date: form.start_date,
         end_date: form.end_date || form.start_date, quantity: parseInt(form.quantity) || 1,
+        start_time: form.start_time || null,
+        guests: form.guests ? parseInt(form.guests) : null,
+        package: form.package || null,
       });
       toast.success(res.data.message);
       setSelected(null);
-      setForm({ start_date: '', end_date: '', quantity: 1 });
+      setForm({ start_date: '', end_date: '', quantity: 1, start_time: '', guests: '', package: '' });
       load();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Booking failed');
@@ -256,7 +301,7 @@ export default function MarineBookings() {
       <h1 className="text-3xl font-bold text-white mb-1">Book Yacht, Cruise & Helipad</h1>
       <p className="text-slate-400 mb-6">AirYatra Marine & Helipad marketplace — browse, book, pay online.</p>
 
-      <div className="flex gap-2 mb-6">
+      <div className={hideTabs ? 'hidden' : 'flex gap-2 mb-6'}>
         {VERTICALS.map(v => (
           <button key={v.id} onClick={() => setVertical(v.id)}
             className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${vertical === v.id ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}
@@ -306,7 +351,7 @@ export default function MarineBookings() {
                     ) : (
                       <p className="text-orange-400 font-bold flex items-center gap-0.5"><IndianRupee className="h-4 w-4" />{Number(a.base_price).toLocaleString('en-IN')}<span className="text-slate-500 text-xs font-normal ml-1">/ {V.unit}</span></p>
                     )}
-                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => setSelected(a)} data-testid={`book-asset-${a.id}`}>Book Now</Button>
+                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => openBooking(a)} data-testid={`book-asset-${a.id}`}>Book Now</Button>
                   </div>
                   </div>
                 </div>
@@ -516,7 +561,7 @@ export default function MarineBookings() {
       </Dialog>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg max-h-[88vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Book {selected?.name}</DialogTitle>
             <DialogDescription className="text-slate-400">
@@ -532,41 +577,106 @@ export default function MarineBookings() {
               </div>
             )}
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Start Date *</label>
-              <Input type="date" value={form.start_date} min={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setForm(f => ({ ...f, start_date: e.target.value }))}
-                className="bg-slate-800 border-slate-700 text-white" data-testid="booking-start-date" />
+              <label className="block text-sm text-slate-400 mb-1">Select Available Date *</label>
+              <div className="flex justify-center bg-slate-800/50 rounded-xl p-2" data-testid="customer-availability-calendar">
+                <CalendarPicker
+                  mode="single"
+                  selected={form.start_date ? new Date(form.start_date + 'T12:00:00') : undefined}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    onDateSelect(iso, selected.id, form.quantity, form.package);
+                  }}
+                  disabled={(d) => {
+                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    return d < today
+                      || (avail?.blocked_dates || []).includes(iso)
+                      || (avail?.fully_booked_dates || []).includes(iso);
+                  }}
+                  className="text-white"
+                />
+              </div>
+              <p className="text-slate-500 text-xs mt-1">Blocked / fully-booked dates are disabled — only operator-available dates selectable</p>
+              {availStatus && (
+                availStatus.checking ? (
+                  <p className="text-slate-400 text-sm mt-1 flex items-center gap-1" data-testid="availability-checking"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking availability…</p>
+                ) : availStatus.available ? (
+                  <p className="text-green-400 text-sm font-semibold mt-1" data-testid="availability-status-available">✅ Available – Book Now</p>
+                ) : (
+                  <p className="text-red-400 text-sm font-semibold mt-1" data-testid="availability-status-unavailable">❌ Not Available{availStatus.reason ? ` — ${availStatus.reason}` : ''}</p>
+                )
+              )}
             </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">End Date</label>
-              <Input type="date" value={form.end_date} min={form.start_date}
-                onChange={(e) => setForm(f => ({ ...f, end_date: e.target.value }))}
-                className="bg-slate-800 border-slate-700 text-white" data-testid="booking-end-date" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Quantity ({V?.unit}s)</label>
-              <Input type="number" min="1" value={form.quantity}
-                onChange={(e) => setForm(f => ({ ...f, quantity: e.target.value }))}
-                className="bg-slate-800 border-slate-700 text-white" data-testid="booking-quantity" />
-            </div>
-            {form.quantity > 0 && selected && (
-              selected.id === dealId ? (
-                <div data-testid="deal-total">
-                  <p className="text-orange-400 font-semibold flex items-center gap-2">
-                    <Flame className="h-4 w-4" /> Deal Total: {fmt(selected.base_price * (parseInt(form.quantity) || 1) * 0.9)}
-                    <span className="text-slate-500 text-sm font-normal line-through">{fmt(selected.base_price * (parseInt(form.quantity) || 1))}</span>
-                  </p>
-                  <p className="text-slate-500 text-xs">Deal of the Day — 10% off applied automatically at checkout today</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Start Time</label>
+                <select value={form.start_time} onChange={(e) => setForm(f => ({ ...f, start_time: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 text-white h-10 rounded-md px-2 text-sm" data-testid="booking-start-time">
+                  <option value="">Select time</option>
+                  {((avail?.available_slots?.length ? avail.available_slots : ['06:00', '09:00', '12:00', '15:00', '18:00'])).map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Duration ({V?.unit}s){avail?.min_duration ? ` — min ${avail.min_duration}` : ''}
+                </label>
+                <Input type="number" min={avail?.min_duration || 1} value={form.quantity}
+                  onChange={(e) => { setForm(f => ({ ...f, quantity: e.target.value })); refreshQuote(selected?.id, form.start_date, e.target.value, form.package); }}
+                  className="bg-slate-800 border-slate-700 text-white" data-testid="booking-quantity" />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Guests</label>
+                <Input type="number" min="1" value={form.guests} placeholder="No. of guests"
+                  onChange={(e) => setForm(f => ({ ...f, guests: e.target.value }))}
+                  className="bg-slate-800 border-slate-700 text-white" data-testid="booking-guests" />
+              </div>
+              {(avail?.packages || []).length > 0 && (
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Package</label>
+                  <select value={form.package}
+                    onChange={(e) => { setForm(f => ({ ...f, package: e.target.value })); refreshQuote(selected?.id, form.start_date, form.quantity, e.target.value); }}
+                    className="w-full bg-slate-800 border border-slate-700 text-white h-10 rounded-md px-2 text-sm" data-testid="booking-package">
+                    <option value="">No package</option>
+                    {avail.packages.map(p => <option key={p.name} value={p.name}>{p.name} (+{fmt(p.price)})</option>)}
+                  </select>
                 </div>
-              ) : (
-                <p className="text-orange-400 font-semibold">Total: {fmt(selected.base_price * (parseInt(form.quantity) || 1))}</p>
-              )
+              )}
+            </div>
+            {(avail?.facilities || []).length > 0 && (
+              <p className="text-slate-400 text-xs" data-testid="asset-facilities">
+                <b className="text-slate-300">Facilities:</b> {avail.facilities.join(' • ')}
+              </p>
+            )}
+            {avail?.special_conditions && (
+              <p className="text-amber-400/80 text-xs" data-testid="asset-conditions">⚠️ {avail.special_conditions}</p>
+            )}
+            {quote && (
+              <div className="bg-slate-800/60 border border-slate-700 rounded-lg p-3 space-y-1 text-sm" data-testid="price-breakup">
+                <p className="text-slate-300 font-semibold mb-1">Price Breakup</p>
+                <div className="flex justify-between text-slate-400"><span>Operator Charges</span><span>{fmt(quote.operator_charges)}</span></div>
+                {quote.seasonal_adjustment !== 0 && <div className="flex justify-between text-slate-400"><span>Seasonal ({quote.seasonal_rule})</span><span>{fmt(quote.seasonal_adjustment)}</span></div>}
+                {quote.deal_applied && <div className="flex justify-between text-orange-400"><span>🔥 Deal of the Day (-10%)</span><span>{fmt(quote.deal_discount)}</span></div>}
+                {quote.package && <div className="flex justify-between text-slate-400"><span>Package: {quote.package}</span><span>{fmt(quote.package_price)}</span></div>}
+                {(quote.additional_charges || []).map(c => (
+                  <div key={c.label} className="flex justify-between text-slate-400"><span>{c.label}</span><span>{fmt(c.amount)}</span></div>
+                ))}
+                <div className="flex justify-between text-slate-400"><span>AirYatra Platform Fee{quote.platform_fee_pct ? ` (${quote.platform_fee_pct}%)` : ''}</span><span>{fmt(quote.platform_fee)}</span></div>
+                <div className="flex justify-between text-slate-400"><span>Applicable Taxes{quote.tax_pct ? ` (${quote.tax_pct}%)` : ''}</span><span>{fmt(quote.taxes)}</span></div>
+                <div className="flex justify-between text-white font-bold border-t border-slate-700 pt-1 mt-1" data-testid="price-breakup-total">
+                  <span>TOTAL CUSTOMER PAYABLE</span><span className="text-orange-400">{fmt(quote.total)}</span>
+                </div>
+              </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelected(null)} className="border-slate-600 text-slate-300">Cancel</Button>
-            <Button onClick={book} disabled={busy === 'book'} className="bg-orange-500 hover:bg-orange-600" data-testid="submit-booking-btn">
-              {busy === 'book' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null} Request Booking
+            <Button onClick={book} disabled={busy === 'book' || !form.start_date || (availStatus && availStatus.available === false)}
+              className="bg-orange-500 hover:bg-orange-600" data-testid="submit-booking-btn">
+              {busy === 'book' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {availStatus?.available ? 'Available – Book Now' : 'Request Booking'}
             </Button>
           </DialogFooter>
         </DialogContent>

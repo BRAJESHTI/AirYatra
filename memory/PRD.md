@@ -3925,3 +3925,14 @@ PAYPAL_MODE=sandbox  # or 'live'
 - On confirmed credit: refund_request.refund_credit_status=SUCCESS, booking refund_status=credited, customer gets "Refund Credited" email, signed audit log (refund_credited).
 - Truthful panels: customer tracker shows "Refund initiated — 5–7 days" until Cashfree confirms; care-view credited stat + SupportRefundsView badges (Credited/Refund Initiated); failed-gateway also lists refunds later CANCELLED/FAILED/ONHOLD.
 - Note: gateway_refund_status has two success-ish states ('processed' at initiation, 'SUCCESS' after credit confirm) — documented, panels handle both.
+
+## Aug 18, 2026 — Customer Portal FINAL UI & Workflow Correction (iter-77: backend 12/12 + frontend PASS)
+- REMOVED from customer nav: Route Ideas, Carbon Calculator, Compare Aircraft, Smart Booking, My Aircraft, My Stats, Price Trends, separate Live Auctions, My Wallet, Help Center, Settings (components intact for other roles).
+- NEW: Book Your Journey (CTA + /customer/book) with service dropdown filtered by admin-toggleable service categories (GET/PUT /verticals/service-categories, admin UI in GlobalSettings > Booking Services).
+- Yacht/Cruise: availability calendar (blocked/fully-booked disabled), real-time check-availability (Available–Book Now / Not Available), server-side double-booking lock (max_capacity per date), min_duration enforcement, full price breakup (/quote: operator+seasonal+deal+package+additional+platform fee+taxes=total, fees default 0%), booking stores start_time/guests/package/price_breakup.
+- Operator: AssetManagePanel new 'Booking Setup' tab (slots, min duration, capacity, price, packages, additional charges, facilities, special conditions).
+- My Watchlist: 2 tabs — Live Auctions & Operator Quotes (CustomerAuctions) + Watched Sale Auctions.
+- Cancellation: RefundTracker 'View Details' → CancellationDetails dialog (full 17-field table + 5-step status chain + approval trail). /refunds/my now returns details object.
+- My Trips: info chips (service type, payment status, paid, balance, refund status).
+- App.js: customer routes consolidated to /customer + /customer/* wildcard.
+- Testing agent fixed: AuctionDashboard.js missing useRef import (crashed /booking).
