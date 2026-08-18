@@ -3909,3 +3909,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 ## Aug 18, 2026 — Live 2-Approver OTP Refund Cycle Completed (YB2026080009)
 - Finance (OTP) approval 1/2 → Admin (OTP) approval 2/2 → status approved → gateway refund manual queue (no_payment_id, seeded booking) → Finance mark-processed with NEFT remark → CREDITED.
 - Verified: customer tracker all 3 steps DONE (₹10,800), booking status=cancelled/refund_status=processed, refund_transactions manual entry, signed audit_logs entry (refund_approved, risk=high), care-view stats updated (credited=4).
+
+## Aug 18, 2026 — Cashfree Auto Refund in Approval Chain (iter-75, 16/16 PASS)
+- `_refund_via_cashfree` in refund_approval_routes.py: on 2nd approval, refunds auto-fire against paid db.cashfree_orders (splits across advance+balance orders, per-order cap, resumable after partial failure, idempotent). Precedence: Razorpay payment_id → Cashfree orders → manual queue (no_payment_id).
+- retry-gateway + approve messages gateway-aware. Failed Cashfree refunds land in /refunds/failed-gateway for retry or mark-processed.
+- Verified: 6 monkeypatched unit scenarios + real HTTP E2E chain (fake CF order → graceful failure path → retry → mark-processed). No real money spent. NOT yet live-tested against a real Cashfree payment.

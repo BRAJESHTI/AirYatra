@@ -407,7 +407,8 @@ async def retry_gateway_refund(request_id: str, user: dict = Depends(get_current
         raise HTTPException(status_code=400, detail="Gateway refund already processed")
     gw = await _trigger_gateway_refund(db, req)
     if gw.get("triggered"):
-        return {"message": f"Razorpay refund successful (ID: {gw['refund_id']})", "gateway_refund": gw}
+        gw_name = "Cashfree" if gw.get("gateway") == "cashfree" else "Razorpay"
+        return {"message": f"{gw_name} refund successful (ID: {gw['refund_id']})", "gateway_refund": gw}
     return {"message": f"Retry failed: {gw.get('reason')}", "gateway_refund": gw}
 
 
@@ -465,8 +466,69 @@ async def request_approval_otp(request_id: str, user: dict = Depends(get_current
     return {"message": f"OTP emailed to {user['email']}", "expires_in_minutes": 10}
 
 
+async def _refund_via_cashfree(db, req):
+    """Cashfree paid orders (advance + balance) ke against auto-refund, split across orders (idempotent/resumable)"""
+    from services.cashfree_service import cashfree_service
+    orders = await db.cashfree_orders.find(
+        {"booking_id": req["booking_id"], "status": "paid"}, {"_id": 0}).sort("paid_at", 1).to_list(20)
+    if not orders:
+        return None
+    fresh = await db.refund_requests.find_one(
+        {"id": req["id"]}, {"_id": 0, "cashfree_refunded_total": 1, "cashfree_refund_ids": 1})
+    refunded_total = float((fresh or {}).get("cashfree_refunded_total") or 0)
+    refund_ids = list((fresh or {}).get("cashfree_refund_ids") or [])
+    remaining = round(req["refundable_amount"] - refunded_total, 2)
+    error = None
+    for o in orders:
+        if remaining <= 0:
+            break
+        cap = round(float(o.get("amount") or 0) - float(o.get("refunded_amount") or 0), 2)
+        if cap <= 0:
+            continue
+        amt = min(remaining, cap)
+        res = await cashfree_service.create_refund(
+            order_id=o["cashfree_order_id"], refund_amount=amt,
+            refund_note=f"Refund approved (2-of-5) for booking {req['booking_ref']}")
+        if not res.get("success"):
+            error = res.get("error") or "Cashfree refund failed"
+            logger.error(f"Cashfree refund FAILED for order {o['cashfree_order_id']}: {error}")
+            break
+        rid = str(res.get("cf_refund_id") or res.get("refund_id"))
+        refund_ids.append(rid)
+        remaining = round(remaining - amt, 2)
+        await db.cashfree_orders.update_one(
+            {"id": o["id"]}, {"$inc": {"refunded_amount": amt}, "$push": {"refund_ids": rid}})
+        await db.refund_transactions.insert_one({
+            "id": str(uuid.uuid4()), "refund_request_id": req["id"], "booking_id": req["booking_id"],
+            "method": "cashfree", "cashfree_order_id": o["cashfree_order_id"], "amount": amt,
+            "gateway_refund_id": rid, "gateway_status": res.get("refund_status", "PENDING"),
+            "mock": bool(res.get("mock_mode")), "created_at": _now().isoformat()})
+        logger.info(f"Cashfree refund ₹{amt} triggered on order {o['cashfree_order_id']} (refund {rid})")
+    refunded_total = round(req["refundable_amount"] - remaining, 2)
+    progress = {"cashfree_refunded_total": refunded_total, "cashfree_refund_ids": refund_ids,
+                "gateway": "cashfree"}
+    if remaining <= 0 and refund_ids:
+        joined = ", ".join(refund_ids)
+        await db.refund_requests.update_one(
+            {"id": req["id"]},
+            {"$set": {**progress, "gateway_refund_id": joined, "gateway_refund_status": "processed",
+                      "gateway_refund_at": _now().isoformat()}})
+        for coll in (db.inquiries, db.bookings, db.vertical_bookings):
+            await coll.update_one({"id": req["booking_id"]},
+                                  {"$set": {"refund_status": "processed",
+                                            "cashfree_refund_ids": refund_ids}})
+        return {"triggered": True, "refund_id": joined, "gateway": "cashfree",
+                "mock": False, "orders_refunded": len(refund_ids)}
+    await db.refund_requests.update_one(
+        {"id": req["id"]},
+        {"$set": {**progress, "gateway_refund_status": "failed",
+                  "gateway_refund_error": error or f"Partial refund: ₹{refunded_total} of ₹{req['refundable_amount']}"}})
+    return {"triggered": False, "reason": error or "partial_refund", "gateway": "cashfree",
+            "refunded_so_far": refunded_total}
+
+
 async def _trigger_gateway_refund(db, req):
-    """2nd approval milte hi Razorpay refund API auto-trigger (idempotent)"""
+    """2nd approval milte hi Razorpay/Cashfree refund API auto-trigger (idempotent)"""
     fresh = await db.refund_requests.find_one({"id": req["id"]}, {"_id": 0, "gateway_refund_id": 1})
     if (fresh or {}).get("gateway_refund_id"):
         return {"triggered": False, "reason": "already_refunded",
@@ -484,8 +546,11 @@ async def _trigger_gateway_refund(db, req):
         "amount": req["refundable_amount"], "created_at": _now().isoformat(),
     }
     if not payment_id:
+        cf = await _refund_via_cashfree(db, req)
+        if cf is not None:
+            return cf
         txn.update({"method": "pending_gateway", "gateway_status": "no_payment_id",
-                    "note": "Razorpay payment ID not found — manual gateway refund required"})
+                    "note": "Razorpay/Cashfree payment not found — manual gateway refund required"})
         await db.refund_transactions.insert_one({**txn})
         return {"triggered": False, "reason": "no_payment_id"}
     if (order or {}).get("mock"):
@@ -595,8 +660,9 @@ async def approve_refund(request_id: str, otp: str = Body(...), action: str = Bo
                                    "amount": req["refundable_amount"], "gateway": gw},
                           resource_type="refund_request", resource_id=req["id"], risk_level="high")
         if gw.get("triggered"):
+            gw_name = "Cashfree" if gw.get("gateway") == "cashfree" else "Razorpay"
             msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} "
-                   f"auto-refunded via Razorpay (Refund ID: {gw['refund_id']}).")
+                   f"auto-refunded via {gw_name} (Refund ID: {gw['refund_id']}).")
         else:
             msg = (f"Refund APPROVED by {REQUIRED_APPROVALS} approvers. ₹{req['refundable_amount']:,.0f} approved, "
                    f"but auto gateway refund pending ({gw.get('reason')}). Manual processing required.")
