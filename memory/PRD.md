@@ -3905,3 +3905,7 @@ PAYPAL_MODE=sandbox  # or 'live'
 - NEW: `send_departure_reminders_24h` scheduler job (hourly) — friendly email ~24h (10-30h window) before flight/heli/yacht departure. Flags `departure_reminder_24h_sent` (idempotent). Manual trigger: POST /api/scheduler/trigger/departure-reminders (admin). Real Hostinger email verified for yacht YB2026080001.
 - NEW: GET /api/refunds/care-view — read-only refund list + stats for support (customer care) role. Support Dashboard got a "Refunds" tab (SupportRefundsView.js).
 - VERIFIED E2E: customer-cancel policy deduction exact (₹12,000 yacht, >72h → 10% = ₹1,200 deduct → ₹10,800 refundable); refund request visible in Admin, CEO, Finance (/refunds/pending) and Customer Care (/refunds/care-view); customer tracker /refunds/my correct; RBAC (customer 403 on staff endpoints).
+
+## Aug 18, 2026 — Live 2-Approver OTP Refund Cycle Completed (YB2026080009)
+- Finance (OTP) approval 1/2 → Admin (OTP) approval 2/2 → status approved → gateway refund manual queue (no_payment_id, seeded booking) → Finance mark-processed with NEFT remark → CREDITED.
+- Verified: customer tracker all 3 steps DONE (₹10,800), booking status=cancelled/refund_status=processed, refund_transactions manual entry, signed audit_logs entry (refund_approved, risk=high), care-view stats updated (credited=4).
