@@ -3891,3 +3891,12 @@ PAYPAL_MODE=sandbox  # or 'live'
 - FIXED SEC-001: create-order → _resolve_payable (server amount, ownership, confirmed/unpaid gates); verify-payment → ownership check + paid_amount>=order_amount underpayment reject + _finalize_cashfree_payment idempotent finalizer; insecure dead code deleted; cashfree_service.verify_payment now returns order_amount+amount_paid.
 - iter_73: 17 new SEC tests + 15 regression = 32/32 PASS (tamper ₹1 ignored → real amount; IDOR 403; unconfirmed 400; paid 400; unknown 404; deprecated 404; upi-collect/webhook/RBAC regression intact). Test file: /app/backend/tests/test_iter73_sec001_cashfree.py
 - ⚠️ PROD STILL VULNERABLE until REDEPLOY (fix is preview-only). SEC-002 + P3 hardening = PENDING BACKLOG per user.
+
+##### 46. All 7 Hostinger accounts synced in PREVIEW DB (Aug 17, 2026)
+- ceo/admin/noreply(CREATED,new)/finance/hr/booking/sales @airyatra.co.in — passwords per user's sheet, designations set, lockouts cleared, verify_password all True. API login sanity: ceo/booking/hr → password OK + OTP sent via Hostinger.
+- ⚠️ REDEPLOY pushes CODE only, NOT preview DB — prod DB alag hai. After redeploy, prod accounts sync needed via recovery endpoints (existing users reset; missing users create via seed/admin path).
+
+## Session Update (June 2026 - Fork)
+- User decision: TEST PRICING (₹1/₹2/₹5/₹15) intentionally KEPT for continued live testing. MUST restore real pricing before public launch.
+- User decision: ADMIN_RECOVERY_TOKEN intentionally KEPT in .env for now. MUST remove before final production hardening.
+- Health check passed: backend/frontend/mongo running, customer login 200 OK.

@@ -112,6 +112,7 @@ SMTP: smtp.hostinger.com:465 SSL, sender noreply@airyatra.co.in / Nor@Air123 (SM
 | finance@airyatra.co.in | Fin@Air123 | finance,cfo | YES |
 | hr@airyatra.co.in | Hr@Air123 | hr,admin | YES |
 | booking@airyatra.co.in | Boo@Air123 | booking (new) | YES |
+| noreply@airyatra.co.in | Nor@Air123 | support (mailbox+app) | YES |
 | sales@airyatra.co.in | Sal@Air123 | sales,admin | YES |
 | dr.brajeshptiwari@gmail.com | Customer@123 | customer (real test user) | NO (exempt) |
 OTP EXEMPT roles (never login OTP, even new device/location): customer, pilot, operator, vendor, yacht_owner, cruise_operator, helipad_owner. Employees (admin/ceo/finance/hr/sales/booking/support/cfo) always OTP.
