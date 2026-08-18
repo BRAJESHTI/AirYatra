@@ -3900,3 +3900,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - User decision: TEST PRICING (₹1/₹2/₹5/₹15) intentionally KEPT for continued live testing. MUST restore real pricing before public launch.
 - User decision: ADMIN_RECOVERY_TOKEN intentionally KEPT in .env for now. MUST remove before final production hardening.
 - Health check passed: backend/frontend/mongo running, customer login 200 OK.
+
+## Aug 18, 2026 — 24h Departure Reminders + Refund Flow Verification (iter-74, 11/11 PASS)
+- NEW: `send_departure_reminders_24h` scheduler job (hourly) — friendly email ~24h (10-30h window) before flight/heli/yacht departure. Flags `departure_reminder_24h_sent` (idempotent). Manual trigger: POST /api/scheduler/trigger/departure-reminders (admin). Real Hostinger email verified for yacht YB2026080001.
+- NEW: GET /api/refunds/care-view — read-only refund list + stats for support (customer care) role. Support Dashboard got a "Refunds" tab (SupportRefundsView.js).
+- VERIFIED E2E: customer-cancel policy deduction exact (₹12,000 yacht, >72h → 10% = ₹1,200 deduct → ₹10,800 refundable); refund request visible in Admin, CEO, Finance (/refunds/pending) and Customer Care (/refunds/care-view); customer tracker /refunds/my correct; RBAC (customer 403 on staff endpoints).

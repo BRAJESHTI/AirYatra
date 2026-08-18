@@ -1,0 +1,33 @@
+{
+  "summary": "Iter-74 (both): Customer-cancel refund flow + panel visibility + 24h departure reminder idempotency. Wrote /app/backend/tests/test_iter74_refund_flow.py (11 tests) → 11/11 PASS. Flow verified end-to-end: (1) Customer (customer@airyatra.co.in) POST /api/refunds/customer-cancel {booking_id: cd75547b (YB2026080009, ₹12000 paid yacht, start_date 2027-02-10, ~178 days out) reason:'Change of plans'} → 200, refund_request created with amount_paid=12000, deduction_pct=10.0 (>72h policy branch), deduction_amount=1200.0, refundable_amount=10800.0, status=pending_approval, initiated_by=customer_cancel, booking_ref=YB2026080009. Math EXACTLY matches expected (12000 × 10% = 1200; 12000 − 1200 = 10800). (2) Second customer-cancel on same booking → 400 'Refund request already exists' (idempotent). (3) Customer GET /api/refunds/my returns the request with steps[requested].done=true, steps[approved].done=false, steps[credited].done=false, refundable_amount=10800, deduction_pct=10. (4) GET /api/refunds/pending returns the new request id for admin, finance, AND ceo tokens (all three panels see it). (5) GET /api/refunds/care-view returns the request + stats{pending,approved,rejected,credited} for support role (noreply@airyatra.co.in) AND admin; customer gets 403 (RBAC OK). (6) Customer also gets 403 on /pending. (7) POST /api/scheduler/trigger/departure-reminders as admin returns 200 with emails_sent count; departure_reminder_24h_sent flag remains True on already-sent YB2026080001 (idempotent — flag not un-set, no re-send). FRONTEND: /support dashboard Refunds tab renders SupportRefundsView with stats cards (pending=3, approved=6, credited=3, rejected=0), filter pills, and refunds-table showing new YB2026080009 row at top with ₹12,000 / -₹1,200 (10%) / ₹10,800 / Customer Cancel / Pending Approval — screenshot verified.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter74_refund_flow.py",
+    "/app/test_reports/pytest/iter74.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "refund_approval_routes.py L46-61 _policy_deduction_pct — correctly reads booking.start_date for verticals (falls back to departure_date/travel_date for flights), defaults time to 09:00 IST, computes hours-to-departure and maps to 10/25/50/100% bands. Post-departure boundary (hours<0) returns 100 as documented. Verified for 2027-02-10 → 10% branch OK.",
+    "refund_approval_routes.py L74-78 _create_request — deduction rounded to 2 decimals, refundable clamped to 0 if negative. Good.",
+    "refund_approval_routes.py L216-217 customer_cancel ownership check accepts both customer_id and user_id — matches the mixed schemas across inquiries/bookings/vertical_bookings.",
+    "refund_approval_routes.py L218 dedupe check queries {status: pending_approval OR approved} — prevents double-cancel, verified via test.",
+    "refund_approval_routes.py L363-381 /care-view — grants access to any user with a staff role OR 'support' role; returns full list + tallied stats (pending/approved/rejected/credited, credited counted only when gateway_refund_id present OR manual_processed=true). Support role restricted from staff-only /pending endpoint (returns 403 for customer confirmed).",
+    "SupportRefundsView.js L79 filter pill ids are `refund-filter-pending_approval` / `refund-filter-credited` (raw status keys) — review_request mentions `refund-filter-pending`; not a bug, just a naming note for future test scripts.",
+    "scheduler.py L931-1051 send_departure_reminders_24h — window 10<=hours_left<=30 with date pre-filter on IST +0/+1/+2 dates; sets departure_reminder_24h_sent=True in same collection as the candidate came from → idempotent. Verified: re-trigger on already-flagged YB2026080001 did NOT touch the flag. Note: the DB pre-filter excludes bookings already flagged (`departure_reminder_24h_sent: {$ne: True}`) so per-booking cost on repeat trigger is O(remaining candidates), good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter74_refund_flow.py (new)"
+  ],
+  "success_rate": { "backend": "100% (11/11)", "frontend": "100% (support-refunds-view renders and displays new request with correct amounts)" },
+  "seed_data_creation": "Cancelled 1 seeded paid yacht booking cd75547b-ed2f-4a04-bf35-599133b3ab3b (YB2026080009, ₹12,000) via customer-cancel. Refund request created (status=pending_approval, ₹1,200 deduction, ₹10,800 refundable). Booking status set to cancellation_requested. Real cancellation email sent to customer@airyatra.co.in via Hostinger SMTP (embedded in _send_cancellation_email). Triggered /scheduler/trigger/departure-reminders once (idempotent — no re-send for the previously-flagged YB2026080001).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "customer@airyatra.co.in / Customer@123 (direct login), admin@airyatra.co.in / Adm@Air123, finance@airyatra.co.in / Fin@Air123, ceo@airyatra.co.in / Ceo@Air123, noreply@airyatra.co.in / Nor@Air123 (support role). Staff tokens obtained via services.otp_service.OTPService pattern (same as iter73). Frontend support login used recovery /api/recovery/mint-otp with X-Recovery-Token header + /auth/login/verify-otp then localStorage token injection.",
+  "context_for_next_testing_agent": "Refund request id for YB2026080009 exists in pending_approval state — if next iteration wants to test 2-of-5 OTP approval, mint refund_otps for two DIFFERENT approvers (finance + admin) via POST /refunds/{id}/request-otp then read db.refund_otps.find({user_id, request_id}).code (PLAINTEXT) and POST /refunds/{id}/approve twice. Gateway refund for this booking will land in manual pending (no razorpay_payment_id / no payment_orders row) — expected, not a bug per handoff. Six other seeded paid yacht/heli bookings for customer@airyatra.co.in remain intact (62884cb1 helipad ₹18000, a6c15c39 yacht ₹45000, b623ed2d/ee865d21/e651e367 yachts, and the real-money low-price YB2026080012 ₹15) — do NOT bulk-cancel. YB2026080001 keeps departure_reminder_24h_sent=True (already emailed).",
+  "rca_of_the_issue": "N/A — feature verified working. All acceptance criteria met (policy math exact, 4-panel visibility incl new support care-view, customer tracker with 3-step progress, scheduler idempotency)."
+}

@@ -928,6 +928,129 @@ async def send_boarding_reminders():
 
 
 
+async def send_departure_reminders_24h():
+    """Friendly reminder ~24h (22-26h window) before flight/heli/yacht departure. Runs hourly, once per booking."""
+    from database import get_database_sync
+    from services.email_service import email_service
+    try:
+        db = get_database_sync()
+        if db is None:
+            return 0
+        now = datetime.now(timezone.utc)
+        ist_now = now + timedelta(hours=5, minutes=30)
+        dates = [(ist_now + timedelta(days=d)).strftime("%Y-%m-%d") for d in (0, 1, 2)]
+        candidates = []
+
+        flight_q = {
+            "$and": [
+                {"$or": [{"departure_date": {"$in": dates}}, {"travel_date": {"$in": dates}}]},
+                {"$or": [
+                    {"status": {"$in": ["confirmed", "payment_completed", "in_progress", "passenger_details_filled"]}},
+                    {"payment_status": {"$in": ["paid", "fully_paid", "partially_paid"]}},
+                ]},
+            ],
+            "departure_reminder_24h_sent": {"$ne": True},
+        }
+        for coll in (db.inquiries, db.bookings):
+            for b in await coll.find(flight_q, {"_id": 0}).to_list(200):
+                candidates.append(("flight", coll, b))
+
+        vertical_q = {
+            "start_date": {"$in": dates},
+            "payment_status": "paid",
+            "status": {"$nin": ["cancelled", "cancellation_requested"]},
+            "departure_reminder_24h_sent": {"$ne": True},
+        }
+        for b in await db.vertical_bookings.find(vertical_q, {"_id": 0}).to_list(200):
+            candidates.append(("vertical", db.vertical_bookings, b))
+
+        sent = 0
+        for kind, coll, booking in candidates:
+            try:
+                if kind == "flight":
+                    dep_date = (booking.get("departure_date") or booking.get("travel_date") or "")[:10]
+                    dep_time = (booking.get("departure_time") or booking.get("pickup_time") or booking.get("travel_time") or "09:00")[:5]
+                else:
+                    dep_date = (booking.get("start_date") or "")[:10]
+                    dep_time = "09:00"
+                try:
+                    dep = datetime.fromisoformat(f"{dep_date}T{dep_time}:00+05:30")
+                except Exception:
+                    continue
+                hours_left = (dep - now).total_seconds() / 3600
+                if not (10 <= hours_left <= 30):
+                    continue
+
+                if kind == "vertical":
+                    email = booking.get("customer_email")
+                    name = booking.get("customer_name") or "Traveller"
+                else:
+                    cust = await db.users.find_one(
+                        {"id": booking.get("customer_id") or booking.get("user_id")},
+                        {"_id": 0, "email": 1, "full_name": 1})
+                    email = (cust or {}).get("email")
+                    name = (cust or {}).get("full_name") or "Traveller"
+                if not email:
+                    continue
+
+                number = booking.get("booking_number") or booking.get("inquiry_number") or booking["id"][:8]
+                if kind == "vertical":
+                    vertical = (booking.get("vertical") or "experience").title()
+                    icon = "⛵" if booking.get("vertical") in ("yacht", "cruise", "marine") else "🚁"
+                    what = f"{booking.get('asset_name')} ({vertical})"
+                    where = booking.get("city") or ""
+                else:
+                    icon = "✈️"
+                    what = f"{booking.get('from_location') or booking.get('pickup_location', '')} → {booking.get('to_location') or booking.get('drop_location', '')}"
+                    where = ""
+
+                html = f"""
+                <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+                  <div style="background:linear-gradient(135deg,#0ea5e9,#6366f1);padding:26px;text-align:center;">
+                    <h1 style="margin:0;color:#fff;font-size:22px;">{icon} 24 Hours To Go!</h1>
+                    <p style="margin:6px 0 0;color:#e0f2fe;">Your AirYatra journey departs tomorrow</p>
+                  </div>
+                  <div style="padding:26px;">
+                    <p>Dear {name},</p>
+                    <p>Just a friendly reminder — your booking <b style="color:#38bdf8;">{number}</b> departs <b>tomorrow</b> — about 24 hours from now.</p>
+                    <div style="background:#1e293b;border-radius:10px;padding:16px 18px;margin:16px 0;">
+                      <p style="margin:4px 0;"><b>{'Experience' if kind == 'vertical' else 'Route'}:</b> {what}</p>
+                      {f'<p style="margin:4px 0;"><b>Location:</b> {where}</p>' if where else ''}
+                      <p style="margin:4px 0;"><b>Departure:</b> {dep_date} at {dep_time} IST</p>
+                    </div>
+                    <div style="background:#1e293b;border-radius:10px;padding:14px 18px;margin:16px 0;">
+                      <p style="margin:0 0 6px;"><b>📍 Quick tips:</b></p>
+                      <ul style="margin:0;padding-left:18px;color:#94a3b8;">
+                        <li>Arrive <b>45 minutes early</b> at the boarding point</li>
+                        <li>Carry government photo ID for all passengers</li>
+                        <li>Check the weather and dress comfortably</li>
+                      </ul>
+                    </div>
+                    <p style="color:#64748b;font-size:12px;">We can't wait to host you!<br/>Team AirYatra</p>
+                  </div>
+                </div>"""
+
+                await email_service.send_email(
+                    to_email=email,
+                    subject=f"{icon} 24 Hours To Go — {what} departs tomorrow | AirYatra",
+                    html_body=html)
+                await coll.update_one(
+                    {"id": booking["id"]},
+                    {"$set": {"departure_reminder_24h_sent": True,
+                              "departure_reminder_24h_at": now.isoformat()}})
+                sent += 1
+                logger.info(f"24h departure reminder sent for {number} to {email}")
+            except Exception as e:
+                logger.error(f"24h reminder failed for booking {booking.get('id')}: {e}")
+
+        if sent:
+            logger.info(f"24h departure reminders sent: {sent}")
+        return sent
+    except Exception as e:
+        logger.error(f"send_departure_reminders_24h failed: {e}")
+        return 0
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     
@@ -982,6 +1105,15 @@ def start_scheduler():
         trigger=IntervalTrigger(minutes=10),
         id="auction_ending_reminders",
         name="Auction Ending Watchlist Reminders",
+        replace_existing=True
+    )
+
+    # 24h departure reminders (flights + yacht/marine) every hour
+    scheduler.add_job(
+        send_departure_reminders_24h,
+        trigger=IntervalTrigger(hours=1),
+        id="departure_reminders_24h",
+        name="24h Departure Reminders (Flight/Yacht)",
         replace_existing=True
     )
     

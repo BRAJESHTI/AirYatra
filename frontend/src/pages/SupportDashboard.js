@@ -13,6 +13,7 @@ import AIChatbot from '@/components/admin/AIChatbot';
 import ComplaintAnalytics from '@/components/admin/ComplaintAnalytics';
 import TemplateSettings from '@/components/admin/TemplateSettings';
 import InAppChat from '@/components/shared/InAppChat';
+import SupportRefundsView from '@/components/admin/SupportRefundsView';
 
 // Organized Navigation Structure - 5 Main Categories
 const navGroups = [
@@ -34,6 +35,7 @@ const navGroups = [
       { id: 'all_tickets', label: 'All Tickets', icon: FileText },
       { id: 'my_tickets', label: 'My Tickets', icon: Users },
       { id: 'escalated', label: 'Escalated', icon: AlertTriangle },
+      { id: 'refunds', label: 'Refunds', icon: FileText },
     ]
   },
   {
@@ -111,6 +113,8 @@ function SupportDashboardPage({ user, onLogout }) {
         return <SupportDashboardComp initialStatus="open" />;
       case 'escalated':
         return <SupportDashboardComp initialStatus="escalated" />;
+      case 'refunds':
+        return <SupportRefundsView />;
       case 'complaints':
         return <ComplaintAnalytics />;
       case 'ratings':

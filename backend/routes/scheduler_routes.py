@@ -45,6 +45,14 @@ async def trigger_auto_reassign(current_user: dict = Depends(require_admin)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/trigger/departure-reminders")
+async def trigger_departure_reminders(current_user: dict = Depends(require_admin)):
+    """Manually trigger 24h departure reminders (flights + yacht/marine)"""
+    from scheduler import send_departure_reminders_24h
+    sent = await send_departure_reminders_24h()
+    return {"message": "24h departure reminders triggered", "emails_sent": sent}
+
+
 @router.post("/pause/{job_id}")
 async def pause_job(job_id: str, current_user: dict = Depends(require_admin)):
     """

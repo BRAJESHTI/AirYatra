@@ -360,6 +360,27 @@ async def pending_refunds(user: dict = Depends(get_current_user)):
     return {"requests": reqs, "total": len(reqs)}
 
 
+@router.get("/care-view")
+async def care_refunds_view(user: dict = Depends(get_current_user)):
+    """Customer Care / staff read-only view: all refund requests with status + amounts"""
+    roles = set(user.get("roles", []))
+    if not (_role_of(user) or "support" in roles):
+        raise HTTPException(status_code=403, detail="Staff access required")
+    db = get_database()
+    reqs = await db.refund_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    stats = {"pending": 0, "approved": 0, "rejected": 0, "credited": 0}
+    for r in reqs:
+        if r["status"] == "pending_approval":
+            stats["pending"] += 1
+        elif r["status"] == "rejected":
+            stats["rejected"] += 1
+        elif r["status"] == "approved":
+            stats["approved"] += 1
+            if r.get("gateway_refund_id") or r.get("manual_processed"):
+                stats["credited"] += 1
+    return {"requests": reqs, "total": len(reqs), "stats": stats}
+
+
 @router.get("/failed-gateway")
 async def failed_gateway_refunds(user: dict = Depends(get_current_user)):
     """Approved refunds jinka gateway refund fail/pending hai — Finance/Admin/CEO monitoring"""
