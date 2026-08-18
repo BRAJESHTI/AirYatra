@@ -153,29 +153,8 @@ async def send_pending_notifications():
 
 
 async def cleanup_old_sessions():
-    """
-    Clean up expired sessions and tokens.
-    This runs every hour.
-    """
-    from database import get_database_sync
-    
-    try:
-        db = get_database_sync()
-        if db is None:
-            return
-        
-        # Delete sessions older than 7 days
-        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-        
-        result = await db.sessions.delete_many({
-            "created_at": {"$lt": seven_days_ago.isoformat()}
-        })
-        
-        if result.deleted_count > 0:
-            logger.info(f"Cleaned up {result.deleted_count} old sessions")
-            
-    except Exception as e:
-        logger.error(f"Error in cleanup_old_sessions: {e}")
+    """Deprecated no-op: db.sessions collection is unused anywhere in the app."""
+    return 0
 
 
 async def generate_daily_reports():
@@ -1069,15 +1048,6 @@ def start_scheduler():
         trigger=IntervalTrigger(minutes=5),
         id="send_notifications",
         name="Send Pending Notifications",
-        replace_existing=True
-    )
-    
-    # Cleanup old sessions every hour
-    scheduler.add_job(
-        cleanup_old_sessions,
-        trigger=IntervalTrigger(hours=1),
-        id="cleanup_sessions",
-        name="Cleanup Old Sessions",
         replace_existing=True
     )
     

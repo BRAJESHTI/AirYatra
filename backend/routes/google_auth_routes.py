@@ -43,6 +43,15 @@ async def get_google_auth_settings():
     }
 
 
+def _request_origin(request: Request) -> str:
+    """Environment-agnostic frontend origin from the incoming request (works on preview, prod, custom domains)"""
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    if host:
+        return f"{proto}://{host}"
+    return os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
+
 @router.get("/login")
 async def google_login(request: Request):
     """
@@ -179,15 +188,15 @@ async def google_callback(
             "roles": user.get("roles", ["customer"])
         })
         
-        # Redirect to frontend with token
-        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        # Redirect to frontend with token (origin derived from the request itself)
+        frontend_url = _request_origin(request)
         redirect_url = f"{frontend_url}/auth/google/success?token={access_token}&is_new={is_new_user}"
         
         return RedirectResponse(redirect_url)
         
     except Exception as e:
         logger.error(f"Google auth callback error: {e}")
-        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        frontend_url = _request_origin(request)
         return RedirectResponse(f"{frontend_url}/auth/google/error?message={str(e)}")
 
 @router.post("/verify-token")

@@ -3914,3 +3914,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - `_refund_via_cashfree` in refund_approval_routes.py: on 2nd approval, refunds auto-fire against paid db.cashfree_orders (splits across advance+balance orders, per-order cap, resumable after partial failure, idempotent). Precedence: Razorpay payment_id → Cashfree orders → manual queue (no_payment_id).
 - retry-gateway + approve messages gateway-aware. Failed Cashfree refunds land in /refunds/failed-gateway for retry or mark-processed.
 - Verified: 6 monkeypatched unit scenarios + real HTTP E2E chain (fake CF order → graceful failure path → retry → mark-processed). No real money spent. NOT yet live-tested against a real Cashfree payment.
+
+## Aug 18, 2026 — Production Redeploy Prep (deployment_agent PASS)
+- Fixed AUTH_REDIRECT blocker: google_auth_routes.py callback now derives origin from request headers (_request_origin) instead of FRONTEND_URL env.
+- Removed dead cleanup_old_sessions scheduler job (db.sessions unused anywhere).
+- Live refund finding: preview's ₹15 yacht (YB2026080012) Cashfree orders are ACTIVE/unpaid on real Cashfree API; the paid flag came from a simulated webhook. REAL ₹15 payment lives on PRODUCTION DB. User chose to run live Cashfree refund test on PRODUCTION after redeploy (self-service via UI + Hostinger OTP emails).
