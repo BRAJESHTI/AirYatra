@@ -15,12 +15,27 @@ const LABELS = {
 export default function ServiceCategorySettings() {
   const [cats, setCats] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [pricing, setPricing] = useState({ platform_fee_pct: 0, tax_pct: 0 });
+  const [savingFees, setSavingFees] = useState(false);
 
   useEffect(() => {
     api.get('/verticals/service-categories')
       .then(r => setCats(r.data.categories))
       .catch(() => toast.error('Failed to load service categories'));
+    api.get('/verticals/pricing-config')
+      .then(r => setPricing(r.data))
+      .catch(() => {});
   }, []);
+
+  const saveFees = async () => {
+    setSavingFees(true);
+    try {
+      await api.put('/verticals/admin/pricing-config', pricing);
+      toast.success(`Saved — Platform Fee ${pricing.platform_fee_pct}% + GST ${pricing.tax_pct}% ab har price breakup me lagega`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to save fees');
+    } finally { setSavingFees(false); }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -55,6 +70,33 @@ export default function ServiceCategorySettings() {
       <Button onClick={save} disabled={saving} className="bg-orange-500 hover:bg-orange-600" data-testid="save-service-categories-btn">
         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save Services
       </Button>
+
+      <div className="border-t border-slate-800 pt-4 space-y-3" data-testid="pricing-config-section">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Platform Fee & Taxes</h3>
+          <p className="text-slate-400 text-sm">Ye % har Yacht/Cruise/Helipad price breakup mein customer ko dikhega aur total mein judega.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">AirYatra Platform Fee (%)</label>
+            <input type="number" min="0" max="50" step="0.5" value={pricing.platform_fee_pct}
+              onChange={(e) => setPricing(p => ({ ...p, platform_fee_pct: parseFloat(e.target.value) || 0 }))}
+              className="w-full bg-slate-800 border border-slate-700 text-white h-10 rounded-md px-3"
+              data-testid="platform-fee-input" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">GST / Taxes (%)</label>
+            <input type="number" min="0" max="50" step="0.5" value={pricing.tax_pct}
+              onChange={(e) => setPricing(p => ({ ...p, tax_pct: parseFloat(e.target.value) || 0 }))}
+              className="w-full bg-slate-800 border border-slate-700 text-white h-10 rounded-md px-3"
+              data-testid="gst-input" />
+          </div>
+        </div>
+        <p className="text-amber-400/80 text-xs">⚠️ Example: ₹1,000 booking + {pricing.platform_fee_pct}% fee (₹{(1000 * pricing.platform_fee_pct / 100).toFixed(0)}) + {pricing.tax_pct}% GST = ₹{(1000 * (1 + pricing.platform_fee_pct / 100) * (1 + pricing.tax_pct / 100)).toFixed(0)} total payable</p>
+        <Button onClick={saveFees} disabled={savingFees} className="bg-orange-500 hover:bg-orange-600" data-testid="save-pricing-config-btn">
+          {savingFees ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save Fees & Taxes
+        </Button>
+      </div>
     </div>
   );
 }

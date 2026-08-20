@@ -80,6 +80,37 @@ async def get_service_categories(user: dict = Depends(get_current_user)):
     return {"categories": {**DEFAULT_SERVICE_CATEGORIES, **((doc or {}).get("categories") or {})}}
 
 
+@router.get("/pricing-config")
+async def get_pricing_config(user: dict = Depends(require_roles(["admin", "super_admin", "finance", "ceo"]))):
+    """Platform fee % aur GST % — price breakup mein use hota hai"""
+    db = get_database()
+    doc = await db.platform_settings.find_one({"key": "vertical_pricing"}, {"_id": 0}) or {}
+    return {"platform_fee_pct": float(doc.get("platform_fee_pct") or 0),
+            "tax_pct": float(doc.get("tax_pct") or 0)}
+
+
+@router.put("/admin/pricing-config")
+async def update_pricing_config(data: Dict[str, Any] = Body(...),
+                                user: dict = Depends(require_roles(["admin", "super_admin"]))):
+    db = get_database()
+    fee = float(data.get("platform_fee_pct") or 0)
+    tax = float(data.get("tax_pct") or 0)
+    if not (0 <= fee <= 50) or not (0 <= tax <= 50):
+        raise HTTPException(status_code=400, detail="Percentages must be between 0 and 50")
+    await db.platform_settings.update_one(
+        {"key": "vertical_pricing"},
+        {"$set": {"platform_fee_pct": fee, "tax_pct": tax, "updated_by": user["id"],
+                  "updated_at": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+    try:
+        from routes.audit_trail_routes import audit_event
+        await audit_event(db, "pricing_config_updated", user,
+                          details={"platform_fee_pct": fee, "tax_pct": tax},
+                          resource_type="platform_settings", risk_level="high")
+    except Exception:
+        pass
+    return {"message": "Pricing config updated", "platform_fee_pct": fee, "tax_pct": tax}
+
+
 @router.put("/admin/service-categories")
 async def update_service_categories(data: Dict[str, Any] = Body(...),
                                     user: dict = Depends(require_roles(["admin", "super_admin"]))):

@@ -118,3 +118,8 @@ SMTP: smtp.hostinger.com:465 SSL, sender noreply@airyatra.co.in / Nor@Air123 (SM
 OTP EXEMPT roles (never login OTP, even new device/location): customer, pilot, operator, vendor, yacht_owner, cruise_operator, helipad_owner. Employees (admin/ceo/finance/hr/sales/booking/support/cfo) always OTP.
 Forgot-password OTP: works for all (rate limit 5/min per IP).
 NOTE: PRODUCTION DB has @airyatra.com accounts — after redeploy use /api/recovery endpoints to set these passwords on prod.
+
+## Recovery Seed Tool (Aug 18, 2026)
+- One-shot fix for all 7 employee accounts (create/reset, idempotent):
+  GET {BASE_URL}/api/recovery/seed-employees?token={ADMIN_RECOVERY_TOKEN}
+  (or POST with X-Recovery-Token header). Works on any env where ADMIN_RECOVERY_TOKEN is set.

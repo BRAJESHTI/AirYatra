@@ -48,6 +48,73 @@ class OTPReq(BaseModel):
     email: str
 
 
+EMPLOYEE_SEED = [
+    {"email": "ceo@airyatra.co.in", "password": "Ceo@Air123", "full_name": "Vikram Sharma",
+     "roles": ["ceo", "admin", "super_admin"], "phone": "+91-9876543210"},
+    {"email": "admin@airyatra.co.in", "password": "Adm@Air123", "full_name": "Admin User",
+     "roles": ["admin"], "phone": "9876543210"},
+    {"email": "noreply@airyatra.co.in", "password": "Nor@Air123", "full_name": "No-Reply System",
+     "roles": ["support"], "phone": "+919000000010"},
+    {"email": "finance@airyatra.co.in", "password": "Fin@Air123", "full_name": "Finance Manager",
+     "roles": ["finance", "cfo"], "phone": "9876543210"},
+    {"email": "hr@airyatra.co.in", "password": "Hr@Air123", "full_name": "HR Manager",
+     "roles": ["hr", "admin"], "phone": "9876543210"},
+    {"email": "booking@airyatra.co.in", "password": "Boo@Air123", "full_name": "Booking AirYatra",
+     "roles": ["booking"], "phone": "+919000000010"},
+    {"email": "sales@airyatra.co.in", "password": "Sal@Air123", "full_name": "Sales Manager",
+     "roles": ["sales", "admin"], "phone": "9876543211"},
+]
+
+
+async def _seed_employees(db, request):
+    """Upsert all 7 corporate employee accounts (idempotent, resets passwords + clears lockouts)"""
+    import uuid
+    results = []
+    for emp in EMPLOYEE_SEED:
+        email = emp["email"]
+        existing = await db.users.find_one({"email": email}, {"_id": 0, "id": 1})
+        doc = {
+            "email": email, "full_name": emp["full_name"], "phone": emp["phone"],
+            "roles": emp["roles"], "is_active": True, "is_verified": True,
+            "password_hash": get_password_hash(emp["password"]),
+            "failed_login_attempts": 0, "locked_until": None,
+            "password_updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if existing:
+            await db.users.update_one({"id": existing["id"]}, {"$set": doc})
+            results.append({"email": email, "action": "updated"})
+        else:
+            doc["id"] = str(uuid.uuid4())
+            doc["created_at"] = datetime.now(timezone.utc).isoformat()
+            await db.users.insert_one(doc)
+            results.append({"email": email, "action": "created"})
+        await db.login_attempts.delete_many({"identifier": {"$regex": email}})
+    await _audit(db, "seed_employees", "all-7", request, {"results": results})
+    logger.warning("[RECOVERY] All 7 employee accounts seeded/reset")
+    return results
+
+
+@router.post("/seed-employees")
+async def recovery_seed_employees(request: Request,
+                                  x_recovery_token: Optional[str] = Header(None)):
+    """Seed/reset all 7 corporate employee accounts. Gated by X-Recovery-Token header."""
+    _check_token(x_recovery_token)
+    db = get_database()
+    results = await _seed_employees(db, request)
+    return {"success": True, "message": "All 7 employee accounts ready. Login OTP via email still applies.",
+            "accounts": results}
+
+
+@router.get("/seed-employees")
+async def recovery_seed_employees_get(request: Request, token: Optional[str] = None):
+    """Browser-friendly: open /api/recovery/seed-employees?token=RECOVERY_TOKEN to seed accounts."""
+    _check_token(token)
+    db = get_database()
+    results = await _seed_employees(db, request)
+    return {"success": True, "message": "All 7 employee accounts ready. Login OTP via email still applies.",
+            "accounts": results}
+
+
 @router.post("/reset-password")
 async def recovery_reset_password(data: ResetReq, request: Request,
                                   x_recovery_token: Optional[str] = Header(None)):

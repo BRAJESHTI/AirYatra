@@ -3941,3 +3941,9 @@ PAYPAL_MODE=sandbox  # or 'live'
 - Fixed deployment blocker: seed_corporate_demo.py destructive delete_many replaced with idempotent guard.
 - .gitignore keeps .env ignored INTENTIONALLY (user instruction: never commit secrets; prod deploys fine without git-tracked .env). Deployment agent flags this — documented as accepted deviation.
 - GitHub branches (BRAJESHTI-patch-1, conflict_060826_1448) NOT accessible from workspace (no remote). Workspace main = latest complete superset. User advised: Save to Github → new branch 'airyatra-production' (originals untouched).
+
+## Aug 18, 2026 — Prod Login Fix Tool + Fee Configuration
+- NEW /api/recovery/seed-employees (POST header-token + GET ?token= browser-friendly): idempotent upsert of all 7 employee accounts (create-if-missing, password reset, lockout clear, recovery_audit). Purpose: production DB me accounts missing hone par one-shot fix after redeploy.
+- NEW pricing config: GET /verticals/pricing-config + PUT /verticals/admin/pricing-config (admin, 0-50% validation, audit). SET on preview: platform_fee_pct=5, tax_pct=18. Quote verified: ₹30+₹100 → fee ₹6.5 + GST ₹24.57 = ₹161.07.
+- Admin UI: GlobalSettings > Booking Services now has 'Platform Fee & Taxes' section (platform-fee-input, gst-input, save-pricing-config-btn) with live example calc.
+- PROD ISSUE (user reported): airyatra.co.in not updated after deploy + all 7 employee logins failing. Root cause: prod DB separate; accounts/passwords not present there. Fix path given: redeploy → open seed-employees URL on prod → login. Domain staleness may need Emergent Support if emergent.host URL updated but custom domain not.
