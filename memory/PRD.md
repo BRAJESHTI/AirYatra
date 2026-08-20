@@ -3936,3 +3936,8 @@ PAYPAL_MODE=sandbox  # or 'live'
 - My Trips: info chips (service type, payment status, paid, balance, refund status).
 - App.js: customer routes consolidated to /customer + /customer/* wildcard.
 - Testing agent fixed: AuctionDashboard.js missing useRef import (crashed /booking).
+
+## Aug 18, 2026 — Deploy Prep + GitHub Branch Merge Guidance
+- Fixed deployment blocker: seed_corporate_demo.py destructive delete_many replaced with idempotent guard.
+- .gitignore keeps .env ignored INTENTIONALLY (user instruction: never commit secrets; prod deploys fine without git-tracked .env). Deployment agent flags this — documented as accepted deviation.
+- GitHub branches (BRAJESHTI-patch-1, conflict_060826_1448) NOT accessible from workspace (no remote). Workspace main = latest complete superset. User advised: Save to Github → new branch 'airyatra-production' (originals untouched).

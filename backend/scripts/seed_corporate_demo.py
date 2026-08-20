@@ -44,13 +44,12 @@ async def main():
     else:
         print("user exists", ADMIN_EMAIL)
 
-    # 2. Wipe previous demo docs
-    await db.corporates.delete_many({"corporate_id": CORP_ID})
-    await db.corporate_employees.delete_many({"corporate_id": CORP_ID})
-    await db.department_budgets.delete_many({"corporate_id": CORP_ID})
-    await db.travel_policies.delete_many({"corporate_id": CORP_ID})
-    await db.corporate_bookings.delete_many({"corporate_id": CORP_ID})
-    await db.booking_approvals.delete_many({"corporate_id": CORP_ID})
+    # 2. Idempotent guard: skip if demo corporate already seeded
+    existing_corp = await db.corporates.find_one({"corporate_id": CORP_ID})
+    if existing_corp:
+        print(f"Demo corporate {CORP_ID} already exists. Skipping seed (idempotent).")
+        client.close()
+        return
 
     # 3. Corporate account (approved)
     await db.corporates.insert_one({
